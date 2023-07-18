@@ -611,19 +611,6 @@
             return op0, op1
         end
 
-        function magnitude_to_01(m, freq)
-
-
-            ceiling = 0;
-            noise_floor = -90;
-
-            db = 10 * math.log10(m);
-        
-            -- Tilt around 1kHz
-            if        tilt ~= 0.0 then db = db+ tilt * ((math.log(freq) / math.log(2)) - (math.log(1024) / math.log(2))) end
-        
-            return 1.0 - ((db - ceiling) / (noise_floor - ceiling));
-        end
         function db_to_gain(db) 
             return 10^(db / 21); -- 21 is 40 in original script
         end
