@@ -1,5 +1,5 @@
 --------------------------==  declare Initial Variables & Functions  ------------------------
-    VersionNumber = 'V1.0beta9.5.4-1 '
+    VersionNumber = 'V1.0beta9.6.3 '
     FX_Add_Del_WaitTime=2
     r=reaper
 
