@@ -40,7 +40,7 @@ function demo.PushStyle()
             r.ImGui_PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(reaper.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
+        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
             'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 
@@ -77,7 +77,7 @@ function demo.EachEnum(enum)
         enum_cache = {}
         cache[enum] = enum_cache
 
-        for func_name, func in pairs(reaper) do
+        for func_name, func in pairs(r) do
             local enum_name = func_name:match(('^ImGui_%s_(.+)$'):format(enum))
             if enum_name then
                 table.insert(enum_cache, { func(), enum_name })
@@ -199,11 +199,11 @@ function ShowStyleEditor()
 
         local Alpha, DisabledAlpha = r.ImGui_StyleVar_Alpha(), r.ImGui_StyleVar_DisabledAlpha()
         rv, app.style_editor.style.vars[Alpha] = r.ImGui_DragDouble(ctx, 'Global Alpha',
-            app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f')                                                                                     -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
+            app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
         r.ImGui_SameLine(ctx)
         rv, app.style_editor.style.vars[DisabledAlpha] = r.ImGui_DragDouble(ctx, 'Disabled Alpha',
             app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); r.ImGui_SameLine(ctx); demo.HelpMarker(
-        'Additional alpha multiplier for disabled items (multiply over current value of Alpha).')
+            'Additional alpha multiplier for disabled items (multiply over current value of Alpha).')
         r.ImGui_PopItemWidth(ctx)
 
 
@@ -507,7 +507,8 @@ function Show_KBShortcutEditor()
     if not ctx then ctx = r.ImGui_CreateContext('Shortcut Editor') end
     if not KBEditorIsOpen then r.ImGui_SetNextWindowSize(ctx, 500, 800) end
     open, OpenKBEditor = r.ImGui_Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor,
-        r.ImGui_WindowFlags_NoCollapse() + r.ImGui_WindowFlags_NoDocking() --[[ +r.ImGui_WindowFlags_AlwaysAutoResize() ]])
+        r.ImGui_WindowFlags_NoCollapse() +
+        r.ImGui_WindowFlags_NoDocking() --[[ +r.ImGui_WindowFlags_AlwaysAutoResize() ]])
 
 
     if open then
@@ -539,7 +540,7 @@ function Show_KBShortcutEditor()
         MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
             HintToolTip(
-            'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
+                'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
         end
 
 

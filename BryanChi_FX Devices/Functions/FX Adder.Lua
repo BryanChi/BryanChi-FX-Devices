@@ -313,7 +313,7 @@ local function frame()
 
     -- DRAG AND DROP HERE
     for i = 1, 5 do
-        reaper.ImGui_Selectable(ctx, "TRACK " .. i, false, nil, 50, size_hIn)
+        r.ImGui_Selectable(ctx, "TRACK " .. i, false, nil, 50, size_hIn)
         AddFX_drop(i)
     end
 end
