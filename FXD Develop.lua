@@ -111,6 +111,12 @@ PadAdd= r.ImGui_Key_KeypadAdd(); PadDecimal =r.ImGui_Key_KeypadDecimal();PadDivi
 KB_Shortcut = {}    
 Command_ID = {}
 
+--[[ AllAvailableKeys = {}
+for name, func in pairs(reaper) do
+  name = name:match('^ImGui_Key_(.+)')
+  if name then AllAvailableKeys[name] = func() end
+end ]]
+
 
 --------Pro C ------------------------
 ProC={Width=280;  Pt={R={m={};M={}};L={m={};M={}}}}
@@ -737,7 +743,7 @@ if visible  then
                     --[[ local commandID = r.NamedCommandLookup('_BR_FOCUS_ARRANGE_WND')
                     local CommandTxt =  r.CF_GetCommandText(0, commandID) -- 0 prob means arrange window, it's the section drop down from action window's top right corner
                     r.Main_OnCommand(commandID, 0) ]]
-                    msg('A '..v.. '\n')
+
                     if Command_ID[i] then 
                         local Cmd_Num = r.NamedCommandLookup(Command_ID[i])
                         r.Main_OnCommand(Cmd_Num, 0)
@@ -762,7 +768,6 @@ if visible  then
 
 
                 if Mods == Mod and  r.ImGui_IsKeyPressed(ctx,  AllAvailableKeys[AftrLastPlus] )  then 
-                    msg('B'..v..'\n')
                     if Command_ID[i] then 
                         local Cmd_Num = r.NamedCommandLookup(Command_ID[i])
                         r.Main_OnCommand(Cmd_Num, 0)
