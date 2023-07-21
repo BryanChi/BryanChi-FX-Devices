@@ -1,3 +1,5 @@
+-- @noindex
+
   function DropFXtoLayerNoMove(FXGUID_RackMixer , LayerNum, DragFX_ID)
         DragFX_ID = math.max(DragFX_ID,0)
         local function SetPinMappings(i)

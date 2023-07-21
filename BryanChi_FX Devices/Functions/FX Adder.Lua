@@ -1,3 +1,5 @@
+-- @noindex
+
 
     -------------------FX List by Sexan--------------------
 
@@ -236,7 +238,6 @@
                         end
 
                         if r.ImGui_Selectable(ctx,ShownName or filtered_fx[i] or '## emptyName', DRAG_FX == i) then
-
                             if filtered_fx[i] then 
                                 InsertFX (filtered_fx[i])
                                 r.ImGui_CloseCurrentPopup(ctx)
