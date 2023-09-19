@@ -63,6 +63,8 @@
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" -- GET DIRECTORY FOR REQUIRE
 require("BryanChi_FX Devices/Helpers/Sexan_FX_Browser")
 
+---@alias Style "Pro C 2"|"Pro C Thresh"|"Custom Image"|"Invisible"|"FX Layering"|'up-down arrow'
+---@alias Position "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = 'V1.0beta10.3.2 '
@@ -554,6 +556,7 @@ Array = {}
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 
 function GeneralFunctions()
+    ---@param str string
     function GetFileExtension(str)
         return str:match("^.+(%..+)$")
     end
@@ -904,6 +907,8 @@ function GeneralFunctions()
     function TableMaxVal()
     end
 
+    ---@param T table
+    ---@return integer
     function tablelength(T)
         local count = 0
         for _ in pairs(T) do count = count + 1 end
@@ -1222,6 +1227,17 @@ function GeneralFunctions()
         if WrapPosX then r.ImGui_PopTextWrapPos(ctx) end
     end
 
+    ---@param ctx ImGui_Context
+    ---@param label string
+    ---@param labeltoShow string
+    ---@param p_value integer
+    ---@param v_min number
+    ---@param v_max number
+    ---@param FX_Idx number
+    ---@param P_Num number
+    ---@return boolean ActiveAny
+    ---@return boolean ValueChanged
+    ---@return integer p_value
     function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
         r.ImGui_SetNextItemWidth(ctx, 40)
         local radius_outer = 10
@@ -1322,6 +1338,11 @@ function GeneralFunctions()
         return ActiveAny, value_changed, p_value
     end
 
+    ---@param DL ImGui_DrawList
+    ---@param CenterX number
+    ---@param CenterY number
+    ---@param size number
+    ---@param clr number rgba color
     function DrawTriangle(DL, CenterX, CenterY, size, clr)
         local Cx = CenterX
         local Cy = CenterY
@@ -1329,6 +1350,11 @@ function GeneralFunctions()
         r.ImGui_DrawList_AddTriangleFilled(DL, Cx, Cy - S, Cx - S, Cy, Cx + S, Cy, clr or 0x77777777ff)
     end
 
+    ---@param DL ImGui_DrawList
+    ---@param CenterX number
+    ---@param CenterY number
+    ---@param size number
+    ---@param clr number rgba color
     function DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
         local Cx = CenterX
         local Cy = CenterY
@@ -1336,10 +1362,20 @@ function GeneralFunctions()
         r.ImGui_DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
     end
 
+    ---Same Line
+    ---@param xpos? number offset_from_start_xIn
+    ---@param pad? number spacingIn
     function SL(xpos, pad)
         r.ImGui_SameLine(ctx, xpos, pad)
     end
 
+    ---@param w number
+    ---@param h number
+    ---@param icon string
+    ---@param BGClr? number
+    ---@param center? string
+    ---@param Identifier? string
+    ---@return boolean
     function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
         r.ImGui_PushFont(ctx, FontAwesome)
         if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
@@ -1369,16 +1405,22 @@ function GeneralFunctions()
         if r.ImGui_IsItemActivated(ctx) then return true end
     end
 
+    ---@param f integer
+    ---@return integer
     function getClr(f)
         return r.ImGui_GetStyleColor(ctx, f)
     end
 
+    ---@param CLR number
+    ---@param HowMuch number
+    ---@return integer
     function Change_Clr_A(CLR, HowMuch)
         local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(CLR)
         local A = SetMinMax(A + HowMuch, 0, 1)
         return r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
     end
 
+    ---@param Clr number
     function Generate_Active_And_Hvr_CLRs(Clr)
         local ActV, HvrV
         local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(Clr)
@@ -1704,6 +1746,25 @@ function CopyImageFile(filename, subfolder)
 end
 
 function LayoutEditorFunctions()
+    ---@param ctx ImGui_Context
+    ---@param label string
+    ---@param labeltoShow string
+    ---@param p_value number
+    ---@param v_min number
+    ---@param v_max number
+    ---@param Fx_P integer
+    ---@param FX_Idx integer
+    ---@param P_Num number
+    ---@param Style string
+    ---@param Radius number
+    ---@param item_inner_spacing number[]
+    ---@param Disabled string
+    ---@param LblTextSize integer
+    ---@param Lbl_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
+    ---@param V_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
+    ---@param ImgPath string
+    ---@return boolean
+    ---@return number
     function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
                      item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)
         if Style == 'Pro C' then r.gmem_attach('ParamValues') end
@@ -1861,6 +1922,9 @@ function LayoutEditorFunctions()
 
             local txtX = center[1] - TextW / 2; local txtY = pos[2] + radius_outer * 2 + item_inner_spacing[2]
 
+            ---@param Label string
+            ---@param offset number
+            ---@param Rect_offset? number
             local function AutoBtn(Label, offset, Rect_offset)
                 if labeltoShow == Label then
                     MouseX, MouseY = reaper.ImGui_GetMousePos(ctx)
@@ -2274,6 +2338,26 @@ function LayoutEditorFunctions()
         return value_changed, p_value
     end
 
+    ---@param ctx ImGui_Context
+    ---@param label string
+    ---@param labeltoShow string
+    ---@param p_value number
+    ---@param v_min number
+    ---@param v_max number
+    ---@param Fx_P integer
+    ---@param FX_Idx integer
+    ---@param P_Num number
+    ---@param SliderStyle string
+    ---@param Sldr_Width number
+    ---@param item_inner_spacing number[]
+    ---@param Disable string | nil
+    ---@param Vertical string
+    ---@param GrabSize number
+    ---@param BtmLbl string
+    ---@param SpacingBelow number
+    ---@param Height number
+    ---@return boolean value_changed
+    ---@return number p_value
     function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, SliderStyle, Sldr_Width,
                        item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)
         local PosL, PosR, PosT, PosB
@@ -2681,6 +2765,20 @@ function LayoutEditorFunctions()
         return value_changed, p_value
     end
 
+    ---@param ctx ImGui_Context
+    ---@param LT_Track MediaTrack
+    ---@param FX_Idx integer
+    ---@param Label string
+    ---@param WhichPrm integer
+    ---@param Options "Get Options"|nil
+    ---@param Width number
+    ---@param Style Style
+    ---@param FxGUID string
+    ---@param Fx_P integer
+    ---@param OptionValues number[]
+    ---@param LabelOveride string|nil
+    ---@param CustomLbl string|nil
+    ---@param Lbl_Pos Position
     function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
                       LabelOveride, CustomLbl, Lbl_Pos)
         LabelValue = Label .. 'Value'
@@ -2779,6 +2877,9 @@ function LayoutEditorFunctions()
             r.ImGui_SetCursorPos(ctx, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0))
         end
 
+        ---@param ctx ImGui_Context
+        ---@return boolean
+        ---@return string
         local function begincombo(ctx)
             if FP.V_FontSize then r.ImGui_PushFont(ctx, _G[V_Font]) end
             if Width or FX[FxGUID][Fx_P].Combo_W then
@@ -4884,6 +4985,10 @@ function ModulationFunctions()
         r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
     end
 
+    ---@param FxGUID string
+    ---@param Fx_P integer
+    ---@param P_Num number
+    ---@param FX_Idx integer
     function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
         if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) then
             if FX[FxGUID][Fx_P].ModAMT then
@@ -5116,6 +5221,8 @@ function ModulationFunctions()
 end
 
 function ThemeEditorFunctions()
+    --- add a doc/helper tooltip
+    ---@param desc string
     function demo.HelpMarker(desc)
         r.ImGui_TextDisabled(ctx, '(?)')
         if r.ImGui_IsItemHovered(ctx) then
@@ -5186,6 +5293,8 @@ function ThemeEditorFunctions()
         end
     end
 
+    ---@param enum string
+    ---@return function
     function demo.EachEnum(enum)
         local enum_cache = cache[enum]
         if not enum_cache then
@@ -5209,6 +5318,11 @@ function ThemeEditorFunctions()
         end
     end
 
+    ---@param mode openmode
+    ---@param filename string
+    ---@param folder? string
+    ---@return file*?
+    ---@return string
     function CallFile(mode, filename, folder)
         local dir_path
         if folder then
@@ -5779,6 +5893,8 @@ end
 
 local os = r.GetOS()
 
+---@param fp string file path
+---@return string
 function GetFileContext(fp)
     local str = "\n"
     -- RETURN ANY STRING JUST FOR SCRIPT NOT TO CRASH IF PATH DOES NOT EXIST
