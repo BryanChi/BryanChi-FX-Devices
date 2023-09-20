@@ -1,3 +1,5 @@
+-- @noindex
+
 
 
 ProQ3 = {LT_EQBand={};GainDrag = {};Band_UseState={};DspRange={};SpectrumExist={};}
