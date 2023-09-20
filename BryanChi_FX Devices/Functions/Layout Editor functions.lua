@@ -1,3 +1,6 @@
+-- @noindex
+
+
 function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, FontSize, FxGUID)
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
@@ -2071,6 +2074,9 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     -- r.ImGui_DrawList_AddLine(drawlist,SliderCurPos,T,SliderModPos or 1,T, EightColors.HighSat_MidBright[Macro],3)
 
 
+    local Midsat, MidBright = EightColors.MidSat[Macro], EightColors.HighSat_MidBright[Macro]
+    if FP.ModBypass == Macro then Midsat, MidBright = 0x88888866, 0xaaaaaa66 end
+
     if AddIndicator and FP.ModAMT[Macro] ~= 0 then
         if Trk[TrkID].Mod[Macro].Type == 'env' then
             r.gmem_attach('ParamValues')
@@ -2084,9 +2090,9 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
 
             if Vertical ~= 'Vert' then
                 r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, ModPosWithAmt or 1, B,
-                    EightColors.MidSat[Macro], Rounding)
+                    Midsat, Rounding)
             else
-                r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt, EightColors.MidSat[Macro],
+                r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt, Midsat,
                     Rounding)
             end
         else
@@ -2101,19 +2107,18 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
                 end
                 if Vertical ~= 'Vert' then
                     r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, ModPosWithAmt or 1, B,
-                        EightColors.MidSat[Macro], Rounding)
+                        Midsat, Rounding)
                 else
-                    r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt, EightColors.MidSat
-                        [Macro], Rounding)
+                    r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt, Midsat, Rounding)
                 end
             end
         end
     end
     if Vertical ~= 'Vert' then
         r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, SliderModPos or 1, T,
-            EightColors.HighSat_MidBright[Macro], Rounding)
+            MidBright, Rounding)
     else
-        r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, L, SliderModPos, EightColors.HighSat_MidBright[Macro],
+        r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, L, SliderModPos, MidBright,
             Rounding)
     end
 end
