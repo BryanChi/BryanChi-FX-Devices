@@ -7,9 +7,11 @@ require("BryanChi_FX Devices/Functions/FX Adder")
 require("BryanChi_FX Devices/Functions/FX Layering")
 require("BryanChi_FX Devices/Functions/Modulation")
 require("BryanChi_FX Devices/Functions/Theme Editor Functions")
+require("BryanChi_FX Devices/Functions/Filesytem_utils.lua")
 
----@alias Style "Pro C 2"|"Pro C Thresh"|"Custom Image"|"Invisible"|"FX Layering"|'up-down arrow'
----@alias Position "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
+dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
+local os_separator = package.config:sub(1, 1)
+
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = 'V1.0beta10.3.2 '
@@ -501,89 +503,12 @@ Array = {}
 
 
 ------------------------------------------------------------------------------------------------------------
-dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 
-function CopyFile(old_path, new_path)
-    local old_file = io.open(old_path, "rb")
-    local new_file = io.open(new_path, "wb")
-    local old_file_sz, new_file_sz = 0, 0
-    if not old_file or not new_file then
-        return false
-    end
-    while true do
-        local block = old_file:read(2 ^ 13)
-        if not block then
-            old_file_sz = old_file:seek("end")
-            break
-        end
-        new_file:write(block)
-    end
-    old_file:close()
-    new_file_sz = new_file:seek("end")
-    new_file:close()
-    return new_file_sz == old_file_sz
-end
 
-function CopyImageFile(filename, subfolder)
-    if filename then
-        local UserOS = r.GetOS()
-        local slash = '%\\'
-        if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-            slash = '/'
-        end
-        local index = filename:match('^.*()' .. slash)
-        local SUBFOLDER = subfolder or ''
-        local NewFileName = r.GetResourcePath() ..
-            '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' .. SUBFOLDER .. filename:sub(index)
-        local relativePath = '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' ..
-            SUBFOLDER .. filename:sub(index)
-        local Files = scandir('/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' .. SUBFOLDER)
-        if FindExactStringInTable(Files, NewFileName) then
-            return NewFileName, relativePath
-        else
-            CopyFile(filename, NewFileName)
-            return NewFileName, relativePath
-        end
-    end
-end
-
-local os = r.GetOS()
-
----@param fp string file path
----@return string
-function GetFileContext(fp)
-    local str = "\n"
-    -- RETURN ANY STRING JUST FOR SCRIPT NOT TO CRASH IF PATH DOES NOT EXIST
-    if not fp then return str end
-    local f = io.open(fp, 'r')
-    if f then
-        str = f:read('a')
-        f:close()
-    end
-    return str
-end
 
 FX_LIST, CAT = GetFXTbl() -- this function is in my script
 local LAST_USED_FX
 
-function FindFXIDName(tbl, id, js)
-    for i = 1, #tbl do
-        if js then
-            -- JS PLUGINS CAN HAVE ONLY PART OF IDENTIFIER IN THE STRING
-            if tbl[i].id:find(id) then return tbl[i].name end
-        else
-            if tbl[i].id == id then return tbl[i].name end
-        end
-    end
-end
-
-function InTbl(tbl, val)
-    for i = 1, #tbl do
-        if tbl[i].name == val then return tbl[i].fx end
-    end
-end
-
-local os_separator = package.config:sub(1, 1)
 
 
 

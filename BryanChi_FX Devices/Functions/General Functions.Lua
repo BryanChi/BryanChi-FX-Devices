@@ -59,11 +59,11 @@ function MouseCursorBusy(enable, title)
     local hwnd = reaper.JS_Window_FindTop(title, true)
     local hwnd = reaper.JS_Window_FromPoint(mx, my)
 
-    if enable then     -- set cursor to hourglass
+    if enable then -- set cursor to hourglass
         reaper.JS_Mouse_SetCursor(Invisi_Cursor)
         -- block app from changing mouse cursor
         reaper.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
-    else     -- set cursor to arrow
+    else -- set cursor to arrow
         reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(32512))
         -- allow app to change mouse cursor
     end
@@ -258,10 +258,10 @@ end
 
 function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     -- input --
-    local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0)     -- L chan
-    local Target_R, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 1)     -- R chan
-    local L, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)                   -- L chan
-    local R, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 1)                   -- R chan
+    local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0) -- L chan
+    local Target_R, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 1) -- R chan
+    local L, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)               -- L chan
+    local R, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 1)               -- R chan
 
 
     if L ~= Target_L then
@@ -296,10 +296,10 @@ function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
 
 
     -- output --
-    local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 1, 0)     -- L chan
-    local Target_R, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 1, 1)     -- R chan
-    local L, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 1, 0)                   -- L chan
-    local R, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 1, 1)                   -- R chan
+    local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 1, 0) -- L chan
+    local Target_R, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 1, 1) -- R chan
+    local L, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 1, 0)               -- L chan
+    local R, _ = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 1, 1)               -- R chan
     if L ~= Target_L then
         r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, Target_L, 0)
     end
@@ -311,11 +311,11 @@ end
 function AddFX_HideWindow(track, fx_name, Position)
     local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
     if val & 4 == 0 then
-        r.TrackFX_AddByName(track, fx_name, 0, Position)       -- add fx
+        r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
     else
-        r.SNM_SetIntConfigVar("fxfloat_focus", val & (~4))     -- temporarily disable Auto-float newly created FX windows
-        r.TrackFX_AddByName(track, fx_name, 0, Position)       -- add fx
-        r.SNM_SetIntConfigVar("fxfloat_focus", val|4)          -- re-enable Auto-float
+        r.SNM_SetIntConfigVar("fxfloat_focus", val & (~4)) -- temporarily disable Auto-float newly created FX windows
+        r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
+        r.SNM_SetIntConfigVar("fxfloat_focus", val|4)      -- re-enable Auto-float
     end
 end
 
@@ -329,7 +329,7 @@ function ToggleCollapseAll(FX_Idx)
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             FX[FXGUID[i]].Collapse = true
         end
-    else     -- if all is collapsed
+    else -- if all is collapsed
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             FX[FXGUID[i]].Collapse = false
             FX.WidthCollapse[FXGUID[i]] = nil
@@ -427,15 +427,15 @@ function has_value(tab, val)
 end
 
 function findDuplicates(t)
-    seen = {}           --keep record of elements we've seen
-    duplicated = {}     --keep a record of duplicated elements
+    seen = {}       --keep record of elements we've seen
+    duplicated = {} --keep a record of duplicated elements
     if t then
         for i, v in ipairs(t) do
             element = t[i]
-            if seen[element] then              --check if we've seen the element before
-                duplicated[element] = true     --if we have then it must be a duplicate! add to a table to keep track of this
+            if seen[element] then          --check if we've seen the element before
+                duplicated[element] = true --if we have then it must be a duplicate! add to a table to keep track of this
             else
-                seen[element] = true           -- set the element to seen
+                seen[element] = true       -- set the element to seen
             end
         end
         if #duplicated > 1 then
@@ -545,7 +545,7 @@ function HideCursor(time)
     end
     mx, my = reaper.GetMousePosition()
     window = reaper.JS_Window_FromPoint(mx, my)
-    release_time = reaper.time_precise() + (time or 1)     -- hide/freeze mouse for 3 secs.
+    release_time = reaper.time_precise() + (time or 1) -- hide/freeze mouse for 3 secs.
 
     local function Hide()
         if reaper.time_precise() < release_time then
@@ -592,7 +592,7 @@ function HideCursorTillMouseUp(MouseBtn)
 end
 
 function CreateWindowBtn_Vertical(Name, FX_Idx)
-    local rv = r.ImGui_Button(ctx, Name, 25, 220)     -- create window name button
+    local rv = r.ImGui_Button(ctx, Name, 25, 220) -- create window name button
     if rv and Mods == 0 then
         openFXwindow(LT_Track, FX_Idx)
     elseif rv and Mods == Shift then
@@ -630,7 +630,7 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
 
     if rpt then
         for i = 0, rpt - 1, 1 do
-            if Now > TimeBegin + dur * i and Now < TimeBegin + dur * (i + 0.5) then     -- second blink
+            if Now > TimeBegin + dur * i and Now < TimeBegin + dur * (i + 0.5) then -- second blink
                 HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                     Foreground)
             end
@@ -824,7 +824,7 @@ end
 ---@param center? string
 ---@param Identifier? string
 ---@return boolean
-function IconBtn(w, h, icon, BGClr, center, Identifier)     -- Y = wrench
+function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     r.ImGui_PushFont(ctx, FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
     end
@@ -911,7 +911,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     local Nm = ChangeFX_Name(FX_Name)
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
-    if FXsBL == 'Has Blacklist saved to FX' then     -- if there's FX-specific BL settings
+    if FXsBL == 'Has Blacklist saved to FX' then -- if there's FX-specific BL settings
         --restore FX specific Blacklist settings
         for i = 0, PrmCount - 4, 1 do
             FX[FxGUID].PrmList[i] = FX[FxGUID].PrmList[i] or {}
@@ -920,9 +920,9 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
                 false)
             if FX[FxGUID].PrmList[i].BL == 'Blacklisted' then FX[FxGUID].PrmList[i].BL = true else FX[FxGUID].PrmList[i].BL = nil end
         end
-    else                             --if there's no FX-specific BL settings saved
+    else                         --if there's no FX-specific BL settings saved
         local _, whether = r.GetProjExtState(0, 'FX Devices - Preset Morph', 'Whether FX has Blacklist' .. (Nm or ''))
-        if whether == 'Yes' then     -- if there's Project-specific BL settings
+        if whether == 'Yes' then -- if there's Project-specific BL settings
             for i = 0, PrmCount - 4, 1 do
                 FX[FxGUID].PrmList[i] = FX[FxGUID].PrmList[i] or {}
                 local rv, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
@@ -933,7 +933,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
                 else
                 end
             end
-        else     -- Check if need to restore Global Blacklist settings
+        else -- Check if need to restore Global Blacklist settings
             file, file_path = CallFile('r', Nm .. '.ini', 'Preset Morphing')
             if file then
                 local L = get_lines(file_path)
@@ -1000,7 +1000,7 @@ function DeleteFX(FX_Idx)
         end
     end
 
-    if FX[FXGUID[FX_Idx]].InWhichBand then     -- if FX is in band split
+    if FX[FXGUID[FX_Idx]].InWhichBand then -- if FX is in band split
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             if FX[FXGUID[i]].FXsInBS then
                 if tablefind(FX[FXGUID[i]].FXsInBS, FXGUID[FX_Idx]) then
