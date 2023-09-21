@@ -1,3 +1,4 @@
+demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
 function demo.HelpMarker(desc)
@@ -205,7 +206,7 @@ function ShowStyleEditor()
 
         local Alpha, DisabledAlpha = r.ImGui_StyleVar_Alpha(), r.ImGui_StyleVar_DisabledAlpha()
         rv, app.style_editor.style.vars[Alpha] = r.ImGui_DragDouble(ctx, 'Global Alpha',
-            app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f')     -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
+            app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
         r.ImGui_SameLine(ctx)
         rv, app.style_editor.style.vars[DisabledAlpha] = r.ImGui_DragDouble(ctx, 'Disabled Alpha',
             app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); r.ImGui_SameLine(ctx); demo

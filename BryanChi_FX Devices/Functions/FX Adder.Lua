@@ -1,16 +1,10 @@
 -------------------FX List by Sexan--------------------
 
-local max = math.max
-local MAX_FX_SIZE = 0
-
-local max = math.max
-local MAX_FX_SIZE = 0
-
 function FX_NAME(str, i)
     local vst_name
     if str:find('=<.+>') then -- if it's AU
-        local maker = str:sub(0, str:find(':%s') - 1)
-        local ActualName = str:sub(str:find(':%s') + 2, str:find('=<.+>') - 1)
+        -- local maker = str:sub(0, str:find(':%s') - 1)
+        -- local ActualName = str:sub(str:find(':%s') + 2, str:find('=<.+>') - 1)
         --vst_name = 'AU:'.. ActualName..' ('.. maker..')'
         vst_name = 'AU:' .. str:gsub('=<.+>', '')
     elseif str:find('=%x+%|') then

@@ -1,4 +1,6 @@
-package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" -- GET DIRECTORY FOR REQUIRE
+---@type string
+CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
+package.path = CurrentDirectory .. "?.lua;"
 require("BryanChi_FX Devices.Helpers.Sexan_FX_Browser")
 require("BryanChi_FX Devices.Functions.General Functions")
 require("BryanChi_FX Devices.Functions.EQ functions")
@@ -7,7 +9,7 @@ require("BryanChi_FX Devices.Functions.FX Adder")
 require("BryanChi_FX Devices.Functions.FX Layering")
 require("BryanChi_FX Devices.Functions.Modulation")
 require("BryanChi_FX Devices.Functions.Theme Editor Functions")
-require("BryanChi_FX Devices.Functions.Filesytem_utils")
+require("BryanChi_FX Devices.Functions.Filesystem_utils")
 require("BryanChi_FX Devices.Constants")
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
@@ -33,7 +35,7 @@ local FX_LIST, CAT = GetFXTbl()
 
 ---@type ViewPort
 VP = {} -- viewport info
-demo = {}
+-- demo = {}
 app = {}
 enum_cache = {}
 cache = {}
@@ -732,8 +734,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
     function attachImagesAndFonts()
         Img = {
-            Trash = r.ImGui_CreateImage(r.GetResourcePath() ..
-                '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/trash.png')
+            Trash = r.ImGui_CreateImage(CurrentDirectory ..
+                '/BryanChi_FX Devices/Images/trash.png')
         }
 
 
