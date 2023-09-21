@@ -71,7 +71,7 @@ FX_Add_Del_WaitTime = 2
 r = reaper
 
 
-justatestVar=123
+
 
 
 
@@ -1027,6 +1027,12 @@ function GeneralFunctions()
             if OutlineClr then r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
         end
         if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
+    end
+
+    function InvisiBtn (ctx, x, y, str, w, h )
+        r.ImGui_SetCursorScreenPos(ctx, x,y)
+        local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
+        return rv
     end
 
     function PC(ctx, itm, clr)
@@ -8640,6 +8646,7 @@ function loop()
                         end
 
 
+
                         local function AddNode(x, y, ID)
                             local w, h = 15, 15
                             InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
@@ -8672,11 +8679,12 @@ function loop()
                                 end
 
 
-                                local NormX, NormY = GetNormV(ID)
-                                ChangeLFO(13, NormX, 9)
-                                ChangeLFO(13, NormY, 10)
-                                ChangeLFO(13, ID, 11)
+                                    local NormX, NormY = GetNormV(ID)
+                                    ChangeLFO(13, ID, 11)
+                                    ChangeLFO(13, NormX, 9)
+                                    ChangeLFO(13, NormY, 10)
 
+                                ChangeLFO(13, #LFO_Nodes.x, 12) -- tells how many nodes there are
 
 
 
