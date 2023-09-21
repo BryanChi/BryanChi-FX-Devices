@@ -1,4 +1,6 @@
 function ThemeEditorFunctions()
+    --- add a doc/helper tooltip
+    ---@param desc string
     function demo.HelpMarker(desc)
         r.ImGui_TextDisabled(ctx, '(?)')
         if r.ImGui_IsItemHovered(ctx) then
@@ -69,6 +71,8 @@ function ThemeEditorFunctions()
         end
     end
 
+    ---@param enum string
+    ---@return function
     function demo.EachEnum(enum)
         local enum_cache = cache[enum]
         if not enum_cache then
@@ -92,6 +96,11 @@ function ThemeEditorFunctions()
         end
     end
 
+    ---@param mode openmode
+    ---@param filename string
+    ---@param folder? string
+    ---@return file*?
+    ---@return string
     function CallFile(mode, filename, folder)
         local dir_path
         if folder then
@@ -197,7 +206,7 @@ function ThemeEditorFunctions()
 
             local Alpha, DisabledAlpha = r.ImGui_StyleVar_Alpha(), r.ImGui_StyleVar_DisabledAlpha()
             rv, app.style_editor.style.vars[Alpha] = r.ImGui_DragDouble(ctx, 'Global Alpha',
-                app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f')                                                                             -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
+                app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
             r.ImGui_SameLine(ctx)
             rv, app.style_editor.style.vars[DisabledAlpha] = r.ImGui_DragDouble(ctx, 'Disabled Alpha',
                 app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); r.ImGui_SameLine(ctx); demo
@@ -538,7 +547,7 @@ function ThemeEditorFunctions()
             MyText('(?)', nil, 0xffffff66)
             if r.ImGui_IsItemHovered(ctx) then
                 HintToolTip(
-                'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
+                    'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
             end
 
 
@@ -659,5 +668,3 @@ function ThemeEditorFunctions()
         end
     end
 end
-
-ThemeEditorFunctions()

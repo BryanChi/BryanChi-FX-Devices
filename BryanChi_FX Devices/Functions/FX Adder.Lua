@@ -212,8 +212,10 @@ function FXAdderFunctions()
                 else
                     table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
                 end
-                for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                        true) end
+                for i, v in pairs(Trk[TrkID].PreFX) do
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
+                        true)
+                end
             elseif SpcInPost then
                 if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
                 table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
@@ -368,12 +370,16 @@ function FXAdderFunctions()
 
 
 
-    function AddFX_Sexan(Dest)
+    function AddFX_Sexan(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
         dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan')
-        Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
+        if ClrLbl then
+            Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
+        end
         Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
+
+
         if dropped then
-            local FX_Idx = FX_Idx
+            local FX_Idx = Dest
             if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
             r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
             local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -383,7 +389,7 @@ function FXAdderFunctions()
             if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
                 DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
             end
-            Dvdr.Clr[ClrLbl], Dvdr.Width[TblIdxForSpace] = nil, 0
+            Dvdr.Clr[ClrLbl or ''], Dvdr.Width[TblIdxForSpace] = nil, 0
 
             if SpcIsInPre then
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
@@ -391,21 +397,25 @@ function FXAdderFunctions()
                 else
                     table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
                 end
-                for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                        true) end
-            elseif SpcInPost then
+                for i, v in pairs(Trk[TrkID].PreFX) do
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v, true)
+                end
+            elseif SpcIDinPost then
+                msg(SpcIDinPost)
+
                 if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
                 table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
-                -- InsertToPost_Src = FX_Idx + offset+2
+
                 for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                        true)
                 end
             elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
                 DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
 
 
-
+            r.ImGui_CloseCurrentPopup(ctx)
             FX_Idx_OpenedPopup = nil
         end
     end

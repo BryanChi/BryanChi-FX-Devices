@@ -1,6 +1,6 @@
 -- @noindex
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
-
+ultraschall = ultraschall
 
 function ModulationFunctions()
     function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Category,
@@ -66,16 +66,16 @@ function ModulationFunctions()
 
         --ParmModTable = ultraschall.CreateDefaultParmModTable()
         --[[ParmModTable["PARAM_NR"]                    =PARAM_Num
-            ParmModTable["PARAM_TYPE"]                  = ""
-            ParmModTable["WINDOW_ALTERED"]              =true
+        ParmModTable["PARAM_TYPE"]                  = ""
+        ParmModTable["WINDOW_ALTERED"]              =true
 
-            ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"]  = false
-            ParmModTable["MIDIPLINK"]              = false
-            ParmModTable["PARMLINK"]               =false
-            ParmModTable["MIDIPLINK_BUS"]          =nil
-            ParmModTable["MIDIPLINK_CHANNEL"]      =nil
-            ParmModTable["MIDIPLINK_MIDICATEGORY"] =nil
-            ParmModTable["MIDIPLINK_MIDINOTE"]     =nil ]]
+        ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"]  = false
+        ParmModTable["MIDIPLINK"]              = false
+        ParmModTable["PARMLINK"]               =false
+        ParmModTable["MIDIPLINK_BUS"]          =nil
+        ParmModTable["MIDIPLINK_CHANNEL"]      =nil
+        ParmModTable["MIDIPLINK_MIDICATEGORY"] =nil
+        ParmModTable["MIDIPLINK_MIDINOTE"]     =nil ]]
         whetherValidUnlink = ultraschall.IsValidParmModTable(ParmModTable)
         retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumToBeMod)
         FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
@@ -89,7 +89,7 @@ function ModulationFunctions()
         retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
     end
 
-    function Link_Macros_to_ImGui_Sliders(trackNumber)
+    function Link_Macros_to_ImGui_Sliders(TrackNumber)
         ParmModTable = ultraschall.CreateDefaultParmModTable()
         retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumber)
         FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
@@ -110,6 +110,26 @@ function ModulationFunctions()
         r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
         r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
     end
+
+    ---@param FxGUID string
+    ---@param Fx_P integer
+    ---@param P_Num number
+    ---@param FX_Idx integer
+    function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
+        if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) then
+            if FX[FxGUID][Fx_P].ModAMT then
+                for Mc = 1, 8, 1 do
+                    if FX[FxGUID][Fx_P].ModAMT[Mc] then
+                        Unlink_Parm(LT_TrackNum, FX_Idx, P_Num)
+                        FX[FxGUID][Fx_P].ModAMT[Mc] = 0
+                    end
+                end
+            end
+        end
+    end
+
+    MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
+
 
     function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type)
         local FP = FX[FxGUID][Fx_P]
@@ -134,17 +154,16 @@ function ModulationFunctions()
 
 
         if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and Mods == 0 then
-            if #FP.ModAMT == 1 then -- if there's only one Modulation assigned to param..
-                for M, v in ipairs(MacroNums) do
-                    if FP.ModAMT[M] then
-                        Trk.Prm.Assign = FP.WhichCC
-                        AssigningMacro = M
+            for M, v in ipairs(MacroNums) do
+                if FP.ModAMT[M] then
+                    Trk.Prm.Assign = FP.WhichCC
+                    AssigningMacro = M
 
-                        r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
-                        r.gmem_write(6, FP.WhichCC)
-                    end
-                    PM.DragOnModdedPrm = true
+
+                    r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
+                    r.gmem_write(6, FP.WhichCC)
                 end
+                PM.DragOnModdedPrm = true
             end
         elseif r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and Mods == Shift then
             for M, v in ipairs(MacroNums) do
@@ -161,7 +180,8 @@ function ModulationFunctions()
 
         if DecideShortOrLongClick == FP and Dur then
             if r.ImGui_IsMouseReleased(ctx, 1) then
-                if Dur < 0.14 then                      ---- if short right click
+                if Dur < 0.14 then
+                    ---- if short right click
                     if FP.ModBypass then
                         r.gmem_write(5, BypassingMacro) --tells jsfx which macro is user tweaking
                         r.gmem_write(6, FP.WhichCC)
@@ -254,9 +274,9 @@ function ModulationFunctions()
         end
         if TrkID ~= TrkID_End then
             r.gmem_write(3, Trk[TrkID].ModPrmInst or 0)
-            if FP.ModAMT then
+            if FP.ModAMT and FP.WhichCC then
                 for M = 1, 8, 1 do
-                    r.gmem_write(1000 * M + CC, FP.ModAMT[M] or 0)
+                    r.gmem_write(1000 * M + FP.WhichCC, FP.ModAMT[M] or 0)
                 end
             end
         end
@@ -264,7 +284,7 @@ function ModulationFunctions()
         local Vertical
         if Type == 'Vert' then Vertical = 'Vert' end
 
-        -- msg(AssigningMacro or 'nil')
+
         if --[[Right Dragging to adjust Mod Amt]] Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMacro then
             local Id = FxGUID .. Trk.Prm.Assign
             local M = AssigningMacro
@@ -298,39 +318,30 @@ function ModulationFunctions()
 
 
         if Type ~= 'knob' and FP.ModAMT then
+            local offset = 0
             for M, v in ipairs(MacroNums) do
-                if FP.ModAMT[M] then
+                if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
                     --if Modulation has been assigned to params
                     local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
                     local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                     --- indicator of where the param is currently
-                    if not FX[FxGUID][Fx_P].V then FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            P_Num) end
+                    if not FX[FxGUID][Fx_P].V then
+                        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                            P_Num)
+                    end
+
+
 
                     DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,
-                        FX[FxGUID][Fx_P].V, Vertical, FP)
+                        FX[FxGUID][Fx_P].V, Vertical, FP, offset)
                     Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
                     ParamHasMod_Any = true
+                    offset = offset + OffsetForMultipleMOD
                 end
             end -- of reapeat for every macro
         end
 
         return Tweaking
     end
-
-    function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-        if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) then
-            if FX[FxGUID][Fx_P].ModAMT then
-                for Mc = 1, 8, 1 do
-                    if FX[FxGUID][Fx_P].ModAMT[Mc] then
-                        Unlink_Parm(LT_TrackNum, FX_Idx, P_Num)
-                        FX[FxGUID][Fx_P].ModAMT[Mc] = 0
-                    end
-                end
-            end
-        end
-    end
 end
-
-ModulationFunctions()
