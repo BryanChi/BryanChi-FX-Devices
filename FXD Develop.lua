@@ -10719,13 +10719,24 @@ function loop()
                                     PrmFilter = r.ImGui_CreateTextFilter(PrmFilterTxt)
                                     if r.ImGui_BeginPopup(ctx, 'Add Parameter' .. FxGUID, r.ImGui_WindowFlags_AlwaysVerticalScrollbar()) then
                                         local CheckBox, rv = {}, {}
-                                        if r.ImGui_Button(ctx, 'Add all parameters', -1) then
-                                            for i = 1, r.TrackFX_GetNumParams(LT_Track, FX_Idx), 1 do
-                                                local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
-                                                CheckBox[i - 1] = true
-                                                if not IsPrmAlreadyAdded() then
-                                                    StoreNewParam(FxGUID, P_Name, i - 1, FX_Idx, true)
-                                                    SyncTrkPrmVtoActualValue()
+                                        if r.ImGui_Button(ctx, 'Add all parameters', -1) then 
+                                            for i = 0, r.TrackFX_GetNumParams(LT_Track, FX_Idx)-1, 1 do
+
+                                                local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i))
+
+                                                if not FX[FxGUID][i+1] then 
+                                                    StoreNewParam(FxGUID, P_Name, i , FX_Idx, true)
+                                                else
+                                                    local RptPrmFound
+                                                    for I = 1 ,  #FX[FxGUID]  , 1 do 
+
+                                                        if FX[FxGUID][I].Num == i then RptPrmFound = true  end
+                                                    end
+
+                                                    if not RptPrmFound then 
+                                                        StoreNewParam(FxGUID, P_Name, i  , FX_Idx, true)
+                                                        SyncTrkPrmVtoActualValue()
+                                                    end
                                                 end
                                             end
                                         end
