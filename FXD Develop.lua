@@ -8,6 +8,7 @@ require("BryanChi_FX Devices/Functions/FX Layering")
 require("BryanChi_FX Devices/Functions/Modulation")
 require("BryanChi_FX Devices/Functions/Theme Editor Functions")
 require("BryanChi_FX Devices/Functions/Filesytem_utils.lua")
+require("BryanChi_FX Devices/Constants.lua")
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
@@ -28,9 +29,10 @@ function msg(m)
 end
 
 PluginScript = {}
-CAT = {}
-local LAST_USED_FX
-VP = {}
+local FX_LIST, CAT = GetFXTbl()
+
+---@type ViewPort
+VP = {} -- viewport info
 demo = {}
 app = {}
 enum_cache = {}
@@ -226,101 +228,6 @@ Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_W = 160, Dvdr_Wid
 
 
 -----------ShortCut-----------
-AllAvailableKeys = {
-    ['0'] = r.ImGui_Key_0(),
-    ['1'] = r.ImGui_Key_1(),
-    ['2'] = r.ImGui_Key_2(),
-    ['3'] = r.ImGui_Key_3(),
-    ['4'] = r.ImGui_Key_4(),
-    ['5'] = r.ImGui_Key_5(),
-    ['6'] = r.ImGui_Key_6(),
-    ['7'] = r.ImGui_Key_7(),
-    ['8'] = r.ImGui_Key_8(),
-    ['9'] = r.ImGui_Key_9(),
-    A = r.ImGui_Key_A(),
-    B = r.ImGui_Key_B(),
-    C = r.ImGui_Key_C(),
-    D = r.ImGui_Key_D(),
-    E = r.ImGui_Key_E(),
-    F = r.ImGui_Key_F(),
-    G = r.ImGui_Key_G(),
-    H = r.ImGui_Key_H(),
-    I = r.ImGui_Key_I(),
-    J = r.ImGui_Key_J(),
-    K = r.ImGui_Key_K(),
-    L = r.ImGui_Key_L(),
-    M = r.ImGui_Key_M(),
-    N = r.ImGui_Key_N(),
-    O = r.ImGui_Key_O(),
-    P = r.ImGui_Key_P(),
-    Q = r.ImGui_Key_Q(),
-    R = r.ImGui_Key_R(),
-    S = r.ImGui_Key_S(),
-    T = r.ImGui_Key_T(),
-    U = r.ImGui_Key_U(),
-    V = r.ImGui_Key_V(),
-    W = r.ImGui_Key_W(),
-    X = r.ImGui_Key_X(),
-    Y = r.ImGui_Key_Y(),
-    Z = r.ImGui_Key_Z(),
-    Esc = r.ImGui_Key_Escape(),
-    F1 = r.ImGui_Key_F1(),
-    F2 = r.ImGui_Key_F2(),
-    F3 = r.ImGui_Key_F3(),
-    F4 = r.ImGui_Key_F4(),
-    F5 = r.ImGui_Key_F5(),
-    F6 = r.ImGui_Key_F6(),
-    F7 = r.ImGui_Key_F7(),
-    F8 = r.ImGui_Key_F8(),
-    F9 = r.ImGui_Key_F9(),
-    F10 = r.ImGui_Key_F10(),
-    F11 = r.ImGui_Key_F11(),
-    F12 = r.ImGui_Key_F12(),
-    Apostrophe = r.ImGui_Key_Apostrophe(),
-    Backslash = r.ImGui_Key_Backslash(),
-    Backspace = r.ImGui_Key_Backspace(),
-    Comma = r.ImGui_Key_Comma(),
-    Delete = r.ImGui_Key_Delete(),
-    DownArrow = r.ImGui_Key_DownArrow(),
-    Enter = r.ImGui_Key_Enter(),
-    End = r.ImGui_Key_End(),
-    Equal = r.ImGui_Key_Equal(),
-    GraveAccent = r.ImGui_Key_GraveAccent(),
-    Home = r.ImGui_Key_Home(),
-    ScrollLock = r.ImGui_Key_ScrollLock(),
-    Insert = r.ImGui_Key_Insert(),
-    Minus = r.ImGui_Key_Minus(),
-    LeftArrow = r.ImGui_Key_LeftArrow(),
-    LeftBracket = r.ImGui_Key_LeftBracket(),
-    Period = r.ImGui_Key_Period(),
-    PageDown = r.ImGui_Key_PageDown(),
-    PageUp = r.ImGui_Key_PageUp(),
-    Pause = r.ImGui_Key_Pause(),
-    RightBracket = r.ImGui_Key_RightBracket(),
-    RightArrow = r.ImGui_Key_RightArrow(),
-    SemiColon = r.ImGui_Key_Semicolon(),
-    Slash = r.ImGui_Key_Slash(),
-    Space = r.ImGui_Key_Space(),
-    Tab = r.ImGui_Key_Tab(),
-    UpArrow = r.ImGui_Key_UpArrow(),
-    Pad0 = r.ImGui_Key_Keypad0(),
-    Pad1 = r.ImGui_Key_Keypad1(),
-    Pad2 = r.ImGui_Key_Keypad2(),
-    Pad3 = r.ImGui_Key_Keypad3(),
-    Pad4 = r.ImGui_Key_Keypad4(),
-    Pad5 = r.ImGui_Key_Keypad5(),
-    Pad6 = r.ImGui_Key_Keypad6(),
-    Pad7 = r.ImGui_Key_Keypad7(),
-    Pad8 = r.ImGui_Key_Keypad8(),
-    Pad9 = r.ImGui_Key_Keypad9(),
-    PadAdd = r.ImGui_Key_KeypadAdd(),
-    PadDecimal = r.ImGui_Key_KeypadDecimal(),
-    PadDivide = r.ImGui_Key_KeypadDivide(),
-    PadEnter = r.ImGui_Key_KeypadEnter(),
-    PadEqual = r.ImGui_Key_KeypadEqual(),
-    PadMultiply = r.ImGui_Key_KeypadMultiply(),
-    PadSubtract = r.ImGui_Key_KeypadSubtract(),
-}
 
 KB_Shortcut = {}
 Command_ID = {}
@@ -506,7 +413,6 @@ Array = {}
 
 
 
-FX_LIST, CAT = GetFXTbl() -- this function is in my script
 local LAST_USED_FX
 
 
@@ -1166,7 +1072,6 @@ function loop()
 
 
     local Viewport = r.ImGui_GetWindowViewport(ctx)
-
     VP.w, VP.h     = r.ImGui_Viewport_GetSize(Viewport)
     VP.x, VP.y     = r.ImGui_GetCursorScreenPos(ctx)
 
@@ -1230,7 +1135,8 @@ function loop()
         if LT_Track == nil then
             local Viewport = r.ImGui_GetWindowViewport(ctx)
 
-            r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2, 0xffffffff,
+            r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2,
+                0xffffffff,
                 'Select a track to start')
         else
             function GetAllInfoNeededEachLoop()
@@ -1251,7 +1157,8 @@ function loop()
                 IsRBtnHeld             = r.ImGui_IsMouseDown(ctx, 1)
                 Mods                   = r.ImGui_GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
                 IsRBtnClicked          = r.ImGui_IsMouseClicked(ctx, 1)
-                LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0), LT_FX_Number or 0)
+                LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0),
+                    LT_FX_Number or 0)
                 TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
                 Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
                 LBtnDrag               = r.ImGui_IsMouseDragging(ctx, 0)
@@ -1263,7 +1170,10 @@ function loop()
 
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
-                if not IsPrmAlreadyAdded(true) then StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true) end
+                if not IsPrmAlreadyAdded(true) then
+                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                        true)
+                end
                 r.SetExtState('FXD', 'Record last touch', '', false)
             end
 
@@ -1296,7 +1206,8 @@ function loop()
                     local JoinerID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i])
                     FX[SplittrID] = FX[SplittrID] or {}
                     FX[SplittrID].AttachToJoiner = JoinerID
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID, JoinerID,
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID,
+                        JoinerID,
                         true)
                 elseif v:find('FXD Gain Reduction Scope') then
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, AddFX.Pos[i])
@@ -1395,7 +1306,8 @@ function loop()
 
             if PM.DIY_TrkID[TrkID] == nil then
                 PM.DIY_TrkID[TrkID] = math.random(100000000, 999999999)
-                r.SetProjExtState(0, 'FX Devices', 'Track GUID Number for jsfx' .. TrkID, PM.DIY_TrkID[TrkID])
+                r.SetProjExtState(0, 'FX Devices', 'Track GUID Number for jsfx' .. TrkID,
+                    PM.DIY_TrkID[TrkID])
             end
 
             if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_D()) and Mods == Shift + Alt then
@@ -1520,7 +1432,10 @@ function loop()
                     end
                 end ]]
 
-                if not IsPrmAlreadyAdded(true) then StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true) end
+                if not IsPrmAlreadyAdded(true) then
+                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                        true)
+                end
             end
 
 
@@ -1623,7 +1538,10 @@ function loop()
                             TimeNow = r.time_precise()
                         end
                     end
-                    if not RptPrmFound then StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true) end
+                    if not RptPrmFound then
+                        StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                            true)
+                    end
                 end
             else
                 TryingToAddExistingPrm_Cont = nil
@@ -1739,7 +1657,8 @@ function loop()
                     r.ImGui_PushItemWidth(ctx, -FLT_MIN)
                     MacroNameEdited, I.Name = reaper.ImGui_InputText(ctx, '##', I.Name or 'Macro ' .. i)
                     if MacroNameEdited then
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name, true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name,
+                            true)
                     end
 
                     if IsMacroActive then
@@ -1841,7 +1760,8 @@ function loop()
                     if I.Name == 'Macro ' .. i then I.Name = 'Env ' .. i end
                     MacroNameEdited, I.Name = reaper.ImGui_InputText(ctx, '##', I.Name or 'Env ' .. i)
                     if MacroNameEdited then
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name, true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name,
+                            true)
                     end
                     if (r.ImGui_IsItemClicked(ctx, 1) or RCat or RCrel) and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'Env' .. i .. 'Menu')
@@ -1933,7 +1853,8 @@ function loop()
                         elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
                             if AssigningMacro then AssigningMacro = nil else AssigningMacro = i end
                         elseif r.ImGui_IsItemDeactivated(ctx) then
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St ..
+                            r.GetSetMediaTrackInfo_String(LT_Track,
+                                'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St ..
                                 ' Val', S[St], true)
                         end
 
@@ -1984,7 +1905,8 @@ function loop()
                                         r.gmem_write(5, i)
                                         r.gmem_write(110, Trk[TrkID].SEQL[i])
                                         r.gmem_write(111, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length',
+                                        r.GetSetMediaTrackInfo_String(LT_Track,
+                                            'P_EXT: Macro ' .. i .. ' SEQ Length',
                                             Trk[TrkID].SEQL[i], true)
                                     end
                                 end
@@ -2225,7 +2147,8 @@ function loop()
                                 r.gmem_write(4, 11) ---tells jsfx macro type = Follower, and user is adjusting gain
                                 r.gmem_write(5, i)
                                 r.gmem_write(9, m.Gain / 100)
-                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' Follower Gain', m.Gain,
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' Follower Gain',
+                                    m.Gain,
                                     true)
                             end
 
@@ -2785,7 +2708,8 @@ function loop()
                                 FXRack = r.TrackFX_AddByName(LT_Track, 'FXD (Mix)RackMixer', 0, -1000 - FX_Idx)
                                 local RackFXGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
-                                ChanSplitr = r.TrackFX_AddByName(LT_Track, 'FXD Split to 32 Channels', 0, -1000 - FX_Idx)
+                                ChanSplitr = r.TrackFX_AddByName(LT_Track, 'FXD Split to 32 Channels', 0,
+                                    -1000 - FX_Idx)
                                 local SplitrGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
                                 Lyr.SplitrAttachTo[SplitrGUID] = RackFXGUID
                                 r.SetProjExtState(0, 'FX Devices', 'SplitrAttachTo' .. SplitrGUID, RackFXGUID)
@@ -2806,7 +2730,8 @@ function loop()
                                     local _, FX_Name = reaper.TrackFX_GetFXName(LT_Track, F)
                                     if string.find(FX_Name, 'FXD Split to 32 Channels') ~= nil then
                                         FX_Layr_Inst                       = FX_Layr_Inst + 1
-                                        Lyr.SpltrID[FX_Layr_Inst .. TrkID] = r.TrackFX_GetFXGUID(LT_Track, FX_Idx - 1)
+                                        Lyr.SpltrID[FX_Layr_Inst .. TrkID] = r.TrackFX_GetFXGUID(LT_Track,
+                                            FX_Idx - 1)
                                     end
                                 end
 
@@ -2960,10 +2885,12 @@ function loop()
                         end
                     end
                     for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                            true)
                     end
                     for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '', true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '',
+                            true)
                     end
                     if not DontMove then
                         if FX_Idx ~= RepeatTimeForWindows and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
@@ -3002,11 +2929,13 @@ function loop()
                     r.Undo_BeginBlock()
                     table.remove(Trk[TrkID].PreFX, tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]))
                     for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '', true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '',
+                            true)
                     end
                     table.remove(Trk[TrkID].PostFX, tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
                     for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                            true)
                     end
                     if FX_Idx ~= RepeatTimeForWindows then
                         if DragFX_ID > FX_Idx then
@@ -3166,7 +3095,8 @@ function loop()
                         for i = 0, Sel_Track_FX_Count - 1, 1 do
                             if FX[FXGUID[i]].FXsInBS then -- i is Band Splitter
                                 table.remove(FX[FXGUID[i]].FXsInBS, tablefind(FX[FXGUID[i]].FXsInBS, FXGUID[DragFX_ID]))
-                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FXGUID[DragFX_ID],
+                                r.GetSetMediaTrackInfo_String(LT_Track,
+                                    'P_EXT: FX is in which BS' .. FXGUID[DragFX_ID],
                                     '', true)
                                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FXGUID
                                     [DragFX_ID], '', true)
@@ -3463,8 +3393,11 @@ function loop()
 
             MacroPos = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0)
             local ReSpectrumPos = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, 0)
-            if MacroPos ~= -1 and MacroPos ~= 0 then                                                                        -- if macro exists on track, and Macro is not the 1st fx
-                if FX.Win_Name[0] ~= 'JS: FXD Macros' then r.TrackFX_CopyToTrack(LT_Track, MacroPos, LT_Track, 0, true) end -- move it to 1st slot
+            if MacroPos ~= -1 and MacroPos ~= 0 then -- if macro exists on track, and Macro is not the 1st fx
+                if FX.Win_Name[0] ~= 'JS: FXD Macros' then
+                    r.TrackFX_CopyToTrack(LT_Track, MacroPos,
+                        LT_Track, 0, true)
+                end -- move it to 1st slot
             end
 
 
@@ -3568,7 +3501,8 @@ function loop()
                             r.ImGui_BeginGroup(ctx)
 
                             FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
-                            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx); local FxGUID = FXGUID[FX_Idx];
+                            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx); local FxGUID = FXGUID
+                                [FX_Idx];
                             local FxNameS = FX.Win_Name_S[FX_Idx]
                             local Hide
                             FX.DL = r.ImGui_GetWindowDrawList(ctx)
@@ -3593,10 +3527,12 @@ function loop()
                                     local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
                                     for i = 0, PrmCount - 4, 1 do
                                         local _, name = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
-                                        local Prm_Val, minval, maxval = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                                        local Prm_Val, minval, maxval = r.TrackFX_GetParamNormalized(LT_Track,
+                                            FX_Idx, i)
                                         if AB == 'A' then
                                             if DontStoreCurrentVal ~= 'Dont' then FX[FxGUID].MorphA[i] = Prm_Val end
-                                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph A' .. i .. FxGUID,
+                                            r.GetSetMediaTrackInfo_String(LT_Track,
+                                                'P_EXT: FX Morph A' .. i .. FxGUID,
                                                 FX[FxGUID].MorphA[i], true)
                                             if LinkCC then
                                                 Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, 160,
@@ -3605,7 +3541,8 @@ function loop()
                                         else
                                             if DontStoreCurrentVal ~= 'Dont' then FX[FxGUID].MorphB[i] = Prm_Val end
                                             if FX[FxGUID].MorphB[i] then
-                                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph B' .. i ..
+                                                r.GetSetMediaTrackInfo_String(LT_Track,
+                                                    'P_EXT: FX Morph B' .. i ..
                                                     FxGUID, FX[FxGUID].MorphB[i], true)
                                                 if LinkCC then
                                                     Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, 160,
@@ -3798,7 +3735,8 @@ function loop()
                                             for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
                                                 Unlink_Parm(LT_TrackNum, FX_Idx, i)
                                             end
-                                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID,
+                                            r.GetSetMediaTrackInfo_String(LT_Track,
+                                                'P_EXT: FXs Morph_ID' .. FxGUID,
                                                 FX[FxGUID].Morph_ID, true)
                                             FX[FxGUID].Unlink = true
                                             r.GetSetMediaTrackInfo_String(LT_Track,
@@ -3829,14 +3767,16 @@ function loop()
                                         FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
                                         for i = 0, Ct - 4, 1 do --get param names
                                             FX[FxGUID].PrmList[i]      = FX[FxGUID].PrmList[i] or {}
-                                            local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
+                                            local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx,
+                                                i)
                                             FX[FxGUID].PrmList[i].Name = name
                                         end
                                     end
 
                                     if r.ImGui_Selectable(ctx, 'Hide Morph Slider') then
                                         FX[FxGUID].MorphHide = true
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID, 'true',
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
+                                            'true',
                                             true)
                                     end
 
@@ -4412,7 +4352,8 @@ function loop()
                                         local CheckBox, rv = {}, {}
                                         if r.ImGui_Button(ctx, 'Add all parameters', -1) then
                                             for i = 1, r.TrackFX_GetNumParams(LT_Track, FX_Idx), 1 do
-                                                local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
+                                                local P_Name = select(2,
+                                                    r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
                                                 CheckBox[i - 1] = true
                                                 if not IsPrmAlreadyAdded() then
                                                     StoreNewParam(FxGUID, P_Name, i - 1, FX_Idx, true)
@@ -4447,7 +4388,8 @@ function loop()
                                         end
 
                                         for i = 1, Ct, 1 do
-                                            local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
+                                            local P_Name = select(2,
+                                                r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
                                             if r.ImGui_TextFilter_PassFilter(PrmFilter, P_Name) then
                                                 rv[i], CheckBox[i - 1] = r.ImGui_Checkbox(ctx, (i - 1) .. '. ' .. P_Name,
                                                     CheckBox[i - 1])
@@ -4606,7 +4548,8 @@ function loop()
                                             FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
                                             for i = 0, Ct - 4, 1 do --get param names
                                                 FX[FxGUID].PrmList[i]      = FX[FxGUID].PrmList[i] or {}
-                                                local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
+                                                local rv, name             = r.TrackFX_GetParamName(LT_Track,
+                                                    FX_Idx, i)
                                                 FX[FxGUID].PrmList[i].Name = name
                                             end
                                             r.ImGui_CloseCurrentPopup(ctx)
@@ -4844,7 +4787,8 @@ function loop()
                                                         r.ImGui_SetNextItemWidth(ctx, -FLT_MIN)
 
                                                         local i = LT_ParamNum or 0
-                                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
+                                                            FX_Idx, i)
                                                         if not P.FormatV_A and FX[FxGUID].MorphA[1] then
                                                             P.FormatV_A =
                                                                 GetFormatPrmV(FX[FxGUID].MorphA[i], OrigV, i)
@@ -4864,7 +4808,8 @@ function loop()
                                                         r.ImGui_Text(ctx, 'B:')
                                                         SL()
 
-                                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
+                                                            FX_Idx, i)
                                                         r.ImGui_SetNextItemWidth(ctx, -FLT_MIN)
                                                         if not P.FormatV_B and FX[FxGUID].MorphB[1] then
                                                             P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i], OrigV, i)
@@ -4908,7 +4853,8 @@ function loop()
                                                             i = i - 1
                                                             if prm[i].BL == nil then
                                                                 if Load_FX_Proj_Glob == 'FX' then
-                                                                    local _, V = r.GetSetMediaTrackInfo_String(LT_Track,
+                                                                    local _, V = r.GetSetMediaTrackInfo_String(
+                                                                        LT_Track,
                                                                         'P_EXT: Morph_BL' .. FxGUID .. i, '', false)
                                                                     if V == 'Blacklisted' then prm[i].BL = true end
                                                                 end
@@ -4939,7 +4885,8 @@ function loop()
                                                             r.ImGui_Text(ctx, 'A:')
                                                             SL()
 
-                                                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
+                                                                FX_Idx,
                                                                 i)
                                                             r.ImGui_SetNextItemWidth(ctx, -FLT_MIN)
                                                             if not P.FormatV_A and FX[FxGUID].MorphA[1] then
@@ -4966,7 +4913,8 @@ function loop()
                                                             r.ImGui_Text(ctx, 'B:')
                                                             SL()
 
-                                                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
+                                                                FX_Idx,
                                                                 i)
                                                             r.ImGui_SetNextItemWidth(ctx, -FLT_MIN)
                                                             if not P.FormatV_B and FX[FxGUID].MorphB[1] then
@@ -5114,7 +5062,8 @@ function loop()
                                         end
 
                                         if SyncWetValues == true then
-                                            Wet.P_Num[FX_Idx] = reaper.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+                                            Wet.P_Num[FX_Idx] = reaper.TrackFX_GetParamFromIdent(LT_Track, FX_Idx,
+                                                ':wet')
                                             Wet.Get = reaper.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                                                 Wet.P_Num[FX_Idx])
                                             Wet.Val[FX_Idx] = Wet.Get
@@ -5285,7 +5234,8 @@ function loop()
                                                             end
                                                         end
                                                     else
-                                                        local _, V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
+                                                        local _, V = r.TrackFX_GetFormattedParamValue(LT_Track,
+                                                            FX_Idx,
                                                             FP[ConditionPrm])
                                                         for i, v in ipairs(FP[ConditionPrm_V]) do
                                                             if V == v then Pass = true end
@@ -5344,7 +5294,8 @@ function loop()
                                                             'Vert', GrabSize, Prm.Lbl, nil, Prm.Sldr_H or 160)
                                                         MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'V-Slider', curX, CurY)
                                                     elseif Prm.Type == 'Switch' then
-                                                        AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm.BgClr,
+                                                        AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm
+                                                            .BgClr,
                                                             Prm.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp,
                                                             Prm.FontSize, FxGUID)
                                                         MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Switch', curX, CurY)
@@ -5355,7 +5306,8 @@ function loop()
                                                             Lbl_Clickable, Prm.Lbl_Pos, Prm.V_Pos, Prm.DragDir)
                                                         MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Drag', curX, CurY)
                                                     elseif Prm.Type == 'Selection' then
-                                                        AddCombo(ctx, LT_Track, FX_Idx, Prm.Name .. FxGUID .. '## actual',
+                                                        AddCombo(ctx, LT_Track, FX_Idx,
+                                                            Prm.Name .. FxGUID .. '## actual',
                                                             Prm.Num,
                                                             FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm
                                                             .Style, FxGUID, Fx_P, FP.ManualValues)
@@ -5376,12 +5328,14 @@ function loop()
                                                                 Content = file:read('*a')
                                                                 local Ct = Content
                                                                 local P_Num = Prm.Num
-                                                                local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx,
+                                                                local _, P_Nm = r.TrackFX_GetParamName(LT_Track,
+                                                                    FX_Idx,
                                                                     P_Num)
                                                                 local Df = RecallGlobInfo(Ct,
                                                                     P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
                                                                 if Df then
-                                                                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num,
+                                                                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                                                        P_Num,
                                                                         Df)
                                                                     ToDef = { ID = FX_Idx, P = P_Num, V = Df }
                                                                 end
@@ -5394,12 +5348,14 @@ function loop()
                                                     end
 
                                                     if ToDef.ID and ToDef.V then
-                                                        r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef
+                                                        r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P,
+                                                            ToDef
                                                             .V)
                                                         if Prm.WhichCC then
                                                             if Trk.Prm.WhichMcros[Prm.WhichCC .. TrkID] then
                                                                 Unlink_Parm(LT_TrackNum, ToDef.ID, ToDef.P)
-                                                                r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P,
+                                                                r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID,
+                                                                    ToDef.P,
                                                                     ToDef.V)
                                                                 r.GetSetMediaTrackInfo_String(LT_Track,
                                                                     'P_EXT: FX' ..
@@ -6911,7 +6867,8 @@ function loop()
                                                     end
                                                 end
                                                 if not found then
-                                                    local P = StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum,
+                                                    local P = StoreNewParam(LT_FXGUID, LstTchd_ParamName,
+                                                        LT_ParamNum,
                                                         LT_FXNum, true --[[ , nil, #F+1  ]])
                                                     fp[ConditionPrm_PID] = P
 
@@ -7001,7 +6958,8 @@ function loop()
                                                                     for I, v in pairs(LE.Sel_Items) do
                                                                         FX[FxGUID][v][ConditionPrm_V][i] = V_Formatted
                                                                         FX[FxGUID][v][ConditionPrm_V_Norm][i] = r
-                                                                            .TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                                            .TrackFX_GetParamNormalized(LT_Track,
+                                                                                FX_Idx,
                                                                                 FX[FxGUID][P][ConditionPrm])
                                                                     end
                                                                 end
@@ -7935,7 +7893,8 @@ function loop()
                                                     DeleteOneLayer(LyrID, FxGUID, FX_Idx, LT_Track)
                                                 else
                                                     local Modalw, Modalh = 225, 70
-                                                    r.ImGui_SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2,
+                                                    r.ImGui_SetNextWindowPos(ctx,
+                                                        VP.x + VP.w / 2 - Modalw / 2,
                                                         VP.y + VP.h / 2 - Modalh / 2)
                                                     r.ImGui_SetNextWindowSize(ctx, Modalw, Modalh)
                                                     r.ImGui_OpenPopup(ctx, 'Delete FX Layer ' .. LyrID .. '? ##' ..
@@ -7943,7 +7902,8 @@ function loop()
                                                 end
                                             elseif r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                                 FX[FxGUID][Fx_P].V = 0.5
-                                                local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0.5)
+                                                local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num,
+                                                    0.5)
                                             elseif r.ImGui_IsItemClicked(ctx) and Mods == Ctrl and not FXLayerRenaming then
                                                 Lyr.Rename[LyrID .. FxGUID] = true
                                             elseif r.ImGui_IsItemClicked(ctx) and Mods == 0 then
@@ -8092,23 +8052,27 @@ function loop()
 
 
                                         if ClickOnSolo then
-                                            Lyr.Solo[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(LT_Track,
+                                            Lyr.Solo[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(
+                                                LT_Track,
                                                 FX_Idx, 4 + (5 * (LyrID - 1)))
                                             if Lyr.Solo[LyrID .. FxGUID] == 1 then
                                                 Lyr.Solo[LyrID .. FxGUID] = 0
-                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 4 + (5 * (LyrID - 1)),
+                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                                    4 + (5 * (LyrID - 1)),
                                                     Lyr.Solo[LyrID .. FxGUID])
                                                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Button(), 0x9ed9d3ff)
                                                 r.ImGui_PopStyleColor(ctx)
                                             elseif Lyr.Solo[LyrID .. FxGUID] == 0 then
                                                 Lyr.Solo[LyrID .. FxGUID] = 1
-                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 4 + (5 * (LyrID - 1)),
+                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                                    4 + (5 * (LyrID - 1)),
                                                     Lyr.Solo[LyrID .. FxGUID])
                                             end
                                         end
                                         if Lyr.Solo[LyrID .. FxGUID] == nil then
                                             Lyr.Solo[LyrID .. FxGUID] = reaper
-                                                .TrackFX_GetParamNormalized(LT_Track, FX_Idx, 4 + (5 * (LyrID - 1)))
+                                                .TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                    4 + (5 * (LyrID - 1)))
                                         end
 
                                         r.ImGui_SameLine(ctx, nil, 3)
@@ -8132,11 +8096,13 @@ function loop()
                                         end
 
                                         if ClickOnMute then
-                                            Lyr.Mute[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(LT_Track,
+                                            Lyr.Mute[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(
+                                                LT_Track,
                                                 FX_Idx, 5 * (LyrID - 1))
                                             if Lyr.Mute[LyrID .. FxGUID] == 1 then
                                                 Lyr.Mute[LyrID .. FxGUID] = 0
-                                                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 5 * (LyrID - 1),
+                                                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                                    5 * (LyrID - 1),
                                                     Lyr.Mute[LyrID .. FxGUID])
                                             elseif Lyr.Mute[LyrID .. FxGUID] == 0 then
                                                 Lyr.Mute[LyrID .. FxGUID] = 1
@@ -8352,7 +8318,8 @@ function loop()
                                 FX[FxGUID].DeleteFXLayer = nil
                             else -- else prompt user
                                 local Modalw, Modalh = 270, 55
-                                r.ImGui_SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2, VP.y + VP.h / 2 - Modalh / 2)
+                                r.ImGui_SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2,
+                                    VP.y + VP.h / 2 - Modalh / 2)
                                 r.ImGui_SetNextWindowSize(ctx, Modalw, Modalh)
                                 r.ImGui_OpenPopup(ctx, 'Delete FX Layer? ##' .. FxGUID)
                             end
@@ -8534,7 +8501,8 @@ function loop()
                         local WDL = WDL or r.ImGui_GetWindowDrawList(ctx)
 
                         if BandSplitID and not FX[FxGUID].BandSplitID then
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: BandSplitterID' .. FxGUID, BandSplitID, true)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: BandSplitterID' .. FxGUID, BandSplitID,
+                                true)
                             FX[FxGUID].BandSplitID = BandSplitID
                             BandSplitID = nil
                         end
@@ -8656,9 +8624,11 @@ function loop()
 
                                             local NxtBd_V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, Bd)
                                             local _, Name = r.TrackFX_GetParamName(LT_Track, FX_Idx, Bd)
-                                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 0, math.max(Cuts - 0.25, 0)) -- Delete Band
+                                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 0,
+                                                math.max(Cuts - 0.25, 0)) -- Delete Band
                                             for T = 1, Rpt, 1 do
-                                                local NxtBd_V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i + T)
+                                                local NxtBd_V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                    i + T)
 
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i - 1 + T, NxtBd_V) --adjust band Freq
                                             end
@@ -8832,18 +8802,24 @@ function loop()
 
 
                                     local function Set_In_Out(FX, Band, ChanL, ChanR)
-                                        r.TrackFX_SetPinMappings(LT_Track, FX, 0, ChanL or 0, 2 ^ ((Band + 1) * 2 - 2), 0) -- inputs
-                                        r.TrackFX_SetPinMappings(LT_Track, FX, 0, ChanR or 1, 2 ^ ((Band + 1) * 2 - 1), 0)
+                                        r.TrackFX_SetPinMappings(LT_Track, FX, 0, ChanL or 0,
+                                            2 ^ ((Band + 1) * 2 - 2), 0) -- inputs
+                                        r.TrackFX_SetPinMappings(LT_Track, FX, 0, ChanR or 1,
+                                            2 ^ ((Band + 1) * 2 - 1), 0)
 
-                                        r.TrackFX_SetPinMappings(LT_Track, FX, 1, ChanL or 0, 2 ^ ((Band + 1) * 2 - 2), 0) --outputs
-                                        r.TrackFX_SetPinMappings(LT_Track, FX, 1, ChanR or 1, 2 ^ ((Band + 1) * 2 - 1), 0)
+                                        r.TrackFX_SetPinMappings(LT_Track, FX, 1, ChanL or 0,
+                                            2 ^ ((Band + 1) * 2 - 2), 0) --outputs
+                                        r.TrackFX_SetPinMappings(LT_Track, FX, 1, ChanR or 1,
+                                            2 ^ ((Band + 1) * 2 - 1), 0)
                                     end
 
                                     Set_In_Out(Pl, Band)
 
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxID, FxGUID_BS,
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxID,
+                                        FxGUID_BS,
                                         true)
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxID, Band,
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxID,
+                                        Band,
                                         true)
 
 
@@ -8957,9 +8933,11 @@ function loop()
 
                                         --Mute Band
                                         if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_M()) and Mods == 0 then
-                                            local Solo = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 4 + 5 * i)
+                                            local Solo = r.TrackFX_GetParamNormalized(LT_Track, JoinerID,
+                                                4 + 5 * i)
                                             if Solo == 0 then
-                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 5 * i)
+                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID,
+                                                    5 * i)
                                                 local V
                                                 if OnOff == 1 then V = 0 else V = 1 end
                                                 r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 5 * i, V)
@@ -8969,7 +8947,8 @@ function loop()
                                         elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_S()) and Mods == 0 then
                                             local Mute = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 5 * i)
                                             if Mute == 1 then
-                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 4 + 5 * i)
+                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID,
+                                                    4 + 5 * i)
                                                 local V
                                                 if OnOff == 1 then V = 0 else V = 1 end
                                                 r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 4 + 5 * i, V)
@@ -8979,7 +8958,8 @@ function loop()
                                             local AnyMutedBand
 
                                             for i = 0, Cuts * 4, 1 do
-                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 5 * i)
+                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID,
+                                                    5 * i)
 
                                                 if OnOff == 0 then AnyMutedBand = true end
                                                 if OnOff == 0 then table.insert(FX[FxGUID].PreviouslyMutedBand, i) end
@@ -8995,7 +8975,8 @@ function loop()
                                             local AnySolodBand
 
                                             for i = 0, Cuts * 4, 1 do
-                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID, 4 + 5 * i)
+                                                local OnOff = r.TrackFX_GetParamNormalized(LT_Track, JoinerID,
+                                                    4 + 5 * i)
 
                                                 if OnOff == 1 then AnySolodBand = true end
                                                 if OnOff == 1 then table.insert(FX[FxGUID].PreviouslySolodBand, i) end
@@ -9060,10 +9041,12 @@ function loop()
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 0, Cuts + 0.25)
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i + 1, Norm_V)
                                             elseif Seg < 5 then
-                                                local BandFreq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i + 1)
+                                                local BandFreq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                    i + 1)
                                                 local BandFreq2
                                                 if Seg == 1 then
-                                                    BandFreq2 = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i + 2)
+                                                    BandFreq2 = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                                        i + 2)
                                                 end
 
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 0, Cuts + 0.25)
@@ -9072,7 +9055,8 @@ function loop()
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i + 2, BandFreq)
 
                                                 if Seg == 1 then
-                                                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i + 3, BandFreq2)
+                                                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i + 3,
+                                                        BandFreq2)
                                                 end
 
 
@@ -9115,11 +9099,15 @@ function loop()
                                                     r.GetSetMediaTrackInfo_String(LT_Track,
                                                         'P_EXT: FX is in which Band' .. v, i, true)
                                                     --sets input channel
-                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 0, 0, 2 ^ ((i + 1) * 2 - 2), 0)
-                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 0, 1, 2 ^ ((i + 1) * 2 - 1), 0)
+                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 0, 0,
+                                                        2 ^ ((i + 1) * 2 - 2), 0)
+                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 0, 1,
+                                                        2 ^ ((i + 1) * 2 - 1), 0)
                                                     --sets Output +1
-                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 0, 2 ^ ((i + 1) * 2 - 2), 0)
-                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 1, 2 ^ ((i + 1) * 2 - 1), 0)
+                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 0,
+                                                        2 ^ ((i + 1) * 2 - 2), 0)
+                                                    r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 1,
+                                                        2 ^ ((i + 1) * 2 - 1), 0)
                                                 end
                                             elseif not IsLBtnHeld and Mods == Apl then
                                                 local Ofs = 0
@@ -9142,7 +9130,8 @@ function loop()
                                                     if srcFX >= TrgFX then Ofs = I end
 
 
-                                                    r.TrackFX_CopyToTrack(LT_Track, srcFX, LT_Track, TrgFX, false)
+                                                    r.TrackFX_CopyToTrack(LT_Track, srcFX, LT_Track, TrgFX,
+                                                        false)
                                                     local ID = r.TrackFX_GetFXGUID(LT_Track, TrgFX)
 
                                                     if not tablefind(FX[FxGUID].FXsInBS, ID) then
@@ -9158,14 +9147,18 @@ function loop()
 
 
                                                     --sets input channel
-                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 0, 0, 2 ^ ((i + 1) * 2 - 2),
+                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 0, 0,
+                                                        2 ^ ((i + 1) * 2 - 2),
                                                         0)
-                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 0, 1, 2 ^ ((i + 1) * 2 - 1),
+                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 0, 1,
+                                                        2 ^ ((i + 1) * 2 - 1),
                                                         0)
                                                     --sets Output +1
-                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 1, 0, 2 ^ ((i + 1) * 2 - 2),
+                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 1, 0,
+                                                        2 ^ ((i + 1) * 2 - 2),
                                                         0)
-                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 1, 1, 2 ^ ((i + 1) * 2 - 1),
+                                                    r.TrackFX_SetPinMappings(LT_Track, TrgFX, 1, 1,
+                                                        2 ^ ((i + 1) * 2 - 1),
                                                         0)
                                                 end
 
@@ -9434,7 +9427,8 @@ function loop()
                                 FX[FxGUID].DeleteBandSplitter = nil
                             else
                                 local Modalw, Modalh = 320, 55
-                                r.ImGui_SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2, VP.y + VP.h / 2 - Modalh / 2)
+                                r.ImGui_SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2,
+                                    VP.y + VP.h / 2 - Modalh / 2)
                                 r.ImGui_SetNextWindowSize(ctx, Modalw, Modalh)
                                 r.ImGui_OpenPopup(ctx, 'Delete Band Splitter? ##' .. FxGUID)
                             end
@@ -9455,9 +9449,11 @@ function loop()
                                         r.TrackFX_SetPinMappings(LT_Track, i, 1, 0, 1, 0)
                                         r.TrackFX_SetPinMappings(LT_Track, i, 1, 1, 2, 0)
 
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FXGUID[i],
+                                        r.GetSetMediaTrackInfo_String(LT_Track,
+                                            'P_EXT: FX is in which BS' .. FXGUID[i],
                                             '', true)
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FXGUID
+                                        r.GetSetMediaTrackInfo_String(LT_Track,
+                                            'P_EXT: FX is in which Band' .. FXGUID
                                             [i], '', true)
                                         FX[FXGUID[i]].InWhichBand = nil
                                     end
@@ -9482,7 +9478,8 @@ function loop()
 
                                 for i, v in ipairs(DelFX) do
                                     FX[v].InWhichBand = nil
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. v, '', true)
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. v, '',
+                                        true)
                                     r.TrackFX_Delete(LT_Track, tablefind(FXGUID, v) - i)
                                 end
 
@@ -9626,7 +9623,8 @@ function loop()
             function MoveFX_Out_Of_Post(IDinPost)
                 table.remove(Trk[TrkID].PostFX, IDinPost or tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
                 for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                        true)
                 end
             end
 
@@ -9644,9 +9642,11 @@ function loop()
                         if FxID then
                             table.remove(FX[FXGUID[FX_Idx]].FXsInBS, FxID)
                             FX[FXGUID[DragFX_ID]].InWhichBand = nil
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FXGUID[DragFX_ID], '',
+                            r.GetSetMediaTrackInfo_String(LT_Track,
+                                'P_EXT: FX is in which BS' .. FXGUID[DragFX_ID], '',
                                 true)
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FXGUID[DragFX_ID], '',
+                            r.GetSetMediaTrackInfo_String(LT_Track,
+                                'P_EXT: FX is in which Band' .. FXGUID[DragFX_ID], '',
                                 true)
                         end
                     end
@@ -9655,7 +9655,8 @@ function loop()
 
             _, Payload_Type, Payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
             Payload = tonumber(Payload)
-            MouseAtRightEdge = r.ImGui_IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.y, VP.X + VP.w, VP.y + VP.h)
+            MouseAtRightEdge = r.ImGui_IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.y,
+                VP.X + VP.w, VP.y + VP.h)
 
             if (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, -5)
@@ -9746,7 +9747,8 @@ function loop()
                             local FXid = r.TrackFX_GetFXGUID(LT_Track, Sel_Track_FX_Count)
                             local _, Name = r.TrackFX_GetFXName(LT_Track, Sel_Track_FX_Count)
                             table.insert(Trk[TrkID].PostFX, FXid)
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXid, true)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXid,
+                                true)
                         end
                     end
 
@@ -9804,7 +9806,8 @@ function loop()
                         if InsertToPost_Src then
                             table.insert(Trk[TrkID].PostFX, InsertToPost_Dest, FXGUID[InsertToPost_Src])
                             for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i,
+                                    Trk[TrkID].PostFX[i] or '',
                                     true)
                             end
                             InsertToPost_Src = nil

@@ -3,7 +3,7 @@
 function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
     DragFX_ID = math.max(DragFX_ID, 0)
     local function SetPinMappings(i)
-        r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 2 ^ (LayerNum * 2 - 2), 0)     --sets input channel
+        r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 2 ^ (LayerNum * 2 - 2), 0) --sets input channel
         r.TrackFX_SetPinMappings(LT_Track, i, 0, 1, 2 ^ (LayerNum * 2 - 1), 0)
         --sets Output
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 0, 2 ^ (LayerNum * 2 - 2), 0)
@@ -54,10 +54,10 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
     end
 end
 
-function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)     --fxIdx == the position in chain it's dropped to
+function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc) --fxIdx == the position in chain it's dropped to
     DragFX_ID = DragFX_ID or AltDragSrc or FX_Idx
     local function SetPinMappings(i)
-        r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 2 ^ (LayerNum * 2 - 2), 0)     --sets input channel
+        r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 2 ^ (LayerNum * 2 - 2), 0) --sets input channel
         r.TrackFX_SetPinMappings(LT_Track, i, 0, 1, 2 ^ (LayerNum * 2 - 1), 0)
         --sets Output
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 0, 2 ^ (LayerNum * 2 - 2), 0)
@@ -204,14 +204,14 @@ function RepositionFXsInContainer(FX_Idx)
         end
     end
     if Payload_Type == 'FX Layer Repositioning' then
-        for i = 0, FX_Count, 1 do     -- Move Splitter
+        for i = 0, FX_Count, 1 do -- Move Splitter
             local FXGUID = reaper.TrackFX_GetFXGUID(LT_Track, i)
 
             if Lyr.SplitrAttachTo[FXGUID] == FXGUID_RackMixer then
                 SplitrGUID = FXGUID
                 if FX_Idx == 0 then
                     r.TrackFX_CopyToTrack(LT_Track, i, LT_Track, 0, true)
-                elseif i > FX_Idx then     -- FX_Idx = drop to fx position
+                elseif i > FX_Idx then -- FX_Idx = drop to fx position
                     if Lyr.FrstFXPos[FXGUID_RackMixer] ~= nil then
                         r.TrackFX_CopyToTrack(LT_Track, i, LT_Track, FX_Idx, true)
                         -- table.insert(MovFX.FromPos,i) table.insert(MovFX.ToPos, FX_Idx)

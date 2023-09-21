@@ -271,7 +271,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if Image then
             local w, h = r.ImGui_Image_GetSize(Image)
 
-            if h > w * 5 then     -- It's probably a strip knob file
+            if h > w * 5 then -- It's probably a strip knob file
                 local scale = 2
                 local sz = radius_outer * scale
 
@@ -288,7 +288,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
         end
     elseif Style == 'Invisible' then
-    else     -- for all generic FXs
+    else -- for all generic FXs
         r.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
             FX[FxGUID][Fx_P].BgClr or r.ImGui_GetColor(ctx, r.ImGui_Col_Button()))
         r.ImGui_DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
@@ -364,7 +364,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if IsLBtnHeld then
                     local drag = FX[FxGUID].MorphA[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx)) * -0.01
                     FX[FxGUID].MorphA[P_Num] = SetMinMax(drag, 0, 1)
-                    if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsY - BtnT) / sizeY
                         local Scale = FX[FxGUID].MorphB[P_Num] - A
                         Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A, Scale)
@@ -372,7 +372,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 elseif IsRBtnHeld then
                     local drag = FX[FxGUID].MorphB[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx, 1)) * -0.01
                     FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
-                    if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
                             Orig_Baseline,
                             FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
@@ -402,7 +402,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     end
 
 
-    if Lbl_Pos == 'Bottom' then     --Write Bottom Label
+    if Lbl_Pos == 'Bottom' then --Write Bottom Label
         local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =
             pos
             [1]
@@ -515,7 +515,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     if PM.TimeNow ~= nil then
         if r.time_precise() > PM.TimeNow + 1 then
-            r.gmem_write(7, 0)     --tells jsfx to stop retrieving P value
+            r.gmem_write(7, 0) --tells jsfx to stop retrieving P value
             r.gmem_write(8, 0)
             PM.TimeNow = nil
         end
@@ -528,7 +528,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
 
 
-    if FP.ModAMT then     -- Draw modlines  circular
+    if FP.ModAMT then -- Draw modlines  circular
         local offset = 0
         for Macro, v in ipairs(MacroNums) do
             if FP.ModAMT[Macro] then
@@ -557,7 +557,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 offset = offset + OffsetForMultipleMOD
             end
         end
-    end     -- of reapeat for every macro
+    end -- of reapeat for every macro
 
     if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro then
         local M = AssigningMacro
@@ -574,7 +574,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         reaper.ImGui_DrawList_PathStroke(draw_list, EightColors.bgWhenAsgnModAct[AssigningMacro], nil,
             radius_outer * 0.1)
         r.ImGui_DrawList_PathClear(draw_list)
-        r.gmem_write(4, 1)     --tells jsfx that user is changing Mod Amount
+        r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
         r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, FP.ModAMT[M])
         r.ImGui_ResetMouseDragDelta(ctx, 1)
 
@@ -671,7 +671,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(), FX[FxGUID][Fx_P].BgClrAct)
             ClrPop = 3
         else
-            ClrPop = 0     --r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x474747ff) ClrPop =1
+            ClrPop = 0 --r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x474747ff) ClrPop =1
         end
         if GrabSize then r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_GrabMinSize(), GrabSize) end
 
@@ -842,7 +842,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         if PM.TimeNow ~= nil then
             if r.time_precise() > PM.TimeNow + 1 then
-                r.gmem_write(7, 0)     --tells jsfx to stop retrieving P value
+                r.gmem_write(7, 0) --tells jsfx to stop retrieving P value
                 r.gmem_write(8, 0)
                 PM.TimeNow = nil
             end
@@ -888,7 +888,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                     local offsetA, offsetB
                     if IsLBtnHeld then
                         FX[FxGUID].MorphA[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                        if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                        if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FX[FxGUID].MorphB[P_Num] - A
                             Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A,
@@ -896,7 +896,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                         end
                     elseif IsRBtnHeld then
                         FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                        if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                        if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
                                 Orig_Baseline, FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
                         end
@@ -960,7 +960,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                         Cx, Cy, LblClr, labeltoShow or FX[FxGUID][Fx_P].Name, nil, PosL, PosT, SldrR - TextW - 3,
                         PosB + 20)
                 end
-            else     -- if vertical
+            else -- if vertical
                 if FP.Lbl_Pos == 'Bottom' or not FP.Lbl_Pos then
                     local CurX = r.ImGui_GetCursorPosX(ctx)
                     local w = r.ImGui_CalcTextSize(ctx, labeltoShow or FP.Name)
@@ -1164,7 +1164,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OptionValues[i])
                         else
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm,
-                                (i - 1) / #Options + ((i - 1) / #Options) * 0.1)     -- + options* 0.05 so the value will be slightly higher than threshold,
+                                (i - 1) / #Options + ((i - 1) / #Options) * 0.1) -- + options* 0.05 so the value will be slightly higher than threshold,
                         end
                         if FX[FxGUID][Fx_P].ManualValues then
                             if FX[FxGUID][Fx_P].ManualValues[i] then
@@ -1273,7 +1273,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         lbl = Lbl_Type
         TextW = r.ImGui_CalcTextSize(ctx, Lbl_Type)
         FX[FxGUID][Fx_P].Switch_W = TextW
-    else     --Use Value As Label
+    else --Use Value As Label
         _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     end
 
@@ -1312,7 +1312,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     if not FP.Image then
         r.ImGui_Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FX[FxGUID][Fx_P].Sldr_W or TextW)
-    else     -- if there's an image
+    else -- if there's an image
         uvmin, uvmax, w, h = Calc_strip_uv(FP.Image, FP.V)
 
 
@@ -1329,7 +1329,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
             if r.ImGui_IsItemDeactivated(ctx) then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].SwitchBaseV or 1)
             end
-        else     -- if it's a toggle
+        else -- if it's a toggle
             local Value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
             if Value == 0 then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 1)
@@ -1512,14 +1512,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local offsetA, offsetB
                 if IsLBtnHeld then
                     FX[FxGUID].MorphA[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                    if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsX - PosL) / sizeX
                         local Scale = FX[FxGUID].MorphB[P_Num] - A
                         Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A, Scale)
                     end
                 elseif IsRBtnHeld then
                     FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                    if FX[FxGUID].Morph_ID then     -- if Morph Sldr is linked to a CC
+                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
                             Orig_Baseline,
                             FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
@@ -1703,7 +1703,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     if PM.TimeNow ~= nil then
         if r.time_precise() > PM.TimeNow + 1 then
-            r.gmem_write(7, 0)     --tells jsfx to stop retrieving P value
+            r.gmem_write(7, 0) --tells jsfx to stop retrieving P value
             r.gmem_write(8, 0)
             PM.TimeNow = nil
         end
@@ -1908,7 +1908,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     Content = file:read('*a')
                     local Ct = Content
 
-                    FX[FxGUID].MorphHide = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
+                    FX[FxGUID].MorphHide = r.GetSetMediaTrackInfo_String(LT_Track,
+                        'P_EXT: FX Morph Hide' .. FxGUID,
                         'true', true)
 
                     FX.Round[FxGUID] = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
@@ -2081,7 +2082,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         GetProjExt_FxNameNum(FxGUID)
                         Prm.InstAdded[FxGUID] = true
                     end
-                else     ---- if no editings has been saved to extstate
+                else ---- if no editings has been saved to extstate
                     if FX[FxGUID] then
                         for Fx_P = 1, #FX[FxGUID] or 0, 1 do
                             local ID = FxGUID .. Fx_P
@@ -2234,7 +2235,8 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     if AddingFromExtState == 'AddingFromExtState' then
         FX[FxGUID][P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     else
-        local rv, step, smallstep, largestep, istoggle = r.TrackFX_GetParameterStepSizes(LT_Track, LT_FX_Number,
+        local rv, step, smallstep, largestep, istoggle = r.TrackFX_GetParameterStepSizes(LT_Track,
+            LT_FX_Number,
             LT_ParamNum)
         if rv then --[[ if the param is a switch ]] end
         FX[FxGUID][P].V = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
@@ -2384,15 +2386,15 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
 
 
         file:write('FX global settings', '\n\n')
-        write('Edge Rounding', FX.Round[FxGUID])       -- 2
-        write('Grb Rounding', FX.GrbRound[FxGUID])     -- 3
-        write('BgClr', FX.BgClr[FxGUID])               -- 4
-        write('Window Width', FX.Width[FxGUID])        -- 5
+        write('Edge Rounding', FX.Round[FxGUID])   -- 2
+        write('Grb Rounding', FX.GrbRound[FxGUID]) -- 3
+        write('BgClr', FX.BgClr[FxGUID])           -- 4
+        write('Window Width', FX.Width[FxGUID])    -- 5
         write('Title Width', FX.TitleWidth[FxGUID])
         write('Title Clr', FX[FxGUID].TitleClr)
         write('Custom Title', FX[FxGUID].CustomTitle)
 
-        write('Param Instance', #FX[FxGUID])     -- 6
+        write('Param Instance', #FX[FxGUID]) -- 6
 
         file:write('\nParameter Specific Settings \n\n')
 

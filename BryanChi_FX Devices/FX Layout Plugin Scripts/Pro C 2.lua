@@ -64,8 +64,6 @@ r.ImGui_PopStyleVar(ctx)
 
 
 if not FX[FXGUID[FX_Idx]].Collapse then
-
-
     if Prm.InstAdded[PluginScript.Guid] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
         --- number in green represents FX Prm Index
         StoreNewParam(FXGUID[FX_Idx], 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
@@ -538,6 +536,4 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         end
     end
     r.gmem_attach('CompReductionScope'); r.gmem_write(2000, PM.DIY_TrkID[TrkID])
-
-
 end
