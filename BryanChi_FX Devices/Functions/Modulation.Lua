@@ -3,9 +3,9 @@ MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 
 
 function ModulationFunctions()
-
-    function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Category, CC_or_Note_Num,
-                            Baseline_V, Scale)
+    function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Category,
+                              CC_or_Note_Num,
+                              Baseline_V, Scale)
         --NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
         --('TrackNumToBeMod'..TrackNumToBeMod.. '\n FX_Slt_Indx_ToBeMod'..FX_Slt_Indx_ToBeMod..'\n PARAM_Num'..PARAM_Num..'\n'..'CC_or_Note_Num'..CC_or_Note_Num..'\n')
         ParmModTable                                        = ultraschall.CreateDefaultParmModTable()
@@ -82,7 +82,8 @@ function ModulationFunctions()
         --ParmModTable["WINDOW_ALTERED"]              =true
         --alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, FX_Slt_Indx_ToBeMod+1, ParmModTable)
 
-        alteredFXStateChunk = ultraschall.DeleteParmModFromFXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, PARAM_Num + 1)
+        alteredFXStateChunk = ultraschall.DeleteParmModFromFXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1,
+            PARAM_Num + 1)
 
         retval, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
         retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
@@ -118,7 +119,8 @@ function ModulationFunctions()
             if FX[FxGUID][Fx_P].WhichCC then
                 local CC = FX[FxGUID][Fx_P].WhichCC
 
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',
+                r.GetSetMediaTrackInfo_String(LT_Track,
+                    'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',
                     FX[FxGUID][Fx_P].V, true)
 
                 r.gmem_write(7, CC) --tells jsfx to retrieve P value
@@ -188,7 +190,8 @@ function ModulationFunctions()
 
         if --[[Assign Mod]] AssigningMacro and r.ImGui_IsItemClicked(ctx, 1) then
             local _, ValBeforeMod
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '',
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',
+                '',
                 false)
             if not ValBeforeMod then
                 r.GetSetMediaTrackInfo_String(LT_Track,
@@ -302,7 +305,8 @@ function ModulationFunctions()
                     local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                     --- indicator of where the param is currently
-                    if not FX[FxGUID][Fx_P].V then FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
+                    if not FX[FxGUID][Fx_P].V then FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                            P_Num) end
 
                     DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,
                         FX[FxGUID][Fx_P].V, Vertical, FP)
@@ -327,5 +331,6 @@ function ModulationFunctions()
             end
         end
     end
+end
 
 ModulationFunctions()
