@@ -1,3 +1,6 @@
+---@param old_path string
+---@param new_path string
+---@return boolean
 function CopyFile(old_path, new_path)
   local old_file = io.open(old_path, "rb")
   local new_file = io.open(new_path, "wb")
@@ -19,6 +22,10 @@ function CopyFile(old_path, new_path)
   return new_file_sz == old_file_sz
 end
 
+---@param filename string
+---@param subfolder string
+---@return string | nil
+---@return string | nil
 function CopyImageFile(filename, subfolder)
   if filename then
     local UserOS = r.GetOS()

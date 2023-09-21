@@ -5,7 +5,6 @@ require("BryanChi_FX Devices.Helpers.Sexan_FX_Browser")
 require("BryanChi_FX Devices.Functions.General Functions")
 require("BryanChi_FX Devices.Functions.EQ functions")
 require("BryanChi_FX Devices.Functions.Layout Editor functions")
-require("BryanChi_FX Devices.Functions.FX Adder")
 require("BryanChi_FX Devices.Functions.FX Layering")
 require("BryanChi_FX Devices.Functions.Modulation")
 require("BryanChi_FX Devices.Functions.Theme Editor Functions")
@@ -626,26 +625,6 @@ local function DrawChildMenu(tbl, path, FX_Idx)
                         -1000 - FX_Idx)
                 end
             end
-        end
-    end
-end
-
-function AddFX_Drag(name)
-    if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_AcceptNoDrawDefaultRect()) then
-        r.ImGui_SetDragDropPayload(ctx, 'AddFX_Sexan', tostring(name))
-        r.ImGui_Text(ctx, name)
-        r.ImGui_EndDragDropSource(ctx)
-    end
-end
-
-function AddFX_drop(FX_Idx)
-    if r.ImGui_BeginDragDropTarget(ctx) then
-        local ret, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan', nil)
-        r.ImGui_EndDragDropTarget(ctx)
-        if ret then
-            local fx_name = payload
-            r.TrackFX_AddByName(LT_Track, fx_name, false, -1000 - FX_Idx)
-            DRAG_FX = nil
         end
     end
 end

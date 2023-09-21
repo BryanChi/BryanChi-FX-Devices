@@ -41,7 +41,7 @@ ProQ3.SpecWait = 0
 FreqValueDrag = {}
 fftsize = 4096
 xscale = 300 / (fftsize - 4)
-wsc = ProQ3.Width / math.log(900)     --- 340 = width of pro q window
+wsc = ProQ3.Width / math.log(900) --- 340 = width of pro q window
 SpectrumX = 0
 SpectrumY = 0
 OUTPUT = 0
@@ -67,8 +67,15 @@ NodeFreq = {}
 
 
 
-
-function determineBandColor(Band)     -- for pro q 3
+-- for pro q 3
+---@param Band number
+---@return integer
+---@return integer
+---@return integer
+---@return integer Clr_HalfAlpha
+---@return integer Clr_FullAlpha
+---@return integer Clr_Brighter
+function determineBandColor(Band)
     if Band == 1 or Band == 9 or Band == 17 then
         Clr_HalfAlpha = 0x69B45D55
     elseif Band == 2 or Band == 10 or Band == 18 then
@@ -134,6 +141,8 @@ function explode_rgba(rgba)
         (rgba & 0xFF) / 255
 end
 
+---@param freq number
+---@param q number
 function _svf_bp(freq, q)
     g = math.tan(math.pi * freq / SAMPLE_RATE);
     k = 1.0 / q;
@@ -181,7 +190,7 @@ function q_to_per(q, range)
 end
 
 function _zdf_eq(freq, q, gain)
-    A = gain;     --10.0 ^ (gain / 20.0);
+    A = gain; --10.0 ^ (gain / 20.0);
     g = math.tan(math.pi * freq / SAMPLE_RATE);
     k = 1.0 / (q * A);
     a1 = 1.0 / (1.0 + g * (g + k));
@@ -208,7 +217,7 @@ function rbj_eq(freq, q, gain)
 
     w0 = 2 * math.pi * math.min(freq / SAMPLE_RATE, 0.49);
     alpha = math.sin(w0) / (2 * q);
-    a = gain;     --math.sqrt(gain);
+    a = gain; --math.sqrt(gain);
 
     b0 = 1 + alpha * a;
     b1 = a1
@@ -238,7 +247,7 @@ function spectrum1_to_y(zo)
 end
 
 function _svf_ls(freq, q, gain)
-    A = gain;     --10 ^ (gain / 40.0);
+    A = gain; --10 ^ (gain / 40.0);
     g = math.tan(math.pi * freq / SAMPLE_RATE) / math.sqrt(A);
     k = 1.0 / q;
     a1 = 1.0 / (1.0 + g * (g + k));
@@ -257,7 +266,7 @@ function svf_ls(freq, q, gain)
 end
 
 function _svf_hs(freq, q, gain)
-    A = gain;     --10 ^ (gain / 40.0);
+    A = gain; --10 ^ (gain / 40.0);
     g = math.tan(math.pi * freq / SAMPLE_RATE) * math.sqrt(A);
     k = 1.0 / q;
     a1 = 1.0 / (1.0 + g * (g + k));
@@ -278,7 +287,7 @@ function svf_st(freq, q, gain)
     _svf_hs(freq, q, gainn);
 
     --_svf_ls(freq, q, gain2)
-    A = gain2;     --10 ^ (gain / 40.0);
+    A = gain2; --10 ^ (gain / 40.0);
     g = math.tan(math.pi * freq / SAMPLE_RATE) / math.sqrt(A);
     k = 1.0 / q;
     a1 = 1.0 / (1.0 + g * (g + k));
@@ -298,7 +307,7 @@ end
 function rbj_ls(freq, q, gain)
     w0 = 2 * math.pi * math.min(freq / SAMPLE_RATE, 0.49);
     cos_w0 = math.cos(w0);
-    a = gain;     --sqrt(gain);
+    a = gain; --sqrt(gain);
 
     tmp0 = 2 * math.sqrt(a) * math.sin(w0) / (2 * q);
     tmp1 = (a + 1) - (a - 1) * cos_w0;
@@ -318,7 +327,7 @@ end
 function rbj_hs(freq, q, gain)
     w0 = 2 * math.pi * math.min(freq / SAMPLE_RATE, 0.49);
     cos_w0 = math.cos(w0);
-    a = gain;     --sqrt(gain);
+    a = gain; --sqrt(gain);
 
     tmp0 = 2 * math.sqrt(a) * math.sin(w0) / (2 * q);
     tmp1 = (a + 1) - (a - 1) * cos_w0;
@@ -373,7 +382,7 @@ function freq_to_scx(freq)
 end
 
 function rbj_hp(freq, q)
-    w0 = 2 * math.pi * math.min(freq / 60000, 0.49);     --60000 is supposed to be sample rate
+    w0 = 2 * math.pi * math.min(freq / 60000, 0.49); --60000 is supposed to be sample rate
     cos_w0 = math.cos(w0);
     alpha = math.sin(w0) / (2 * q);
 
@@ -479,11 +488,11 @@ function magnitude_to_01(m, freq)
 end
 
 function db_to_gain(db)
-    return 10 ^ (db / 21);     -- 21 is 40 in original script
+    return 10 ^ (db / 21); -- 21 is 40 in original script
 end
 
 function db_to_gain30(db)
-    return 10 ^ (db / 21);     -- 21 is 40 in original script
+    return 10 ^ (db / 21); -- 21 is 40 in original script
 end
 
 function zdf_lp(freq, q, slope)
@@ -614,7 +623,7 @@ function zdf_magnitude(freq)
     m = 1.0;
 
     -- Apply two pole (12dB steps)
-    if nlp > 0 then m = m * magnitude(freq) end     --12
+    if nlp > 0 then m = m * magnitude(freq) end --12
     if nlp > 2 then m = m * magnitude(freq) end
     if nlp > 4 then m = m * magnitude(freq) end
     if nlp > 6 then m = m * magnitude(freq) end
@@ -623,7 +632,7 @@ function zdf_magnitude(freq)
     if nlp > 12 then m = m * magnitude(freq) end
     if nlp > 14 then m = m * magnitude(freq) end
     if nlp > 16 then m = m * magnitude(freq) end
-    if nlp > 18 then m = m * magnitude(freq) end     --120
+    if nlp > 18 then m = m * magnitude(freq) end --120
 
     -- Apply one pole (6dB)
 
@@ -649,7 +658,7 @@ end
 function x_to_freq(x)
     max_freq = 30000
     min_freq = 10
-    x = min_freq * (Euler ^ (freq_log_max * (x) / (340)));     -- 340 is width
+    x = min_freq * (Euler ^ (freq_log_max * (x) / (340))); -- 340 is width
     return math.max(math.min(x, max_freq), min_freq);
 end
 
@@ -658,7 +667,7 @@ function freq_to_x_MyOwn(y)
     return (340 * math.log(y / 10, Euler)) / 8.00636757
 end
 
-for i = 1, 340, 1 do     -- 340 is width
+for i = 1, 340, 1 do -- 340 is width
     iToFreq = x_to_freq(i)
     if iToFreq > 50 and iToFreq < 51 then iPos50 = i end
     if iToFreq > 99 and iToFreq < 102 then iPos100 = i end
@@ -680,6 +689,8 @@ function Calc_4ptBezier(x1, y1, x2, y2, x3, y3, x4, y4, t)
     return X, Y
 end
 
+---@param Actual_dB_Val number
+---@return number
 function syncProQ_DispRange(Actual_dB_Val)
     if Actual_dB_Val == 30 then
         Output = 1
