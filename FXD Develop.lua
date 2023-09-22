@@ -1,69 +1,8 @@
-
--- @description FX Devices
--- @author Bryan Chi
--- @version 1.0beta9.6.6-3
--- @changelog
---   - Fix Theme editor saving empty entry crashes
---   - Fix Pro-C 2 crash
--- @provides
---   [effect] BryanChi_FX Devices/FXD Macros.jsfx
---   [effect] BryanChi_FX Devices/FXD ReSpectrum.jsfx
---   [effect] BryanChi_FX Devices/FXD Gain Reduction Scope.jsfx
---   [effect] BryanChi_FX Devices/FXD Split to 32 Channels.jsfx
---   [effect] BryanChi_FX Devices/FXD Split To 4 Channels.jsfx
---   [effect] BryanChi_FX Devices/cookdsp.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/analysis.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/buffer.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/delay.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/dynamics.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/effects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/fft-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/fft-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/fftobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/filters.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/granulator.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/list.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/memalloc.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/midi.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/mmath.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/oscil.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pv-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/pv-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/pvocobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pvtrans-example
---   [effect] BryanChi_FX Devices/cookdsp/random.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/scaling.jsfx-inc
---   [effect] BryanChi_FX Devices/firhalfband.jsfx-inc
---   [effect] BryanChi_FX Devices/spectrum.jsfx-inc
---   [effect] BryanChi_FX Devices/svf_filter.jsfx-inc
---   BryanChi_FX Devices/IconFont1.ttf
---   [effect] BryanChi_FX Devices/FXD (Mix)RackMixer.jsfx
---   BryanChi_FX Devices/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
---   [effect] BryanChi_FX Devices/FXD Saike BandSplitter.jsfx
---   [effect] BryanChi_FX Devices/FXD Band Joiner.jsfx
---   BryanChi_FX Devices/Images/Analog Knob 1.png
---   BryanChi_FX Devices/Functions/EQ functions.lua
---   BryanChi_FX Devices/Functions/General Functions.lua
---   BryanChi_FX Devices/Functions/FX Layering.lua
---   BryanChi_FX Devices/Functions/FX Adder.lua
---   BryanChi_FX Devices/Functions/Layout Editor functions.lua
---   BryanChi_FX Devices/Functions/Modulation.lua
---   BryanChi_FX Devices/Functions/Theme Editor Functions.lua
--- @about
---   Please check the forum post for info:
---   https://forum.cockos.com/showthread.php?t=263622
-
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" -- GET DIRECTORY FOR REQUIRE
 require("BryanChi_FX Devices/Helpers/Sexan_FX_Browser")
 
 ---@alias Style "Pro C 2"|"Pro C Thresh"|"Custom Image"|"Invisible"|"FX Layering"|'up-down arrow'
 ---@alias Position "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
-
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = 'V1.0beta10.3.2 '
@@ -1027,12 +966,6 @@ function GeneralFunctions()
             if OutlineClr then r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
         end
         if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
-    end
-
-    function InvisiBtn (ctx, x, y, str, w, h )
-        r.ImGui_SetCursorScreenPos(ctx, x,y)
-        local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
-        return rv
     end
 
     function PC(ctx, itm, clr)
@@ -8646,7 +8579,6 @@ function loop()
                         end
 
 
-
                         local function AddNode(x, y, ID)
                             local w, h = 15, 15
                             InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
@@ -8679,12 +8611,11 @@ function loop()
                                 end
 
 
-                                    local NormX, NormY = GetNormV(ID)
-                                    ChangeLFO(13, ID, 11)
-                                    ChangeLFO(13, NormX, 9)
-                                    ChangeLFO(13, NormY, 10)
+                                local NormX, NormY = GetNormV(ID)
+                                ChangeLFO(13, NormX, 9)
+                                ChangeLFO(13, NormY, 10)
+                                ChangeLFO(13, ID, 11)
 
-                                    ChangeLFO(13, #LFO_Nodes.x, 12) -- tells how many nodes there are
 
 
 
@@ -8742,56 +8673,15 @@ function loop()
                                     DraggingLFOctrl = i
                                     local Dx, Dy    = r.ImGui_GetMouseDelta(ctx)
 
-                                    LFO_Ctrl.x[i]   = CtrlX + Dx -- SetMinMax(CtrlX + Dx, lastX, v)
+                                    LFO_Ctrl.x[i]   = SetMinMax(CtrlX + Dx, lastX, v)
 
-                                    LFO_Ctrl.y[i]   = CtrlY + Dy -- SetMinMax(CtrlY + Dy, math.min(lastY, Y), math.max(lastY, Y))
-                                    local Range = (math.max(lastY, Y) - math.min(lastY, Y)) 
-                                    local NormV = (math.min(lastY, Y)+ Range - LFO_Ctrl.y[i]) / Range
-                                    local BiPolar_Norm_V =  -1 + (NormV  )* 2
-                                    ttp(BiPolar_Norm_V)
-
-                                    ChangeLFO(14, i-1, 11)
-                                    ChangeLFO(14, BiPolar_Norm_V, 9)
-
-
-
+                                    LFO_Ctrl.y[i]   = SetMinMax(CtrlY + Dy, math.min(lastY, Y), math.max(lastY, Y))
                                 elseif r.ImGui_IsItemHovered(ctx) then
                                     r.ImGui_DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz + 2, LineClr)
                                 end
                             end
 
-
-                            PtsX = {}
-                            PtsY = {}
-
-
-                                --[[ local p0, p1, p2 = {x = lastX; y= lastY;}, {x =CtrlX; y= CtrlY;}, {x =v; y= Y;}
-                                local p = bezier(i, p0, p1, p2)
-                                table.insert(Pts, p) ]]
-                                for t = 0, 1, 0.1 do
-                                    local startX = lastX
-                                    local startY = lastY
-                                    local controlX = CtrlX
-                                    local controlY = CtrlY
-                                    local endX = v
-                                    local endY = Y
-                                    local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
-                                    local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
-                                    table.insert(PtsX, x)
-                                    table.insert(PtsY, y)
-                                end
-                                --r.ImGui_DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
-
-                            for i, v in ipairs(PtsX) do  
-                                if i > 1 then 
-                                r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
-                                end
-                                --r.ImGui_DrawList_AddText(FDL, PtsX[i],PtsY[i],i, 0xffffffff)
-                            end
-                            ttp(#PtsX)
-
-
-                            --r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
+                            r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
                         end
                         if not AnyNodeHovered then HoverNode = nil end
 
