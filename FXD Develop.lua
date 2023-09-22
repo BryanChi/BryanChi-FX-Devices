@@ -1,3 +1,4 @@
+dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
@@ -10,7 +11,7 @@ require("BryanChi_FX Devices.Functions.Modulation")
 require("BryanChi_FX Devices.Functions.Theme Editor Functions")
 require("BryanChi_FX Devices.Functions.Filesystem_utils")
 require("BryanChi_FX Devices.Constants")
-PluginScript={}
+PluginScript = {}
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
@@ -329,6 +330,10 @@ EightColors = {
     LFO = {}
 }
 
+---@param h number
+---@param s number
+---@param v number
+---@param a number
 function HSV(h, s, v, a)
     local r, g, b = reaper.ImGui_ColorConvertHSVtoRGB(h, s, v)
     return reaper.ImGui_ColorConvertDouble4ToU32(r, g, b, a or 1.0)
@@ -420,8 +425,10 @@ local LAST_USED_FX
 
 
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
+---@param s string
 local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
 
+---@param filter_text string
 local function Filter_actions(filter_text)
     filter_text = Lead_Trim_ws(filter_text)
     local t = {}
@@ -455,6 +462,7 @@ end
 
 
 function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+    ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
     local MAX_FX_SIZE = 250
@@ -646,7 +654,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 ----- Get plugin scripts path -------
-local pluginScriptPath = CurrentDirectory..'BryanChi_FX Devices/FX Layout Plugin Scripts'
+local pluginScriptPath = CurrentDirectory .. 'BryanChi_FX Devices/FX Layout Plugin Scripts'
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
     if not v:find('.lua') then
@@ -711,7 +719,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
     function attachImagesAndFonts()
-        Img = {
+        Img = { -- TODO move to constants
             Trash = r.ImGui_CreateImage(CurrentDirectory ..
                 '/BryanChi_FX Devices/Images/trash.png')
         }
@@ -722,7 +730,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         end
 
 
-        Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold())
+        Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold()) -- TODO move to constants
         r.ImGui_Attach(ctx, Font_Andale_Mono_20_B)
         for i = 6, 64, 1 do
             r.ImGui_Attach(ctx, _G['Font_Andale_Mono_' .. i])
@@ -736,7 +744,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             r.ImGui_Attach(ctx, _G['Arial_' .. i])
         end
 
-        Arial = r.ImGui_CreateFont('Arial', 12)
+        Arial = r.ImGui_CreateFont('Arial', 12) -- TODO move to constants
     end
 
     function TrashIcon(size, lbl, ClrBG, ClrTint)
@@ -1053,16 +1061,17 @@ function loop()
 
     local Viewport = r.ImGui_GetWindowViewport(ctx)
     VP.w, VP.h     = r.ImGui_Viewport_GetSize(Viewport)
-    VP.x, VP.y     = r.ImGui_GetCursorScreenPos(ctx)
+    VP.x, VP.y     = r.ImGui_GetCursorScreenPos(ctx) -- TODO should this be marked as VP.X instead of lowercase? Other instances of the var are uppercase
+
 
     ----------------------------------------------------------------------------
     -- ImGUI Variables-----------------------------------------------------------
     ----------------------------------------------------------------------------
-    Mods           = r.ImGui_GetKeyMods(ctx)
-    Alt            = r.ImGui_Mod_Alt()
-    Ctrl           = r.ImGui_Mod_Ctrl()
-    Shift          = r.ImGui_Mod_Shift()
-    Apl            = r.ImGui_Mod_Super()
+    Mods  = r.ImGui_GetKeyMods(ctx)
+    Alt   = r.ImGui_Mod_Alt()
+    Ctrl  = r.ImGui_Mod_Ctrl()
+    Shift = r.ImGui_Mod_Shift()
+    Apl   = r.ImGui_Mod_Super()
 
 
 
@@ -5132,7 +5141,7 @@ function loop()
                                         for Fx_P, v in ipairs(FX[FxGUID]) do --parameter faders
                                             --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
 
-                                            local FP = FX[FxGUID][Fx_P]
+                                            local FP = FX[FxGUID][Fx_P] ---@type FX_P
 
                                             local F_Tp = FX.Prm.ToTrkPrm[FXGUID[FX_Idx] .. Fx_P]; local ID = FxGUID ..
                                                 Fx_P
@@ -5197,9 +5206,15 @@ function loop()
 
                                             --- if there's condition for parameters --------
                                             local CreateParam, ConditionPrms, Pass = nil, {}, {}
+
+                                            ---@param ConditionPrm "ConditionPrm"
+                                            ---@param ConditionPrm_PID "ConditionPrm_PID"
+                                            ---@param ConditionPrm_V_Norm "ConditionPrm_V_Norm"
+                                            ---@param ConditionPrm_V "ConditionPrm_V"
+                                            ---@return boolean
                                             local function CheckIfCreate(ConditionPrm, ConditionPrm_PID,
                                                                          ConditionPrm_V_Norm, ConditionPrm_V)
-                                                local Pass
+                                                local Pass -- TODO should this be initialized to false?
                                                 if FP[ConditionPrm] then
                                                     if not FX[FxGUID][Fx_P][ConditionPrm_PID] then
                                                         for i, v in ipairs(FX[FxGUID]) do
@@ -5695,16 +5710,16 @@ function loop()
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
                                             PluginScript.Guid = FXGUID[FX_Idx]
-                                            if Prm.InstAdded[FXGUID[FX_Idx] ] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
+                                            if Prm.InstAdded[FXGUID[FX_Idx]] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
                                                 --- number in green represents FX Prm Index
                                             end
                                             dofile(pluginScriptPath .. '/' .. v .. '.lua')
                                         end
                                     end
                                     --PluginScript.FX_Idx = FX_Idx
-                                   -- PluginScript.Guid = FXGUID[FX_Idx]
+                                    -- PluginScript.Guid = FXGUID[FX_Idx]
                                     --require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro C 2")
-                                   -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
+                                    -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
 
 
 
@@ -6480,7 +6495,7 @@ function loop()
                                     end
                                     if FrstSelItm.Type == 'Selection' then --r.ImGui_Text(ctx,'Edit Values Manually: ') ;r.ImGui_SameLine(ctx)
                                         local Itm = LE.Sel_Items[1]
-                                        local FP = FX[FxGUID][Itm]
+                                        local FP = FX[FxGUID][Itm] ---@type FX_P
 
 
 
@@ -6807,11 +6822,17 @@ function loop()
                                     ----- Condition to show ------
 
                                     local P = LE.Sel_Items[1]
-                                    local fp = FX[FxGUID][LE.Sel_Items[1]]
+                                    local fp = FX[FxGUID][LE.Sel_Items[1]] ---@type FX_P
 
 
 
 
+                                    ---@param ConditionPrm string "ConditionPrm"..number
+                                    ---@param ConditionPrm_PID string "ConditionPrm_PID"..number
+                                    ---@param ConditionPrm_V string "ConditionPrm_V"..number
+                                    ---@param ConditionPrm_V_Norm string "ConditionPrm_V_Norm"..number
+                                    ---@param BtnTitle string
+                                    ---@param ShowCondition string "ShowCondition"..number
                                     local function Condition(ConditionPrm, ConditionPrm_PID, ConditionPrm_V,
                                                              ConditionPrm_V_Norm, BtnTitle, ShowCondition)
                                         if r.ImGui_Button(ctx, BtnTitle) then
@@ -6907,7 +6928,7 @@ function loop()
                                                 r.ImGui_Text(ctx, 'is at Value:')
 
                                                 r.ImGui_SameLine(ctx)
-                                                local FP = FX[FxGUID][LE.Sel_Items[1]]
+                                                local FP = FX[FxGUID][LE.Sel_Items[1]] ---@type FX_P
                                                 local CP = FX[FxGUID][P][ConditionPrm]
                                                 --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
                                                 Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx,

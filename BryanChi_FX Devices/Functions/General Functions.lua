@@ -238,7 +238,7 @@ function tablefind(tab, el)
     end
 end
 
-function GetProjExt_FxNameNum(FxGUID)
+function GetProjExt_FxNameNum(FxGUID) ---@param FxGUID string
     local PrmCount
     rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
     if PrmCount ~= '' then FX.Prm.Count[FxGUID] = tonumber(PrmCount) end

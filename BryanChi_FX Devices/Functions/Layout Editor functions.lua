@@ -1871,6 +1871,7 @@ function CheckIfDrawingHasBeenMade(FX_Idx)
     return ChangeBeenMade
 end
 
+---@param Sel_Track_FX_Count integer
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
     if LT_Track then
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
