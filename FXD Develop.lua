@@ -8684,7 +8684,7 @@ function loop()
                                     ChangeLFO(13, NormX, 9)
                                     ChangeLFO(13, NormY, 10)
 
-                                ChangeLFO(13, #LFO_Nodes.x, 12) -- tells how many nodes there are
+                                    ChangeLFO(13, #LFO_Nodes.x, 12) -- tells how many nodes there are
 
 
 
@@ -8742,15 +8742,56 @@ function loop()
                                     DraggingLFOctrl = i
                                     local Dx, Dy    = r.ImGui_GetMouseDelta(ctx)
 
-                                    LFO_Ctrl.x[i]   = SetMinMax(CtrlX + Dx, lastX, v)
+                                    LFO_Ctrl.x[i]   = CtrlX + Dx -- SetMinMax(CtrlX + Dx, lastX, v)
 
-                                    LFO_Ctrl.y[i]   = SetMinMax(CtrlY + Dy, math.min(lastY, Y), math.max(lastY, Y))
+                                    LFO_Ctrl.y[i]   = CtrlY + Dy -- SetMinMax(CtrlY + Dy, math.min(lastY, Y), math.max(lastY, Y))
+                                    local Range = (math.max(lastY, Y) - math.min(lastY, Y)) 
+                                    local NormV = (math.min(lastY, Y)+ Range - LFO_Ctrl.y[i]) / Range
+                                    local BiPolar_Norm_V =  -1 + (NormV  )* 2
+                                    ttp(BiPolar_Norm_V)
+
+                                    ChangeLFO(14, i-1, 11)
+                                    ChangeLFO(14, BiPolar_Norm_V, 9)
+
+
+
                                 elseif r.ImGui_IsItemHovered(ctx) then
                                     r.ImGui_DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz + 2, LineClr)
                                 end
                             end
 
-                            r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
+
+                            PtsX = {}
+                            PtsY = {}
+
+
+                                --[[ local p0, p1, p2 = {x = lastX; y= lastY;}, {x =CtrlX; y= CtrlY;}, {x =v; y= Y;}
+                                local p = bezier(i, p0, p1, p2)
+                                table.insert(Pts, p) ]]
+                                for t = 0, 1, 0.1 do
+                                    local startX = lastX
+                                    local startY = lastY
+                                    local controlX = CtrlX
+                                    local controlY = CtrlY
+                                    local endX = v
+                                    local endY = Y
+                                    local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
+                                    local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
+                                    table.insert(PtsX, x)
+                                    table.insert(PtsY, y)
+                                end
+                                --r.ImGui_DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
+
+                            for i, v in ipairs(PtsX) do  
+                                if i > 1 then 
+                                r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
+                                end
+                                --r.ImGui_DrawList_AddText(FDL, PtsX[i],PtsY[i],i, 0xffffffff)
+                            end
+                            ttp(#PtsX)
+
+
+                            --r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
                         end
                         if not AnyNodeHovered then HoverNode = nil end
 
