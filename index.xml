@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<index version="1" commit="664c2b3c82c2c14760b34c267dd41bd05780dd02">
+  <category name="BryanChi_FX Devices/Helpers">
+    <reapack name="Sexan_FX_Browser.lua" type="script" desc="Sexan FX Browser parser">
+      <version name="0.1" author="Sexan" time="2023-09-20T21:49:57Z">
+        <changelog><![CDATA[initial release]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/63e0467e642576c692c0301d40cc0930bfa03e7f/BryanChi_FX%20Devices/Helpers/Sexan_FX_Browser.lua</source>
+      </version>
+    </reapack>
+  </category>
+</index>
