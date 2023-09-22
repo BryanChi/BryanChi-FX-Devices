@@ -2,8 +2,11 @@
 
 r = reaper
 
-
-
+---General functions list
+---@param str string
+function GetFileExtension(str)
+    return str:match("^.+(%..+)$")
+end
 
 function ChangeFX_Name(FX_Name)
     if FX_Name then
@@ -44,8 +47,6 @@ function GetLTParam()
         retval, LT_ParamName = reaper.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     end
 end
-
---AddMacroJSFX()
 
 function GetLT_FX_Num()
     retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = reaper.GetLastTouchedFX()
@@ -248,7 +249,8 @@ function GetProjExt_FxNameNum(FxGUID)
             local FP = FX[FxGUID][P]
             if FP then
                 _, FP.Name = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID)
-                _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID); FP.Num = tonumber(FP.Num)
+                _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID); FP.Num = tonumber(FP
+                    .Num)
             end
         end
     end
@@ -317,7 +319,7 @@ function AddFX_HideWindow(track, fx_name, Position)
     end
 end
 
-function ToggleCollapseAll()
+function ToggleCollapseAll(FX_Idx)
     -- check if all are collapsed
     local All_Collapsed
     for i = 0, Sel_Track_FX_Count - 1, 1 do
@@ -352,6 +354,8 @@ end
 function TableMaxVal()
 end
 
+---@param T table
+---@return integer
 function tablelength(T)
     local count = 0
     for _ in pairs(T) do count = count + 1 end
@@ -372,6 +376,22 @@ function FindStringInTable(Table, V)
     if V then
         for i, val in pairs(Table) do
             if string.find(val, V) ~= nil then
+                found = true
+                table.insert(Tab, i)
+            end
+        end
+        if found == true then return true, Tab else return false end
+    else
+        return nil
+    end
+end
+
+function FindExactStringInTable(Table, V)
+    local found = nil
+    local Tab = {}
+    if V then
+        for i, val in pairs(Table) do
+            if val == V then
                 found = true
                 table.insert(Tab, i)
             end
@@ -426,10 +446,6 @@ function findDuplicates(t)
     end
 end
 
-function RemoveEmptyStr(str)
-    if str == '' then return nil else return str end
-end
-
 --------------ImGUI Related ---------------------
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
@@ -456,6 +472,14 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
         if OutlineClr then r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
     end
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
+end
+
+function PC(ctx, itm, clr)
+    r.ImGui_PushStyleColor(ctx, itm, clr)
+end
+
+function PopClr(ctx, time)
+    r.ImGui_PopStyleColor(ctx, time)
 end
 
 function SaveDrawings(FX_Idx, FxGUID)
@@ -493,6 +517,7 @@ function SaveDrawings(FX_Idx, FxGUID)
         write('Total Number of Drawings', #D.Type)
 
         for i, Type in ipairs(D.Type) do
+            D[i] = D[i] or {}
             write('Type', D.Type[i], i)
             write('Left', D.L[i], i)
             write('Right', D.R[i], i)
@@ -500,6 +525,8 @@ function SaveDrawings(FX_Idx, FxGUID)
             write('Bottom', D.B[i], i)
             write('Color', D.clr[i], i)
             write('Text', D.Txt[i], i)
+            write('ImagePath', D[i].FilePath, i)
+            write('KeepImgRatio', tostring(D[i].KeepImgRatio), i)
             file:write('\n')
         end
     end
@@ -531,13 +558,12 @@ function HideCursor(time)
         end
     end
     --[[ reaper.JS_WindowMessage_Intercept(window, "WM_SETCURSOR", false)
-    release_time = reaper.time_precise() + 3 ]]
+        release_time = reaper.time_precise() + 3 ]]
 
     Hide()
 end
 
-function HideCursorTillMouseUp(MouseBtn, ifneedctx)
-    if ifneedctx then ctx = ifneedctx end
+function HideCursorTillMouseUp(MouseBtn)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
         Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
@@ -581,7 +607,8 @@ end
 
 function HighlightHvredItem()
     local DL = r.ImGui_GetForegroundDrawList(ctx)
-    L, T = r.ImGui_GetItemRectMin(ctx); R, B = r.ImGui_GetItemRectMax(ctx)
+    L, T = r.ImGui_GetItemRectMin(ctx)
+    R, B = r.ImGui_GetItemRectMax(ctx)
     if r.ImGui_IsMouseHoveringRect(ctx, L, T, R, B) then
         r.ImGui_DrawList_AddRect(DL, L, T, R, B, 0x99999999)
         r.ImGui_DrawList_AddRectFilled(DL, L, T, R, B, 0x99999933)
@@ -648,7 +675,18 @@ function MyText(text, font, color, WrapPosX)
     if WrapPosX then r.ImGui_PopTextWrapPos(ctx) end
 end
 
-function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx)
+---@param ctx ImGui_Context
+---@param label string
+---@param labeltoShow string
+---@param p_value integer
+---@param v_min number
+---@param v_max number
+---@param FX_Idx number
+---@param P_Num number
+---@return boolean ActiveAny
+---@return boolean ValueChanged
+---@return integer p_value
+function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
     r.ImGui_SetNextItemWidth(ctx, 40)
     local radius_outer = 10
     local pos = { reaper.ImGui_GetCursorScreenPos(ctx) }
@@ -687,7 +725,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx)
         CircleClr = Change_Clr_A(getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
         value_changed = true
         ActiveAny = true
-        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Wet.P_Num[FX_Idx], p_value)
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num or Wet.P_Num[FX_Idx], p_value)
     elseif is_hovered or p_value ~= 1 then
         lineClr = Change_Clr_A(getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
     else
@@ -726,7 +764,8 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx)
         local radius_outer = radius_outer
         r.ImGui_DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
             center[2] - radius_outer, center[1] + radius_outer, center[2] + radius_outer, 0x999900ff)
-        r.ImGui_DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2, 0xffffffff,
+        r.ImGui_DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2,
+            0xffffffff,
             'S')
     end
 
@@ -747,6 +786,11 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx)
     return ActiveAny, value_changed, p_value
 end
 
+---@param DL ImGui_DrawList
+---@param CenterX number
+---@param CenterY number
+---@param size number
+---@param clr number rgba color
 function DrawTriangle(DL, CenterX, CenterY, size, clr)
     local Cx = CenterX
     local Cy = CenterY
@@ -754,6 +798,11 @@ function DrawTriangle(DL, CenterX, CenterY, size, clr)
     r.ImGui_DrawList_AddTriangleFilled(DL, Cx, Cy - S, Cx - S, Cy, Cx + S, Cy, clr or 0x77777777ff)
 end
 
+---@param DL ImGui_DrawList
+---@param CenterX number
+---@param CenterY number
+---@param size number
+---@param clr number rgba color
 function DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
     local Cx = CenterX
     local Cy = CenterY
@@ -761,10 +810,20 @@ function DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
     r.ImGui_DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
 end
 
+---Same Line
+---@param xpos? number offset_from_start_xIn
+---@param pad? number spacingIn
 function SL(xpos, pad)
     r.ImGui_SameLine(ctx, xpos, pad)
 end
 
+---@param w number
+---@param h number
+---@param icon string
+---@param BGClr? number
+---@param center? string
+---@param Identifier? string
+---@return boolean
 function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     r.ImGui_PushFont(ctx, FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
@@ -794,27 +853,33 @@ function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     if r.ImGui_IsItemActivated(ctx) then return true end
 end
 
+---@param f integer
+---@return integer
 function getClr(f)
     return r.ImGui_GetStyleColor(ctx, f)
 end
 
+---@param CLR number
+---@param HowMuch number
+---@return integer
 function Change_Clr_A(CLR, HowMuch)
     local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(CLR)
     local A = SetMinMax(A + HowMuch, 0, 1)
     return r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
 end
 
+---@param Clr number
 function Generate_Active_And_Hvr_CLRs(Clr)
     local ActV, HvrV
     local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(Clr)
-    local HSV, _, H, S, V = r.ImGui_ColorConvertRGBtoHSV(R, G, B)
+    local H, S, V = r.ImGui_ColorConvertRGBtoHSV(R, G, B)
     if V > 0.9 then
         ActV = V - 0.2
         HvrV = V - 0.1
     end
-    local RGB, _, R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
+    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
     local ActClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
-    local RGB, _, R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
+    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
     local HvrClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
     return ActClr, HvrClr
 end
@@ -850,7 +915,8 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
         --restore FX specific Blacklist settings
         for i = 0, PrmCount - 4, 1 do
             FX[FxGUID].PrmList[i] = FX[FxGUID].PrmList[i] or {}
-            _, FX[FxGUID].PrmList[i].BL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID .. i, '',
+            _, FX[FxGUID].PrmList[i].BL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID .. i,
+                '',
                 false)
             if FX[FxGUID].PrmList[i].BL == 'Blacklisted' then FX[FxGUID].PrmList[i].BL = true else FX[FxGUID].PrmList[i].BL = nil end
         end
@@ -905,7 +971,6 @@ function openFXwindow(LT_Track, FX_Idx)
 end
 
 function ToggleBypassFX(LT_Track, FX_Idx)
-    FX = FX or {}
     FX.Enable = FX.Enable or {}
     FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
     if FX.Enable[FX_Idx] == true then
@@ -918,7 +983,8 @@ end
 function DeleteFX(FX_Idx)
     local DelFX_Name
     r.Undo_BeginBlock()
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (tablefind(Trk[TrkID].PreFX, FXGUID[FX_Idx]) or ''), '',
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (tablefind(Trk[TrkID].PreFX, FXGUID[FX_Idx]) or ''),
+        '',
         true)
     --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX '..(tablefind (Trk[TrkID].PostFX, FXGUID[FX_Idx]) or ''), '', true)
 
@@ -969,6 +1035,12 @@ end
 function DeletePrm(FxGUID, Fx_P, FX_Idx)
     --LE.Sel_Items[1] = nil
     local FP = FX[FxGUID][Fx_P]
+    for i, v in ipairs(FX[FxGUID]) do
+        if v.ConditionPrm then
+            v.ConditionPrm = nil
+        end
+    end
+
 
     if FP.WhichMODs then
         Trk[TrkID].ModPrmInst = Trk[TrkID].ModPrmInst - 1
@@ -1018,6 +1090,55 @@ function SyncTrkPrmVtoActualValue()
             end
         end
     end
+end
+
+-------------General Functions ------------------------------
+
+
+
+function scandir(directory)
+    local Files = {}
+    for i = 0, 999, 1 do
+        local F = r.EnumerateFiles(directory, i)
+        if F then table.insert(Files, F) end
+
+        if not F then return Files end
+    end
+
+    return F
+end
+
+function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
+    GetLTParam()
+    local FX_Count = reaper.TrackFX_GetCount(LT_Track); local RptPrmFound
+    local F = FX[LT_FXGUID] or {}
+
+    if F then
+        for i, v in ipairs(F) do
+            if FX[LT_FXGUID][i].Num == LT_ParamNum then
+                RptPrmFound = true
+
+                if ShowAlreadyAddedPrm then
+                    TryingToAddExistingPrm = i .. LT_FXGUID
+                    TimeNow = r.time_precise()
+                end
+            end
+        end
+        --[[ if not RptPrmFound and LT_FXGUID then
+                StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true )
+            end ]]
+    end
+    return RptPrmFound
+end
+
+function RemoveEmptyStr(str)
+    if str == '' then return nil else return str end
+end
+
+function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
 end
 
 function AddSpacing(Rpt)

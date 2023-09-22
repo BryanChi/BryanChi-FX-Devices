@@ -4,12 +4,26 @@
 -- @version 0.1
 -- @changelog
 --  initial release
+---@class VSTINFO
+---@field id string
+---@field name string
+
+---@class CATEGORY
+---@field list FX[]
+---@field name string
+
+---@class FX
+---@field name string
+---@field smart? unknown
+---@field fx string
 
 local r = reaper
 local os = r.GetOS()
 local os_separator = package.config:sub(1, 1)
-local CAT = {}
+local CAT = {} ---@type CATEGORY[]
 
+---@param fp string filepath
+---@return string
 function GetFileContext(fp)
     local str = "\n"
     -- DONT CRASH SCRIPT IF PATH IS NOT PROVIDED
@@ -43,6 +57,10 @@ local function FindCategory(cat)
     end
 end
 
+---@param tbl VSTINFO[]
+---@param id string
+---@param js? "JS"
+---@return string|nil
 local function FindFXIDName(tbl, id, js)
     for i = 1, #tbl do
         if js then
@@ -60,13 +78,16 @@ function InTbl(tbl, val)
     end
 end
 
+---@param plugin_list string[]
+---@param INSTRUMENTS string[]
+---@return VSTINFO[] VST_INFO, string[] VST, string[] VSTi, string[] VST3, string[] VST3i
 local function ParseVST(plugin_list, INSTRUMENTS)
-    local VST_INFO = {}
-    local VST = {}
-    local VSTi = {}
-    local VST3 = {}
-    local VST3i = {}
-    local rename_tbl = {}
+    local VST_INFO = {} ---@type VSTINFO[]
+    local VST = {} ---@type string[]
+    local VSTi = {} ---@type string[]
+    local VST3 = {} ---@type string[]
+    local VST3i = {} ---@type string[]
+    local rename_tbl = {} ---@type string[]
 
     local vst_path
     local vst_str
@@ -139,6 +160,8 @@ local function ParseVST(plugin_list, INSTRUMENTS)
     return VST_INFO, VST, VSTi, VST3, VST3i
 end
 
+---@param plugin_list string[]
+---@return VSTINFO[] JS_INFO, string[] JS
 local function ParseJSFX(plugin_list)
     local JS_INFO   = {}
     local JS        = {}
@@ -165,10 +188,13 @@ local function ParseJSFX(plugin_list)
     return JS_INFO, JS
 end
 
+---@param plugin_list string[]
+---@param INSTRUMENTS string[]
+---@return VSTINFO[] AU_INFO, string[] AU, string[] AUi
 local function ParseAU(plugin_list, INSTRUMENTS)
-    local AU_INFO = {}
-    local AU      = {}
-    local AUi     = {}
+    local AU_INFO = {} ---@type VSTINFO[]
+    local AU      = {} ---@type string[]
+    local AUi     = {} ---@type string[]
 
     local au_path
     local au_str
@@ -202,6 +228,10 @@ local function ParseAU(plugin_list, INSTRUMENTS)
     return AU_INFO, AU, AUi
 end
 
+
+---@param plugin_list string[]
+---@param INSTRUMENTS string[]
+---@return VSTINFO[] CLAP_INFO, string[] CLAP, string[] CLAPi
 local function ParseCLAP(plugin_list, INSTRUMENTS)
     local CLAP_INFO  = {}
     local CLAP       = {}
@@ -275,6 +305,8 @@ local function ParseCLAP(plugin_list, INSTRUMENTS)
     return CLAP_INFO, CLAP, CLAPi
 end
 
+---@param plugin_list string[]
+---@return VSTINFO[] LV2_INFO, string[] LV2, string[] LV2i
 local function ParseLV2(plugin_list)
     local LV2_INFO = {}
     local LV2 = {}
@@ -300,6 +332,10 @@ local function ParseLV2(plugin_list)
     return LV2_INFO, LV2, LV2i
 end
 
+---@param VST_INFO VSTINFO
+---@param JS_INFO VSTINFO
+---@param AU_INFO VSTINFO
+---@param CLAP_INFO VSTINFO
 local function ParseFXTags(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     -- PARSE CATEGORIES
     local tags_path = r.GetResourcePath() .. "/reaper-fxtags.ini"
@@ -349,6 +385,10 @@ local function ParseFXTags(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     end
 end
 
+---@param VST_INFO VSTINFO[]
+---@param JS_INFO VSTINFO[]
+---@param AU_INFO VSTINFO[]
+---@param CLAP_INFO VSTINFO[]
 local function ParseCustomCategories(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     local fav_path = r.GetResourcePath() .. "/reaper-fxfolders.ini"
     local fav_str  = GetFileContext(fav_path)
@@ -390,6 +430,10 @@ local function ParseCustomCategories(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     end
 end
 
+---@param VST_INFO VSTINFO
+---@param JS_INFO VSTINFO
+---@param AU_INFO VSTINFO
+---@param CLAP_INFO VSTINFO
 local function ParseFavorites(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     -- PARSE FAVORITES FOLDER
     local fav_path = r.GetResourcePath() .. "/reaper-fxfolders.ini"
@@ -487,6 +531,16 @@ local function ParseTrackTemplates()
     end
 end
 
+---@param JS string[]
+---@param AU string[]
+---@param AUi string[]
+---@param CLAP string[]
+---@param CLAPi string[]
+---@param VST string[]
+---@param VSTi string[]
+---@param VST3 string[]
+---@param VST3i string[]
+---@param INSTRUMENTS string[]
 local function AllPluginsCategory(JS, AU, AUi, CLAP, CLAPi, VST, VSTi, VST3, VST3i, INSTRUMENTS)
     CAT[#CAT + 1] = { name = "ALL PLUGINS", list = {} }
     if #JS ~= 0 then table.insert(CAT[#CAT].list, { name = "JS", fx = JS }) end
@@ -517,8 +571,8 @@ local function AllPluginsCategory(JS, AU, AUi, CLAP, CLAPi, VST, VSTi, VST3, VST
 end
 
 function GenerateFxList()
-    local plugin_list = {}
-    local INSTRUMENTS = {}
+    local plugin_list = {} ---@type string[]
+    local INSTRUMENTS = {} ---@type string[]
 
     plugin_list[#plugin_list + 1] = "Container"
     plugin_list[#plugin_list + 1] = "Video processor"

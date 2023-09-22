@@ -10,138 +10,138 @@ local FxGUID = PluginScript.Guid
 ---------------------------------------------
 
 
-    if BandColor == nil then BandColor = 0x69B45D55 end
-    _, _, color = determineBandColor(ProQ3.LT_EQBand[FXGUID[FX_Idx]])
-    if color == nil then color = 0xffffffff end
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), color)
+if BandColor == nil then BandColor = 0x69B45D55 end
+_, _, color = determineBandColor(ProQ3.LT_EQBand[FXGUID[FX_Idx]])
+if color == nil then color = 0xffffffff end
+r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), color)
 
-    if ProQ3.LT_EQBand[FXGUID[FX_Idx]] ~= nil then
-        Freq_LTBandNorm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-            13 * (ProQ3.LT_EQBand[FXGUID[FX_Idx]] - 1) + 2)
-        Freq_LTBand = math.floor(x_to_freq(Freq_LTBandNorm * 340)) -- width
-        ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] = Freq_LTBand
-        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-            13 * (ProQ3.LT_EQBand[FXGUID[FX_Idx]] - 1) + 3)
-        --Gain = tonumber(Gain)
-        Gain = -30 + Gain * 60
-        FreqValueDrag[FX_Idx] = Freq_LTBandNorm
-        if Gain ~= nil then
-            ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] = round(Gain, 1)
-        end
+if ProQ3.LT_EQBand[FXGUID[FX_Idx]] ~= nil then
+    Freq_LTBandNorm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+        13 * (ProQ3.LT_EQBand[FXGUID[FX_Idx]] - 1) + 2)
+    Freq_LTBand = math.floor(x_to_freq(Freq_LTBandNorm * 340)) -- width
+    ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] = Freq_LTBand
+    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+        13 * (ProQ3.LT_EQBand[FXGUID[FX_Idx]] - 1) + 3)
+    --Gain = tonumber(Gain)
+    Gain = -30 + Gain * 60
+    FreqValueDrag[FX_Idx] = Freq_LTBandNorm
+    if Gain ~= nil then
+        ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] = round(Gain, 1)
     end
+end
 
 
 
-    r.ImGui_SetNextItemWidth(ctx, 60)
-    if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] < 1000 then
-        FreqLbl = ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] .. ' Hz'
-    elseif ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] > 1000 then
-        FreqLbl = round(ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] / 1000, 2) ..
-            ' kHz'
-    end
-    if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
-        if Mods == Shift then
-            DragSpeed = 0.003
-        else
-            DragSpeed = 0.008
-        end
-        FreqDragging, FreqValueDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##FreqDrag',
-            FreqValueDrag[FX_Idx], DragSpeed, -1, 1, FreqLbl)
-        ProQ3.FreqDragging = r.ImGui_IsItemActive(ctx)
-        if FreqDragging then
-            -- r.TrackFX_SetParamNormalized(LT_Track,FX_Idx,13*(ProQ3.LT_EQBand[FXGUID[FX_Idx]]-1) +2,FreqValueDrag[FX_Idx]  )
-        end
-    end
-
-    r.ImGui_SameLine(ctx)
-    r.ImGui_SetNextItemWidth(ctx, 60)
-    if ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
-        _, ProQ3.GainDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##GainDrag',
-            ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1,
-            ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] .. 'dB')
-        ProQ3.GainDragging = r.ImGui_IsItemActive(ctx)
-    end
-
-    r.ImGui_SameLine(ctx, 340 - 130)
-    r.ImGui_SetNextItemWidth(ctx, 50)
-    if ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] ~= nil then
-        DispRangeBtnClicked = r.ImGui_Button(ctx,
-            '±' .. ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] .. 'dB##' ..
-            FX_Idx, 50, 20)
-    end
-    if DispRangeBtnClicked then
-        r.ImGui_OpenPopup(ctx, 'ProQ Display Range ##' .. FX_Idx)
-        local L, T = r.ImGui_GetItemRectMin(ctx)
-        local W, H = r.ImGui_GetItemRectSize(ctx)
-        r.ImGui_SetNextWindowPos(ctx, L, T + H)
-        r.ImGui_SetNextWindowSize(ctx, W, H)
-    end
-
-    if focusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
-        _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
-            331)
-        ProQ3.DspRange[FX_Idx] = ProQ3.DspRange[FX_Idx]:gsub('dB', '')
-        ProQ3.DspRange[FX_Idx] = tonumber(ProQ3.DspRange[FX_Idx])
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = ProQ3.DspRange[FX_Idx]
-        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = syncProQ_DispRange(ProQ3
-            .DspRange[FX_Idx])
-    end
-
-
-
-    if r.ImGui_BeginPopup(ctx, 'ProQ Display Range ##' .. FX_Idx) then
-        if r.ImGui_Selectable(ctx, '±30dB') then
-            ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 1
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 1)
-            r.ImGui_CloseCurrentPopup(ctx)
-        end
-        if r.ImGui_Selectable(ctx, '±12dB') then
-            ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 2.5
-            r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.7)
-            r.ImGui_CloseCurrentPopup(ctx)
-        end
-        if r.ImGui_Selectable(ctx, '±6 dB') then
-            ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 5
-            r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.3)
-            r.ImGui_CloseCurrentPopup(ctx)
-        end
-        if r.ImGui_Selectable(ctx, '±3 dB') then
-            ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 10
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 0)
-            r.ImGui_CloseCurrentPopup(ctx)
-        end
-
-        reaper.ImGui_EndPopup(ctx)
-    end
-    if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 1 then
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 30
-    elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 2.5 then
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 12
-    elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 5 then
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 6
-    elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 10 then
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 3
+r.ImGui_SetNextItemWidth(ctx, 60)
+if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] < 1000 then
+    FreqLbl = ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] .. ' Hz'
+elseif ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] > 1000 then
+    FreqLbl = round(ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] / 1000, 2) ..
+        ' kHz'
+end
+if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
+    if Mods == Shift then
+        DragSpeed = 0.003
     else
-        ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 12
+        DragSpeed = 0.008
+    end
+    FreqDragging, FreqValueDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##FreqDrag',
+        FreqValueDrag[FX_Idx], DragSpeed, -1, 1, FreqLbl)
+    ProQ3.FreqDragging = r.ImGui_IsItemActive(ctx)
+    if FreqDragging then
+        -- r.TrackFX_SetParamNormalized(LT_Track,FX_Idx,13*(ProQ3.LT_EQBand[FXGUID[FX_Idx]]-1) +2,FreqValueDrag[FX_Idx]  )
+    end
+end
+
+r.ImGui_SameLine(ctx)
+r.ImGui_SetNextItemWidth(ctx, 60)
+if ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
+    _, ProQ3.GainDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##GainDrag',
+        ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1,
+        ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] .. 'dB')
+    ProQ3.GainDragging = r.ImGui_IsItemActive(ctx)
+end
+
+r.ImGui_SameLine(ctx, 340 - 130)
+r.ImGui_SetNextItemWidth(ctx, 50)
+if ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] ~= nil then
+    DispRangeBtnClicked = r.ImGui_Button(ctx,
+        '±' .. ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] .. 'dB##' ..
+        FX_Idx, 50, 20)
+end
+if DispRangeBtnClicked then
+    r.ImGui_OpenPopup(ctx, 'ProQ Display Range ##' .. FX_Idx)
+    local L, T = r.ImGui_GetItemRectMin(ctx)
+    local W, H = r.ImGui_GetItemRectSize(ctx)
+    r.ImGui_SetNextWindowPos(ctx, L, T + H)
+    r.ImGui_SetNextWindowSize(ctx, W, H)
+end
+
+if focusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
+    _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
+        331)
+    ProQ3.DspRange[FX_Idx] = ProQ3.DspRange[FX_Idx]:gsub('dB', '')
+    ProQ3.DspRange[FX_Idx] = tonumber(ProQ3.DspRange[FX_Idx])
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = ProQ3.DspRange[FX_Idx]
+    ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = syncProQ_DispRange(ProQ3
+        .DspRange[FX_Idx])
+end
+
+
+
+if r.ImGui_BeginPopup(ctx, 'ProQ Display Range ##' .. FX_Idx) then
+    if r.ImGui_Selectable(ctx, '±30dB') then
+        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 1
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 1)
+        r.ImGui_CloseCurrentPopup(ctx)
+    end
+    if r.ImGui_Selectable(ctx, '±12dB') then
+        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 2.5
+        r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.7)
+        r.ImGui_CloseCurrentPopup(ctx)
+    end
+    if r.ImGui_Selectable(ctx, '±6 dB') then
+        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 5
+        r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.3)
+        r.ImGui_CloseCurrentPopup(ctx)
+    end
+    if r.ImGui_Selectable(ctx, '±3 dB') then
+        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 10
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 0)
+        r.ImGui_CloseCurrentPopup(ctx)
     end
 
-    SL(340-60)
-   -- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
-    local GainScale = r.TrackFX_GetParamNormalized(LT_Track,FX_Idx, 314)
-    FX.Round[FxGUID] = 100
+    reaper.ImGui_EndPopup(ctx)
+end
+if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 1 then
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 30
+elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 2.5 then
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 12
+elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 5 then
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 6
+elseif ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 10 then
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 3
+else
+    ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 12
+end
+
+SL(340 - 60)
+-- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
+local GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 314)
+FX.Round[FxGUID] = 100
 
 
-    Rounding = 10
-    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
-    AddDrag(ctx, '##GainScale'..FxGUID, '', GainScale, 0, 1, 0--[[FX_P]] , FX_Idx, 314, 'Pro C', 60,
-                     item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
+Rounding = 10
+r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
+AddDrag(ctx, '##GainScale' .. FxGUID, '', GainScale, 0, 1, 0 --[[FX_P]], FX_Idx, 314, 'Pro C', 60,
+    item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
 
-    if r.ImGui_IsItemActivated(ctx) and r.ImGui_IsMouseDoubleClicked(ctx,0) then 
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,314, 0.5)
-    end
-    r.ImGui_PopStyleVar(ctx)
+if r.ImGui_IsItemActivated(ctx) and r.ImGui_IsMouseDoubleClicked(ctx, 0) then
+    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 314, 0.5)
+end
+r.ImGui_PopStyleVar(ctx)
 
-    r.ImGui_PopStyleColor(ctx)
+r.ImGui_PopStyleColor(ctx)
 
 
 
@@ -177,15 +177,6 @@ local FxGUID = PluginScript.Guid
 
 
 if not FX[FxGUID].Collapse then
-
-
-
-
-
-
-
-
-
     r.gmem_attach('gmemReEQ_Spectrum')
 
 
@@ -439,7 +430,6 @@ if not FX[FxGUID].Collapse then
                             ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
 
                         FillClr_LT_Band(i, Y_Mid)
-
                     end
 
                     reaper.ImGui_DrawList_PathFillConvex(Foreground, 0xffffffff)
@@ -728,11 +718,10 @@ if not FX[FxGUID].Collapse then
             pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ]
             local X2 = x + 2
             if i ~= 1 then
+                local y1 = Y_Mid - pts[(math.max(i - 2, 3)) .. FXGUID_ProQ] * (GainScale * 2)
+                local y2 = Y_Mid - pts[i .. FXGUID_ProQ] * (GainScale * 2)
 
-                local y1 = Y_Mid - pts [(math.max( i-2 , 3)) .. FXGUID_ProQ] * (GainScale *2)
-                local y2  = Y_Mid - pts[i .. FXGUID_ProQ] * (GainScale *2)
-
-                r.ImGui_DrawList_AddLine(Foreground, x, y1 , X2, y2 , 0xFFC43488, 2.5)
+                r.ImGui_DrawList_AddLine(Foreground, x, y1, X2, y2, 0xFFC43488, 2.5)
             end
 
 
