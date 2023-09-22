@@ -10,6 +10,7 @@ require("BryanChi_FX Devices.Functions.Modulation")
 require("BryanChi_FX Devices.Functions.Theme Editor Functions")
 require("BryanChi_FX Devices.Functions.Filesystem_utils")
 require("BryanChi_FX Devices.Constants")
+PluginScript={}
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
@@ -29,7 +30,6 @@ function msg(m)
     return r.ShowConsoleMsg(tostring(m) .. "\n")
 end
 
-PluginScript = {}
 local FX_LIST, CAT = GetFXTbl()
 
 ---@type ViewPort
@@ -646,8 +646,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 ----- Get plugin scripts path -------
-local pluginScriptPath = r.GetResourcePath() ..
-    '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/FX Layout Plugin Scripts'
+local pluginScriptPath = CurrentDirectory..'BryanChi_FX Devices/FX Layout Plugin Scripts'
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
     if not v:find('.lua') then
@@ -5696,12 +5695,17 @@ function loop()
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
                                             PluginScript.Guid = FXGUID[FX_Idx]
-                                            if Prm.InstAdded[FXGUID[FX_Idx]] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
+                                            if Prm.InstAdded[FXGUID[FX_Idx] ] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
                                                 --- number in green represents FX Prm Index
                                             end
                                             dofile(pluginScriptPath .. '/' .. v .. '.lua')
                                         end
                                     end
+                                    --PluginScript.FX_Idx = FX_Idx
+                                   -- PluginScript.Guid = FXGUID[FX_Idx]
+                                    --require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro C 2")
+                                   -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
+
 
 
                                     if FX.Enable[FX_Idx] == false then
