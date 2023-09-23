@@ -742,8 +742,8 @@ end
 ---@param dur number
 ---@param rpt integer
 ---@param var integer | nil
----@param highlightEdge any -- TODO is this a number?
----@param EdgeNoBlink "EdgeNoBlink" | nil
+---@param highlightEdge? any -- TODO is this a number?
+---@param EdgeNoBlink? "EdgeNoBlink"
 ---@param L number
 ---@param T number
 ---@param R number
@@ -794,8 +794,8 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
 end
 
 ---@param text string
----@param font ImGui_Font
----@param color number rgba
+---@param font? ImGui_Font
+---@param color? number rgba
 ---@param WrapPosX? number
 function MyText(text, font, color, WrapPosX)
     if WrapPosX then r.ImGui_PushTextWrapPos(ctx, WrapPosX) end
@@ -818,7 +818,7 @@ end
 ---@param v_min number
 ---@param v_max number
 ---@param FX_Idx number
----@param P_Num number
+---@param P_Num? number
 ---@return boolean ActiveAny
 ---@return boolean ValueChanged
 ---@return integer p_value

@@ -16,7 +16,7 @@
 ---@param Disabled string
 ---@param LblTextSize integer
 ---@param Lbl_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
----@param V_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
+---@param V_Pos? "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
 ---@param ImgPath? ImGui_Image
 ---@return boolean
 ---@return number
@@ -1030,9 +1030,9 @@ end
 ---@param Style Style
 ---@param FxGUID string
 ---@param Fx_P integer
----@param OptionValues number[]
----@param LabelOveride string|nil
----@param CustomLbl string|nil
+---@param OptionValues? number[]
+---@param LabelOveride? string|nil
+---@param CustomLbl? string
 ---@param Lbl_Pos? Position
 function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
                   LabelOveride, CustomLbl, Lbl_Pos)
