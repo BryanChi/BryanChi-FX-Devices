@@ -17,7 +17,7 @@
 ---@param LblTextSize integer
 ---@param Lbl_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
 ---@param V_Pos "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"
----@param ImgPath string
+---@param ImgPath? ImGui_Image
 ---@return boolean
 ---@return number
 function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
@@ -604,13 +604,13 @@ end
 ---@param P_Num number
 ---@param SliderStyle string
 ---@param Sldr_Width number
----@param item_inner_spacing number[]
+---@param item_inner_spacing number
 ---@param Disable string | nil
 ---@param Vertical string
 ---@param GrabSize number
 ---@param BtmLbl string
 ---@param SpacingBelow number
----@param Height number
+---@param Height? number
 ---@return boolean value_changed
 ---@return number p_value
 function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, SliderStyle, Sldr_Width,
@@ -1025,7 +1025,7 @@ end
 ---@param FX_Idx integer
 ---@param Label string
 ---@param WhichPrm integer
----@param Options "Get Options"|nil
+---@param Options? "Get Options"|string[]
 ---@param Width number
 ---@param Style Style
 ---@param FxGUID string
@@ -1033,7 +1033,7 @@ end
 ---@param OptionValues number[]
 ---@param LabelOveride string|nil
 ---@param CustomLbl string|nil
----@param Lbl_Pos Position
+---@param Lbl_Pos? Position
 function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
                   LabelOveride, CustomLbl, Lbl_Pos)
     LabelValue = Label .. 'Value'
@@ -1239,6 +1239,17 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     if rv then return rv, v_format end
 end
 
+---@param LT_Track MediaTrack
+---@param FX_Idx integer
+---@param Value any
+---@param P_Num number
+---@param BgClr number
+---@param Lbl_Type? "Use Prm Name as Lbl"
+---@param Fx_P string|integer
+---@param F_Tp string|integer ---TODO unused
+---@param FontSize number
+---@param FxGUID string
+---@return integer
 function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, FontSize, FxGUID)
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
@@ -1392,6 +1403,32 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if Value == 0 then return 0 else return 1 end
 end
 
+---TODO style param is not quite there yet
+---some of the missing options might be:
+---    | "Pro C 2"
+---    | "Pro C Thresh"
+---    | "Custom Image"
+---    | "Invisible"
+---    | "FX Layering"
+---    | 'up-down arrow'
+---@param ctx ImGui_Context
+---@param label string
+---@param labeltoShow string
+---@param p_value number
+---@param v_min number
+---@param v_max number
+---@param Fx_P any
+---@param FX_Idx integer
+---@param P_Num number
+---@param Style "FX Layering"|"Pro C"|"Pro C Lookahead"|string
+---@param Sldr_Width number
+---@param item_inner_spacing number
+---@param Disable? "Disabled"
+---@param Lbl_Clickable? "Lbl_Clickable"
+---@param Lbl_Pos Position
+---@param V_Pos Position
+---@param DragDir "Left"|"Right"|"Left-Right"
+---@param AllowInput? "NoInput"
 function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Sldr_Width,
                  item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
     FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -1550,7 +1587,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FP.GrbClr and FX.LayEdit == FxGUID then
         local ActV
         local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(FP.GrbClr)
-        local HSV, _, H, S, V = r.ImGui_ColorConvertRGBtoHSV(R, G, B)
+        local HSV, _, H, S, V = r.ImGui_ColorConvertRGBtoHSV(R, G, B) ---TODO I think this function only returns 3 values, not 5
         if V > 0.9 then ActV = V - 0.2 end
         local RGB, _, R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
         local ActClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
@@ -1804,6 +1841,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     return value_changed, p_value
 end
 
+---@param FxGUID string
+---@param FX_Name string
 function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
     if FX[FxGUID].File then
         local ChangeBeenMade
@@ -1856,6 +1895,7 @@ function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
     end
 end
 
+---@param FX_Idx string
 function CheckIfDrawingHasBeenMade(FX_Idx)
     local D = Draw[FX.Win_Name_S[FX_Idx]], ChangeBeenMade
     for i, Type in pairs(D.Type) do
@@ -2196,6 +2236,15 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
     end
 end
 
+---@param FxGUID string
+---@param P_Name string
+---@param P_Num number
+---@param FX_Num number ---TODO this is unused
+---@param IsDeletable boolean
+---@param AddingFromExtState? "AddingFromExtState"
+---@param Fx_P? integer|string ---TODO not sure about this
+---@param FX_Idx? integer
+---@param TrkID? string
 function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExtState, Fx_P, FX_Idx, TrkID)
     TrkID = TrkID or r.GetTrackGUID(r.GetLastTouchedTrack())
 
@@ -2245,6 +2294,12 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     return P
 end
 
+---TODO I think this is unused
+---@param get? "get"
+---@param FxGUID string
+---@param FX_Idx integer
+---@param Fx_P number
+---@param WhichPrm integer
 function GetParamOptions(get, FxGUID, FX_Idx, Fx_P, WhichPrm)
     local OP = FX.Prm.Options; local OPs, V
 
@@ -2283,6 +2338,16 @@ function GetParamOptions(get, FxGUID, FX_Idx, Fx_P, WhichPrm)
     r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OrigV)
 end
 
+---@param Macro string|number
+---@param AddIndicator boolean
+---@param McroV number
+---@param FxGUID string
+---@param F_Tp number
+---@param Sldr_Width number
+---@param P_V number
+---@param Vertical? "Vert"
+---@param FP FX_P
+---@param offset number
 function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V, Vertical, FP, offset)
     local drawlist = r.ImGui_GetWindowDrawList(ctx) --[[add+ here]]
     local SldrGrabPos
@@ -2354,6 +2419,13 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
 end
 
 --r.ImGui_SetNextWindowDockID(ctx, -1)   ---Dock the script
+---@param ctx ImGui_Context
+---@param img ImGui_Image
+---@param angle any
+---@param w any
+---@param h any
+---@param x any
+---@param y any
 function ImageAngle(ctx, img, angle, w, h, x, y)
     if not x and not y then x, y = reaper.ImGui_GetCursorScreenPos(ctx) end
     local cx, cy = x + (w / 2), y + (h / 2)
@@ -2372,6 +2444,9 @@ function ImageAngle(ctx, img, angle, w, h, x, y)
     --r.ImGui_Dummy(ctx, w, h)
 end
 
+---@param FX_Name string
+---@param ID string ---TODO this param is not used
+---@param FxGUID string
 function SaveLayoutEditings(FX_Name, ID, FxGUID)
     local dir_path = ConcatPath(reaper.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
         'FX Layouts')
@@ -2599,6 +2674,12 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
     SaveDrawings(FX_Idx, FxGUID)
 end
 
+---@param FxGUID string
+---@param Fx_P number
+---@param ItemWidth number
+---@param ItemType 'V-Slider' | 'Sldr' |'Drag' |'Selection'
+---@param PosX number
+---@param PosY number
 function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
     if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then
         local DeltaX, DeltaY = r.ImGui_GetMouseDelta(ctx); local MouseX, MouseY = r.ImGui_GetMousePos(ctx)
@@ -2855,6 +2936,11 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
     end
 end
 
+---@param Clr any
+---@param L number
+---@param T number
+---@param R number
+---@param B number
 function AddGuideLines(Clr, L, T, R, B)
     r.ImGui_DrawList_AddLine(Glob.FDL, L, T, L - 9999, T, Clr)
     r.ImGui_DrawList_AddLine(Glob.FDL, R, T, R + 9999, T, Clr)
@@ -2867,6 +2953,12 @@ function AddGuideLines(Clr, L, T, R, B)
     r.ImGui_DrawList_AddLine(Glob.FDL, R, T, R, T - 9999, Clr)
 end
 
+---@param img ImGui_Image
+---@param V number
+---@return number uvmin
+---@return number uvmax
+---@return number w
+---@return number h
 function Calc_strip_uv(img, V)
     local w, h = r.ImGui_Image_GetSize(img)
     local FrameNum = h / w
