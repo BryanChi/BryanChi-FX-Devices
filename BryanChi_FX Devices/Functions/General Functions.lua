@@ -3,11 +3,13 @@
 r = reaper
 
 ---General functions list
+
 ---@param str string
 function GetFileExtension(str)
     return str:match("^.+(%..+)$")
 end
 
+---@param FX_Name string
 function ChangeFX_Name(FX_Name)
     if FX_Name then
         local FX_Name = FX_Name:gsub("%w+%:%s+",
@@ -53,6 +55,8 @@ function GetLT_FX_Num()
     LT_Track = r.GetLastTouchedTrack()
 end
 
+---@param enable boolean
+---@param title string
 function MouseCursorBusy(enable, title)
     mx, my = reaper.GetMousePosition()
 
@@ -75,6 +79,10 @@ function ConcatPath(...)
     return table.concat({ ... }, sep)
 end
 
+---@param Input number
+---@param Min number
+---@param Max number
+---@return number
 function SetMinMax(Input, Min, Max)
     if Input >= Max then
         Input = Max
@@ -86,15 +94,21 @@ function SetMinMax(Input, Min, Max)
     return Input
 end
 
+---TODO do we need this function? It’s unused
+---@param str string|number|nil
 function ToNum(str)
     str = tonumber(str)
 end
 
+---@generic T
+---@param v? T
+---@return boolean
 function toggle(v)
     if v then v = false else v = true end
     return v
 end
 
+---@param str string
 function get_aftr_Equal(str)
     if str then
         local o = str:sub((str:find('=') or -2) + 2)
@@ -103,6 +117,11 @@ function get_aftr_Equal(str)
     end
 end
 
+---@param Str string
+---@param Id string
+---@param Fx_P integer
+---@param Type? "Num"|"Bool"
+---@param untilwhere? integer
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
         local Out, LineChange
@@ -127,6 +146,10 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     end
 end
 
+---@param Str string
+---@param ID string
+---@param Type? "Num"|"Bool"
+---@param untilwhere? integer
 function RecallGlobInfo(Str, ID, Type, untilwhere)
     if Str then
         local Out, LineChange
@@ -151,6 +174,11 @@ function RecallGlobInfo(Str, ID, Type, untilwhere)
     end
 end
 
+---@param Str string|nil
+---@param Id string
+---@param Fx_P integer
+---@param Type? "Num"|"Bool"
+---@return string[]|nil
 function RecallIntoTable(Str, Id, Fx_P, Type)
     if Str then
         local _, End = Str:find(Id)
@@ -184,9 +212,10 @@ function RecallIntoTable(Str, Id, Fx_P, Type)
     end
 end
 
+---@param str string|nil
 function get_aftr_Equal_bool(str)
     if str then
-        local o = str:sub(str:find('=') + 2)
+        local o = str:sub(str:find('=') + 2) ---@type string |boolean | nil
         if o == '' or o == ' ' or 0 == 'nil' then
             o = nil
         elseif o == 'true' then
@@ -200,6 +229,7 @@ function get_aftr_Equal_bool(str)
     end
 end
 
+---@param str string|nil
 function get_aftr_Equal_Num(str)
     if str then
         if str:find('=') then
@@ -210,10 +240,13 @@ function get_aftr_Equal_Num(str)
     end
 end
 
+---@param str string
 function OnlyNum(str)
     return tonumber(str:gsub('[%D%.]', ''))
 end
 
+---@param filename string
+---@return string[]
 function get_lines(filename)
     local lines = {}
     -- io.lines returns an iterator, so we need to manually unpack it into an array
@@ -223,11 +256,22 @@ function get_lines(filename)
     return lines
 end
 
+---@generic T
+---@generic Index
+---@param Table table<Index, T>
+---@param Pos1 Index
+---@param Pos2 Index
+---@return table<Index,T> Table
 function TableSwap(Table, Pos1, Pos2)
     Table[Pos1], Table[Pos2] = Table[Pos2], Table[Pos1]
     return Table
 end
 
+---@generic T
+---@generic Index
+---@param tab table<Index, T>
+---@param el T
+---@return Index|nil
 function tablefind(tab, el)
     if tab then
         for index, value in pairs(tab) do
@@ -238,7 +282,8 @@ function tablefind(tab, el)
     end
 end
 
-function GetProjExt_FxNameNum(FxGUID) ---@param FxGUID string
+---@param FxGUID string
+function GetProjExt_FxNameNum(FxGUID)
     local PrmCount
     rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
     if PrmCount ~= '' then FX.Prm.Count[FxGUID] = tonumber(PrmCount) end
@@ -256,6 +301,9 @@ function GetProjExt_FxNameNum(FxGUID) ---@param FxGUID string
     end
 end
 
+---@param FX_Idx integer
+---@param Target_FX_Idx integer
+---@param FX_Name string
 function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     -- input --
     local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0) -- L chan
@@ -308,6 +356,10 @@ function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     end
 end
 
+---TODO I think Position is meant to be used as «instantiate» variable, is this the intent?
+---@param track MediaTrack
+---@param fx_name string
+---@param Position integer
 function AddFX_HideWindow(track, fx_name, Position)
     local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
     if val & 4 == 0 then
@@ -319,6 +371,8 @@ function AddFX_HideWindow(track, fx_name, Position)
     end
 end
 
+---@param FX_Idx integer
+---@return integer|nil
 function ToggleCollapseAll(FX_Idx)
     -- check if all are collapsed
     local All_Collapsed
@@ -339,6 +393,8 @@ function ToggleCollapseAll(FX_Idx)
     return BlinkFX
 end
 
+---@param str string
+---@param DecimalPlaces number
 function RoundPrmV(str, DecimalPlaces)
     local A = tostring('%.' .. DecimalPlaces .. 'f')
     --local num = tonumber(str:gsub('[^%d%.]', '')..str:gsub('[%d%.]',''))
@@ -347,13 +403,16 @@ function RoundPrmV(str, DecimalPlaces)
     return string.format(A, tonumber(num) or 0) .. otherthanNum
 end
 
+---@param str string
 function StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
 
+---TODO empty function
 function TableMaxVal()
 end
 
+---TODO this is a duplicate, it’s unused and can’t you use #table instead?
 ---@param T table
 ---@return integer
 function tablelength(T)
@@ -362,15 +421,26 @@ function tablelength(T)
     return count
 end
 
+---@param num number
+---@param multipleOf number
+---@return number
 function roundUp(num, multipleOf)
     return math.floor((num + multipleOf / 2) / multipleOf) * multipleOf;
 end
 
-function F_Tp(FX_P, FxGUID)
+---@param FX_P integer
+---@param FxGUID string
+---@return unknown
+function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
     return FX.Prm.ToTrkPrm[FxGUID .. FX_P]
 end
 
-function FindStringInTable(Table, V)
+---@generic T
+---@param Table table<string, T>
+---@param V T
+---@return boolean|nil
+---@return T[]|nil
+function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?
     local found = nil
     local Tab = {}
     if V then
@@ -386,6 +456,11 @@ function FindStringInTable(Table, V)
     end
 end
 
+---@generic T
+---@param Table table<string, T>
+---@param V T
+---@return boolean|nil
+---@return T[]|nil
 function FindExactStringInTable(Table, V)
     local found = nil
     local Tab = {}
@@ -402,6 +477,9 @@ function FindExactStringInTable(Table, V)
     end
 end
 
+---@param num number|nil|string
+---@param numDecimalPlaces number
+---@return number|nil
 function round(num, numDecimalPlaces)
     num = tonumber(num)
     if num then
@@ -412,6 +490,10 @@ end
 
 StringToBool = { ['true'] = true, ['false'] = false }
 
+---@generic T
+---@param tab table<string, T>
+---@param val T
+---@return boolean
 function has_value(tab, val)
     local found = false
     for index, value in pairs(tab) do
@@ -426,12 +508,15 @@ function has_value(tab, val)
     end
 end
 
+---@generic T
+---@param t T[]
+---@return T[]|nil
 function findDuplicates(t)
-    seen = {}       --keep record of elements we've seen
-    duplicated = {} --keep a record of duplicated elements
+    local seen = {}       --keep record of elements we've seen
+    local duplicated = {} --keep a record of duplicated elements
     if t then
         for i, v in ipairs(t) do
-            element = t[i]
+            local element = t[i]
             if seen[element] then          --check if we've seen the element before
                 duplicated[element] = true --if we have then it must be a duplicate! add to a table to keep track of this
             else
@@ -447,6 +532,26 @@ function findDuplicates(t)
 end
 
 --------------ImGUI Related ---------------------
+---@param FillClr number
+---@param OutlineClr number
+---@param Padding number
+---@param L number
+---@param T number
+---@param R number
+---@param B number
+---@param h number
+---@param w number
+---@param H_OutlineSc any
+---@param V_OutlineSc any
+---@param GetItemRect "GetItemRect"|nil
+---@param Foreground? ImGui_DrawList
+---@param rounding? number
+---@return number|nil L
+---@return number|nil T
+---@return number|nil R
+---@return number|nil B
+---@return number|nil w
+---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
     if GetItemRect == 'GetItemRect' then
@@ -474,14 +579,22 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
+---TODO I think this function is un-used. Should we remove it?
+---@param ctx ImGui_Context
+---@param itm integer
+---@param clr integer rgba color
 function PC(ctx, itm, clr)
     r.ImGui_PushStyleColor(ctx, itm, clr)
 end
 
+---@param ctx ImGui_Context
+---@param time integer count in
 function PopClr(ctx, time)
     r.ImGui_PopStyleColor(ctx, time)
 end
 
+---@param FX_Idx integer
+---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
     local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
         'FX Layouts')
@@ -532,12 +645,15 @@ function SaveDrawings(FX_Idx, FxGUID)
     end
 end
 
+---TODO remove this duplicate of tooltip()
+---@param A string text for tooltip
 function ttp(A)
     reaper.ImGui_BeginTooltip(ctx)
     reaper.ImGui_SetTooltip(ctx, A)
     reaper.ImGui_EndTooltip(ctx)
 end
 
+---@param time number
 function HideCursor(time)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
@@ -563,6 +679,7 @@ function HideCursor(time)
     Hide()
 end
 
+---@param MouseBtn integer
 function HideCursorTillMouseUp(MouseBtn)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
@@ -591,6 +708,8 @@ function HideCursorTillMouseUp(MouseBtn)
     end
 end
 
+---@param Name string
+---@param FX_Idx integer
 function CreateWindowBtn_Vertical(Name, FX_Idx)
     local rv = r.ImGui_Button(ctx, Name, 25, 220) -- create window name button
     if rv and Mods == 0 then
@@ -620,12 +739,25 @@ function HighlightHvredItem()
     end
 end
 
+---@param dur number
+---@param rpt integer
+---@param var integer | nil
+---@param highlightEdge any -- TODO is this a number?
+---@param EdgeNoBlink "EdgeNoBlink" | nil
+---@param L number
+---@param T number
+---@param R number
+---@param B number
+---@param h number
+---@param w number
+---@return nil|integer var
+---@return string "Stop"
 function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     TimeBegin = TimeBegin or r.time_precise()
     local Now = r.time_precise()
     local EdgeClr = 0x00000000
     if highlightEdge then EdgeClr = highlightEdge end
-    local GetItemRect = 'GetItemRect'
+    local GetItemRect = 'GetItemRect' ---@type string | nil
     if L then GetItemRect = nil end
 
     if rpt then
@@ -661,6 +793,10 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     end
 end
 
+---@param text string
+---@param font ImGui_Font
+---@param color number rgba
+---@param WrapPosX? number
 function MyText(text, font, color, WrapPosX)
     if WrapPosX then r.ImGui_PushTextWrapPos(ctx, WrapPosX) end
 
@@ -823,7 +959,7 @@ end
 ---@param BGClr? number
 ---@param center? string
 ---@param Identifier? string
----@return boolean
+---@return boolean|nil
 function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     r.ImGui_PushFont(ctx, FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
@@ -884,6 +1020,14 @@ function Generate_Active_And_Hvr_CLRs(Clr)
     return ActClr, HvrClr
 end
 
+---@param Fx_P integer fx parameter index
+---@param FxGUID string
+---@param Shape "Circle"|"Rect"
+---@param L number p_min_x
+---@param T number p_min_y
+---@param R? number p_max_x
+---@param B? number p_max_y
+---@param Rad? number radius
 function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
     if Fx_P .. FxGUID == TryingToAddExistingPrm then
         if r.time_precise() > TimeNow and r.time_precise() < TimeNow + 0.1 or r.time_precise() > TimeNow + 0.2 and r.time_precise() < TimeNow + 0.3 then
@@ -905,6 +1049,10 @@ function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
     end
 end
 
+---@param FxGUID string
+---@param FX_Idx integer
+---@param LT_Track MediaTrack
+---@param PrmCount integer
 function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID, '', false)
     rv, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
@@ -925,6 +1073,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
         if whether == 'Yes' then -- if there's Project-specific BL settings
             for i = 0, PrmCount - 4, 1 do
                 FX[FxGUID].PrmList[i] = FX[FxGUID].PrmList[i] or {}
+                ---@type integer, string|number|nil
                 local rv, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
                 if BLprm ~= '' then
                     BLprm = tonumber(BLprm)
@@ -949,18 +1098,22 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     end
 end
 
+---@param A string text for tooltip
 function tooltip(A)
     reaper.ImGui_BeginTooltip(ctx)
     reaper.ImGui_SetTooltip(ctx, A)
     reaper.ImGui_EndTooltip(ctx)
 end
 
+---@param A string text for tooltip
 function HintToolTip(A)
     reaper.ImGui_BeginTooltip(ctx)
     reaper.ImGui_SetTooltip(ctx, A)
     reaper.ImGui_EndTooltip(ctx)
 end
 
+---@param LT_Track MediaTrack
+---@param FX_Idx integer
 function openFXwindow(LT_Track, FX_Idx)
     FX.Win.FocusState = r.TrackFX_GetOpen(LT_Track, FX_Idx)
     if FX.Win.FocusState == false then
@@ -970,6 +1123,8 @@ function openFXwindow(LT_Track, FX_Idx)
     end
 end
 
+---@param LT_Track MediaTrack
+---@param FX_Idx integer
 function ToggleBypassFX(LT_Track, FX_Idx)
     FX.Enable = FX.Enable or {}
     FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
@@ -980,6 +1135,7 @@ function ToggleBypassFX(LT_Track, FX_Idx)
     end
 end
 
+---@param FX_Idx integer
 function DeleteFX(FX_Idx)
     local DelFX_Name
     r.Undo_BeginBlock()
@@ -1032,6 +1188,9 @@ function DeleteFX(FX_Idx)
     r.Undo_EndBlock('Delete ' .. (DelFX_Name or 'FX'), 0)
 end
 
+---@param FxGUID string
+---@param Fx_P integer parameter index
+---@param FX_Idx integer
 function DeletePrm(FxGUID, Fx_P, FX_Idx)
     --LE.Sel_Items[1] = nil
     local FP = FX[FxGUID][Fx_P]
@@ -1096,6 +1255,8 @@ end
 
 
 
+---@param directory string path to directory
+---@return table
 function scandir(directory)
     local Files = {}
     for i = 0, 999, 1 do
@@ -1105,9 +1266,11 @@ function scandir(directory)
         if not F then return Files end
     end
 
-    return F
+    return F ---TODO should this be Files instead of F ?
 end
 
+---@param ShowAlreadyAddedPrm boolean
+---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     GetLTParam()
     local FX_Count = reaper.TrackFX_GetCount(LT_Track); local RptPrmFound
@@ -1131,16 +1294,21 @@ function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     return RptPrmFound
 end
 
+---@param str string | nil
+---@return nil|string
 function RemoveEmptyStr(str)
     if str == '' then return nil else return str end
 end
 
+---@param T table
+---@return integer
 function tablelength(T)
     local count = 0
     for _ in pairs(T) do count = count + 1 end
     return count
 end
 
+---@param Rpt integer
 function AddSpacing(Rpt)
     for i = 1, Rpt, 1 do
         r.ImGui_Spacing(ctx)
