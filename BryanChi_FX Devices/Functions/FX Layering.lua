@@ -1,5 +1,8 @@
 -- @noindex
 
+---@param FXGUID_RackMixer string
+---@param LayerNum integer
+---@param DragFX_ID integer
 function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
     DragFX_ID = math.max(DragFX_ID, 0)
     local function SetPinMappings(i)
@@ -54,8 +57,12 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
     end
 end
 
-function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc) --fxIdx == the position in chain it's dropped to
+---@param FX_Idx integer the position in chain it's dropped to
+---@param LayerNum integer
+---@param AltDragSrc? integer
+function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
     DragFX_ID = DragFX_ID or AltDragSrc or FX_Idx
+    ---@param i integer
     local function SetPinMappings(i)
         r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 2 ^ (LayerNum * 2 - 2), 0) --sets input channel
         r.TrackFX_SetPinMappings(LT_Track, i, 0, 1, 2 ^ (LayerNum * 2 - 1), 0)
@@ -134,6 +141,7 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc) --fxIdx == the position in 
     --[[ end ]]
 end
 
+---@param FX_Idx integer
 function RepositionFXsInContainer(FX_Idx)
     r.Undo_BeginBlock()
     local FX_Idx = FX_Idx
