@@ -534,7 +534,10 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                 if filtered_fx[i]:find('VST:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
-                    local clr = FX_Adder_VST or CustomColorsDefault.FX_Adder_VST
+                    local clr = FX_Adder_VST or
+                        CustomColorsDefault
+                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
+                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
                     MyText('VST', nil, clr)
                     SL()
                     HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
@@ -582,7 +585,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                 if r.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
                     -- HIGHLIGHT DRAGGED FX
                     DRAG_FX = i
-                    AddFX_Drag(filtered_fx[i])
+                    AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
                 end
             end
 
@@ -627,7 +630,7 @@ local function DrawChildMenu(tbl, path, FX_Idx)
             end
         end
         if type(tbl[i]) ~= "table" then
-            if r.ImGui_Selectable(ctx, tbl[i]) then
+            if r.ImGui_Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let’s pass the third argument as false instead of nil
                 if TRACK then
                     r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i] }), false,
                         -1000 - FX_Idx)
@@ -748,7 +751,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     end
 
     function TrashIcon(size, lbl, ClrBG, ClrTint)
-        local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint)
+        local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint) -- TODO weird but I can’t find anything in the official docs or the reaImGui repo about this function
         if r.ImGui_IsItemHovered(ctx) then
             TintClr = 0xCE1A28ff
             return rv, TintClr
@@ -1009,6 +1012,7 @@ attachImagesAndFonts()
 ---------------------------------------------------------------
 if CallFile('r', 'Keyboard Shortcuts.ini') then
     local file, filepath = CallFile('r', 'Keyboard Shortcuts.ini')
+    if not file then return end
     Content = file:read('*a')
     local L = get_lines(filepath)
     for i, v in ipairs(L) do
@@ -1160,7 +1164,7 @@ function loop()
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
                 if not IsPrmAlreadyAdded(true) then
-                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
                 r.SetExtState('FXD', 'Record last touch', '', false)
@@ -1277,7 +1281,7 @@ function loop()
                 DropFXtoLayerNoMove(DroptoRack, DropToLyrID, DragFX_Src)
                 MoveFX(DragFX_Src, DragFX_Dest + 1, true)
 
-                DragFX_Src, DragFX_Dest, DropToLyrID = nil
+                DragFX_Src, DragFX_Dest, DropToLyrID = nil -- TODO should these be DragFX_Src, DragFX_Dest, DropToLyrID = nil, nil, nil
             end
 
 
@@ -1422,7 +1426,7 @@ function loop()
                 end ]]
 
                 if not IsPrmAlreadyAdded(true) then
-                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
             end
@@ -1528,7 +1532,7 @@ function loop()
                         end
                     end
                     if not RptPrmFound then
-                        StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                        StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                             true)
                     end
                 end
@@ -2420,7 +2424,7 @@ function loop()
                     else IsThereEnvOnMacro[i]=0
                     end ]]
                 local function SetTypeToEnv()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Envelope') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Envelope', false) then
                         Trk[TrkID].Mod[i].Type = 'env'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
                         r.gmem_write(4, 4) -- tells jsfx macro type = env
@@ -2429,7 +2433,7 @@ function loop()
                 end
 
                 local function SetTypeToStepSEQ()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Step Sequencer') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Step Sequencer', false) then
                         Trk[TrkID].Mod[i].Type = 'Step'
                         r.gmem_write(4, 6) -- tells jsfx macro type = step seq
                         r.gmem_write(5, i)
@@ -2449,7 +2453,7 @@ function loop()
                 end
 
                 local function SetTypeToFollower()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Audio Follower') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Audio Follower', false) then
                         r.gmem_write(4, 9) -- tells jsfx macro type = Follower
                         r.gmem_write(5, i) -- tells jsfx which macro
                         Trk[TrkID].Mod[i].Type = 'Follower'
@@ -2457,7 +2461,7 @@ function loop()
                     end
                 end
                 local function SetTypeToMacro()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Macro') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Macro', false) then
                         Trk[TrkID].Mod[i].Type = 'Macro'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
                         r.gmem_write(4, 5) -- tells jsfx macro type = Macro
@@ -2466,7 +2470,7 @@ function loop()
                     end
                 end
                 local function SetTypeToLFO()
-                    if r.ImGui_Selectable(ctx, 'Set Type to LFO') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to LFO', false) then
                         Trk[TrkID].Mod[i].Type = 'LFO'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
                         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
@@ -2476,7 +2480,7 @@ function loop()
                 end
 
                 if r.ImGui_BeginPopup(ctx, 'Macro' .. i .. 'Menu') then
-                    if r.ImGui_Selectable(ctx, 'Automate') then
+                    if r.ImGui_Selectable(ctx, 'Automate', false) then
                         AddMacroJSFX()
                         -- Show Envelope for Morph Slider
                         local env = r.GetFXEnvelope(LT_Track, 0, i - 1, true)
@@ -2647,7 +2651,7 @@ function loop()
                                                 if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
                                                     for p = 1, #CAT[i].list[j].fx do
                                                         if CAT[i].list[j].fx[p] then
-                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p]) then
+                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p], false) then
                                                                 if TRACK then
                                                                     r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
                                                                         false,
@@ -2665,25 +2669,25 @@ function loop()
                                     end
                                 end
                                 TRACK = r.GetSelectedTrack(0, 0)
-                                if r.ImGui_Selectable(ctx, "CONTAINER") then
+                                if r.ImGui_Selectable(ctx, "CONTAINER", false) then
                                     r.TrackFX_AddByName(TRACK, "Container", false,
                                         -1000 - r.TrackFX_GetCount(TRACK))
                                     LAST_USED_FX = "Container"
                                 end
-                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR", false) then
                                     r.TrackFX_AddByName(TRACK, "Video processor", false,
                                         -1000 - r.TrackFX_GetCount(TRACK))
                                     LAST_USED_FX = "Video processor"
                                 end
                                 if LAST_USED_FX then
-                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX, false) then
                                         r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
                                             -1000 - r.TrackFX_GetCount(TRACK))
                                     end
                                 end
                                 r.ImGui_EndMenu(ctx)
                             end
-                            if r.ImGui_Selectable(ctx, 'Add FX Layering') then
+                            if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
                                 local FX_Idx = FX_Idx
                                 --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
                                 local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
@@ -2755,7 +2759,7 @@ function loop()
                                 if val & 4 ~= 0 then
                                     reaper.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
                                 end
-                            elseif r.ImGui_Selectable(ctx, 'Add Band Split') then
+                            elseif r.ImGui_Selectable(ctx, 'Add Band Split', false) then
                                 r.gmem_attach('FXD_BandSplit')
                                 table.insert(AddFX.Name, 'FXD Saike BandSplitter')
                                 table.insert(AddFX.Pos, FX_Idx)
@@ -3667,7 +3671,7 @@ function loop()
                                     end
 
                                     if not FX[FxGUID].Morph_ID or FX[FxGUID].Unlink then
-                                        if r.ImGui_Selectable(ctx, 'Automate') then
+                                        if r.ImGui_Selectable(ctx, 'Automate', false) then
                                             r.gmem_attach('ParamValues')
 
                                             if not Trk[TrkID].Morph_ID then
@@ -3720,7 +3724,7 @@ function loop()
                                                 FX.Win_Name_S[FX_Idx]:gsub("%b()", "") .. ' - Morph AB ')
                                         end
                                     elseif FX[FxGUID].Morph_ID or not FX[FxGUID].Unlink then
-                                        if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation') then
+                                        if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
                                             for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
                                                 Unlink_Parm(LT_TrackNum, FX_Idx, i)
                                             end
@@ -3734,18 +3738,18 @@ function loop()
                                     end
 
                                     if FX[FxGUID].Morph_Value_Edit then
-                                        if r.ImGui_Selectable(ctx, 'EXIT Edit Preset Value Mode') then
+                                        if r.ImGui_Selectable(ctx, 'EXIT Edit Preset Value Mode', false) then
                                             FX[FxGUID].Morph_Value_Edit = false
                                         end
                                     else
                                         if Disable then r.ImGui_BeginDisabled(ctx) end
-                                        if r.ImGui_Selectable(ctx, 'ENTER Edit Preset Value Mode') then
+                                        if r.ImGui_Selectable(ctx, 'ENTER Edit Preset Value Mode', false) then
                                             FX[FxGUID].Morph_Value_Edit = true
                                         end
                                     end
                                     if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then r.ImGui_EndDisabled(ctx) end
 
-                                    if r.ImGui_Selectable(ctx, 'Morphing Blacklist Settings') then
+                                    if r.ImGui_Selectable(ctx, 'Morphing Blacklist Settings', false) then
                                         if OpenMorphSettings then
                                             OpenMorphSettings = FxGUID
                                         else
@@ -3762,7 +3766,7 @@ function loop()
                                         end
                                     end
 
-                                    if r.ImGui_Selectable(ctx, 'Hide Morph Slider') then
+                                    if r.ImGui_Selectable(ctx, 'Hide Morph Slider', false) then
                                         FX[FxGUID].MorphHide = true
                                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
                                             'true',
@@ -4640,15 +4644,15 @@ function loop()
 
 
                                         if r.ImGui_BeginCombo(ctx, '## P type', FX.Def_Type[FxGUID] or 'Slider', r.ImGui_ComboFlags_NoArrowButton()) then
-                                            if r.ImGui_Selectable(ctx, 'Slider') then
+                                            if r.ImGui_Selectable(ctx, 'Slider', false) then
                                                 FX.Def_Type[FxGUID] = 'Slider'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
-                                            elseif r.ImGui_Selectable(ctx, 'Knob') then
+                                            elseif r.ImGui_Selectable(ctx, 'Knob', false) then
                                                 FX.Def_Type[FxGUID] = 'Knob'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
-                                            elseif r.ImGui_Selectable(ctx, 'Drag') then
+                                            elseif r.ImGui_Selectable(ctx, 'Drag', false) then
                                                 FX.Def_Type[FxGUID] = 'Drag'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
@@ -5654,7 +5658,7 @@ function loop()
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                                                 end
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
-                                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope') then
+                                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
                                                         local env = r.GetFXEnvelope(LT_Track, 0, FP.Num, true)
                                                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                                                             r.BR_EnvGetProperties(env)
@@ -5920,7 +5924,7 @@ function loop()
                                         r.ImGui_SetNextItemWidth(ctx, FullWidth)
                                         if r.ImGui_BeginCombo(ctx, '##', typelbl or Draw.Type or 'line', r.ImGui_ComboFlags_NoArrowButton()) then
                                             local function setType(str)
-                                                if r.ImGui_Selectable(ctx, str) then
+                                                if r.ImGui_Selectable(ctx, str, false) then
                                                     if It then D.Type[It] = str end
                                                     Draw.Type = str
                                                 end
@@ -6165,7 +6169,7 @@ function loop()
                                     end
                                     local function AddOption(Name, TargetVar, TypeCondition)
                                         if FrstSelItm.Type == TypeCondition or not TypeCondition then
-                                            if r.ImGui_Selectable(ctx, Name) then
+                                            if r.ImGui_Selectable(ctx, Name, false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v][TargetVar] = Name end
                                             end
                                         end
@@ -6192,17 +6196,17 @@ function loop()
                                             end
                                         end
 
-                                        if r.ImGui_Selectable(ctx, 'Slider') then
+                                        if r.ImGui_Selectable(ctx, 'Slider', false) then
                                             SetItemType('Slider')
-                                        elseif r.ImGui_Selectable(ctx, 'Knob') then
+                                        elseif r.ImGui_Selectable(ctx, 'Knob', false) then
                                             SetItemType('Knob')
-                                        elseif r.ImGui_Selectable(ctx, 'V-Slider') then
+                                        elseif r.ImGui_Selectable(ctx, 'V-Slider', false) then
                                             SetItemType('V-Slider')
-                                        elseif r.ImGui_Selectable(ctx, 'Drag') then
+                                        elseif r.ImGui_Selectable(ctx, 'Drag', false) then
                                             SetItemType('Drag')
-                                        elseif r.ImGui_Selectable(ctx, 'Switch') then
+                                        elseif r.ImGui_Selectable(ctx, 'Switch', false) then
                                             SetItemType('Switch')
-                                        elseif r.ImGui_Selectable(ctx, 'Selection') then
+                                        elseif r.ImGui_Selectable(ctx, 'Selection', false) then
                                             SetItemType('Selection')
                                         end
                                         r.ImGui_EndCombo(ctx)
@@ -6290,11 +6294,11 @@ function loop()
                                         r.ImGui_SameLine(ctx)
                                         r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                         if r.ImGui_BeginCombo(ctx, '## Drag Dir' .. LE.Sel_Items[1], FrstSelItm.DragDir or '', r.ImGui_ComboFlags_NoArrowButton()) then
-                                            if r.ImGui_Selectable(ctx, 'Right') then
+                                            if r.ImGui_Selectable(ctx, 'Right', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Right' end
-                                            elseif r.ImGui_Selectable(ctx, 'Left-Right') then
+                                            elseif r.ImGui_Selectable(ctx, 'Left-Right', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left-Right' end
-                                            elseif r.ImGui_Selectable(ctx, 'Left') then
+                                            elseif r.ImGui_Selectable(ctx, 'Left', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left' end
                                             end
                                             r.ImGui_EndCombo(ctx)
@@ -6881,7 +6885,7 @@ function loop()
                                                     end
                                                 end
                                                 if not found then
-                                                    local P = StoreNewParam(LT_FXGUID, LstTchd_ParamName,
+                                                    local P = StoreNewParam(LT_FXGUID, LT_ParamName,
                                                         LT_ParamNum,
                                                         LT_FXNum, true --[[ , nil, #F+1  ]])
                                                     fp[ConditionPrm_PID] = P
@@ -7054,7 +7058,7 @@ function loop()
                                             local W = Win_W
                                             if r.ImGui_BeginCombo(ctx, '## Combo type' .. LBL, D.Type or '', r.ImGui_ComboFlags_NoArrowButton()) then
                                                 local function AddOption(str)
-                                                    if r.ImGui_Selectable(ctx, str) then
+                                                    if r.ImGui_Selectable(ctx, str, false) then
                                                         D.Type = str; D.T = str;
                                                     end
                                                 end
