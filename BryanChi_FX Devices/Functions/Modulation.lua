@@ -307,7 +307,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         PM.DragOnModdedPrm = nil
     end
     if TrkID ~= TrkID_End then
-        r.gmem_write(3, Trk[TrkID].ModPrmInst or 0)
+        r.gmem_write(3, Trk[TrkID] and Trk[TrkID].ModPrmInst or 0)
         if FP.ModAMT and FP.WhichCC then
             for M = 1, 8, 1 do
                 r.gmem_write(1000 * M + FP.WhichCC, FP.ModAMT[M] or 0)
