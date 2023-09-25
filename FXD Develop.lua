@@ -1,4 +1,4 @@
-dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
@@ -339,7 +339,7 @@ EightColors = {
 ---@param a number
 function HSV(h, s, v, a)
     local r, g, b = r.ImGui_ColorConvertHSVtoRGB(h, s, v)
-    return r.ImGui_ColorConvertDouble4ToU32(r, g, b, a or 1.0)
+    return reaper.ImGui_ColorConvertDouble4ToU32(r, g, b, a or 1.0)
 end
 
 for a = 1, 8, 1 do
