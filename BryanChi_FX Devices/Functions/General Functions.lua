@@ -29,11 +29,11 @@ function ChangeFX_Name(FX_Name)
 end
 
 function AddMacroJSFX()
-    local MacroGetLT_Track = reaper.GetLastTouchedTrack()
-    MacrosJSFXExist = reaper.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
+    local MacroGetLT_Track = r.GetLastTouchedTrack()
+    MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
     if MacrosJSFXExist == -1 then
-        reaper.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, -1000)
-        reaper.TrackFX_Show(MacroGetLT_Track, 0, 2)
+        r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, -1000)
+        r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else
         return true
@@ -41,34 +41,34 @@ function AddMacroJSFX()
 end
 
 function GetLTParam()
-    LT_Track = reaper.GetLastTouchedTrack()
-    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = reaper.GetLastTouchedFX()
-    --GetTrack_LT_Track = reaper.GetTrack(0,LT_TrackNum)
+    LT_Track = r.GetLastTouchedTrack()
+    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
+    --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
     if LT_Track ~= nil then
-        retval, LT_FXName = reaper.TrackFX_GetFXName(LT_Track, LT_FXNum)
-        retval, LT_ParamName = reaper.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
+        retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
+        retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     end
 end
 
 function GetLT_FX_Num()
-    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = reaper.GetLastTouchedFX()
+    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
     LT_Track = r.GetLastTouchedTrack()
 end
 
 ---@param enable boolean
 ---@param title string
 function MouseCursorBusy(enable, title)
-    mx, my = reaper.GetMousePosition()
+    mx, my = r.GetMousePosition()
 
-    local hwnd = reaper.JS_Window_FindTop(title, true)
-    local hwnd = reaper.JS_Window_FromPoint(mx, my)
+    local hwnd = r.JS_Window_FindTop(title, true)
+    local hwnd = r.JS_Window_FromPoint(mx, my)
 
     if enable then -- set cursor to hourglass
-        reaper.JS_Mouse_SetCursor(Invisi_Cursor)
+        r.JS_Mouse_SetCursor(Invisi_Cursor)
         -- block app from changing mouse cursor
-        reaper.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
+        r.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
     else -- set cursor to arrow
-        reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(32512))
+        r.JS_Mouse_SetCursor(r.JS_Mouse_LoadCursor(32512))
         -- allow app to change mouse cursor
     end
 end
@@ -648,33 +648,33 @@ end
 ---TODO remove this duplicate of tooltip()
 ---@param A string text for tooltip
 function ttp(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
 ---@param time number
 function HideCursor(time)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-        Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
+        Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
-    mx, my = reaper.GetMousePosition()
-    window = reaper.JS_Window_FromPoint(mx, my)
-    release_time = reaper.time_precise() + (time or 1) -- hide/freeze mouse for 3 secs.
+    mx, my = r.GetMousePosition()
+    window = r.JS_Window_FromPoint(mx, my)
+    release_time = r.time_precise() + (time or 1) -- hide/freeze mouse for 3 secs.
 
     local function Hide()
-        if reaper.time_precise() < release_time then
-            reaper.JS_Mouse_SetPosition(mx, my)
-            reaper.JS_Mouse_SetCursor(Invisi_Cursor)
+        if r.time_precise() < release_time then
+            r.JS_Mouse_SetPosition(mx, my)
+            r.JS_Mouse_SetCursor(Invisi_Cursor)
 
-            reaper.defer(Hide)
+            r.defer(Hide)
         else
-            reaper.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+            r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
         end
     end
-    --[[ reaper.JS_WindowMessage_Intercept(window, "WM_SETCURSOR", false)
-        release_time = reaper.time_precise() + 3 ]]
+    --[[ r.JS_WindowMessage_Intercept(window, "WM_SETCURSOR", false)
+        release_time = r.time_precise() + 3 ]]
 
     Hide()
 end
@@ -683,7 +683,7 @@ end
 function HideCursorTillMouseUp(MouseBtn)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-        Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
+        Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
     if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
@@ -698,7 +698,7 @@ function HideCursorTillMouseUp(MouseBtn)
                 r.JS_Mouse_SetCursor(Invisi_Cursor)
                 r.defer(Hide)
             else
-                reaper.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
                 if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
                     r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
                 end
@@ -802,9 +802,9 @@ function MyText(text, font, color, WrapPosX)
 
     if font then r.ImGui_PushFont(ctx, font) end
     if color then
-        reaper.ImGui_TextColored(ctx, color, text)
+        r.ImGui_TextColored(ctx, color, text)
     else
-        reaper.ImGui_Text(ctx, text)
+        r.ImGui_Text(ctx, text)
     end
 
     if font then r.ImGui_PopFont(ctx) end
@@ -825,24 +825,24 @@ end
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
     r.ImGui_SetNextItemWidth(ctx, 40)
     local radius_outer = 10
-    local pos = { reaper.ImGui_GetCursorScreenPos(ctx) }
+    local pos = { r.ImGui_GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
     local CircleClr
-    local line_height = reaper.ImGui_GetTextLineHeight(ctx)
-    local draw_list = reaper.ImGui_GetWindowDrawList(ctx)
-    local item_inner_spacing = { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_ItemInnerSpacing()) }
-    local mouse_delta = { reaper.ImGui_GetMouseDelta(ctx) }
+    local line_height = r.ImGui_GetTextLineHeight(ctx)
+    local draw_list = r.ImGui_GetWindowDrawList(ctx)
+    local item_inner_spacing = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_ItemInnerSpacing()) }
+    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
 
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
     local FxGUID = FXGUID[FX_Idx]
 
-    reaper.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
+    r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
         item_inner_spacing[2])
 
     local value_changed = false
-    local is_active = reaper.ImGui_IsItemActive(ctx)
-    local is_hovered = reaper.ImGui_IsItemHovered(ctx)
+    local is_active = r.ImGui_IsItemActive(ctx)
+    local is_hovered = r.ImGui_IsItemHovered(ctx)
 
     if is_active and mouse_delta[2] ~= 0.0 and FX[FxGUID].DeltaP_V ~= 1 then
         local step = (v_max - v_min) / 200.0
@@ -881,10 +881,10 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         local P = Total_P - 1
         local DeltaV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P)
         if DeltaV == 1 then
-            reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 0)
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 0)
             FX[FxGUID].DeltaP_V = 0
         else
-            reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 1)
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 1)
             FX[FxGUID].DeltaP_V = 1
         end
         FX[FxGUID].DeltaP = P
@@ -895,7 +895,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         r.ImGui_DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
             center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
         r.ImGui_DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
-            reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_Text()), labeltoShow)
+            r.ImGui_GetColor(ctx, r.ImGui_Col_Text()), labeltoShow)
     else
         local radius_outer = radius_outer
         r.ImGui_DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
@@ -906,16 +906,16 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     end
 
     if is_active or is_hovered and FX[FxGUID].DeltaP_V ~= 1 then
-        local window_padding = { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding()) }
-        reaper.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
+        local window_padding = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
+        r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
             pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
-        reaper.ImGui_BeginTooltip(ctx)
+        r.ImGui_BeginTooltip(ctx)
         if Mods == Shift then
             r.ImGui_Text(ctx, ('%.1f'):format(p_value * 100) .. '%')
         else
             r.ImGui_Text(ctx, ('%.0f'):format(p_value * 100) .. '%' --[[ ('%.3f'):format(p_value) ]])
         end
-        reaper.ImGui_EndTooltip(ctx)
+        r.ImGui_EndTooltip(ctx)
     end
     if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
 
@@ -1034,13 +1034,13 @@ function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
             if Shape == 'Circle' then
                 r.ImGui_DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
             elseif Shape == 'Rect' then
-                local L, T = reaper.ImGui_GetItemRectMin(ctx)
+                local L, T = r.ImGui_GetItemRectMin(ctx)
                 r.ImGui_DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
             end
         end
     end
     if Fx_P .. FxGUID == TryingToAddExistingPrm_Cont then
-        local L, T = reaper.ImGui_GetItemRectMin(ctx)
+        local L, T = r.ImGui_GetItemRectMin(ctx)
         if Shape == 'Circle' then
             r.ImGui_DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
         elseif Shape == 'Rect' then
@@ -1100,16 +1100,16 @@ end
 
 ---@param A string text for tooltip
 function tooltip(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
 ---@param A string text for tooltip
 function HintToolTip(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
 ---@param LT_Track MediaTrack
@@ -1117,9 +1117,9 @@ end
 function openFXwindow(LT_Track, FX_Idx)
     FX.Win.FocusState = r.TrackFX_GetOpen(LT_Track, FX_Idx)
     if FX.Win.FocusState == false then
-        reaper.TrackFX_Show(LT_Track, FX_Idx, 3)
+        r.TrackFX_Show(LT_Track, FX_Idx, 3)
     elseif FX.Win.FocusState == true then
-        reaper.TrackFX_Show(LT_Track, FX_Idx, 2)
+        r.TrackFX_Show(LT_Track, FX_Idx, 2)
     end
 end
 
@@ -1127,11 +1127,11 @@ end
 ---@param FX_Idx integer
 function ToggleBypassFX(LT_Track, FX_Idx)
     FX.Enable = FX.Enable or {}
-    FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
+    FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
     if FX.Enable[FX_Idx] == true then
-        reaper.TrackFX_SetEnabled(LT_Track, FX_Idx, false)
+        r.TrackFX_SetEnabled(LT_Track, FX_Idx, false)
     elseif FX.Enable[FX_Idx] == false then
-        reaper.TrackFX_SetEnabled(LT_Track, FX_Idx, true)
+        r.TrackFX_SetEnabled(LT_Track, FX_Idx, true)
     end
 end
 
@@ -1273,7 +1273,7 @@ end
 ---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     GetLTParam()
-    local FX_Count = reaper.TrackFX_GetCount(LT_Track); local RptPrmFound
+    local FX_Count = r.TrackFX_GetCount(LT_Track); local RptPrmFound
     local F = FX[LT_FXGUID] or {}
 
     if F then

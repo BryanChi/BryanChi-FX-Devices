@@ -1,3 +1,5 @@
+r = reaper
+
 ---@param old_path string
 ---@param new_path string
 ---@return boolean

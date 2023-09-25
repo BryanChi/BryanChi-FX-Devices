@@ -1,4 +1,6 @@
 -- @noindex
+
+r = reaper
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -330,7 +332,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
                 SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
-        local RightBtnDragX, RightBtnDragY = reaper.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        local RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
         if Vertical == 'Vert' or Type == 'knob' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
 

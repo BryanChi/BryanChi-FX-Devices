@@ -1,3 +1,4 @@
+r = reaper
 demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
@@ -40,7 +41,7 @@ function demo.PushStyle()
             r.ImGui_PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(reaper.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX',
+        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX',
             'BryanChi_FX Devices', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 

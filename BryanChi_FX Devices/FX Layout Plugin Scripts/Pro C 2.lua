@@ -2,6 +2,8 @@
 
 
 
+r = reaper
+
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
@@ -30,7 +32,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     --r.ImGui_SameLine(ctx)
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or '', Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
 
-    reaper.ImGui_PopFont(ctx)
+    r.ImGui_PopFont(ctx)
     r.ImGui_SameLine(ctx, ProC.Width - 25)
 
     SyncWetValues()
@@ -114,7 +116,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_GrabMinSize(), 0)
         r.ImGui_PushFont(ctx, Font_Andale_Mono_10)
         IIS = 2
-        reaper.gmem_attach('CompReductionScope')
+        r.gmem_attach('CompReductionScope')
         local SpX, SpY = r.ImGui_GetCursorScreenPos(ctx)
         local SpY = SpY - 9; local C = SpY + 50; local B = SpY + 100
 
@@ -134,8 +136,8 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_SetNextItemWidth(ctx, 30)
         if r.ImGui_BeginCombo(ctx, '##' .. tostring(Label), ScaleLbl, r.ImGui_ComboFlags_NoArrowButton()) then
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Header(), 0x44444433)
-            local AccentClr = reaper.ImGui_GetColor(ctx,
-                reaper.ImGui_Col_SliderGrabActive())
+            local AccentClr = r.ImGui_GetColor(ctx,
+                r.ImGui_Col_SliderGrabActive())
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_HeaderHovered(), AccentClr)
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), 0xbbbbbbff)
 
@@ -158,7 +160,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             r.ImGui_EndCombo(ctx)
             local L, T = r.ImGui_GetItemRectMin(ctx); local R, B = r
                 .ImGui_GetItemRectMax(ctx)
-            local lineheight = reaper.ImGui_GetTextLineHeight(ctx)
+            local lineheight = r.ImGui_GetTextLineHeight(ctx)
             local drawlist = r.ImGui_GetForegroundDrawList(ctx)
 
             r.ImGui_DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R,
@@ -222,7 +224,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         if MouseX > SpX and MouseX < SpX + 180 and MouseY > SpY and MouseY < SpY + 100 and not HvrOnScale and not ScaleActive then
             r.ImGui_DrawList_AddRectFilled(Drawlist, SpX, SpY, SpX + 180, SpY + 100,
                 0x88888810, nil)
-            local AnyActive = reaper.ImGui_IsAnyItemActive(ctx)
+            local AnyActive = r.ImGui_IsAnyItemActive(ctx)
 
             if IsLBtnClicked and AnyActive == false and not ProC.ChoosingStyle then
                 r.ImGui_DrawList_AddRectFilled(Drawlist, SpX, SpY, SpX + 180, SpY +
@@ -315,7 +317,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         --for i=1, 13, 1 do FX[FxGUID][i]=FX[FxGUID][i] or {} end
 
 
-        reaper.ImGui_Indent(ctx, 210)
+        r.ImGui_Indent(ctx, 210)
         AddKnob(ctx, '##Gain', 'Gain', FX[FxGUID][8].V or 0, 0, 1, 8, FX_Idx, 10,
             'Pro C', 15, IIS, Disabled, LblTextSize, 'Bottom')
         AddKnob(ctx, '##Dry', 'Dry', FX[FxGUID][9].V or 0, 0, 1, 9, FX_Idx, 12,
@@ -425,7 +427,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
         r.ImGui_Unindent(ctx, 210)
-        reaper.ImGui_Indent(ctx, 5)
+        r.ImGui_Indent(ctx, 5)
 
 
         AddKnob(ctx, '##Ratio', 'RATIO', FX[FxGUID][5].V or 0, 0, 1, 5, FX_Idx, 2,

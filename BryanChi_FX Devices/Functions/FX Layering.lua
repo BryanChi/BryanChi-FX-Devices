@@ -1,4 +1,5 @@
 -- @noindex
+r = reaper
 
 ---@param FXGUID_RackMixer string
 ---@param LayerNum integer
@@ -13,7 +14,7 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 1, 2 ^ (LayerNum * 2 - 1), 0)
     end
     if Lyr.FX_Ins[FXGUID_RackMixer] == nil then Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
-    local guid = reaper.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
+    local guid = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
 
     if FX.InLyr[guid] ~= FXGUID_RackMixer then
         Lyr.FX_Ins[FXGUID_RackMixer] = Lyr.FX_Ins[FXGUID_RackMixer] + 1
@@ -37,12 +38,12 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
 
     r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, Lyr.FX_Ins[FXGUID_RackMixer])
     for i = 1, RepeatTimeForWindows, 1 do
-        local FXGUID = reaper.TrackFX_GetFXGUID(LT_Track, i)
+        local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
         if FX.LyrNum[FXGUID] == LayerNum and FX.InLyr[FXGUID] == FXGUID_RackMixer then
-            _, FXName = reaper.TrackFX_GetFXName(LT_Track, i)
+            _, FXName = r.TrackFX_GetFXName(LT_Track, i)
             SetPinMappings(i)
 
-            local rv, inputPins, outputPins = reaper.TrackFX_GetIOSize(LT_Track, i)
+            local rv, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, i)
             if outputPins > 2 then
                 for P = 2, outputPins, 1 do
                     r.TrackFX_SetPinMappings(LT_Track, i, 1 --[[IsOutput]], P, 0, 0)
@@ -114,19 +115,19 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
 
 
     --[[ for i=1,  RepeatTimeForWindows,1 do
-                local FXGUID = reaper.TrackFX_GetFXGUID( LT_Track, i )
+                local FXGUID = r.TrackFX_GetFXGUID( LT_Track, i )
                 ]]
     if FX.LyrNum[guid] == LayerNum and FX.InLyr[guid] == FXGUID_RackMixer then
         local FX_Idx
         --_, FXName  = r.TrackFX_GetFXName( LT_Track, i )
         for i = 1, RepeatTimeForWindows, 1 do
-            local FXGUID = reaper.TrackFX_GetFXGUID(LT_Track, i)
+            local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
             if FXGUID == guid then FX_Idx = i end
         end
 
         SetPinMappings(DragFX_ID)
 
-        local rv, inputPins, outputPins = reaper.TrackFX_GetIOSize(LT_Track, DragFX_ID)
+        local rv, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, DragFX_ID)
         if outputPins > 2 then
             for P = 2, outputPins, 1 do
                 r.TrackFX_SetPinMappings(LT_Track, DragFX_ID, 1 --[[IsOutput]], P, 0, 0)
@@ -154,9 +155,9 @@ function RepositionFXsInContainer(FX_Idx)
     -- Move the Head of Container
     if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx-1)
-        reaper.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
+        r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
     elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-        reaper.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
+        r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx)
     end
 
@@ -168,14 +169,14 @@ function RepositionFXsInContainer(FX_Idx)
         for i = 0, FX_Count, 1 do
             if DragFX_ID < FX_Idx then
                 if DropDest == nil then DropDest = 0 end
-                local ID = reaper.TrackFX_GetFXGUID(LT_Track, DropDest)
+                local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
 
                 if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Payload]].FXsInBS, ID) then
                     if FX_Idx > DropDest and FX_Idx ~= RepeatTimeForWindows or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-                        reaper.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
+                        r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx-2)
                     elseif DropDest > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-                        reaper.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
+                        r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
                     end
                 else
@@ -183,9 +184,9 @@ function RepositionFXsInContainer(FX_Idx)
                 end
             elseif DragFX_ID > FX_Idx then
                 if DropDest == nil then DropDest = 1 end
-                local ID = reaper.TrackFX_GetFXGUID(LT_Track, DropDest)
+                local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
                 if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Payload]].FXsInBS, ID) then
-                    reaper.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
+                    r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                     --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
 
                     DropDest = DropDest + 1
@@ -197,23 +198,23 @@ function RepositionFXsInContainer(FX_Idx)
     elseif Payload_Type == 'BS_Drag' then
         for i, v in ipairs(FX[FXGUID[Payload]].FXsInBS) do
             if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-                reaper.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
             elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-                reaper.TrackFX_CopyToTrack(LT_Track, Payload + i, LT_Track, FX_Idx + i, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload + i, LT_Track, FX_Idx + i, true)
             end
         end
 
         --Move Joiner
         if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-            reaper.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
+            r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
         elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-            reaper.TrackFX_CopyToTrack(LT_Track, Payload + #FX[FXGUID[Payload]].FXsInBS + 1, LT_Track,
+            r.TrackFX_CopyToTrack(LT_Track, Payload + #FX[FXGUID[Payload]].FXsInBS + 1, LT_Track,
                 FX_Idx + #FX[FXGUID[Payload]].FXsInBS + 1, true)
         end
     end
     if Payload_Type == 'FX Layer Repositioning' then
         for i = 0, FX_Count, 1 do -- Move Splitter
-            local FXGUID = reaper.TrackFX_GetFXGUID(LT_Track, i)
+            local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
 
             if Lyr.SplitrAttachTo[FXGUID] == FXGUID_RackMixer then
                 SplitrGUID = FXGUID

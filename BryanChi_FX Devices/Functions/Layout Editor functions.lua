@@ -1,4 +1,5 @@
 -- @noindex
+r = reaper
 
 
 ---@param ctx ImGui_Context
@@ -60,11 +61,11 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
-    local line_height = reaper.ImGui_GetTextLineHeight(ctx)
-    local draw_list = reaper.ImGui_GetWindowDrawList(ctx)
+    local line_height = r.ImGui_GetTextLineHeight(ctx)
+    local draw_list = r.ImGui_GetWindowDrawList(ctx)
     local item_inner_spacing = { item_inner_spacing, item_inner_spacing } or
-        { { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_ItemInnerSpacing()) } }
-    local mouse_delta = { reaper.ImGui_GetMouseDelta(ctx) }
+        { { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_ItemInnerSpacing()) } }
+    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
 
     local ANGLE_MIN = 3.141592 * 0.75
@@ -100,8 +101,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     local value_changed = false
-    local is_active = reaper.ImGui_IsItemActive(ctx)
-    local is_hovered = reaper.ImGui_IsItemHovered(ctx)
+    local is_active = r.ImGui_IsItemActive(ctx)
+    local is_hovered = r.ImGui_IsItemHovered(ctx)
     if (is_hovered or Tweaking == P_Num .. FxGUID) and (V_Pos == 'None' or not V_Pos) then
         local get, PV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         if get then
@@ -149,17 +150,17 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local radius_inner = radius_outer * 0.40
 
 
-    local ClrBg = reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_FrameBg())
+    local ClrBg = r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg())
     if Style == 'Pro C' then
         local offset; local TxtClr = 0xD9D9D9ff
         if labeltoShow == 'Release' then offset = 5 else offset = nil end
 
-        reaper.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+        r.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
             FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
-        reaper.ImGui_DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin *
+        r.ImGui_DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin *
             radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
             FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
-        local TextW, h = reaper.ImGui_CalcTextSize(ctx, labeltoShow, nil, nil, true)
+        local TextW, h = r.ImGui_CalcTextSize(ctx, labeltoShow, nil, nil, true)
         if Disabled == 'Pro C Ratio Disabled' then
             local CompStyle = 'CompStyle##Value'
             if _G[CompStyle] == 'Vocal' then
@@ -182,7 +183,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         ---@param Rect_offset? number
         local function AutoBtn(Label, offset, Rect_offset)
             if labeltoShow == Label then
-                MouseX, MouseY = reaper.ImGui_GetMousePos(ctx)
+                MouseX, MouseY = r.ImGui_GetMousePos(ctx)
                 r.ImGui_DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
                     pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD57144, 'A')
 
@@ -264,8 +265,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         r.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
             r.ImGui_GetColor(ctx,
-                is_active and reaper.ImGui_Col_FrameBgActive() or is_hovered and reaper.ImGui_Col_FrameBgHovered() or
-                reaper.ImGui_Col_FrameBg()), 16)
+                is_active and r.ImGui_Col_FrameBgActive() or is_hovered and r.ImGui_Col_FrameBgHovered() or
+                r.ImGui_Col_FrameBg()), 16)
     elseif Style == 'Custom Image' then
         local Image = ImgPath or FP.Image
         if Image then
@@ -299,9 +300,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         r.ImGui_DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
         r.ImGui_DrawList_PathClear(draw_list)
         r.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
-            reaper.ImGui_GetColor(ctx,
-                is_active and reaper.ImGui_Col_FrameBgActive() or is_hovered and reaper.ImGui_Col_FrameBgHovered() or
-                reaper.ImGui_Col_FrameBg()))
+            r.ImGui_GetColor(ctx,
+                is_active and r.ImGui_Col_FrameBgActive() or is_hovered and r.ImGui_Col_FrameBgHovered() or
+                r.ImGui_Col_FrameBg()))
     end
 
 
@@ -489,7 +490,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     if AssigningMacro ~= nil then
-        reaper.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+        r.ImGui_DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
             EightColors.bgWhenAsgnMod[AssigningMacro], 16)
     end
 
@@ -507,7 +508,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         r.ImGui_DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffffff, 16)
         for m = 1, 8, 1 do
             if AssigningMacro == m then
-                reaper.ImGui_PopStyleColor(ctx, 2)
+                r.ImGui_PopStyleColor(ctx, 2)
             end
         end
     end
@@ -548,7 +549,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle,
                     SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro], ANGLE_MIN, ANGLE_MAX))
 
-                reaper.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
+                r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
                     radius_outer * 0.1)
                 r.ImGui_DrawList_PathClear(draw_list)
 
@@ -571,7 +572,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1, angle,
             angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[M])
-        reaper.ImGui_DrawList_PathStroke(draw_list, EightColors.bgWhenAsgnModAct[AssigningMacro], nil,
+        r.ImGui_DrawList_PathStroke(draw_list, EightColors.bgWhenAsgnModAct[AssigningMacro], nil,
             radius_outer * 0.1)
         r.ImGui_DrawList_PathClear(draw_list)
         r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
@@ -620,12 +621,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local pos = { r.ImGui_GetCursorScreenPos(ctx) }
 
 
-    local line_height = reaper.ImGui_GetTextLineHeight(ctx)
-    local draw_list = reaper.ImGui_GetWindowDrawList(ctx)
+    local line_height = r.ImGui_GetTextLineHeight(ctx)
+    local draw_list = r.ImGui_GetWindowDrawList(ctx)
 
 
 
-    local mouse_delta = { reaper.ImGui_GetMouseDelta(ctx) }
+    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
     local FxGUID = FXGUID[FX_Idx]
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
 
@@ -666,12 +667,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), 0x99999922)
             ClrPop = 3;
         elseif FX[FxGUID][Fx_P].BgClr and SliderStyle == nil then
-            r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), FX[FxGUID][Fx_P].BgClr)
-            r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgHovered(), FX[FxGUID][Fx_P].BgClrHvr)
-            r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(), FX[FxGUID][Fx_P].BgClrAct)
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), FX[FxGUID][Fx_P].BgClr)
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), FX[FxGUID][Fx_P].BgClrHvr)
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), FX[FxGUID][Fx_P].BgClrAct)
             ClrPop = 3
         else
-            ClrPop = 0 --r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x474747ff) ClrPop =1
+            ClrPop = 0 --r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x474747ff) ClrPop =1
         end
         if GrabSize then r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_GrabMinSize(), GrabSize) end
 
@@ -728,8 +729,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         local value_changed = false
-        local is_active = reaper.ImGui_IsItemActive(ctx)
-        local is_hovered = reaper.ImGui_IsItemHovered(ctx)
+        local is_active = r.ImGui_IsItemActive(ctx)
+        local is_hovered = r.ImGui_IsItemHovered(ctx)
         if is_active == true then Knob_Active = true end
         if Knob_Active == true then
             if IsLBtnHeld == false then Knob_Active = false end
@@ -777,18 +778,18 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         end
         local t            = (p_value - v_min) / (v_max - v_min)
 
-        local Clr_SldrGrab = r.ImGui_GetColor(ctx, reaper.ImGui_Col_SliderGrabActive())
-        local ClrBg        = reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_FrameBg())
+        local Clr_SldrGrab = r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
+        local ClrBg        = r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg())
 
 
 
 
         --[[ if is_active or is_hovered then
-        local window_padding = {reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding())}
-        reaper.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1], pos[2] - line_height - item_inner_spacing[2] - window_padding[2])
-        reaper.ImGui_BeginTooltip(ctx)
-        reaper.ImGui_Text(ctx, ('%.3f'):format(p_value))
-        reaper.ImGui_EndTooltip(ctx)
+        local window_padding = {r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding())}
+        r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1], pos[2] - line_height - item_inner_spacing[2] - window_padding[2])
+        r.ImGui_BeginTooltip(ctx)
+        r.ImGui_Text(ctx, ('%.3f'):format(p_value))
+        r.ImGui_EndTooltip(ctx)
         end ]]
 
 
@@ -799,7 +800,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             local getSlider, P_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
             ---!!! ONLY ACTIVATE TOOLTIP IF VALUE IS HIDDEN
             --[[ if getSlider  then
-                local window_padding = {reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding())}
+                local window_padding = {r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding())}
                 r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1], pos[2] - line_height - window_padding[2] -8)
                 r.ImGui_BeginTooltip(ctx)
                 r.ImGui_Text(ctx, P_Value)
@@ -815,7 +816,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         if AssigningMacro ~= nil then
-            reaper.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB,
+            r.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB,
                 EightColors.bgWhenAsgnMod[AssigningMacro])
         end
 
@@ -831,7 +832,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
             for m = 1, 8, 1 do
                 if AssigningMacro == m then
-                    reaper.ImGui_PopStyleColor(ctx, 2)
+                    r.ImGui_PopStyleColor(ctx, 2)
                 end
             end
         end
@@ -1144,7 +1145,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
             -----Style--------
 
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Header(), 0x44444433)
-            local AccentClr = reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_SliderGrabActive())
+            local AccentClr = r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_HeaderHovered(), AccentClr)
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), 0xbbbbbbff)
             if Style == 'Pro C 2' then
@@ -1195,7 +1196,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
             end
 
             local L, T = r.ImGui_GetItemRectMin(ctx); local R, B = r.ImGui_GetItemRectMax(ctx)
-            local lineheight = reaper.ImGui_GetTextLineHeight(ctx)
+            local lineheight = r.ImGui_GetTextLineHeight(ctx)
             local drawlist = r.ImGui_GetForegroundDrawList(ctx)
 
             r.ImGui_DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888844,
@@ -1213,7 +1214,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
 
     if Style == 'up-down arrow' then
         local R, B = r.ImGui_GetItemRectMax(ctx)
-        local lineheight = reaper.ImGui_GetTextLineHeight(ctx)
+        local lineheight = r.ImGui_GetTextLineHeight(ctx)
         local drawlist = r.ImGui_GetWindowDrawList(ctx)
         local m = B - lineheight / 2 - 3
         g = 2
@@ -1446,7 +1447,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local line_height = r.ImGui_GetTextLineHeight(ctx); local draw_list = r.ImGui_GetWindowDrawList(ctx)
 
-    local mouse_delta = { reaper.ImGui_GetMouseDelta(ctx) }
+    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
 
@@ -1674,14 +1675,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local t            = (p_value - v_min) / (v_max - v_min)
 
     local radius_inner = radius_outer * 0.40
-    local Clr_SldrGrab = r.ImGui_GetColor(ctx, reaper.ImGui_Col_SliderGrabActive())
-    local ClrBg        = reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_FrameBg())
+    local Clr_SldrGrab = r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
+    local ClrBg        = r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg())
 
 
     if (is_active or is_hovered) and (FX[FxGUID][Fx_P].V_Pos == 'None' or Style == 'Pro C' or Style == 'Pro C Lookahead') then
         local getSldr, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
-        local window_padding       = { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding()) }
+        local window_padding       = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
         r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1], pos[2] - line_height - window_padding[2] - 8)
 
         r.ImGui_BeginTooltip(ctx)
@@ -1704,7 +1705,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     if AssigningMacro ~= nil then
-        reaper.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB,
+        r.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB,
             EightColors.bgWhenAsgnMod[AssigningMacro])
     end
 
@@ -1715,12 +1716,12 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
 
         FX[FxGUID][Fx_P].V = LT_ParamValue
-        reaper.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, 0x99999922, Rounding)
-        reaper.ImGui_DrawList_AddRect(draw_list, PosL, PosT, PosR, PosB, 0x99999966, Rounding)
+        r.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, 0x99999922, Rounding)
+        r.ImGui_DrawList_AddRect(draw_list, PosL, PosT, PosR, PosB, 0x99999966, Rounding)
 
         for m = 1, 8, 1 do
             if AssigningMacro == m then
-                reaper.ImGui_PopStyleColor(ctx, 2)
+                r.ImGui_PopStyleColor(ctx, 2)
             end
         end
     end
@@ -1751,14 +1752,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     Tweaking = MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width)
 
 
-    local TextW, h      = reaper.ImGui_CalcTextSize(ctx, labeltoShow, nil, nil, true)
+    local TextW, h      = r.ImGui_CalcTextSize(ctx, labeltoShow, nil, nil, true)
     local SldrR, SldrB  = r.ImGui_GetItemRectMax(ctx)
     local SldrL, SldrT  = r.ImGui_GetItemRectMin(ctx)
     local W, H          = SldrR - SldrL, SldrB - SldrT
     local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     r.ImGui_PushFont(ctx, Arial_11)
     if FX[FxGUID][Fx_P].V_Round then Format_P_V = RoundPrmV(Format_P_V, FX[FxGUID][Fx_P].V_Round) end
-    TextW, Texth = reaper.ImGui_CalcTextSize(ctx, Format_P_V, nil, nil, true, -100)
+    TextW, Texth = r.ImGui_CalcTextSize(ctx, Format_P_V, nil, nil, true, -100)
     if is_active then txtclr = 0xEEEEEEff else txtclr = 0xD6D6D6ff end
 
     if (V_Pos == 'Within' or Lbl_Pos == 'Left') and V_Pos ~= 'None' and V_Pos ~= 'Free' and V_Pos then
@@ -2427,19 +2428,19 @@ end
 ---@param x any
 ---@param y any
 function ImageAngle(ctx, img, angle, w, h, x, y)
-    if not x and not y then x, y = reaper.ImGui_GetCursorScreenPos(ctx) end
+    if not x and not y then x, y = r.ImGui_GetCursorScreenPos(ctx) end
     local cx, cy = x + (w / 2), y + (h / 2)
     local rotate = function(x, y)
         x, y = x - cx, y - cy
         return (x * math.cos(angle) - y * math.sin(angle)) + cx,
             (x * math.sin(angle) + y * math.cos(angle)) + cy
     end
-    local dl = reaper.ImGui_GetWindowDrawList(ctx)
+    local dl = r.ImGui_GetWindowDrawList(ctx)
     local p1_x, p1_y = rotate(x, y)
     local p2_x, p2_y = rotate(x + w, y)
     local p3_x, p3_y = rotate(x + w, y + h)
     local p4_x, p4_y = rotate(x, y + h)
-    reaper.ImGui_DrawList_AddImageQuad(dl, img,
+    r.ImGui_DrawList_AddImageQuad(dl, img,
         p1_x, p1_y, p2_x, p2_y, p3_x, p3_y, p4_x, p4_y)
     --r.ImGui_Dummy(ctx, w, h)
 end
@@ -2448,11 +2449,11 @@ end
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
 function SaveLayoutEditings(FX_Name, ID, FxGUID)
-    local dir_path = ConcatPath(reaper.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
+    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
         'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
-    reaper.RecursiveCreateDirectory(dir_path, 0)
+    r.RecursiveCreateDirectory(dir_path, 0)
 
     local file = io.open(file_path, 'w')
     if file then
