@@ -303,7 +303,7 @@ end
 
 ---@param FX_Idx integer
 ---@param Target_FX_Idx integer
----@param FX_Name string
+---@param FX_Name? string
 function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     -- input --
     local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0) -- L chan
@@ -535,12 +535,12 @@ end
 ---@param FillClr number
 ---@param OutlineClr number
 ---@param Padding number
----@param L number
----@param T number
----@param R number
----@param B number
----@param h number
----@param w number
+---@param L? number
+---@param T? number
+---@param R? number
+---@param B? number
+---@param h? number
+---@param w? number
 ---@param H_OutlineSc any
 ---@param V_OutlineSc any
 ---@param GetItemRect "GetItemRect"|nil
@@ -744,12 +744,12 @@ end
 ---@param var integer | nil
 ---@param highlightEdge? any -- TODO is this a number?
 ---@param EdgeNoBlink? "EdgeNoBlink"
----@param L number
----@param T number
----@param R number
----@param B number
----@param h number
----@param w number
+---@param L? number
+---@param T? number
+---@param R? number
+---@param B? number
+---@param h? number
+---@param w? number
 ---@return nil|integer var
 ---@return string "Stop"
 function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
