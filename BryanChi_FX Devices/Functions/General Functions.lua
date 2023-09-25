@@ -1236,14 +1236,14 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
 end
 
 function SyncTrkPrmVtoActualValue()
-    for FX_Idx = 0, Sel_Track_FX_Count, 1 do
-        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+    for FX_Idx = 0, Sel_Track_FX_Count, 1 do                 ---for every selected FX in cur track
+        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx) ---get FX’s GUID
         if FxGUID then
-            FX[FxGUID] = FX[FxGUID] or {}
-            for Fx_P = 1, #FX[FxGUID] or 0, 1 do
+            FX[FxGUID] = FX[FxGUID] or {}                    ---create new params table for FX if it doesn’t exist
+            for Fx_P = 1, #FX[FxGUID] or 0, 1 do             ---for each param
                 if TrkID then
                     if not FX[FxGUID][Fx_P].WhichMODs then
-                        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
+                        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0) ---get param value
                     end
                 end
             end

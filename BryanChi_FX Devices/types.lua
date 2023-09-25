@@ -149,3 +149,15 @@
 ---@field REL? number
 ---@field SEQ {}
 ---@field Smooth? number
+
+---@class PluginScript
+---@field FX_Idx integer
+---@field Guid string
+
+---@class GLOB
+---@field WDL ImGui_DrawList current window draw list
+---@field FDL ImGui_DrawList last rendered draw list
+---@field WinL number x-axis Cursor position in absolute screen coordinates
+---@field WinT number x-axis Cursor position in absolute screen coordinates
+---@field Height number
+---@field WinB number GLOB.WinT + GLOB.Height

@@ -11,7 +11,7 @@ require("BryanChi_FX Devices.Functions.Modulation")
 require("BryanChi_FX Devices.Functions.Theme Editor Functions")
 require("BryanChi_FX Devices.Functions.Filesystem_utils")
 require("BryanChi_FX Devices.Constants")
-PluginScript = {}
+PluginScript = {} ---@class PluginScript
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
@@ -33,7 +33,7 @@ end
 
 local FX_LIST, CAT = GetFXTbl()
 
----@type ViewPort
+---@class ViewPort
 VP = {} -- viewport info
 -- demo = {}
 app = {}
@@ -57,7 +57,7 @@ DelFX = { Pos = {}, Name = {} }
 MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {} }
 LFOwin = { w = 400, h = 300 }
 ClrPallet = {}
-Glob = {};
+Glob = {} ---@class GLOB
 Sel_Cross = {}
 ToDef = {}
 DraggingFXs = {}; DraggingFXs_Idx = {}
@@ -281,6 +281,8 @@ if Sel_Track ~= nil then Sel_Track_FX_Count = reaper.TrackFX_GetCount(Sel_Track)
 
 
 FX_DeviceWindow_NoScroll = 0
+---list of GUIDs for Each track FX
+---@type string[]
 FXGUID = {}
 FirstLoop = true
 
@@ -658,6 +660,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 ----- Get plugin scripts path -------
 local pluginScriptPath = CurrentDirectory .. 'BryanChi_FX Devices/FX Layout Plugin Scripts'
+---List of Plugin Scripts for FXD
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
     if not v:find('.lua') then
@@ -773,6 +776,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     Trk.Prm.Inst[TrkID] = tonumber(Trk.Prm.Inst[TrkID])
 
     i = 1
+    ---retrieve Pre-FX mappings?
+    ---store in CurTrk.PreFX
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PreFX ' .. i, '', false)
         if rv then
@@ -783,6 +788,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     end
 
     i = 1
+    ---retrieve Post-FX mappings?
+    ---store in CurTrk.PostFX
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PostFX ' .. i, '', false)
         if rv then
@@ -5145,7 +5152,7 @@ function loop()
                                         for Fx_P, v in ipairs(FX[FxGUID]) do --parameter faders
                                             --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
 
-                                            local FP = FX[FxGUID][Fx_P] ---@type FX_P
+                                            local FP = FX[FxGUID][Fx_P] ---@class FX_P
 
                                             local F_Tp = FX.Prm.ToTrkPrm[FXGUID[FX_Idx] .. Fx_P]; local ID = FxGUID ..
                                                 Fx_P
@@ -6499,7 +6506,7 @@ function loop()
                                     end
                                     if FrstSelItm.Type == 'Selection' then --r.ImGui_Text(ctx,'Edit Values Manually: ') ;r.ImGui_SameLine(ctx)
                                         local Itm = LE.Sel_Items[1]
-                                        local FP = FX[FxGUID][Itm] ---@type FX_P
+                                        local FP = FX[FxGUID][Itm] ---@class FX_P
 
 
 
@@ -6826,7 +6833,7 @@ function loop()
                                     ----- Condition to show ------
 
                                     local P = LE.Sel_Items[1]
-                                    local fp = FX[FxGUID][LE.Sel_Items[1]] ---@type FX_P
+                                    local fp = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
 
 
 
@@ -6932,7 +6939,7 @@ function loop()
                                                 r.ImGui_Text(ctx, 'is at Value:')
 
                                                 r.ImGui_SameLine(ctx)
-                                                local FP = FX[FxGUID][LE.Sel_Items[1]] ---@type FX_P
+                                                local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
                                                 local CP = FX[FxGUID][P][ConditionPrm]
                                                 --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
                                                 Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx,
