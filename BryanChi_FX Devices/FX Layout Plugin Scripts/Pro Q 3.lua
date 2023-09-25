@@ -1,5 +1,6 @@
 -- @noindex
 
+r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
@@ -111,7 +112,7 @@ if r.ImGui_BeginPopup(ctx, 'ProQ Display Range ##' .. FX_Idx) then
         r.ImGui_CloseCurrentPopup(ctx)
     end
 
-    reaper.ImGui_EndPopup(ctx)
+    r.ImGui_EndPopup(ctx)
 end
 if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 1 then
     ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 30
@@ -218,8 +219,8 @@ if not FX[FxGUID].Collapse then
         local ShelfGain_Node = 0
         local Q_Node = {}
         local E = 2.71828182845904523
-        ProQ_Xpos_L, ProQ_Ypos_T = reaper.ImGui_GetItemRectMin(ctx)
-        ProQ_Xpos_R, ProQ_Ypos_B = reaper.ImGui_GetItemRectMax(ctx)
+        ProQ_Xpos_L, ProQ_Ypos_T = r.ImGui_GetItemRectMin(ctx)
+        ProQ_Xpos_R, ProQ_Ypos_B = r.ImGui_GetItemRectMax(ctx)
         --ProQ_Ypos_B= ProQ_Ypos_T+340
         local B = ProQ_Ypos_B + 340
         floor = -80; ly = 0; lx = -1;
@@ -432,7 +433,7 @@ if not FX[FxGUID].Collapse then
                         FillClr_LT_Band(i, Y_Mid)
                     end
 
-                    reaper.ImGui_DrawList_PathFillConvex(Foreground, 0xffffffff)
+                    r.ImGui_DrawList_PathFillConvex(Foreground, 0xffffffff)
                 end
             elseif ProQ3.Band_UseState[Band] == 1.0 and ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] == 'High Cut' then
                 if Slope[Band] < 0.2 then
@@ -927,7 +928,7 @@ if not FX[FxGUID].Collapse then
                         ((Band - 1) * 13) + 7)
                     if Wheel_V ~= 0 then --if wheel is moved
                         HoverOnScrollItem = true
-                        MousePosX_AdjustingQ, Y = reaper.GetMousePosition()
+                        MousePosX_AdjustingQ, Y = r.GetMousePosition()
                         ProQ3['AdjustingQ' .. FXGUID[FX_Idx]] = true
                         BandforQadjusting = Band
                     end
@@ -1059,11 +1060,11 @@ if not FX[FxGUID].Collapse then
                 -- if i == iPos10k then r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
                 if LT_ParamNum ~= nil then
                     local m = m;
-                    _, tracknumber, fxnumber, paramnumber = reaper.GetLastTouchedFX()
-                    proQ_LT_GUID = reaper.TrackFX_GetFXGUID(LT_Track, fxnumber)
+                    _, tracknumber, fxnumber, paramnumber = r.GetLastTouchedFX()
+                    proQ_LT_GUID = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
 
                     for i = 1, RepeatTimeForWindows, 1 do
-                        GUIDtoCompare = reaper.TrackFX_GetFXGUID(LT_Track, fxnumber)
+                        GUIDtoCompare = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
                         if proQ_LT_GUID == GUIDtoCompare and proQ_LT_GUID ~= nil then
                             for i = 1, 24, 1 do
                                 if LT_ParamNum > 13 * (i - 1) and LT_ParamNum < 13 * i then
@@ -1162,7 +1163,7 @@ if not FX[FxGUID].Collapse then
                 r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 1)
                 r.ImGui_CloseCurrentPopup(ctx)
             end
-            reaper.ImGui_EndPopup(ctx)
+            r.ImGui_EndPopup(ctx)
         end
 
 
@@ -1181,25 +1182,25 @@ if not FX[FxGUID].Collapse then
                     end
                     Band = Band + 1
                 end
-                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                     13 * (BandNotInUse - 1), 1)
-                MouseX_AddNode, MouseY_AddNode = reaper.ImGui_GetMousePos(ctx)
+                MouseX_AddNode, MouseY_AddNode = r.ImGui_GetMousePos(ctx)
 
                 local FreqToAddNode = (MouseX_AddNode - ProQ_Xpos_L) / ProQ3.Width
-                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                     13 * (BandNotInUse - 1) + 2, FreqToAddNode)
                 local GainToAddNode = ((((Y_Mid - MouseY_AddNode) - 100) / 100 + 1) / ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] + 1) /
                     2
-                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                     13 * (BandNotInUse - 1) + 3, GainToAddNode)
                 if FreqToAddNode > 0.9 then
-                    reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                         13 * (BandNotInUse - 1) + 8, 0.5)
                 elseif FreqToAddNode < 0.1 then
-                    reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                         13 * (BandNotInUse - 1) + 8, 0.25)
                 else
-                    reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                         13 * (BandNotInUse - 1) + 8, 0.02)
                 end
             end
@@ -1216,13 +1217,13 @@ if not FX[FxGUID].Collapse then
         r.ImGui_EndChildFrame(ctx)
     end ---- End of if begin pro-Q frame then
 
-    ProQ3['HvrGUI' .. FXGUID[FX_Idx]] = reaper.ImGui_IsItemHovered(ctx)
+    ProQ3['HvrGUI' .. FXGUID[FX_Idx]] = r.ImGui_IsItemHovered(ctx)
     --if ProQ3['HvrGUI'..FXGUID[FX_Idx]] then FX_DeviceWindow_NoScroll= 0--[[ r.ImGui_WindowFlags_NoScrollWithMouse() ]] end
 
     r.ImGui_PopStyleColor(ctx, 1)
 
     if FX.Enable[FX_Idx] == false then
-        local drawlist = reaper.ImGui_GetForegroundDrawList(ctx)
+        local drawlist = r.ImGui_GetForegroundDrawList(ctx)
         r.ImGui_DrawList_AddRectFilled(drawlist, ProQ_Xpos_L, ProQ_Ypos_T - 20,
             ProQ_Xpos_L + ProQ3.Width, ProQ_Ypos_T + ProQ3.H, 0x00000077)
     end

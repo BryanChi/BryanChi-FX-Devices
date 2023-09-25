@@ -1,3 +1,4 @@
+r = reaper
 -- @description Sexan FX Browser parser
 -- @author Sexan
 -- @license GPL v3

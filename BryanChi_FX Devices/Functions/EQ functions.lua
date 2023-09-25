@@ -69,9 +69,6 @@ NodeFreq = {}
 
 -- for pro q 3
 ---@param Band number
----@return integer
----@return integer
----@return integer
 ---@return integer Clr_HalfAlpha
 ---@return integer Clr_FullAlpha
 ---@return integer Clr_Brighter

@@ -1,5 +1,6 @@
 -- @noindex
 
+r = reaper
 
 
-        reaper.SetExtState('FXD','Record last touch'  ,  'yes', false )  
+r.SetExtState('FXD', 'Record last touch', 'yes', false)
