@@ -623,6 +623,9 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     return close
 end
 
+---@param tbl table
+---@param path string
+---@param FX_Idx integer
 local function DrawChildMenu(tbl, path, FX_Idx)
     path = path or ""
     for i = 1, #tbl do
@@ -684,20 +687,22 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     local Track = r.GetTrack(0, Track_Idx)
     local TrkID = r.GetTrackGUID(Track)
 
-    Trk[TrkID] = Trk[TrkID] or {}
-    Trk[TrkID].Mod = {}
-    Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
-    Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-    for i = 1, 8, 1 do -- for every modulator
-        Trk[TrkID].Mod[i] = {}
-        local m = Trk[TrkID].Mod[i]
+    local CurTrk = Trk[TrkID] or {} ---@class TrkID
+    CurTrk.Mod = {}
+    CurTrk.SEQL = CurTrk.SEQL or {}
+    CurTrk.SEQ_Dnom = CurTrk.SEQ_Dnom or {}
+    --- for every modulator
+    ---retrieve modulator values?
+    for i = 1, 8, 1 do
+        CurTrk.Mod[i] = {}
+        local m = CurTrk.Mod[i]
         m.ATK = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' Atk', '', false)))
         m.REL = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' Rel', '', false)))
-        Trk[TrkID].SEQL[i] = tonumber(select(2,
+        CurTrk.SEQL[i] = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' SEQ Length', '', false)))
-        Trk[TrkID].SEQ_Dnom[i] = tonumber(select(2,
+        CurTrk.SEQ_Dnom[i] = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator', '', false)))
         m.Smooth = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' Follower Speed', '', false)))
@@ -705,11 +710,11 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         m.Gain = tonumber(select(2,
             r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' Follower Gain', '', false)))
 
-        Trk[TrkID].Mod[i].SEQ = Trk[TrkID].Mod[i].SEQ or {}
+        CurTrk.Mod[i].SEQ = CurTrk.Mod[i].SEQ or {}
         --Get Seq Steps
-        if Trk[TrkID].SEQL[i] then
-            for St = 1, Trk[TrkID].SEQL[i], 1 do
-                Trk[TrkID].Mod[i].SEQ[St] = tonumber(select(2,
+        if CurTrk.SEQL[i] then
+            for St = 1, CurTrk.SEQL[i], 1 do
+                CurTrk.Mod[i].SEQ[St] = tonumber(select(2,
                     r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', '',
                         false)))
             end
@@ -719,9 +724,9 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
     local FXCount = r.TrackFX_GetCount(Track)
-    Trk[TrkID] = Trk[TrkID] or {}
-    Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
-    Trk[TrkID].PostFX = Trk[TrkID].PostFX or {}
+    CurTrk = CurTrk or {}
+    CurTrk.PreFX = CurTrk.PreFX or {}
+    CurTrk.PostFX = CurTrk.PostFX or {}
 
 
 
@@ -764,8 +769,9 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
     RetrieveFXsSavedLayout(FXCount)
 
-    Trk[TrkID].ModPrmInst = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ModPrmInst', '', false)))
-    for CC = 1, Trk[TrkID].ModPrmInst or 0, 1 do
+    ---store CC mappings of Macros from CurTrk.ModPrmInst to Trk.Prm.WhichMcros?
+    CurTrk.ModPrmInst = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ModPrmInst', '', false)))
+    for CC = 1, CurTrk.ModPrmInst or 0, 1 do
         _, Trk.Prm.WhichMcros[CC .. TrkID] = r.GetSetMediaTrackInfo_String(Track,
             'P_EXT: CC Linked to which Modulation' .. CC, '', false)
     end
@@ -776,25 +782,26 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     _, Trk.Prm.Inst[TrkID] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Trk Prm Count', '', false)
     Trk.Prm.Inst[TrkID] = tonumber(Trk.Prm.Inst[TrkID])
 
-    i = 1
     ---retrieve Pre-FX mappings?
     ---store in CurTrk.PreFX
+    local i = 1 ---@type integer | nil
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PreFX ' .. i, '', false)
         if rv then
-            Trk[TrkID].PreFX[i] = str; i = i + 1
+            CurTrk.PreFX[i] = str; i = i + 1
         else
             i = nil
         end
     end
 
-    i = 1
+
     ---retrieve Post-FX mappings?
     ---store in CurTrk.PostFX
+    local i = 1 ---@type integer | nil
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PostFX ' .. i, '', false)
         if rv then
-            Trk[TrkID].PostFX[i] = str; i = i + 1
+            CurTrk.PostFX[i] = str; i = i + 1
         else
             i = nil
         end
@@ -802,7 +809,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
 
-    if Trk[TrkID].PreFX == {} then Trk[TrkID].PreFX = nil end
+    if CurTrk.PreFX == {} then CurTrk.PreFX = nil end
     for P = 1, Trk.Prm.Inst[TrkID] or 0, 1 do
         _, Trk.Prm.Num[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'Track' .. TrkID .. ' P =' .. P)
         _, Trk.Prm.WhichMcros[P .. TrkID] = r.GetProjExtState(0, 'FX Devices',
@@ -855,8 +862,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
 
             if FX[FxGUID].Morph_ID then
-                Trk[TrkID].Morph_ID = Trk[TrkID].Morph_ID or {}
-                Trk[TrkID].Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
+                CurTrk.Morph_ID = CurTrk.Morph_ID or {}
+                CurTrk.Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
             end
 
             local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
@@ -864,6 +871,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
 
+            ---retrieve FX mappings?
             for Fx_P = 1, #FX[FxGUID] or 0, 1 do
                 FX[FxGUID][Fx_P].V = tonumber(select(2,
                     r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..
@@ -901,9 +909,9 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
 
-                    Trk[TrkID].Mod = Trk[TrkID].Mod or {}
-                    Trk[TrkID].Mod[m] = Trk[TrkID].Mod[m] or {}
-                    Trk[TrkID].Mod[m].Val = tonumber(select(2,
+                    CurTrk.Mod = CurTrk.Mod or {}
+                    CurTrk.Mod[m] = CurTrk.Mod[m] or {}
+                    CurTrk.Mod[m].Val = tonumber(select(2,
                         r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
 
                     FP.ModBypass = RemoveEmptyStr(select(2,
@@ -1005,11 +1013,11 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     end
 
     for m = 1, 8, 1 do
-        _, Trk[TrkID].Mod[m].Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro' .. m .. 's Name' .. TrkID, '',
+        _, CurTrk.Mod[m].Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro' .. m .. 's Name' .. TrkID, '',
             false)
-        if Trk[TrkID].Mod[m].Name == '' then Trk[TrkID].Mod[m].Name = nil end
-        _, Trk[TrkID].Mod[m].Type = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Mod' .. m .. 'Type', '', false)
-        if Trk[TrkID].Mod[m].Type == '' then Trk[TrkID].Mod[m].Type = nil end
+        if CurTrk.Mod[m].Name == '' then CurTrk.Mod[m].Name = nil end
+        _, CurTrk.Mod[m].Type = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Mod' .. m .. 'Type', '', false)
+        if CurTrk.Mod[m].Type == '' then CurTrk.Mod[m].Type = nil end
     end
 end
 
@@ -1133,7 +1141,7 @@ function loop()
 
 
 
-        if LT_Track == nil then
+        if LT_Track == nil then ---show "select track message"
             local Viewport = r.ImGui_GetWindowViewport(ctx)
 
             r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2,
@@ -1169,6 +1177,7 @@ function loop()
             HintMessage = nil
             GetAllInfoNeededEachLoop()
 
+            local CurTrk = Trk[TrkID] or {}
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
                 if not IsPrmAlreadyAdded(true) then
@@ -1564,15 +1573,15 @@ function loop()
             MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
             r.ImGui_BeginTable(ctx, 'table1', 16, r.ImGui_TableFlags_NoPadInnerX())
 
-            Trk[TrkID] = Trk[TrkID] or {}
-            Trk[TrkID].Mod = Trk[TrkID].Mod or {}
+            CurTrk = CurTrk or {}
+            CurTrk.Mod = CurTrk.Mod or {}
             for m = 1, 16, 1 do
                 if m == 1 or m == 3 or m == 5 or m == 7 or m == 9 or m == 11 or m == 13 or m == 15 then
                     r.ImGui_TableSetupColumn(ctx, '', r.ImGui_TableColumnFlags_WidthStretch(), 2)
                 elseif m == 2 or m == 4 or m == 6 or m == 8 or m == 10 or m == 12 or m == 14 or m == 16 then
                     local weight, flag
-                    if Trk[TrkID].Mod[m / 2] then
-                        if Trk[TrkID].Mod[m / 2].Type == 'Step' then
+                    if CurTrk.Mod[m / 2] then
+                        if CurTrk.Mod[m / 2].Type == 'Step' then
                             weight, flag = 0,
                                 r.ImGui_TableColumnFlags_WidthFixed()
                         end
@@ -1586,8 +1595,8 @@ function loop()
             r.ImGui_TableHeadersRow(ctx) --create header row
             r.gmem_attach('ParamValues')
 
-            Trk[TrkID] = Trk[TrkID] or {}
-            Trk[TrkID].Mod = Trk[TrkID].Mod or {}
+            CurTrk = CurTrk or {}
+            CurTrk.Mod = CurTrk.Mod or {}
 
 
 
@@ -1598,8 +1607,8 @@ function loop()
             for i, v in ipairs(MacroNums) do --Do 8 Times
                 Mcro_Asgn_Md_Idx            = 'Macro' .. tostring(MacroNums[i])
 
-                Trk[TrkID].Mod[i]           = Trk[TrkID].Mod[i] or {}
-                local I, Name, CurX         = Trk[TrkID].Mod[i], nil, r.ImGui_GetCursorPosX(ctx)
+                CurTrk.Mod[i]               = CurTrk.Mod[i] or {}
+                local I, Name, CurX         = CurTrk.Mod[i], nil, r.ImGui_GetCursorPosX(ctx)
                 local frameBgColor          = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.5, 0.5, 0.2)
                 local frameBgHoveredColor   = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.6, 0.5, 0.2)
                 local frameBgActiveColor    = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.7, 0.5, 0.2)
@@ -1624,8 +1633,8 @@ function loop()
 
 
 
-                Trk[TrkID].Mod[i].Type = Trk[TrkID].Mod[i].Type or 'Macro'
-                if Trk[TrkID].Mod[i].Type == 'Macro' then
+                CurTrk.Mod[i].Type = CurTrk.Mod[i].Type or 'Macro'
+                if CurTrk.Mod[i].Type == 'Macro' then
                     PopColorTime = PushClr(AssigningMacro)
 
                     r.ImGui_TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
@@ -1683,13 +1692,13 @@ function loop()
 
 
                     r.ImGui_PopStyleColor(ctx, clrPop)
-                elseif Trk[TrkID].Mod[i].Type == 'env' then
+                elseif CurTrk.Mod[i].Type == 'env' then
                     if Mods == Shift then DragSpeed = 0.0001 else DragSpeed = 0.01 end
                     PopColorTime = PushClr(AssigningMacro)
                     r.ImGui_TableSetColumnIndex(ctx, (i - 1) * 2)
                     r.ImGui_PushItemWidth(ctx, -FLT_MIN)
                     r.ImGui_SetNextItemWidth(ctx, 60)
-                    local Mc = Trk[TrkID].Mod[i]
+                    local Mc = CurTrk.Mod[i]
 
                     local atk, rel = Mc.atk, Mc.rel
                     at, Mc.ATK = r.ImGui_DragDouble(ctx, '## atk' .. i, Mc.ATK, DragSpeed, 0, 1, '',
@@ -1784,7 +1793,7 @@ function loop()
                         end
                     end
                     r.ImGui_PopStyleColor(ctx, clrPop)
-                elseif Trk[TrkID].Mod[i].Type == 'Step' then
+                elseif CurTrk.Mod[i].Type == 'Step' then
                     Macros_WDL = Macros_WDL or r.ImGui_GetWindowDrawList(ctx)
                     r.ImGui_TableSetColumnIndex(ctx, (i - 1) * 2) --r.ImGui_PushItemWidth( ctx, -FLT_MIN)
 
@@ -1792,16 +1801,16 @@ function loop()
                     local CurrentPos       = r.gmem_read(120 + i) + 1
 
                     --r.ImGui_SetNextItemWidth(ctx, 20)
-                    Trk[TrkID].Mod[i].SEQ  = Trk[TrkID].Mod[i].SEQ or {}
-                    local S                = Trk[TrkID].Mod[i].SEQ
+                    CurTrk.Mod[i].SEQ      = CurTrk.Mod[i].SEQ or {}
+                    local S                = CurTrk.Mod[i].SEQ
 
-                    Trk[TrkID].SEQL        = Trk[TrkID].SEQL or {}
-                    Trk[TrkID].SEQ_Dnom    = Trk[TrkID].SEQ_Dnom or {}
+                    CurTrk.SEQL            = CurTrk.SEQL or {}
+                    CurTrk.SEQ_Dnom        = CurTrk.SEQ_Dnom or {}
 
                     local HoverOnAnyStep
                     local SmallSEQActive
                     local HdrPosL, HdrPosT = r.ImGui_GetCursorScreenPos(ctx)
-                    for St = 1, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 1 do -- create all steps
+                    for St = 1, CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps, 1 do -- create all steps
                         local W = (VP.w - 10) / 12
                         local L, T = r.ImGui_GetCursorScreenPos(ctx)
                         if St == 1 and AssigningMacro == i then
@@ -1892,11 +1901,11 @@ function loop()
                                     if AddMacroJSFX() then
                                         r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                         r.gmem_write(5, i) --[[tells JSFX the macro]]
-                                        r.gmem_write(111, Trk[TrkID].SEQ_Dnom[i])
-                                        r.gmem_write(110, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)
+                                        r.gmem_write(111, CurTrk.SEQ_Dnom[i])
+                                        r.gmem_write(110, CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps)
                                         r.GetSetMediaTrackInfo_String(LT_Track,
                                             'P_EXT: Macro ' .. i .. ' SEQ Denominator',
-                                            Trk[TrkID].SEQ_Dnom[i], true)
+                                            CurTrk.SEQ_Dnom[i], true)
                                     end
                                 end
 
@@ -1904,107 +1913,107 @@ function loop()
                                     if AddMacroJSFX() then
                                         r.gmem_write(4, 8)
                                         r.gmem_write(5, i)
-                                        r.gmem_write(110, Trk[TrkID].SEQL[i])
-                                        r.gmem_write(111, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
+                                        r.gmem_write(110, CurTrk.SEQL[i])
+                                        r.gmem_write(111, CurTrk.SEQ_Dnom[i] or SEQ_Default_Denom)
                                         r.GetSetMediaTrackInfo_String(LT_Track,
                                             'P_EXT: Macro ' .. i .. ' SEQ Length',
-                                            Trk[TrkID].SEQL[i], true)
+                                            CurTrk.SEQL[i], true)
                                     end
                                 end
 
 
 
-                                Trk[TrkID].SEQL        = Trk[TrkID].SEQL or {}
-                                rv, Trk[TrkID].SEQL[i] = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',
-                                    Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 2, 64)
+                                CurTrk.SEQL        = CurTrk.SEQL or {}
+                                rv, CurTrk.SEQL[i] = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',
+                                    CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps, 2, 64)
                                 if r.ImGui_IsItemActive(ctx) then writeSEQGmem() end
                                 SL()
                                 if r.ImGui_Button(ctx, 'x2##' .. i) then
-                                    Trk[TrkID].SEQL[i] = math.floor((Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps) * 2)
+                                    CurTrk.SEQL[i] = math.floor((CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps) * 2)
                                     writeSEQGmem()
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '/2##' .. i) then
-                                    Trk[TrkID].SEQL[i] = math.floor((Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps) / 2)
+                                    CurTrk.SEQL[i] = math.floor((CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps) / 2)
                                     writeSEQGmem()
                                 end
 
                                 r.ImGui_Text(ctx, 'Step Length : ')
                                 if r.ImGui_Button(ctx, '2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 0.125
+                                    CurTrk.SEQ_Dnom[i] = 0.125
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 0.125 then
+                                if CurTrk.SEQ_Dnom[i] == 0.125 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                         R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 0.25
+                                    CurTrk.SEQ_Dnom[i] = 0.25
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 0.25 then
+                                if CurTrk.SEQ_Dnom[i] == 0.25 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                         R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 0.5
+                                    CurTrk.SEQ_Dnom[i] = 0.5
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 0.5 then
+                                if CurTrk.SEQ_Dnom[i] == 0.5 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                         R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/4 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 1
+                                    CurTrk.SEQ_Dnom[i] = 1
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 1 then
+                                if CurTrk.SEQ_Dnom[i] == 1 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                         B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/8 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 2
+                                    CurTrk.SEQ_Dnom[i] = 2
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 2 then
+                                if CurTrk.SEQ_Dnom[i] == 2 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                         B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/16 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 4
+                                    CurTrk.SEQ_Dnom[i] = 4
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 4 then
+                                if CurTrk.SEQ_Dnom[i] == 4 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                         B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/32 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 8
+                                    CurTrk.SEQ_Dnom[i] = 8
                                     writeSEQDNom()
                                 end
                                 SL()
-                                if Trk[TrkID].SEQ_Dnom[i] == 8 then
+                                if CurTrk.SEQ_Dnom[i] == 8 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                         B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 if r.ImGui_Button(ctx, '1/64 ##' .. 'Macro' .. i .. 'SEQ Denom') then
-                                    Trk[TrkID].SEQ_Dnom[i] = 16
+                                    CurTrk.SEQ_Dnom[i] = 16
                                     writeSEQDNom()
                                 end
-                                if Trk[TrkID].SEQ_Dnom[i] == 16 then
+                                if CurTrk.SEQ_Dnom[i] == 16 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                         B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
 
 
 
-                                for St = 1, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 1 do
+                                for St = 1, CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps, 1 do
                                     r.ImGui_InvisibleButton(ctx, '##SEQ' .. St .. TrkID, StepSEQ_W, StepSEQ_H)
                                     local L, T = r.ImGui_GetItemRectMin(ctx); local R, B = r.ImGui_GetItemRectMax(ctx); local w, h =
                                         r.ImGui_GetItemRectSize(ctx)
@@ -2080,7 +2089,7 @@ function loop()
                             notHoverSEQ_Time = 0
                         end
                     end
-                elseif Trk[TrkID].Mod[i].Type == 'Follower' then
+                elseif CurTrk.Mod[i].Type == 'Follower' then
                     r.ImGui_TableSetColumnIndex(ctx, (i - 1) * 2)
 
                     r.ImGui_Button(ctx, 'Follower     ')
@@ -2111,7 +2120,7 @@ function loop()
                         if r.ImGui_Begin(ctx, 'Follower Windowww' .. i, true, r.ImGui_WindowFlags_NoResize() + r.ImGui_WindowFlags_NoDocking() + r.ImGui_WindowFlags_NoCollapse() + r.ImGui_WindowFlags_NoScrollbar() + r.ImGui_WindowFlags_NoTitleBar()) then
                             r.ImGui_Text(ctx, 'Speed : ')
                             SL()
-                            local m = Trk[TrkID].Mod[i]
+                            local m = CurTrk.Mod[i]
                             local CurX = r.ImGui_GetCursorPosX(ctx)
                             retval, m.Smooth = r.ImGui_DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,
                                 '%.1f')
@@ -2177,14 +2186,14 @@ function loop()
                             notHoverFOL_Time = 0
                         end
                     end
-                elseif Trk[TrkID].Mod[i].Type == 'LFO' then
+                elseif CurTrk.Mod[i].Type == 'LFO' then
                     local function ChangeLFO(mode, V, gmem)
                         r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
                         r.gmem_write(5, i)    -- Tells jsfx which macro
                         r.gmem_write(gmem or 9, V)
                     end
                     local H = 20
-                    local Mc = Trk[TrkID].Mod[i]
+                    local Mc = CurTrk.Mod[i]
                     Mc.Freq = Mc.Freq or 1
                     Mc.Gain = Mc.Gain or 5
                     r.ImGui_TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
@@ -2433,7 +2442,7 @@ function loop()
                     end ]]
                 local function SetTypeToEnv()
                     if r.ImGui_Selectable(ctx, 'Set Type to Envelope', false) then
-                        Trk[TrkID].Mod[i].Type = 'env'
+                        CurTrk.Mod[i].Type = 'env'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
                         r.gmem_write(4, 4) -- tells jsfx macro type = env
                         r.gmem_write(5, i) -- tells jsfx which macro
@@ -2442,19 +2451,19 @@ function loop()
 
                 local function SetTypeToStepSEQ()
                     if r.ImGui_Selectable(ctx, 'Set Type to Step Sequencer', false) then
-                        Trk[TrkID].Mod[i].Type = 'Step'
+                        CurTrk.Mod[i].Type = 'Step'
                         r.gmem_write(4, 6) -- tells jsfx macro type = step seq
                         r.gmem_write(5, i)
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Step', true)
-                        Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
-                        Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-                        Trk[TrkID].SEQL[i] = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
-                        Trk[TrkID].SEQ_Dnom[i] = Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom
+                        CurTrk.SEQL = CurTrk.SEQL or {}
+                        CurTrk.SEQ_Dnom = CurTrk.SEQ_Dnom or {}
+                        CurTrk.SEQL[i] = CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps
+                        CurTrk.SEQ_Dnom[i] = CurTrk.SEQ_Dnom[i] or SEQ_Default_Denom
 
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length',
-                            Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, true)
+                            CurTrk.SEQL[i] or SEQ_Default_Num_of_Steps, true)
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator',
-                            Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom, true)
+                            CurTrk.SEQ_Dnom[i] or SEQ_Default_Denom, true)
 
                         if I.Name == 'Env ' .. i or I.Name == 'Macro ' .. i then I.Name = 'Step ' .. i end
                     end
@@ -2464,13 +2473,13 @@ function loop()
                     if r.ImGui_Selectable(ctx, 'Set Type to Audio Follower', false) then
                         r.gmem_write(4, 9) -- tells jsfx macro type = Follower
                         r.gmem_write(5, i) -- tells jsfx which macro
-                        Trk[TrkID].Mod[i].Type = 'Follower'
+                        CurTrk.Mod[i].Type = 'Follower'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Follower', true)
                     end
                 end
                 local function SetTypeToMacro()
                     if r.ImGui_Selectable(ctx, 'Set Type to Macro', false) then
-                        Trk[TrkID].Mod[i].Type = 'Macro'
+                        CurTrk.Mod[i].Type = 'Macro'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
                         r.gmem_write(4, 5) -- tells jsfx macro type = Macro
                         r.gmem_write(5, i) -- tells jsfx which macro
@@ -2479,7 +2488,7 @@ function loop()
                 end
                 local function SetTypeToLFO()
                     if r.ImGui_Selectable(ctx, 'Set Type to LFO', false) then
-                        Trk[TrkID].Mod[i].Type = 'LFO'
+                        CurTrk.Mod[i].Type = 'LFO'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
                         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
                         r.gmem_write(5, i)  -- tells jsfx which macro
@@ -2492,7 +2501,7 @@ function loop()
                         AddMacroJSFX()
                         -- Show Envelope for Morph Slider
                         local env = r.GetFXEnvelope(LT_Track, 0, i - 1, true)
-                        SetPrmAlias(LT_TrackNum, 1, i, Trk[TrkID].Mod[i].Name or ('Macro' .. i)) --don't know what this line does, but without it Envelope won't show....
+                        SetPrmAlias(LT_TrackNum, 1, i, CurTrk.Mod[i].Name or ('Macro' .. i)) --don't know what this line does, but without it Envelope won't show....
                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                             r.BR_EnvGetProperties(env)
                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight, defaultShape, faderScaling)
@@ -2561,15 +2570,15 @@ function loop()
                 --if FX_Idx == 1 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then FX_Idx=FX_Idx-1 else FX_Idx =FX_Idx end
                 TblIdxForSpace = FX_Idx .. tostring(SpaceIsBeforeRackMixer)
                 FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-                if Trk[TrkID].PreFX[1] then
+                if CurTrk.PreFX[1] then
                     local offset
                     if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = 1 else offset = 0 end
                     if SpaceIsBeforeRackMixer == 'End of PreFX' then
                         SpcIsInPre = true
-                        if Trk[TrkID].PreFX_Hide then Hide = true end
+                        if CurTrk.PreFX_Hide then Hide = true end
                         MoveTarget = FX_Idx + 1
-                    elseif FX_Idx + 1 - offset <= #Trk[TrkID].PreFX and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
-                        SpcIsInPre = true; if Trk[TrkID].PreFX_Hide then Hide = true end
+                    elseif FX_Idx + 1 - offset <= #CurTrk.PreFX and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
+                        SpcIsInPre = true; if CurTrk.PreFX_Hide then Hide = true end
                     end
                 end
                 if SpaceIsBeforeRackMixer == 'SpcInPost' or SpaceIsBeforeRackMixer == 'SpcInPost 1st spc' then
@@ -2808,39 +2817,39 @@ function loop()
                     if SpcInPost then SpcIsInPre = false end
 
                     if SpcIsInPre then
-                        if not tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then -- if fx is not in pre fx
+                        if not tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) then -- if fx is not in pre fx
                             if SpaceIsBeforeRackMixer == 'End of PreFX' then
                                 local offset = 0
                                 if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = -1 end
 
-                                table.insert(Trk[TrkID].PreFX, #Trk[TrkID].PreFX + 1, FXGUID[DragFX_ID])
+                                table.insert(CurTrk.PreFX, #CurTrk.PreFX + 1, FXGUID[DragFX_ID])
                                 --r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, FX_Idx + 1, true)
                                 DontMove = true
                             else
-                                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FXGUID[DragFX_ID])
+                                table.insert(CurTrk.PreFX, FX_Idx + 1, FXGUID[DragFX_ID])
                             end
                         else -- if fx is in pre fx
                             local offset = 0
                             if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = -1 end
                             if FX_Idx < DragFX_ID then -- if drag towards left
-                                table.remove(Trk[TrkID].PreFX, DragFX_ID + 1 + offset)
-                                table.insert(Trk[TrkID].PreFX, FX_Idx + 1 + offset, FXGUID[DragFX_ID])
+                                table.remove(CurTrk.PreFX, DragFX_ID + 1 + offset)
+                                table.insert(CurTrk.PreFX, FX_Idx + 1 + offset, FXGUID[DragFX_ID])
                             elseif SpaceIsBeforeRackMixer == 'End of PreFX' then
-                                table.insert(Trk[TrkID].PreFX, #Trk[TrkID].PreFX + 1, FXGUID[DragFX_ID])
-                                table.remove(Trk[TrkID].PreFX, DragFX_ID + 1 + offset)
+                                table.insert(CurTrk.PreFX, #CurTrk.PreFX + 1, FXGUID[DragFX_ID])
+                                table.remove(CurTrk.PreFX, DragFX_ID + 1 + offset)
                                 --move fx down
                             else
-                                table.insert(Trk[TrkID].PreFX, FX_Idx + 1 + offset, FXGUID[DragFX_ID])
-                                table.remove(Trk[TrkID].PreFX, DragFX_ID + 1 + offset)
+                                table.insert(CurTrk.PreFX, FX_Idx + 1 + offset, FXGUID[DragFX_ID])
+                                table.remove(CurTrk.PreFX, DragFX_ID + 1 + offset)
                             end
                         end
 
-                        for i, v in pairs(Trk[TrkID].PreFX) do
+                        for i, v in pairs(CurTrk.PreFX) do
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' ..
                                 i, v, true)
                         end
-                        if tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
-                            table.remove(Trk[TrkID].PostFX, tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
+                        if tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) then
+                            table.remove(CurTrk.PostFX, tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]))
                         end
                         FX.InLyr[FXGUID[DragFX_ID]] = nil
                     elseif SpcInPost then
@@ -2848,24 +2857,24 @@ function loop()
 
                         if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
 
-                        if not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then -- if fx is not yet in post-fx chain
+                        if not tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) then -- if fx is not yet in post-fx chain
                             InsertToPost_Src = DragFX_ID + offset + 1
 
                             InsertToPost_Dest = SpcIDinPost
 
 
-                            if tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then
-                                table.remove(Trk[TrkID].PreFX, tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]))
+                            if tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) then
+                                table.remove(CurTrk.PreFX, tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]))
                             end
                         else                                -- if fx is already in post-fx chain
-                            local IDinPost = tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
+                            local IDinPost = tablefind(CurTrk.PostFX, FXGUID[DragFX_ID])
                             if SpcIDinPost <= IDinPost then -- if drag towards left
-                                table.remove(Trk[TrkID].PostFX, IDinPost)
-                                table.insert(Trk[TrkID].PostFX, SpcIDinPost, FXGUID[DragFX_ID])
+                                table.remove(CurTrk.PostFX, IDinPost)
+                                table.insert(CurTrk.PostFX, SpcIDinPost, FXGUID[DragFX_ID])
                                 table.insert(MovFX.ToPos, FX_Idx + 1)
                             else
-                                table.insert(Trk[TrkID].PostFX, SpcIDinPost, Trk[TrkID].PostFX[IDinPost])
-                                table.remove(Trk[TrkID].PostFX, IDinPost)
+                                table.insert(CurTrk.PostFX, SpcIDinPost, CurTrk.PostFX[IDinPost])
+                                table.remove(CurTrk.PostFX, IDinPost)
                                 table.insert(MovFX.ToPos, FX_Idx)
                             end
                             DontMove = true
@@ -2875,27 +2884,27 @@ function loop()
                     else -- if space is not in pre or post
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. DragFX_ID, '', true)
                         if not MoveFromPostToNorm then
-                            if tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then
-                                table.remove(Trk[TrkID].PreFX,
-                                    tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]))
+                            if tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) then
+                                table.remove(CurTrk.PreFX,
+                                    tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]))
                             end
                         end
-                        if tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
-                            table.remove(Trk[TrkID].PostFX,
-                                tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
+                        if tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) then
+                            table.remove(CurTrk.PostFX,
+                                tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]))
                         end
                     end
-                    for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                    for i = 1, #CurTrk.PostFX + 1, 1 do
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, CurTrk.PostFX[i] or '',
                             true)
                     end
-                    for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '',
+                    for i = 1, #CurTrk.PreFX + 1, 1 do
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, CurTrk.PreFX[i] or '',
                             true)
                     end
                     if not DontMove then
                         if FX_Idx ~= RepeatTimeForWindows and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
-                            --[[ if ((FX.Win_Name_S[FX_Idx]or''):find('Pro%-Q 3') or (FX.Win_Name_S[FX_Idx]or''):find('Pro%-C 2')) and not tablefind (Trk[TrkID].PreFX, FXGUID[FX_Idx]) then
+                            --[[ if ((FX.Win_Name_S[FX_Idx]or''):find('Pro%-Q 3') or (FX.Win_Name_S[FX_Idx]or''):find('Pro%-C 2')) and not tablefind (CurTrk.PreFX, FXGUID[FX_Idx]) then
                                 AltDestLow = FX_Idx-1
                             end ]]
                             if (FX.Win_Name_S[FX_Idx] or ''):find('Pro%-C 2') then
@@ -2912,7 +2921,7 @@ function loop()
                         elseif FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc' or SpaceIsBeforeRackMixer == 'End of PreFX' then
                             local offset
 
-                            if Trk[TrkID].PostFX[1] then offset = #Trk[TrkID].PostFX end
+                            if CurTrk.PostFX[1] then offset = #CurTrk.PostFX end
                             table.insert(MovFX.ToPos, FX_Idx - (offset or 0))
                             table.insert(MovFX.FromPos, DragFX_ID)
                         else
@@ -2928,14 +2937,14 @@ function loop()
 
                 function MoveFXwith1PreFXand1PosFX(DragFX_ID, FX_Idx, Undo_Lbl)
                     r.Undo_BeginBlock()
-                    table.remove(Trk[TrkID].PreFX, tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]))
-                    for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '',
+                    table.remove(CurTrk.PreFX, tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]))
+                    for i = 1, #CurTrk.PreFX + 1, 1 do
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, CurTrk.PreFX[i] or '',
                             true)
                     end
-                    table.remove(Trk[TrkID].PostFX, tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
-                    for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                    table.remove(CurTrk.PostFX, tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]))
+                    for i = 1, #CurTrk.PostFX + 1, 1 do
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, CurTrk.PostFX[i] or '',
                             true)
                     end
                     if FX_Idx ~= RepeatTimeForWindows then
@@ -3114,8 +3123,8 @@ function loop()
 
 
 
-                            if tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
-                            if tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) and (not SpcInPost or AddLastSpace == 'LastSpc') then
+                            if tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
+                            if tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) and (not SpcInPost or AddLastSpace == 'LastSpc') then
                                 allowDropNext = true; MoveFromPostToNorm = true
                             end
                             if FX[FXGUID[DragFX_ID]].InWhichBand then allowDropNext = true end
@@ -3128,7 +3137,7 @@ function loop()
                             if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = 0 else offset = 0 end
 
                             if (DragFX_ID + offset == FX_Idx or DragFX_ID + offset == FX_Idx - 1) and SpaceIsBeforeRackMixer ~= true and FX.InLyr[FXGUID[DragFX_ID]] == nil and not SpcInPost and not allowDropNext
-                                or (Trk[TrkID].PreFX[#Trk[TrkID].PreFX] == FXGUID[DragFX_ID] and SpaceIsBeforeRackMixer == 'End of PreFX') or DontAllowDrop then
+                                or (CurTrk.PreFX[#CurTrk.PreFX] == FXGUID[DragFX_ID] and SpaceIsBeforeRackMixer == 'End of PreFX') or DontAllowDrop then
                                 r.ImGui_SameLine(ctx, nil, 0)
 
                                 Dvdr.Width[TblIdxForSpace] = 0
@@ -3152,9 +3161,9 @@ function loop()
                                     r.TrackFX_SetPinMappings(LT_Track, DragFX_ID, 1, 1, 2, 0)
 
 
-                                    if FX.Win_Name_S[payload]:find('Pro%-Q 3') and not tablefind(Trk[TrkID].PostFX, FXGUID[payload]) and not SpcInPost and not SpcIsInPre and not tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then
+                                    if FX.Win_Name_S[payload]:find('Pro%-Q 3') and not tablefind(CurTrk.PostFX, FXGUID[payload]) and not SpcInPost and not SpcIsInPre and not tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) then
                                         MoveFXwith1PreFX(DragFX_ID, FX_Idx, 'Move Pro-Q 3 and it\'s analyzer')
-                                        --[[ elseif FX.Win_Name_S[payload]:find('Pro%-C 2') and not tablefind(Trk[TrkID].PostFX, FXGUID[payload])and not SpcInPost and not SpcIsInPre then
+                                        --[[ elseif FX.Win_Name_S[payload]:find('Pro%-C 2') and not tablefind(CurTrk.PostFX, FXGUID[payload])and not SpcInPost and not SpcIsInPre then
                                         MoveFXwith1PreFXand1PosFX(DragFX_ID,FX_Idx, 'Move Pro-C 2 and it\'s analyzer') ]]
                                     else
                                         MoveFX(payload, FX_Idx, true, nil)
@@ -3302,8 +3311,8 @@ function loop()
             end
 
 
-            Trk[TrkID] = Trk[TrkID] or {}
-            Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
+            CurTrk = CurTrk or {}
+            CurTrk.PreFX = CurTrk.PreFX or {}
 
 
             r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ChildBorderSize(), 0)
@@ -3311,7 +3320,7 @@ function loop()
             MouseAtLeftEdge = r.ImGui_IsMouseHoveringRect(ctx, Cx_LeftEdge - 50, Cy_BeforeFXdevices, Cx_LeftEdge + 5,
                 Cy_BeforeFXdevices + 220)
 
-            if MouseAtLeftEdge and not Trk[TrkID].PreFX[1] and string.len(Payload_Type) > 1 then
+            if MouseAtLeftEdge and not CurTrk.PreFX[1] and string.len(Payload_Type) > 1 then
                 rv = r.ImGui_Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
                 SL(nil, 0)
                 HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
@@ -3326,12 +3335,12 @@ function loop()
             end
 
 
-            if Trk[TrkID].PreFX[1] then
-                rv = r.ImGui_Button(ctx, (#Trk[TrkID].PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20,
+            if CurTrk.PreFX[1] then
+                rv = r.ImGui_Button(ctx, (#CurTrk.PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20,
                     220)
                 r.ImGui_SameLine(ctx, nil, 0)
                 if r.ImGui_IsItemClicked(ctx, 1) then
-                    if Trk[TrkID].PreFX_Hide then Trk[TrkID].PreFX_Hide = false else Trk[TrkID].PreFX_Hide = true end
+                    if CurTrk.PreFX_Hide then CurTrk.PreFX_Hide = false else CurTrk.PreFX_Hide = true end
                 end
             end
 
@@ -3342,14 +3351,14 @@ function loop()
                         'GetItemRect', WDL)
 
                     if rv then
-                        if not tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then
-                            table.insert(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #Trk[TrkID].PreFX,
+                        if not tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]) then
+                            table.insert(CurTrk.PreFX, FXGUID[DragFX_ID])
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #CurTrk.PreFX,
                                 FXGUID[DragFX_ID], true)
                         end
 
                         -- move fx out of post chain
-                        local IDinPost = tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
+                        local IDinPost = tablefind(CurTrk.PostFX, FXGUID[DragFX_ID])
                         if IDinPost then MoveFX_Out_Of_Post(IDinPost) end
 
                         --Move FX out of layer
@@ -3365,8 +3374,8 @@ function loop()
                     if dropped then
                         r.TrackFX_AddByName(LT_Track, payload, false, -1000)
                         local FxID = r.TrackFX_GetFXGUID(LT_Track, 0)
-                        table.insert(Trk[TrkID].PreFX, FxID)
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #Trk[TrkID].PreFX, FxID, true)
+                        table.insert(CurTrk.PreFX, FxID)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #CurTrk.PreFX, FxID, true)
 
                         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
                             FXGUID[FX_Idx] = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -3381,10 +3390,10 @@ function loop()
 
 
 
-            Trk[TrkID].PostFX = Trk[TrkID].PostFX or {}
-            if ((DragDroppingFX and MouseAtRightEdge) and not Trk[TrkID].PostFX[1]) then
-                if Trk[TrkID].PreFX[1] then MakeSpaceForPostFX = 30 else MakeSpaceForPostFX = 0 end
-            elseif Trk[TrkID].PostFX_Hide and Trk[TrkID].PreFX[1] then
+            CurTrk.PostFX = CurTrk.PostFX or {}
+            if ((DragDroppingFX and MouseAtRightEdge) and not CurTrk.PostFX[1]) then
+                if CurTrk.PreFX[1] then MakeSpaceForPostFX = 30 else MakeSpaceForPostFX = 0 end
+            elseif CurTrk.PostFX_Hide and CurTrk.PreFX[1] then
                 MakeSpaceForPostFX = 20
             else
                 MakeSpaceForPostFX = 0
@@ -3406,7 +3415,7 @@ function loop()
             if MacroPos ~= -1 or ReSpectrumPos == 0 then offset = 0 else offset = 1 end -- if no Macros is found
 
 
-            for i, v in pairs(Trk[TrkID].PreFX or {}) do
+            for i, v in pairs(CurTrk.PreFX or {}) do
                 if FXGUID[i - offset] ~= v then
                     if not AddFX.Name[1] then
                         table.insert(MovFX.FromPos, tablefind(FXGUID, v))
@@ -3419,7 +3428,7 @@ function loop()
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), Window_BG or CustomColorsDefault.Window_BG)
 
             local spaceIfPreFX = 0
-            if Trk[TrkID].PreFX[1] and Trk[TrkID].PostFX[1] and not Trk[TrkID].PostFX_Hide then spaceIfPreFX = 20 end
+            if CurTrk.PreFX[1] and CurTrk.PostFX[1] and not CurTrk.PostFX_Hide then spaceIfPreFX = 20 end
             if Wheel_V ~= 0 and not DisableScroll then r.ImGui_SetNextWindowScroll(ctx, -CursorStartX + Wheel_V * 10, 0) end
 
             if r.ImGui_BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 240, nil, r.ImGui_WindowFlags_HorizontalScrollbar() + FX_DeviceWindow_NoScroll) then
@@ -3461,7 +3470,7 @@ function loop()
 
                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
-                    if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
+                    if not tablefind(CurTrk.PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
                         if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
                             and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
                             and string.find(FX_Name, 'RackMixer') == nil
@@ -3682,14 +3691,14 @@ function loop()
                                         if r.ImGui_Selectable(ctx, 'Automate', false) then
                                             r.gmem_attach('ParamValues')
 
-                                            if not Trk[TrkID].Morph_ID then
-                                                Trk[TrkID].Morph_ID = {} -- Morph_ID is the CC number jsfx sends
-                                                Trk[TrkID].Morph_ID[1] = FxGUID
+                                            if not CurTrk.Morph_ID then
+                                                CurTrk.Morph_ID = {} -- Morph_ID is the CC number jsfx sends
+                                                CurTrk.Morph_ID[1] = FxGUID
                                                 FX[FxGUID].Morph_ID = 1
                                             else
                                                 if not FX[FxGUID].Morph_ID then
-                                                    table.insert(Trk[TrkID].Morph_ID, FxGUID)
-                                                    FX[FxGUID].Morph_ID = tablefind(Trk[TrkID].Morph_ID, FxGUID)
+                                                    table.insert(CurTrk.Morph_ID, FxGUID)
+                                                    FX[FxGUID].Morph_ID = tablefind(CurTrk.Morph_ID, FxGUID)
                                                 end
                                             end
 
@@ -3892,17 +3901,17 @@ function loop()
                                 FX.Width[FxGUID] = nil
                             end
 
-                            if Trk[TrkID].PreFX_Hide then
-                                if FindStringInTable(Trk[TrkID].PreFX, FxGUID) then
+                            if CurTrk.PreFX_Hide then
+                                if FindStringInTable(CurTrk.PreFX, FxGUID) then
                                     Hide = true
                                 end
-                                if Trk[TrkID].PreFX[FX_Idx + 1] == FxGUID then
+                                if CurTrk.PreFX[FX_Idx + 1] == FxGUID then
                                     Hide = true
                                 end
                             end
                             if not Hide then
                                 local CurPosX
-                                if FxGUID == FXGUID[(tablefind(Trk[TrkID].PostFX, FxGUID) or 0) - 1] then
+                                if FxGUID == FXGUID[(tablefind(CurTrk.PostFX, FxGUID) or 0) - 1] then
                                     --[[ CurPosX = r.ImGui_GetCursorPosX(ctx)
                                     r.ImGui_SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
                                 end
@@ -5050,7 +5059,7 @@ function loop()
                                         if IsAnyMouseDown == false then DragDroppingFX = false end
                                         HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc,
                                             V_OutlineSc, 'GetItemRect', WDL)
-                                        Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
+                                        Post_DragFX_ID = tablefind(CurTrk.PostFX, FXGUID[DragFX_ID])
                                     end
 
                                     if IsAnyMouseDown == false and DragDroppingFX == true then
@@ -5771,7 +5780,7 @@ function loop()
                     if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FX.InLyr[FXGUID[FX_Idx]] == nil and FX_Idx ~= RepeatTimeForWindows and FindStringInTable(BlackListFXs, FX_Name) ~= true then
                         --FX_IdxREAL =  FX_Idx+Lyr.FX_Ins[FXGUID[FX_Idx]]
 
-                        if not tablefind(Trk[TrkID].PostFX, FxGUID) and not FX[FxGUID].InWhichBand then
+                        if not tablefind(CurTrk.PostFX, FxGUID) and not FX[FxGUID].InWhichBand then
                             createFXWindow(FX_Idx)
                             local rv, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, FX_Idx)
                         end
@@ -8858,10 +8867,10 @@ function loop()
                                         --[[ r.TrackFX_SetPinMappings(LT_Track, Pl+1, 0, 3, 2^((Band+1)*2-2)*2, 0) -- inputs 4 ]]
                                     end
 
-                                    local IDinPost = tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
+                                    local IDinPost = tablefind(CurTrk.PostFX, FXGUID[DragFX_ID])
                                     if IDinPost then MoveFX_Out_Of_Post(IDinPost) end
 
-                                    local IDinPre = tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
+                                    local IDinPre = tablefind(CurTrk.PreFX, FXGUID[DragFX_ID])
                                     if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                                 end
 
@@ -9530,18 +9539,18 @@ function loop()
                     ------- Pre FX Chain --------------
                     local FXisInPreChain, offset = nil, 0
                     if MacroPos == 0 then offset = 1 end --else offset = 0
-                    if Trk[TrkID].PreFX[1] then
-                        if Trk[TrkID].PreFX[FX_Idx + 1 - offset] == FXGUID[FX_Idx] then
+                    if CurTrk.PreFX[1] then
+                        if CurTrk.PreFX[FX_Idx + 1 - offset] == FXGUID[FX_Idx] then
                             FXisInPreChain = true
                         end
                     end
 
-                    if Trk[TrkID].PreFX[1] and not Trk[TrkID].PreFX_Hide and FX_Idx == #Trk[TrkID].PreFX - 1 + offset then
+                    if CurTrk.PreFX[1] and not CurTrk.PreFX_Hide and FX_Idx == #CurTrk.PreFX - 1 + offset then
                         AddSpaceBtwnFXs(FX_Idx, 'End of PreFX', nil)
                     end
 
                     if FXisInPreChain then
-                        if FX_Idx + 1 - offset == #Trk[TrkID].PreFX and not Trk[TrkID].PreFX_Hide then
+                        if FX_Idx + 1 - offset == #CurTrk.PreFX and not CurTrk.PreFX_Hide then
                             local R, B = r.ImGui_GetItemRectMax(ctx)
                             r.ImGui_DrawList_AddRect(FX_Dvs_BgDL, Cx_LeftEdge, Cy_BeforeFXdevices, R, B,
                                 r.ImGui_GetColor(ctx, r.ImGui_Col_Button()))
@@ -9549,10 +9558,10 @@ function loop()
                         end
                     end
                     ------------------------------------------
-                    if FX_Idx + 1 == RepeatTimeForWindows and not Trk[TrkID].PostFX[1] then -- add last space
+                    if FX_Idx + 1 == RepeatTimeForWindows and not CurTrk.PostFX[1] then -- add last space
                         AddSpaceBtwnFXs(FX_Idx + 1, nil, 'LastSpc')
-                    elseif FX_Idx + 1 == RepeatTimeForWindows and Trk[TrkID].PostFX[1] then
-                        AddSpaceBtwnFXs(Sel_Track_FX_Count - #Trk[TrkID].PostFX, nil, 'LastSpc', nil, nil, nil, 20)
+                    elseif FX_Idx + 1 == RepeatTimeForWindows and CurTrk.PostFX[1] then
+                        AddSpaceBtwnFXs(Sel_Track_FX_Count - #CurTrk.PostFX, nil, 'LastSpc', nil, nil, nil, 20)
                     end
                 end --for repeat as many times as FX instances
 
@@ -9595,8 +9604,8 @@ function loop()
                         for P = 1, 100, 1 do
                             r.gmem_write(1000 + P, 0)
                         end
-                        --[[ if Trk[TrkID].ModPrmInst then
-                            for P=1, Trk[TrkID].ModPrmInst , 1 do
+                        --[[ if CurTrk.ModPrmInst then
+                            for P=1, CurTrk.ModPrmInst , 1 do
                                 for m =1 , 8, 1 do
 
                                     local ParamMacroMod_Label= 'Param:'..P..'Macro:'..m
@@ -9647,17 +9656,17 @@ function loop()
             Pos_Devices_R, Pos_Devices_B = r.ImGui_GetItemRectMax(ctx)
 
             function MoveFX_Out_Of_Post(IDinPost)
-                table.remove(Trk[TrkID].PostFX, IDinPost or tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]))
-                for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
+                table.remove(CurTrk.PostFX, IDinPost or tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]))
+                for i = 1, #CurTrk.PostFX + 1, 1 do
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, CurTrk.PostFX[i] or '',
                         true)
                 end
             end
 
             function MoveFX_Out_Of_Pre(IDinPre)
-                table.remove(Trk[TrkID].PreFX, IDinPre or tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]))
-                for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '', true)
+                table.remove(CurTrk.PreFX, IDinPre or tablefind(CurTrk.PreFX, FXGUID[DragFX_ID]))
+                for i = 1, #CurTrk.PreFX + 1, 1 do
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, CurTrk.PreFX[i] or '', true)
                 end
             end
 
@@ -9684,7 +9693,7 @@ function loop()
             MouseAtRightEdge = r.ImGui_IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.y,
                 VP.X + VP.w, VP.y + VP.h)
 
-            if (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
+            if (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan' and MouseAtRightEdge) and not CurTrk.PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, -5)
                 dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
@@ -9695,13 +9704,13 @@ function loop()
                     HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
-                    if Drop and not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
-                        table.insert(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXGUID
+                    if Drop and not tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) then
+                        table.insert(CurTrk.PostFX, FXGUID[DragFX_ID])
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #CurTrk.PostFX, FXGUID
                             [DragFX_ID], true)
                         r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, 999, true)
 
-                        local IDinPre = tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
+                        local IDinPre = tablefind(CurTrk.PreFX, FXGUID[DragFX_ID])
                         if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                     end
 
@@ -9725,28 +9734,28 @@ function loop()
 
             if Payload_Type == 'AddFX_Sexan' then
                 local SpcIDinPost
-                if SpcInPost then SpcIDinPost = math.max(#Trk[TrkID].PostFX, 1) end
+                if SpcInPost then SpcIDinPost = math.max(#CurTrk.PostFX, 1) end
                 AddFX_Sexan(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
             end
 
             PostFX_Width = math.min(
-                (MakeSpaceForPostFX or 0) + ((Trk[TrkID].MakeSpcForPostFXchain or 0) + (PostFX_LastSpc or 0)) + 30,
+                (MakeSpaceForPostFX or 0) + ((CurTrk.MakeSpcForPostFXchain or 0) + (PostFX_LastSpc or 0)) + 30,
                 VP.w / 2)
 
-            --ttp('PostFX_Width = '..PostFX_Width..'\n MakeSpaceForPostFX = '.. (MakeSpaceForPostFX or 0 )..'\n   MakeSpcForPostFXchain = '.. (Trk[TrkID].MakeSpcForPostFXchain or  0 ).. '\n  PostFX_LastSpc = '.. (PostFX_LastSpc or 0))
+            --ttp('PostFX_Width = '..PostFX_Width..'\n MakeSpaceForPostFX = '.. (MakeSpaceForPostFX or 0 )..'\n   MakeSpcForPostFXchain = '.. (CurTrk.MakeSpcForPostFXchain or  0 ).. '\n  PostFX_LastSpc = '.. (PostFX_LastSpc or 0))
 
 
-            if not Trk[TrkID].PostFX[1] then
-                Trk[TrkID].MakeSpcForPostFXchain = 0
+            if not CurTrk.PostFX[1] then
+                CurTrk.MakeSpcForPostFXchain = 0
             end
 
-            if Trk[TrkID].PostFX[1] then
+            if CurTrk.PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, 0)
                 Line_L, Line_T = r.ImGui_GetCursorScreenPos(ctx)
                 rv             = r.ImGui_Button(ctx,
-                    (#Trk[TrkID].PostFX or '') .. '\n\n' .. 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
+                    (#CurTrk.PostFX or '') .. '\n\n' .. 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
                 if r.ImGui_IsItemClicked(ctx, 1) then
-                    if Trk[TrkID].PostFX_Hide then Trk[TrkID].PostFX_Hide = false else Trk[TrkID].PostFX_Hide = true end
+                    if CurTrk.PostFX_Hide then CurTrk.PostFX_Hide = false else CurTrk.PostFX_Hide = true end
                 end
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
                     if Payload_Type == 'FX_Drag' then
@@ -9754,14 +9763,14 @@ function loop()
                         HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
 
-                        if Drop and not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
+                        if Drop and not tablefind(CurTrk.PostFX, FXGUID[DragFX_ID]) then
                             --r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, 999, true)
-                            table.insert(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX,
+                            table.insert(CurTrk.PostFX, FXGUID[DragFX_ID])
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #CurTrk.PostFX,
                                 FXGUID[DragFX_ID], true)
 
 
-                            local IDinPre = tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
+                            local IDinPre = tablefind(CurTrk.PreFX, FXGUID[DragFX_ID])
                             if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                         end
                     elseif Payload_Type == 'AddFX_Sexan' then
@@ -9772,8 +9781,8 @@ function loop()
                             r.TrackFX_AddByName(LT_Track, payload, false, -1000 - Sel_Track_FX_Count)
                             local FXid = r.TrackFX_GetFXGUID(LT_Track, Sel_Track_FX_Count)
                             local _, Name = r.TrackFX_GetFXName(LT_Track, Sel_Track_FX_Count)
-                            table.insert(Trk[TrkID].PostFX, FXid)
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXid,
+                            table.insert(CurTrk.PostFX, FXid)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #CurTrk.PostFX, FXid,
                                 true)
                         end
                     end
@@ -9785,7 +9794,7 @@ function loop()
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), 0xffffff11)
                 local PostFX_Extend_W = 0
                 if PostFX_Width == VP.w / 2 then PostFX_Extend_W = 20 end
-                if not Trk[TrkID].PostFX_Hide then
+                if not CurTrk.PostFX_Hide then
                     if r.ImGui_BeginChild(ctx, 'Post FX chain', PostFX_Width - PostFX_Extend_W, 220) then
                         local clr = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
                         r.ImGui_DrawList_AddLine(Glob.FDL, Line_L, Line_T - 1, Line_L + VP.w, Line_T - 1, clr)
@@ -9793,12 +9802,12 @@ function loop()
 
 
 
-                        Trk[TrkID].MakeSpcForPostFXchain = 0
+                        CurTrk.MakeSpcForPostFXchain = 0
 
                         if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = 0 else offset = 1 end
 
-                        for FX_Idx, V in pairs(Trk[TrkID].PostFX) do
-                            local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
+                        for FX_Idx, V in pairs(CurTrk.PostFX) do
+                            local I = --[[ tablefind(FXGUID, CurTrk.PostFX[#CurTrk.PostFX+1-FX_Idx])  ]]
                                 tablefind(FXGUID, V)
 
                             local Spc
@@ -9808,16 +9817,16 @@ function loop()
                                 r.ImGui_SameLine(ctx, nil, 0)
 
                                 FX[FXGUID[I]].PostWin_SzX, _ = r.ImGui_GetItemRectSize(ctx)
-                                Trk[TrkID].MakeSpcForPostFXchain = (Trk[TrkID].MakeSpcForPostFXchain or 0) +
+                                CurTrk.MakeSpcForPostFXchain = (CurTrk.MakeSpcForPostFXchain or 0) +
                                     (FX.WidthCollapse[FXGUID[I]] or FX.Width[FXGUID[I]] or (DefaultWidth)) +
                                     10 -- 10 is space btwn fxs
 
-                                if FX_Idx == #Trk[TrkID].PostFX then
-                                    AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, #Trk[TrkID].PostFX + 1)
+                                if FX_Idx == #CurTrk.PostFX then
+                                    AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, #CurTrk.PostFX + 1)
                                 else
                                     AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, FX_Idx + 1)
                                 end
-                                if FX_Idx == #Trk[TrkID].PostFX and r.ImGui_IsItemHovered(ctx, r.ImGui_HoveredFlags_RectOnly()) then
+                                if FX_Idx == #CurTrk.PostFX and r.ImGui_IsItemHovered(ctx, r.ImGui_HoveredFlags_RectOnly()) then
                                     MouseAtRightEdge = true --[[ else MouseAtRightEdge = nil ]]
                                 end
                             end
@@ -9830,10 +9839,10 @@ function loop()
 
 
                         if InsertToPost_Src then
-                            table.insert(Trk[TrkID].PostFX, InsertToPost_Dest, FXGUID[InsertToPost_Src])
-                            for i = 1, #Trk[TrkID].PostFX + 1, 1 do
+                            table.insert(CurTrk.PostFX, InsertToPost_Dest, FXGUID[InsertToPost_Src])
+                            for i = 1, #CurTrk.PostFX + 1, 1 do
                                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i,
-                                    Trk[TrkID].PostFX[i] or '',
+                                    CurTrk.PostFX[i] or '',
                                     true)
                             end
                             InsertToPost_Src = nil
@@ -9842,13 +9851,13 @@ function loop()
                         r.ImGui_EndChild(ctx)
                     end
                 else
-                    Trk[TrkID].MakeSpcForPostFXchain = 0
+                    CurTrk.MakeSpcForPostFXchain = 0
                 end
 
 
-                for FX_Idx, V in pairs(Trk[TrkID].PostFX) do
+                for FX_Idx, V in pairs(CurTrk.PostFX) do
                     local I = tablefind(FXGUID, V)
-                    local P = Sel_Track_FX_Count - #Trk[TrkID].PostFX + (FX_Idx - 1)
+                    local P = Sel_Track_FX_Count - #CurTrk.PostFX + (FX_Idx - 1)
 
 
                     if I ~= P then
