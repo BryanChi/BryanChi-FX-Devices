@@ -1,18 +1,41 @@
--- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+-- @description FX Devices
+-- @author Bryan Chi
+-- @version 1.0beta9.6.6-3
+-- @changelog
+--   - Fix Theme editor saving empty entry crashes
+--   - Fix Pro-C 2 crash
+-- @provides
+--   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/Images/Analog Knob 1.png
+--   src/Functions/EQ functions.lua
+--   src/Functions/General Functions.lua
+--   src/Functions/FX Layering.lua
+--   src/Functions/Layout Editor functions.lua
+--   src/Functions/Modulation.lua
+--   src/Functions/Theme Editor Functions.lua
+--   src/Helpers/Sexan_FX_Browser.lua
+-- @about
+--   Please check the forum post for info:
+--   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 
 r = reaper
-require("BryanChi_FX Devices.Helpers.Sexan_FX_Browser")
-require("BryanChi_FX Devices.Functions.General Functions")
-require("BryanChi_FX Devices.Functions.EQ functions")
-require("BryanChi_FX Devices.Functions.Layout Editor functions")
-require("BryanChi_FX Devices.Functions.FX Layering")
-require("BryanChi_FX Devices.Functions.Modulation")
-require("BryanChi_FX Devices.Functions.Theme Editor Functions")
-require("BryanChi_FX Devices.Functions.Filesystem_utils")
-require("BryanChi_FX Devices.Constants")
+require("src.Helpers.Sexan_FX_Browser")
+require("src.Functions.General Functions")
+require("src.Functions.EQ functions")
+require("src.Functions.Layout Editor functions")
+require("src.Functions.FX Layering")
+require("src.Functions.Modulation")
+require("src.Functions.Theme Editor Functions")
+require("src.Functions.Filesystem_utils")
+require("src.Constants")
 PluginScript = {} ---@class PluginScript
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
@@ -660,7 +683,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 ----- Get plugin scripts path -------
-local pluginScriptPath = CurrentDirectory .. 'BryanChi_FX Devices/FX Layout Plugin Scripts'
+local pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
 ---List of Plugin Scripts for FXD
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
@@ -674,7 +697,7 @@ end
 
 
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-script_folder       = script_folder .. '/BryanChi_FX Devices'
+script_folder       = script_folder .. '/src'
 FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
 
 
@@ -728,7 +751,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     function attachImagesAndFonts()
         Img = { -- TODO move to constants
             Trash = r.ImGui_CreateImage(CurrentDirectory ..
-                '/BryanChi_FX Devices/Images/trash.png')
+                '/src/Images/trash.png')
         }
 
 
@@ -4583,8 +4606,7 @@ function loop()
 
 
                                         if r.ImGui_Button(ctx, 'Save all values as default', -FLT_MIN) then
-                                            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts',
-                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                            local dir_path = CurrentDirectory .. 'src'
                                             local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
                                             local file = io.open(file_path, 'a+')
 
@@ -5332,8 +5354,7 @@ function loop()
 
                                                     if r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                                         if Mods == 0 then
-                                                            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts',
-                                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                                            local dir_path = CurrentDirectory .. 'src'
                                                             local file_path = ConcatPath(dir_path,
                                                                 'FX Default Values.ini')
                                                             local file = io.open(file_path, 'r')
@@ -5730,8 +5751,8 @@ function loop()
                                     end
                                     --PluginScript.FX_Idx = FX_Idx
                                     -- PluginScript.Guid = FXGUID[FX_Idx]
-                                    --require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro C 2")
-                                    -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
+                                    --require("src.FX Layout Plugin Scripts.Pro C 2")
+                                    -- require("src.FX Layout Plugin Scripts.Pro Q 3")
 
 
 
@@ -6601,7 +6622,7 @@ function loop()
                                                         SubFolder = 'Knobs'
                                                     end
 
-                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' ..  SubFolder .. filename:sub(index)
+                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/src/Images/' ..  SubFolder .. filename:sub(index)
                                                     CopyFile(filename, NewFileName) ]]
 
                                                     AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
@@ -6695,7 +6716,7 @@ function loop()
                                             SetStyle('Minimalistic', 'Pro C')
                                             SetStyle('Invisible', 'Invisible')
                                             local Dir = r.GetResourcePath() ..
-                                                '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/Knobs'
+                                                CurrentDirectory .. '/src/Images/Knobs' 
 
                                             if r.ImGui_IsWindowAppearing(ctx) then
                                                 StyleWindowImgFiles = scandir(Dir)
