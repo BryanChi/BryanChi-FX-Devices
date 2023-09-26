@@ -5,55 +5,55 @@
 --   - Fix Theme editor saving empty entry crashes
 --   - Fix Pro-C 2 crash
 -- @provides
---   [effect] BryanChi_FX Devices/FXD Macros.jsfx
---   [effect] BryanChi_FX Devices/FXD ReSpectrum.jsfx
---   [effect] BryanChi_FX Devices/FXD Gain Reduction Scope.jsfx
---   [effect] BryanChi_FX Devices/FXD Split to 32 Channels.jsfx
---   [effect] BryanChi_FX Devices/FXD Split To 4 Channels.jsfx
---   [effect] BryanChi_FX Devices/cookdsp.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/analysis.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/buffer.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/delay.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/dynamics.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/effects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/fft-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/fft-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/fftobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/filters.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/granulator.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/list.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/memalloc.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/midi.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/mmath.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/oscil.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pv-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/pv-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/pvocobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pvtrans-example
---   [effect] BryanChi_FX Devices/cookdsp/random.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/scaling.jsfx-inc
---   [effect] BryanChi_FX Devices/firhalfband.jsfx-inc
---   [effect] BryanChi_FX Devices/spectrum.jsfx-inc
---   [effect] BryanChi_FX Devices/svf_filter.jsfx-inc
---   BryanChi_FX Devices/IconFont1.ttf
---   [effect] BryanChi_FX Devices/FXD (Mix)RackMixer.jsfx
---   BryanChi_FX Devices/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
---   [effect] BryanChi_FX Devices/FXD Saike BandSplitter.jsfx
---   [effect] BryanChi_FX Devices/FXD Band Joiner.jsfx
---   BryanChi_FX Devices/Images/Analog Knob 1.png
---   BryanChi_FX Devices/Functions/EQ functions.lua
---   BryanChi_FX Devices/Functions/General Functions.lua
---   BryanChi_FX Devices/Functions/FX Layering.lua
---   BryanChi_FX Devices/Functions/FX Adder.lua
---   BryanChi_FX Devices/Functions/Layout Editor functions.lua
---   BryanChi_FX Devices/Functions/Modulation.lua
---   BryanChi_FX Devices/Functions/Theme Editor Functions.lua
---   BryanChi_FX Devices/Helpers/Sexan_FX_Browser.lua
+--   [effect] src/FXD Macros.jsfx
+--   [effect] src/FXD ReSpectrum.jsfx
+--   [effect] src/FXD Gain Reduction Scope.jsfx
+--   [effect] src/FXD Split to 32 Channels.jsfx
+--   [effect] src/FXD Split To 4 Channels.jsfx
+--   [effect] src/cookdsp.jsfx-inc
+--   [effect] src/cookdsp/analysis.jsfx-inc
+--   [effect] src/cookdsp/buffer.jsfx-inc
+--   [effect] src/cookdsp/delay.jsfx-inc
+--   [effect] src/cookdsp/dynamics.jsfx-inc
+--   [effect] src/cookdsp/effects.jsfx-inc
+--   [effect] src/cookdsp/fft-mono-template
+--   [effect] src/cookdsp/fft-stereo-template
+--   [effect] src/cookdsp/fftobjects.jsfx-inc
+--   [effect] src/cookdsp/filters.jsfx-inc
+--   [effect] src/cookdsp/granulator.jsfx-inc
+--   [effect] src/cookdsp/list.jsfx-inc
+--   [effect] src/cookdsp/memalloc.jsfx-inc
+--   [effect] src/cookdsp/midi.jsfx-inc
+--   [effect] src/cookdsp/mmath.jsfx-inc
+--   [effect] src/cookdsp/oscil.jsfx-inc
+--   [effect] src/cookdsp/pobjects.jsfx-inc
+--   [effect] src/cookdsp/pv-mono-template
+--   [effect] src/cookdsp/pv-stereo-template
+--   [effect] src/cookdsp/pvocobjects.jsfx-inc
+--   [effect] src/cookdsp/pvtrans-example
+--   [effect] src/cookdsp/random.jsfx-inc
+--   [effect] src/cookdsp/scaling.jsfx-inc
+--   [effect] src/firhalfband.jsfx-inc
+--   [effect] src/spectrum.jsfx-inc
+--   [effect] src/svf_filter.jsfx-inc
+--   src/IconFont1.ttf
+--   [effect] src/FXD (Mix)RackMixer.jsfx
+--   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   [effect] src/FXD Saike BandSplitter.jsfx
+--   [effect] src/FXD Band Joiner.jsfx
+--   src/Images/Analog Knob 1.png
+--   src/Functions/EQ functions.lua
+--   src/Functions/General Functions.lua
+--   src/Functions/FX Layering.lua
+--   src/Functions/FX Adder.lua
+--   src/Functions/Layout Editor functions.lua
+--   src/Functions/Modulation.lua
+--   src/Functions/Theme Editor Functions.lua
+--   src/Helpers/Sexan_FX_Browser.lua
 -- @about
 --   Please check the forum post for info:
 --   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")

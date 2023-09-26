@@ -1,4 +1,3 @@
--- @noindex
 
 r = reaper
 ---@class VSTINFO
