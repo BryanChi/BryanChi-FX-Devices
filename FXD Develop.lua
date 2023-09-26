@@ -53,6 +53,7 @@
 --   BryanChi_FX Devices/Functions/Layout Editor functions.lua
 --   BryanChi_FX Devices/Functions/Modulation.lua
 --   BryanChi_FX Devices/Functions/Theme Editor Functions.lua
+--   BryanChi_FX Devices/Helpers/Sexan_FX_Browser.lua
 -- @about
 --   Please check the forum post for info:
 --   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")

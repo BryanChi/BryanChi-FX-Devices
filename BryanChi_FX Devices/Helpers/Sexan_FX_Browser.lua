@@ -1,3 +1,5 @@
+-- @noindex
+
 r = reaper
 ---@class VSTINFO
 ---@field id string
