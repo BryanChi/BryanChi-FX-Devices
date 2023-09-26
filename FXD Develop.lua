@@ -1,4 +1,62 @@
--- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+-- @description FX Devices
+-- @author Bryan Chi
+-- @version 1.0beta9.6.6-3
+-- @changelog
+--   - Fix Theme editor saving empty entry crashes
+--   - Fix Pro-C 2 crash
+-- @provides
+--   [effect] BryanChi_FX Devices/FXD Macros.jsfx
+--   [effect] BryanChi_FX Devices/FXD ReSpectrum.jsfx
+--   [effect] BryanChi_FX Devices/FXD Gain Reduction Scope.jsfx
+--   [effect] BryanChi_FX Devices/FXD Split to 32 Channels.jsfx
+--   [effect] BryanChi_FX Devices/FXD Split To 4 Channels.jsfx
+--   [effect] BryanChi_FX Devices/cookdsp.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/analysis.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/buffer.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/delay.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/dynamics.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/effects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/fft-mono-template
+--   [effect] BryanChi_FX Devices/cookdsp/fft-stereo-template
+--   [effect] BryanChi_FX Devices/cookdsp/fftobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/filters.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/granulator.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/list.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/memalloc.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/midi.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/mmath.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/oscil.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pv-mono-template
+--   [effect] BryanChi_FX Devices/cookdsp/pv-stereo-template
+--   [effect] BryanChi_FX Devices/cookdsp/pvocobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pvtrans-example
+--   [effect] BryanChi_FX Devices/cookdsp/random.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/scaling.jsfx-inc
+--   [effect] BryanChi_FX Devices/firhalfband.jsfx-inc
+--   [effect] BryanChi_FX Devices/spectrum.jsfx-inc
+--   [effect] BryanChi_FX Devices/svf_filter.jsfx-inc
+--   BryanChi_FX Devices/IconFont1.ttf
+--   [effect] BryanChi_FX Devices/FXD (Mix)RackMixer.jsfx
+--   BryanChi_FX Devices/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+--   BryanChi_FX Devices/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+--   BryanChi_FX Devices/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   BryanChi_FX Devices/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+--   BryanChi_FX Devices/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   [effect] BryanChi_FX Devices/FXD Saike BandSplitter.jsfx
+--   [effect] BryanChi_FX Devices/FXD Band Joiner.jsfx
+--   BryanChi_FX Devices/Images/Analog Knob 1.png
+--   BryanChi_FX Devices/Functions/EQ functions.lua
+--   BryanChi_FX Devices/Functions/General Functions.lua
+--   BryanChi_FX Devices/Functions/FX Layering.lua
+--   BryanChi_FX Devices/Functions/FX Adder.lua
+--   BryanChi_FX Devices/Functions/Layout Editor functions.lua
+--   BryanChi_FX Devices/Functions/Modulation.lua
+--   BryanChi_FX Devices/Functions/Theme Editor Functions.lua
+-- @about
+--   Please check the forum post for info:
+--   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
