@@ -1,3 +1,4 @@
+-- @noindex
 r = reaper
 
 ---@param old_path string
