@@ -1,10 +1,38 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta9.7.2
+-- @version 1.0beta10.4.1.2
 -- @changelog
---   - Fix Theme editor saving empty entry crashes
---   - Fix Pro-C 2 crash
+--   - less nested menus for FX adder
+--   - Fix Adding fx chain crash
 -- @provides
+--   [effect] FXD JSFXs/FXD Macros.jsfx
+--   [effect] FXD JSFXs/FXD ReSpectrum.jsfx
+--   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
+--   [effect] FXD JSFXs/FXD Split to 32 Channels.jsfx
+--   [effect] FXD JSFXs/FXD Split To 4 Channels.jsfx
+--   [effect] FXD JSFXs/cookdsp.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/analysis.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/buffer.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/delay.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/dynamics.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/effects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/fftobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/filters.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/granulator.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/list.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/memalloc.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/midi.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/mmath.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/oscil.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/pobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/pvocobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/random.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/scaling.jsfx-inc
+--   [effect] FXD JSFXs/firhalfband.jsfx-inc
+--   [effect] FXD JSFXs/spectrum.jsfx-inc
+--   [effect] FXD JSFXs/svf_filter.jsfx-inc
+--   [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
+--   [effect] FXD JSFXs/FXD Band Joiner.jsfx
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
@@ -18,7 +46,7 @@
 --   src/IconFont1.ttf
 --   src/Keyboard Shortcuts.ini
 --   src/FX Default Values.ini
---   src/FXD - Record Last Touch.lua
+--   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
 --   src/Functions/General Functions.lua
 --   src/Functions/FX Layering.lua
@@ -53,7 +81,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta10.3.2 '
+VersionNumber = 'V1.0beta1.0beta10.4 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -3215,53 +3243,51 @@ function loop()
                                     SpcIDinPost) then
                                 r.ImGui_CloseCurrentPopup(ctx)
                             end -- Add FX Window
-                            if r.ImGui_BeginMenu(ctx, 'FX Browser') then
-                                for i = 1, #CAT do
-                                    if r.ImGui_BeginMenu(ctx, CAT[i].name) then
-                                        if CAT[i].name == "FX CHAINS" then
-                                            DrawChildMenu(CAT[i].list, nil, FX_Idx)
-                                        end
+                            r.ImGui_SeparatorText(ctx, "PLUGINS")
+                            for i = 1, #CAT do
+                                if r.ImGui_BeginMenu(ctx, CAT[i].name) then
+                                    if CAT[i].name == "FX CHAINS" then
+                                        DrawChildMenu(CAT[i].list, nil, FX_Idx)
+                                    else
                                         for j = 1, #CAT[i].list do
-                                            if CAT[i].name ~= "FX CHAINS" then
-                                                if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
-                                                    for p = 1, #CAT[i].list[j].fx do
-                                                        if CAT[i].list[j].fx[p] then
-                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p], false) then
-                                                                if TRACK then
-                                                                    r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
-                                                                        false,
-                                                                        -1000 - FX_Idx)
-                                                                    LAST_USED_FX = CAT[i].list[j].fx[p]
-                                                                end
+                                            if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
+                                                for p = 1, #CAT[i].list[j].fx do
+                                                    if CAT[i].list[j].fx[p] then
+                                                        if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p]) then
+                                                            if TRACK then
+                                                                r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
+                                                                    false,
+                                                                    -1000 - FX_Idx)
+                                                                LAST_USED_FX = CAT[i].list[j].fx[p]
                                                             end
                                                         end
                                                     end
-                                                    r.ImGui_EndMenu(ctx)
                                                 end
+                                                r.ImGui_EndMenu(ctx)
                                             end
                                         end
-                                        r.ImGui_EndMenu(ctx)
                                     end
+                                    r.ImGui_EndMenu(ctx)
                                 end
-                                TRACK = r.GetSelectedTrack(0, 0)
-                                if r.ImGui_Selectable(ctx, "CONTAINER", false) then
-                                    r.TrackFX_AddByName(TRACK, "Container", false,
-                                        -1000 - r.TrackFX_GetCount(TRACK))
-                                    LAST_USED_FX = "Container"
-                                end
-                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR", false) then
-                                    r.TrackFX_AddByName(TRACK, "Video processor", false,
-                                        -1000 - r.TrackFX_GetCount(TRACK))
-                                    LAST_USED_FX = "Video processor"
-                                end
-                                if LAST_USED_FX then
-                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX, false) then
-                                        r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
-                                            -1000 - r.TrackFX_GetCount(TRACK))
-                                    end
-                                end
-                                r.ImGui_EndMenu(ctx)
                             end
+                            TRACK = r.GetSelectedTrack(0, 0)
+                            if r.ImGui_Selectable(ctx, "CONTAINER") then
+                                r.TrackFX_AddByName(TRACK, "Container", false,
+                                    -1000 - r.TrackFX_GetCount(TRACK))
+                                LAST_USED_FX = "Container"
+                            end
+                            if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+                                r.TrackFX_AddByName(TRACK, "Video processor", false,
+                                    -1000 - r.TrackFX_GetCount(TRACK))
+                                LAST_USED_FX = "Video processor"
+                            end
+                            if LAST_USED_FX then
+                                if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+                                    r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
+                                        -1000 - r.TrackFX_GetCount(TRACK))
+                                end
+                            end
+                            r.ImGui_SeparatorText(ctx, "UTILS")
                             if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
                                 local FX_Idx = FX_Idx
                                 --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
