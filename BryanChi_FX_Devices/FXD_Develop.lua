@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta9.7.1
+-- @version 1.0beta9.7.2
 -- @changelog
 --   - Fix Theme editor saving empty entry crashes
 --   - Fix Pro-C 2 crash
