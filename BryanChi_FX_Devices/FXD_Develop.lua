@@ -1,10 +1,43 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4.1
+-- @version 1.0beta10.4.1 Release V1.0
 -- @changelog
 --   - less nested menus for FX adder
 --   - Fix Adding fx chain crash
 -- @provides
+--   [effect] FXD/FXD Macros.jsfx
+--   [effect] FXD/FXD ReSpectrum.jsfx
+--   [effect] FXD/FXD Gain Reduction Scope.jsfx
+--   [effect] FXD/FXD Split to 32 Channels.jsfx
+--   [effect] FXD/FXD Split To 4 Channels.jsfx
+--   [effect] FXD/cookdsp.jsfx-inc
+--   [effect] FXD/cookdsp/analysis.jsfx-inc
+--   [effect] FXD/cookdsp/buffer.jsfx-inc
+--   [effect] FXD/cookdsp/delay.jsfx-inc
+--   [effect] FXD/cookdsp/dynamics.jsfx-inc
+--   [effect] FXD/cookdsp/effects.jsfx-inc
+--   [effect] FXD/cookdsp/fft-mono-template
+--   [effect] FXD/cookdsp/fft-stereo-template
+--   [effect] FXD/cookdsp/fftobjects.jsfx-inc
+--   [effect] FXD/cookdsp/filters.jsfx-inc
+--   [effect] FXD/cookdsp/granulator.jsfx-inc
+--   [effect] FXD/cookdsp/list.jsfx-inc
+--   [effect] FXD/cookdsp/memalloc.jsfx-inc
+--   [effect] FXD/cookdsp/midi.jsfx-inc
+--   [effect] FXD/cookdsp/mmath.jsfx-inc
+--   [effect] FXD/cookdsp/oscil.jsfx-inc
+--   [effect] FXD/cookdsp/pobjects.jsfx-inc
+--   [effect] FXD/cookdsp/pv-mono-template
+--   [effect] FXD/cookdsp/pv-stereo-template
+--   [effect] FXD/cookdsp/pvocobjects.jsfx-inc
+--   [effect] FXD/cookdsp/pvtrans-example
+--   [effect] FXD/cookdsp/random.jsfx-inc
+--   [effect] FXD/cookdsp/scaling.jsfx-inc
+--   [effect] FXD/firhalfband.jsfx-inc
+--   [effect] FXD/spectrum.jsfx-inc
+--   [effect] FXD/svf_filter.jsfx-inc
+--   [effect] FXD/FXD Saike BandSplitter.jsfx
+--   [effect] FXD/FXD Band Joiner.jsfx
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
