@@ -1,43 +1,43 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4.1 Release V1.0
+-- @version 1.0beta10.4.1 Release v1.0
 -- @changelog
 --   - less nested menus for FX adder
 --   - Fix Adding fx chain crash
 -- @provides
---   [effect] FXD/FXD Macros.jsfx
---   [effect] FXD/FXD ReSpectrum.jsfx
---   [effect] FXD/FXD Gain Reduction Scope.jsfx
---   [effect] FXD/FXD Split to 32 Channels.jsfx
---   [effect] FXD/FXD Split To 4 Channels.jsfx
---   [effect] FXD/cookdsp.jsfx-inc
---   [effect] FXD/cookdsp/analysis.jsfx-inc
---   [effect] FXD/cookdsp/buffer.jsfx-inc
---   [effect] FXD/cookdsp/delay.jsfx-inc
---   [effect] FXD/cookdsp/dynamics.jsfx-inc
---   [effect] FXD/cookdsp/effects.jsfx-inc
---   [effect] FXD/cookdsp/fft-mono-template
---   [effect] FXD/cookdsp/fft-stereo-template
---   [effect] FXD/cookdsp/fftobjects.jsfx-inc
---   [effect] FXD/cookdsp/filters.jsfx-inc
---   [effect] FXD/cookdsp/granulator.jsfx-inc
---   [effect] FXD/cookdsp/list.jsfx-inc
---   [effect] FXD/cookdsp/memalloc.jsfx-inc
---   [effect] FXD/cookdsp/midi.jsfx-inc
---   [effect] FXD/cookdsp/mmath.jsfx-inc
---   [effect] FXD/cookdsp/oscil.jsfx-inc
---   [effect] FXD/cookdsp/pobjects.jsfx-inc
---   [effect] FXD/cookdsp/pv-mono-template
---   [effect] FXD/cookdsp/pv-stereo-template
---   [effect] FXD/cookdsp/pvocobjects.jsfx-inc
---   [effect] FXD/cookdsp/pvtrans-example
---   [effect] FXD/cookdsp/random.jsfx-inc
---   [effect] FXD/cookdsp/scaling.jsfx-inc
---   [effect] FXD/firhalfband.jsfx-inc
---   [effect] FXD/spectrum.jsfx-inc
---   [effect] FXD/svf_filter.jsfx-inc
---   [effect] FXD/FXD Saike BandSplitter.jsfx
---   [effect] FXD/FXD Band Joiner.jsfx
+--   [effect] BryanChi_FX Devices/FXD Macros.jsfx
+--   [effect] BryanChi_FX Devices/FXD ReSpectrum.jsfx
+--   [effect] BryanChi_FX Devices/FXD Gain Reduction Scope.jsfx
+--   [effect] BryanChi_FX Devices/FXD Split to 32 Channels.jsfx
+--   [effect] BryanChi_FX Devices/FXD Split To 4 Channels.jsfx
+--   [effect] BryanChi_FX Devices/cookdsp.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/analysis.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/buffer.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/delay.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/dynamics.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/effects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/fft-mono-template
+--   [effect] BryanChi_FX Devices/cookdsp/fft-stereo-template
+--   [effect] BryanChi_FX Devices/cookdsp/fftobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/filters.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/granulator.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/list.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/memalloc.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/midi.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/mmath.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/oscil.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pv-mono-template
+--   [effect] BryanChi_FX Devices/cookdsp/pv-stereo-template
+--   [effect] BryanChi_FX Devices/cookdsp/pvocobjects.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/pvtrans-example
+--   [effect] BryanChi_FX Devices/cookdsp/random.jsfx-inc
+--   [effect] BryanChi_FX Devices/cookdsp/scaling.jsfx-inc
+--   [effect] BryanChi_FX Devices/firhalfband.jsfx-inc
+--   [effect] BryanChi_FX Devices/spectrum.jsfx-inc
+--   [effect] BryanChi_FX Devices/svf_filter.jsfx-inc
+--   [effect] BryanChi_FX Devices/FXD Saike BandSplitter.jsfx
+--   [effect] BryanChi_FX Devices/FXD Band Joiner.jsfx
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
