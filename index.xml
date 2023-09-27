@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="e1f872ad11f8f89312bb3df32ab86e424e2cfb17" name="FX Devices">
+<index version="1" commit="e1c5fa60b895439604be18cce91aa352cfc43c23" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="FXD_Develop.lua" type="script" desc="FX Devices">
       <metadata>
@@ -94,6 +94,33 @@
         <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1f872ad11f8f89312bb3df32ab86e424e2cfb17/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
         <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1f872ad11f8f89312bb3df32ab86e424e2cfb17/BryanChi_FX_Devices/src/Constants.lua</source>
         <source file="src/Helpers/Sexan_FX_Browser.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1f872ad11f8f89312bb3df32ab86e424e2cfb17/BryanChi_FX_Devices/src/Helpers/Sexan_FX_Browser.lua</source>
+      </version>
+      <version name="1.0beta10.4" author="Bryan Chi" time="2023-09-27T05:28:53Z">
+        <changelog><![CDATA[- less nested menus for FX adder]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/FXD_Develop.lua</source>
+        <source file="src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaFreqEcho%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaShimmer%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaVintageVerb%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaSupermassive%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaDelay%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/Images/Analog Knob 1.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Images/Analog%20Knob%201.png</source>
+        <source file="src/Images/trash.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Images/trash.png</source>
+        <source file="src/FX Layout Plugin Scripts/Pro Q 3.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Pro%20Q%203.lua</source>
+        <source file="src/FX Layout Plugin Scripts/Pro C 2.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Pro%20C%202.lua</source>
+        <source file="src/ThemeColors.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/ThemeColors.ini</source>
+        <source file="src/IconFont1.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/IconFont1.ttf</source>
+        <source file="src/Keyboard Shortcuts.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Keyboard%20Shortcuts.ini</source>
+        <source file="src/FX Default Values.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FX%20Default%20Values.ini</source>
+        <source file="src/FXD - Record Last Touch.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/FXD%20-%20Record%20Last%20Touch.lua</source>
+        <source file="src/Functions/EQ functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/EQ%20functions.lua</source>
+        <source file="src/Functions/General Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/General%20Functions.lua</source>
+        <source file="src/Functions/FX Layering.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/FX%20Layering.lua</source>
+        <source file="src/Functions/Layout Editor functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/Layout%20Editor%20functions.lua</source>
+        <source file="src/Functions/Modulation.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
+        <source file="src/Functions/Theme Editor Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/Theme%20Editor%20Functions.lua</source>
+        <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
+        <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Constants.lua</source>
+        <source file="src/Helpers/Sexan_FX_Browser.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e1c5fa60b895439604be18cce91aa352cfc43c23/BryanChi_FX_Devices/src/Helpers/Sexan_FX_Browser.lua</source>
       </version>
     </reapack>
   </category>
