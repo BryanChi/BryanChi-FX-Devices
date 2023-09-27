@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4
+-- @version 1.0beta10.4.1
 -- @changelog
 --   - less nested menus for FX adder
 --   - Fix Adding fx chain crash
