@@ -3,6 +3,7 @@
 -- @version 1.0beta10.4
 -- @changelog
 --   - less nested menus for FX adder
+--   - Fix Adding fx chain crash
 -- @provides
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
