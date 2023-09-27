@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4.1.1
+-- @version 1.0beta10.4.1.2
 -- @changelog
 --   - less nested menus for FX adder
 --   - Fix Adding fx chain crash
@@ -16,8 +16,6 @@
 --   [effect] FXD JSFXs/cookdsp/delay.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/dynamics.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/effects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/fft-mono-template
---   [effect] FXD JSFXs/cookdsp/fft-stereo-template
 --   [effect] FXD JSFXs/cookdsp/fftobjects.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/filters.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/granulator.jsfx-inc
@@ -27,10 +25,7 @@
 --   [effect] FXD JSFXs/cookdsp/mmath.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/oscil.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/pobjects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/pv-mono-template
---   [effect] FXD JSFXs/cookdsp/pv-stereo-template
 --   [effect] FXD JSFXs/cookdsp/pvocobjects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/pvtrans-example
 --   [effect] FXD JSFXs/cookdsp/random.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/scaling.jsfx-inc
 --   [effect] FXD JSFXs/firhalfband.jsfx-inc
@@ -51,7 +46,7 @@
 --   src/IconFont1.ttf
 --   src/Keyboard Shortcuts.ini
 --   src/FX Default Values.ini
---   src/FXD - Record Last Touch.lua
+--   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
 --   src/Functions/General Functions.lua
 --   src/Functions/FX Layering.lua
