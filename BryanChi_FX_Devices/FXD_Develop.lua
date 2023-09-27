@@ -11,6 +11,14 @@
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
 --   src/Images/Analog Knob 1.png
+--   src/Images/trash.png
+--   src/FX Layout Plugin Scripts/Pro Q 3.lua
+--   src/FX Layout Plugin Scripts/Pro C 2.lua
+--   src/ThemeColors.ini
+--   src/IconFont1.ttf
+--   src/Keyboard Shortcuts.ini
+--   src/FX Default Values.ini
+--   src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
 --   src/Functions/General Functions.lua
 --   src/Functions/FX Layering.lua
@@ -752,8 +760,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
     function attachImagesAndFonts()
         Img = { -- TODO move to constants
-            Trash = r.ImGui_CreateImage(CurrentDirectory ..
-                '/src/Images/trash.png')
+            Trash = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/trash.png')
         }
 
 
