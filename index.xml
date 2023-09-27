@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="89fb519169fff846cd577b197d667626bc8ba191" name="FX Devices">
+<index version="1" commit="5a8430d07d9f1c2074576eea0aff4377a3e5c39b" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="FXD_Develop.lua" type="script" desc="FX Devices">
       <metadata>
@@ -46,6 +46,26 @@
         <source file="src/Functions/Modulation.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/89fb519169fff846cd577b197d667626bc8ba191/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
         <source file="src/Functions/Theme Editor Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/89fb519169fff846cd577b197d667626bc8ba191/BryanChi_FX_Devices/src/Functions/Theme%20Editor%20Functions.lua</source>
         <source file="src/Helpers/Sexan_FX_Browser.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/89fb519169fff846cd577b197d667626bc8ba191/BryanChi_FX_Devices/src/Helpers/Sexan_FX_Browser.lua</source>
+      </version>
+      <version name="1.0beta9.7.1" author="Bryan Chi" time="2023-09-27T02:33:40Z">
+        <changelog><![CDATA[- Fix Theme editor saving empty entry crashes
+- Fix Pro-C 2 crash]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/FXD_Develop.lua</source>
+        <source file="src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaFreqEcho%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaShimmer%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaVintageVerb%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaSupermassive%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaDelay%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/Images/Analog Knob 1.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Images/Analog%20Knob%201.png</source>
+        <source file="src/Functions/EQ functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/EQ%20functions.lua</source>
+        <source file="src/Functions/General Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/General%20Functions.lua</source>
+        <source file="src/Functions/FX Layering.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/FX%20Layering.lua</source>
+        <source file="src/Functions/Layout Editor functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/Layout%20Editor%20functions.lua</source>
+        <source file="src/Functions/Modulation.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
+        <source file="src/Functions/Theme Editor Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/Theme%20Editor%20Functions.lua</source>
+        <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
+        <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Constants.lua</source>
+        <source file="src/Helpers/Sexan_FX_Browser.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/5a8430d07d9f1c2074576eea0aff4377a3e5c39b/BryanChi_FX_Devices/src/Helpers/Sexan_FX_Browser.lua</source>
       </version>
     </reapack>
   </category>
