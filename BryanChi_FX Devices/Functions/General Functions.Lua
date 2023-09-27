@@ -1,4 +1,5 @@
 -------------General Functions ------------------------------
+-- @version 1.0Beta 1
 
 r = reaper
 
@@ -7,6 +8,46 @@ r = reaper
 function GetFileExtension(str)
     return str:match("^.+(%..+)$")
 end
+function InvisiBtn (ctx, x, y, str, w, h )  
+    
+    r.ImGui_SetCursorScreenPos(ctx, x,y)
+    local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
+
+
+    return rv
+end
+
+function Curve_3pt_Bezier(startX,startY,controlX,controlY,endX,endY)
+    local X , Y = {}, {}
+    for t = 0, 1, 0.1 do
+
+        local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
+        local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
+        table.insert(X, x)
+        table.insert(Y, y)
+    end
+    return X,Y
+end
+
+
+
+
+
+
+
+function Normalize_Val (V1, V2, ActualV ,  Bipolar)
+
+    local Range = math.abs( (math.max(V1, V2) - math.min(V1, V2)) )
+    
+    local NormV = (math.min(V1, V2)+ Range - ActualV) / Range
+
+    if Bipolar  then 
+        return  -1 + (NormV  )* 2
+    else 
+        return NormV
+    end
+end
+
 
 function ChangeFX_Name(FX_Name)
     if FX_Name then
@@ -447,6 +488,23 @@ function findDuplicates(t)
 end
 
 --------------ImGUI Related ---------------------
+function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
+    if PinStatus then 
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
+            PinStatus = nil 
+        end
+    else 
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
+            PinStatus = PinStr 
+        end
+    end
+    
+        if r.ImGui_IsItemHovered(ctx) then
+            TintClr = 0xCE1A28ff
+        end
+    return PinStatus, TintClr
+end
+
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
     if GetItemRect == 'GetItemRect' then
@@ -563,33 +621,83 @@ function HideCursor(time)
     Hide()
 end
 
-function HideCursorTillMouseUp(MouseBtn)
+function HideCursorTillMouseUp(MouseBtn, triggerKey)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
         Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
-    if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
-        MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+    if MouseBtn then 
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+            MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+        end
+    elseif triggerKey then 
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+            MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+        end
     end
 
     if MousePosX_WhenClick then
-        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
+        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick  )
 
         local function Hide()
-            if r.ImGui_IsMouseDown(ctx, MouseBtn) then
-                r.JS_Mouse_SetCursor(Invisi_Cursor)
-                r.defer(Hide)
-            else
-                reaper.JS_WindowMessage_Release(window, "WM_SETCURSOR")
-                if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
-                    r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+            if MouseBtn then 
+                if r.ImGui_IsMouseDown(ctx, MouseBtn) then
+                    r.JS_Mouse_SetCursor(Invisi_Cursor)
+                    r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+                    r.defer(Hide)
+                else
+                    r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                    if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
+                        r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                    end
+                end
+            elseif triggerKey then 
+
+                if r.ImGui_IsKeyDown(ctx, triggerKey) then
+                    r.JS_Mouse_SetCursor(Invisi_Cursor)
+                    r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+                    r.defer(Hide)
+                else
+                    r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                    if r.ImGui_IsKeyReleased(ctx, triggerKey) then 
+                        r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                    end
                 end
             end
         end
         Hide()
     end
 end
+
+
+function GetMouseDelta(MouseBtn, triggerKey)
+    MouseDelta= MouseDelta or {}
+    local M = MouseDelta
+    if MouseBtn then 
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+            M.StX, M.StY = r.GetMousePosition()
+        end
+    end
+
+    if triggerKey then 
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+            M.StX, M.StY = r.GetMousePosition()
+        end
+    end
+
+    M.X_now, M.Y_now = r.GetMousePosition()
+
+    if M.StX ~= M.X_now or M.StY ~= M.Y_now then 
+        local outX, outY =  M.X_now-M.StX , M.StY - M.Y_now
+        M.StX, M.StY = r.GetMousePosition()
+        return outX, outY
+    else  return 0, 0
+    end
+
+
+end
+
 
 function CreateWindowBtn_Vertical(Name, FX_Idx)
     local rv = r.ImGui_Button(ctx, Name, 25, 220) -- create window name button

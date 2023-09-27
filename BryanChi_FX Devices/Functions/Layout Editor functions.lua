@@ -1,4 +1,5 @@
 -- @noindex
+-- @version 1.0Beta 1
 
 
 ---@param ctx ImGui_Context
@@ -2321,12 +2322,13 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
         end
 
 
-
-        if Vertical ~= 'Vert' then
-            ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0,
-                PosX_End_Of_Slider)
-        else
-            ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0, PosX_End_Of_Slider)
+        if MOD then 
+            if Vertical ~= 'Vert'   then
+                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0,
+                    PosX_End_Of_Slider)
+            else
+                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0, PosX_End_Of_Slider)
+            end
         end
 
 

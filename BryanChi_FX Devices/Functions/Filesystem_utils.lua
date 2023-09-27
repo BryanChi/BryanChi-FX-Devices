@@ -1,3 +1,6 @@
+-- @version 1.0Beta 1
+
+
 ---@param old_path string
 ---@param new_path string
 ---@return boolean

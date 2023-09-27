@@ -1,3 +1,5 @@
+-- @version 1.0Beta 1
+
 -- @noindex
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall

@@ -1,3 +1,6 @@
+-- @version 1.0Beta 1
+
+
 AllAvailableKeys = {
   ['0'] = r.ImGui_Key_0(),
   ['1'] = r.ImGui_Key_1(),

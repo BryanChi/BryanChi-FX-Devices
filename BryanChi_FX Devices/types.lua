@@ -1,4 +1,5 @@
 ---@meta
+-- @version 1.0Beta 1
 
 
 ---@alias Style "Pro C 2"|"Pro C Thresh"|"Custom Image"|"Invisible"|"FX Layering"|'up-down arrow'
