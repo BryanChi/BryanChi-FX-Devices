@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta9.7
+-- @version 1.0beta9.7.1
 -- @changelog
 --   - Fix Theme editor saving empty entry crashes
 --   - Fix Pro-C 2 crash
@@ -17,6 +17,8 @@
 --   src/Functions/Layout Editor functions.lua
 --   src/Functions/Modulation.lua
 --   src/Functions/Theme Editor Functions.lua
+--   src/Functions/Filesystem_utils.lua
+--   src/Constants.lua
 --   src/Helpers/Sexan_FX_Browser.lua
 -- @about
 --   Please check the forum post for info:
