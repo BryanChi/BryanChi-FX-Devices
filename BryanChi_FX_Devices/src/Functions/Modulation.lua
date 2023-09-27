@@ -1,9 +1,20 @@
 -- @version 1.0Beta 1
 
 -- @noindex
+
+r = reaper
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
+---@param TrackNumToBeMod number
+---@param FX_Slt_Indx_ToBeMod integer
+---@param PARAM_Num number
+---@param parmlink boolean
+---@param MIDIPLINK boolean
+---@param Category? integer
+---@param CC_or_Note_Num? integer
+---@param Baseline_V? number
+---@param Scale? number
 function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Category,
                           CC_or_Note_Num,
                           Baseline_V, Scale)
@@ -40,6 +51,10 @@ function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parml
     tab = ultraschall.GetParmModTable_FXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, PARAM_Num + 1)
 end
 
+---@param TrkNum number
+---@param fxid integer
+---@param parmidx integer
+---@param AliasName string
 function SetPrmAlias(TrkNum, fxid, parmidx, AliasName)
     local u = ultraschall
 
@@ -51,6 +66,11 @@ function SetPrmAlias(TrkNum, fxid, parmidx, AliasName)
     _ = u.SetTrackStateChunk_Tracknumber(TrkNum, TrackStateChunk)
 end
 
+---@param TrkNum number
+---@param FX_Idx integer
+---@param P_Num number
+---@param TableIndex_Str string
+---@return string TblIDReturn, string TrackStateChunk, string FXStateChunk, table PrmModTabl_FxStateChunk
 function GetParmModTable(TrkNum, FX_Idx, P_Num, TableIndex_Str)
     local TblIDReturn
     retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrkNum)
@@ -62,6 +82,9 @@ function GetParmModTable(TrkNum, FX_Idx, P_Num, TableIndex_Str)
     return TblIDReturn, TrackStateChunk, FXStateChunk, tab
 end
 
+---@param TrackNumToBeMod number
+---@param FX_Slt_Indx_ToBeMod integer
+---@param PARAM_Num number
 function Unlink_Parm(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num)
     --NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
 
@@ -90,6 +113,7 @@ function Unlink_Parm(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num)
     retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
 end
 
+---@param TrackNumber number
 function Link_Macros_to_ImGui_Sliders(TrackNumber)
     ParmModTable = ultraschall.CreateDefaultParmModTable()
     retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumber)
@@ -97,6 +121,9 @@ function Link_Macros_to_ImGui_Sliders(TrackNumber)
     alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, 1, ParmModTable) --Always Link 1st FX, which is macros
 end
 
+---@param FX_Idx integer
+---@param P_Num number
+---@param FxGUID any ---TODO unused
 function PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
     local ParamValue_Modding = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     AssignMODtoFX = FX_Idx
@@ -132,6 +159,13 @@ end
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 
 
+---@param FxGUID string
+---@param Fx_P string|number
+---@param FX_Idx integer
+---@param P_Num number
+---@param p_value number
+---@param Sldr_Width number
+---@param Type "Knob"|"Vert"
 function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type)
     local FP = FX[FxGUID][Fx_P]
     local CC = FP.WhichCC
@@ -300,7 +334,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
                 SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
-        local RightBtnDragX, RightBtnDragY = reaper.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        local RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
         if Vertical == 'Vert' or Type == 'knob' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
 

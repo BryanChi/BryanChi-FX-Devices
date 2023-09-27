@@ -1,0 +1,163 @@
+---@meta
+
+
+---@alias Style "Pro C 2"|"Pro C Thresh"|"Custom Image"|"Invisible"|"FX Layering"|'up-down arrow'
+---@alias Position "Top"|"Free"|"Bottom"|"Within"|"Left"|"None"|"Right"|"Within-Left"|"Within-Right"
+
+---@class ViewPort
+---@field FDL ImGui_DrawList foreground draw list
+---@field X number
+---@field Y number
+---@field h number
+---@field w number
+
+---@class FX add FX_ID to the table?
+---@field BgClr  {}
+---@field Collapse  {}
+---@field Def_Sldr_W  {}
+---@field Def_Type  {}
+---@field Enable boolean[] which FX are enabled?
+---@field GrbRound  {}
+---@field InLyr  {}
+---@field LyrNum  {}
+---@field Prm  PRM
+---@field Round  {}
+---@field Sldr_W  {}
+---@field TitleWidth  {}
+---@field Width  {}
+---@field WidthCollapse  {}
+---@field Win  {}
+---@field Win_Name  string[] fx names
+---@field Win_Name_S   string[] fx names
+
+---@class PRM
+---@field AssignWhichParam  {}
+---@field BgClr  {}
+---@field BgClrAct  {}
+---@field BgClrHvr  {}
+---@field Combo_W  {}
+---@field ConditionPrm  {}
+---@field ConditionPrm_V  {}
+---@field Count  {}
+---@field CustomLbl  {}
+---@field DragDir  {}
+---@field FontSize  {}
+---@field GrbClr  {}
+---@field InitV  {}
+---@field Lbl  {}
+---@field Lbl_Clr  {}
+---@field Lbl_Pos  {}
+---@field Name  {}
+---@field Num  {}
+---@field Options  {}
+---@field PosX  {}
+---@field PosY  {}
+---@field ShowCondition  {}
+---@field Sldr_H  {}
+---@field Style  {}
+---@field Switch_W  {}
+---@field ToTrkPrm  {}
+---@field Type  {}
+---@field V  {}
+---@field V_Clr  {}
+---@field V_FontSize  {}
+---@field V_Pos  {}
+---@field V_Round  {}
+---@field VertSldr  {}
+
+---@class FX_ID
+---@field ContainerTitle string
+---@field DeltaP integer
+---@field DeltaP_V integer
+---@field Fx_P unknown tbclarified
+---@field Morph_ID string
+---@field ProC_ID string
+---@field Unlink string
+---@field inWhichLyr string
+
+---@class FX_P fx param?
+---@field BgClr? integer rgba
+---@field BgClrAct? integer rgba
+---@field BgClrHvr? integer rgba
+---@field ConditionPrm? boolean
+---@field ConditionPrm_PID? string
+---@field ConditionPrm_V? number
+---@field ConditionPrm_V_Norm? number
+---@field Draw? FX_P_Draw[]
+---@field ManualValues? number[]
+---@field ManualValuesFormat? string[]
+---@field ModAMT? number[]
+---@field Name string
+---@field Num number
+---@field PosX? number
+---@field PosY? number
+---@field Sldr_W? number
+---@field Style? Style
+---@field Type? "Slider"|"V-Slider"|"Knob" notsure about this
+---@field V number
+---@field WhichCC number
+---@field WhichMODs string
+
+---@class FX_P_Draw
+---@field AdjustingX unknown
+---@field AdjustingY unknown
+---@field Angle_Max unknown
+---@field Angle_Min unknown
+---@field Clr unknown
+---@field Clr_VA unknown
+---@field Gap unknown
+---@field Gap_VA unknown
+---@field Height any
+---@field Height_VA unknown
+---@field Image unknown
+---@field RPT_Clr unknown
+---@field Rad_In unknown
+---@field Rad_Out unknown
+---@field Repeat unknown
+---@field Repeat_VA unknown
+---@field Round unknown
+---@field Thick unknown
+---@field Thick_VA unknown
+---@field Type unknown
+---@field Width integer = 10
+---@field Width_VA unknown
+---@field X_Gap unknown
+---@field X_Gap_VA unknown
+---@field X_Offset unknown
+---@field X_Offset_VA unknown
+---@field Y_Gap unknown
+---@field Y_Gap_VA unknown
+---@field Y_Offset unknown
+---@field Y_Offset_VA unknown
+
+---@class Trk
+---@field FxGUID {}
+---@field GUID {}
+---@field PreFX {}
+---@field Prm { FXGUID : {}, Inst : {}, AssignWhich : {}, V : {}, O_V : {}, Num : {}, WhichMcros : {} }
+
+---@class TrkID
+---@field Mod Mod[]
+---@field PostFX {}
+---@field PreFX {}
+---@field SEQL integer[] sequence length
+---@field SEQ_Dnom integer[]
+
+---@class Mod
+---@field ATK? number
+---@field Gain? number
+---@field REL? number
+---@field SEQ {}
+---@field Smooth? number
+
+---@class PluginScript
+---@field FX_Idx integer
+---@field Guid string
+
+---@class GLOB
+---@field WDL ImGui_DrawList current window draw list
+---@field FDL ImGui_DrawList last rendered draw list
+---@field WinL number x-axis Cursor position in absolute screen coordinates
+---@field WinT number x-axis Cursor position in absolute screen coordinates
+---@field Height number
+---@field WinB number GLOB.WinT + GLOB.Height

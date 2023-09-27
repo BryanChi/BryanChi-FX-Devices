@@ -1,5 +1,5 @@
--- @version 1.0Beta 1
-
+-- @noindex
+r = reaper
 
 ---@param old_path string
 ---@param new_path string

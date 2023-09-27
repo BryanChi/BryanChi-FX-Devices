@@ -1,77 +1,52 @@
--- @description FX Devices Bryan Chi
+-- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0Beta 10.6
+-- @version 1.0beta9.7.2
 -- @changelog
---   - Fix Alt + double-clicking parameters to delete not working
---   - Fix ‘Add all parameters’ incorrect behavior.
---   - Modularize script
+--   - Fix Theme editor saving empty entry crashes
+--   - Fix Pro-C 2 crash
 -- @provides
---   [effect] BryanChi_FX Devices/FXD Macros.jsfx
---   [effect] BryanChi_FX Devices/FXD ReSpectrum.jsfx
---   [effect] BryanChi_FX Devices/FXD Gain Reduction Scope.jsfx
---   [effect] BryanChi_FX Devices/FXD Split to 32 Channels.jsfx
---   [effect] BryanChi_FX Devices/FXD Split To 4 Channels.jsfx
---   [effect] BryanChi_FX Devices/cookdsp.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/analysis.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/buffer.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/delay.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/dynamics.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/effects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/fft-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/fft-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/fftobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/filters.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/granulator.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/list.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/memalloc.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/midi.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/mmath.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/oscil.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pv-mono-template
---   [effect] BryanChi_FX Devices/cookdsp/pv-stereo-template
---   [effect] BryanChi_FX Devices/cookdsp/pvocobjects.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/pvtrans-example
---   [effect] BryanChi_FX Devices/cookdsp/random.jsfx-inc
---   [effect] BryanChi_FX Devices/cookdsp/scaling.jsfx-inc
---   [effect] BryanChi_FX Devices/firhalfband.jsfx-inc
---   [effect] BryanChi_FX Devices/spectrum.jsfx-inc
---   [effect] BryanChi_FX Devices/svf_filter.jsfx-inc
---   BryanChi_FX Devices/IconFont1.ttf
---   [effect] BryanChi_FX Devices/FXD (Mix)RackMixer.jsfx
---   BryanChi_FX Devices/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
---   BryanChi_FX Devices/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
---   [effect] BryanChi_FX Devices/FXD Saike BandSplitter.jsfx
---   [effect] BryanChi_FX Devices/FXD Band Joiner.jsfx
---   BryanChi_FX Devices/Images/Analog Knob 1.png
---   BryanChi_FX Devices/Functions/EQ functions.lua
---   BryanChi_FX Devices/Functions/General Functions.lua
---   BryanChi_FX Devices/Functions/FX Layering.lua
---   BryanChi_FX Devices/Functions/FX Adder.lua
---   BryanChi_FX Devices/Functions/Layout Editor functions.lua
---   BryanChi_FX Devices/Functions/Modulation.lua
---   BryanChi_FX Devices/Functions/Theme Editor Functions.lua
+--   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/Images/Analog Knob 1.png
+--   src/Images/trash.png
+--   src/FX Layout Plugin Scripts/Pro Q 3.lua
+--   src/FX Layout Plugin Scripts/Pro C 2.lua
+--   src/ThemeColors.ini
+--   src/IconFont1.ttf
+--   src/Keyboard Shortcuts.ini
+--   src/FX Default Values.ini
+--   src/FXD - Record Last Touch.lua
+--   src/Functions/EQ functions.lua
+--   src/Functions/General Functions.lua
+--   src/Functions/FX Layering.lua
+--   src/Functions/Layout Editor functions.lua
+--   src/Functions/Modulation.lua
+--   src/Functions/Theme Editor Functions.lua
+--   src/Functions/Filesystem_utils.lua
+--   src/Constants.lua
+--   src/Helpers/Sexan_FX_Browser.lua
 -- @about
 --   Please check the forum post for info:
---   https://forum.cockos.com/showthread.php?t=263622
-
+--   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
 
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
-require("BryanChi_FX Devices.Helpers.Sexan_FX_Browser")
-require("BryanChi_FX Devices.Functions.General Functions")
-require("BryanChi_FX Devices.Functions.EQ functions")
-require("BryanChi_FX Devices.Functions.Layout Editor functions")
-require("BryanChi_FX Devices.Functions.FX Layering")
-require("BryanChi_FX Devices.Functions.Modulation")
-require("BryanChi_FX Devices.Functions.Theme Editor Functions")
-require("BryanChi_FX Devices.Functions.Filesystem_utils")
-require("BryanChi_FX Devices.Constants")
-PluginScript={}
+
+r = reaper
+require("src.Helpers.Sexan_FX_Browser")
+require("src.Functions.General Functions")
+require("src.Functions.EQ functions")
+require("src.Functions.Layout Editor functions")
+require("src.Functions.FX Layering")
+require("src.Functions.Modulation")
+require("src.Functions.Theme Editor Functions")
+require("src.Functions.Filesystem_utils")
+require("src.Constants")
+PluginScript = {} ---@class PluginScript
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
@@ -80,7 +55,6 @@ local os_separator = package.config:sub(1, 1)
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = 'V1.0beta10.3.2 '
 FX_Add_Del_WaitTime = 2
-r = reaper
 
 
 
@@ -93,7 +67,7 @@ end
 
 local FX_LIST, CAT = GetFXTbl()
 
----@type ViewPort
+---@class ViewPort
 VP = {} -- viewport info
 -- demo = {}
 app = {}
@@ -120,7 +94,7 @@ LFO = { Win = { w = 400, h = 300} ; CtrlNodeSz=6; NodeSz = 6; Def={Len = 4 } }
 
 LFOwin = { w = 400, h = 300 }
 ClrPallet = {}
-Glob = {};
+Glob = {} ---@class GLOB
 Sel_Cross = {}
 ToDef = {}
 DraggingFXs = {}; DraggingFXs_Idx = {}
@@ -340,10 +314,12 @@ SpecialLayoutFXs = { 'VST: FabFilter Pro C 2 ', 'Pro Q 3', 'VST: FabFilter Pro Q
 
 
 Sel_Track = r.GetSelectedTrack(0, 0)
-if Sel_Track ~= nil then Sel_Track_FX_Count = reaper.TrackFX_GetCount(Sel_Track) end
+if Sel_Track ~= nil then Sel_Track_FX_Count = r.TrackFX_GetCount(Sel_Track) end
 
 
 FX_DeviceWindow_NoScroll = 0
+---list of GUIDs for Each track FX
+---@type string[]
 FXGUID = {}
 FirstLoop = true
 
@@ -393,8 +369,12 @@ EightColors = {
     LFO = {}
 }
 
+---@param h number
+---@param s number
+---@param v number
+---@param a number
 function HSV(h, s, v, a)
-    local r, g, b = reaper.ImGui_ColorConvertHSVtoRGB(h, s, v)
+    local r, g, b = r.ImGui_ColorConvertHSVtoRGB(h, s, v)
     return reaper.ImGui_ColorConvertDouble4ToU32(r, g, b, a or 1.0)
 end
 
@@ -489,8 +469,10 @@ local LAST_USED_FX
 
 
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
+---@param s string
 local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
 
+---@param filter_text string
 local function Filter_actions(filter_text)
     filter_text = Lead_Trim_ws(filter_text)
     local t = {}
@@ -524,6 +506,7 @@ end
 
 
 function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+    ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
     local MAX_FX_SIZE = 250
@@ -595,7 +578,10 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                 if filtered_fx[i]:find('VST:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
-                    local clr = FX_Adder_VST or CustomColorsDefault.FX_Adder_VST
+                    local clr = FX_Adder_VST or
+                        CustomColorsDefault
+                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
+                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
                     MyText('VST', nil, clr)
                     SL()
                     HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
@@ -643,7 +629,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                 if r.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
                     -- HIGHLIGHT DRAGGED FX
                     DRAG_FX = i
-                    AddFX_Drag(filtered_fx[i])
+                    AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
                 end
             end
 
@@ -688,7 +674,7 @@ local function DrawChildMenu(tbl, path, FX_Idx)
             end
         end
         if type(tbl[i]) ~= "table" then
-            if r.ImGui_Selectable(ctx, tbl[i]) then
+            if r.ImGui_Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let’s pass the third argument as false instead of nil
                 if TRACK then
                     r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i] }), false,
                         -1000 - FX_Idx)
@@ -715,7 +701,8 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 ----- Get plugin scripts path -------
-local pluginScriptPath = CurrentDirectory..'BryanChi_FX Devices/FX Layout Plugin Scripts'
+local pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
+---List of Plugin Scripts for FXD
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
     if not v:find('.lua') then
@@ -728,14 +715,14 @@ end
 
 
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-script_folder       = script_folder .. '/BryanChi_FX Devices'
+script_folder       = script_folder .. '/src'
 FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
 
 
-NumOfTotalTracks = reaper.CountTracks(0)
+NumOfTotalTracks = r.CountTracks(0)
 -- Repeat for every track, at the beginning of script
 for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
-    local Track = reaper.GetTrack(0, Track_Idx)
+    local Track = r.GetTrack(0, Track_Idx)
     local TrkID = r.GetTrackGUID(Track)
 
     Trk[TrkID] = Trk[TrkID] or {}
@@ -794,7 +781,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
 
-    local FXCount = reaper.TrackFX_GetCount(Track)
+    local FXCount = r.TrackFX_GetCount(Track)
     Trk[TrkID] = Trk[TrkID] or {}
     Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
     Trk[TrkID].PostFX = Trk[TrkID].PostFX or {}
@@ -822,7 +809,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         end
 
 
-        Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold())
+        Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold()) -- TODO move to constants
         r.ImGui_Attach(ctx, Font_Andale_Mono_20_B)
         for i = 6, 64, 1 do
             r.ImGui_Attach(ctx, _G['Font_Andale_Mono_' .. i])
@@ -840,11 +827,11 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             r.ImGui_Attach(ctx, _G['Arial_' .. i])
         end
 
-        Arial = r.ImGui_CreateFont('Arial', 12)
+        Arial = r.ImGui_CreateFont('Arial', 12) -- TODO move to constants
     end
 
     function TrashIcon(size, lbl, ClrBG, ClrTint)
-        local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint)
+        local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint) -- TODO weird but I can’t find anything in the official docs or the reaImGui repo about this function
         if r.ImGui_IsItemHovered(ctx) then
             TintClr = 0xCE1A28ff
             return rv, TintClr
@@ -866,6 +853,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     Trk.Prm.Inst[TrkID] = tonumber(Trk.Prm.Inst[TrkID])
 
     i = 1
+    ---retrieve Pre-FX mappings?
+    ---store in CurTrk.PreFX
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PreFX ' .. i, '', false)
         if rv then
@@ -876,6 +865,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     end
 
     i = 1
+    ---retrieve Post-FX mappings?
+    ---store in CurTrk.PostFX
     while i do
         local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PostFX ' .. i, '', false)
         if rv then
@@ -1108,6 +1099,7 @@ attachImagesAndFonts()
 ---------------------------------------------------------------
 if CallFile('r', 'Keyboard Shortcuts.ini') then
     local file, filepath = CallFile('r', 'Keyboard Shortcuts.ini')
+    if not file then return end
     Content = file:read('*a')
     local L = get_lines(filepath)
     for i, v in ipairs(L) do
@@ -1160,16 +1152,17 @@ function loop()
 
     local Viewport = r.ImGui_GetWindowViewport(ctx)
     VP.w, VP.h     = r.ImGui_Viewport_GetSize(Viewport)
-    VP.x, VP.y     = r.ImGui_GetCursorScreenPos(ctx)
+    VP.x, VP.y     = r.ImGui_GetCursorScreenPos(ctx) -- TODO should this be marked as VP.X instead of lowercase? Other instances of the var are uppercase
+
 
     ----------------------------------------------------------------------------
     -- ImGUI Variables-----------------------------------------------------------
     ----------------------------------------------------------------------------
-    Mods           = r.ImGui_GetKeyMods(ctx)
-    Alt            = r.ImGui_Mod_Alt()
-    Ctrl           = r.ImGui_Mod_Ctrl()
-    Shift          = r.ImGui_Mod_Shift()
-    Apl            = r.ImGui_Mod_Super()
+    Mods  = r.ImGui_GetKeyMods(ctx)
+    Alt   = r.ImGui_Mod_Alt()
+    Ctrl  = r.ImGui_Mod_Ctrl()
+    Shift = r.ImGui_Mod_Shift()
+    Apl   = r.ImGui_Mod_Super()
 
 
 
@@ -1258,7 +1251,7 @@ function loop()
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
                 if not IsPrmAlreadyAdded(true) then
-                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
                 r.SetExtState('FXD', 'Record last touch', '', false)
@@ -1375,7 +1368,7 @@ function loop()
                 DropFXtoLayerNoMove(DroptoRack, DropToLyrID, DragFX_Src)
                 MoveFX(DragFX_Src, DragFX_Dest + 1, true)
 
-                DragFX_Src, DragFX_Dest, DropToLyrID = nil
+                DragFX_Src, DragFX_Dest, DropToLyrID = nil -- TODO should these be DragFX_Src, DragFX_Dest, DropToLyrID = nil, nil, nil
             end
 
 
@@ -1406,7 +1399,7 @@ function loop()
             -- if user switch selected track...
             if TrkID ~= TrkID_End then
                 if TrkID_End ~= nil and TrkID ~= nil then
-                    NumOfTotalTracks = reaper.CountTracks(0)
+                    NumOfTotalTracks = r.CountTracks(0)
                     --[[  r.gmem_attach('TrackNameForMacro')
                     reaper .gmem_write(0,NumOfTotalTracks )]]
                 end
@@ -1458,13 +1451,13 @@ function loop()
             -- end
 
             ----Colors & Font ------------
-            --[[ reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgHovered(), 0xaaaaaa44)
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x474747ff)
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), 0x6e6e6eff) --Use Hex + FF in the end
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_SliderGrab(), 0x808080ff)
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(), 0x808080ff) ]]
+            --[[ r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), 0xaaaaaa44)
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x474747ff)
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), 0x6e6e6eff) --Use Hex + FF in the end
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrab(), 0x808080ff)
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), 0x808080ff) ]]
 
-            reaper.ImGui_PushFont(ctx, Font_Andale_Mono)
+            r.ImGui_PushFont(ctx, Font_Andale_Mono)
 
 
 
@@ -1503,7 +1496,7 @@ function loop()
             ------------------------------
 
             if r.ImGui_Button(ctx, 'Record Last Touch') then
-                --[[ local FX_Count = reaper.TrackFX_GetCount(LT_Track); local RptPrmFound
+                --[[ local FX_Count = r.TrackFX_GetCount(LT_Track); local RptPrmFound
                 local F = FX[LT_FXGUID] or {}
 
                 if F then
@@ -1520,7 +1513,7 @@ function loop()
                 end ]]
 
                 if not IsPrmAlreadyAdded(true) then
-                    StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
             end
@@ -1626,7 +1619,7 @@ function loop()
                         end
                     end
                     if not RptPrmFound then
-                        StoreNewParam(LT_FXGUID, LstTchd_ParamName, LT_ParamNum, LT_FXNum,
+                        StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                             true)
                     end
                 end
@@ -1667,9 +1660,9 @@ function loop()
                 end
             end
 
-            reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), 0x373737ff)
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_HeaderHovered(), 0x373737ff)
 
-            reaper.ImGui_TableHeadersRow(ctx) --create header row
+            r.ImGui_TableHeadersRow(ctx) --create header row
             r.gmem_attach('ParamValues')
 
             Trk[TrkID] = Trk[TrkID] or {}
@@ -1688,11 +1681,11 @@ function loop()
                 local Macro                 = i
 
                 local I, Name, CurX         = Trk[TrkID].Mod[i], nil, r.ImGui_GetCursorPosX(ctx)
-                local frameBgColor          = reaper.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.5, 0.5, 0.2)
-                local frameBgHoveredColor   = reaper.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.6, 0.5, 0.2)
-                local frameBgActiveColor    = reaper.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.7, 0.5, 0.2)
-                local sliderGrabColor       = reaper.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.9, 0.9, 0.2)
-                local sliderGrabActiveColor = reaper.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.9, 0.9, 0.8)
+                local frameBgColor          = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.5, 0.5, 0.2)
+                local frameBgHoveredColor   = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.6, 0.5, 0.2)
+                local frameBgActiveColor    = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.7, 0.5, 0.2)
+                local sliderGrabColor       = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.9, 0.9, 0.2)
+                local sliderGrabActiveColor = r.ImGui_ColorConvertHSVtoRGB((i - 1) / 7.0, 0.9, 0.9, 0.8)
                 r.ImGui_PushID(ctx, i)
                 local function PushClr(AssigningMacro)
                     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.LowMidSat[i])
@@ -1702,8 +1695,8 @@ function loop()
                     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrabActive(), EightColors.Bright_HighSat[i])
 
                     if AssigningMacro == i then
-                        reaper.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.HighSat_MidBright[i])
-                        reaper.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.bgWhenAsgnModAct[i])
+                        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.HighSat_MidBright[i])
+                        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.bgWhenAsgnModAct[i])
                         PopColorTime = 2
                     end
                     clrPop = 6
@@ -1724,11 +1717,11 @@ function loop()
 
                     r.ImGui_PushItemWidth(ctx, -FLT_MIN)
 
-                    IsMacroSlidersEdited, I.Val = reaper.ImGui_SliderDouble(ctx, i .. '##', I.Val, Slider1Min or 0,
+                    IsMacroSlidersEdited, I.Val = r.ImGui_SliderDouble(ctx, i .. '##', I.Val, Slider1Min or 0,
                         Slider1Max or 1)
                     IsMacroActive = r.ImGui_IsItemActive(ctx)
                     if IsMacroActive == true then Mc.AnyActive = true end
-                    R_ClickOnMacroSliders = reaper.ImGui_IsItemClicked(ctx, 1)
+                    R_ClickOnMacroSliders = r.ImGui_IsItemClicked(ctx, 1)
                     -- if r.ImGui_IsItemClicked( ctx,1) ==true and Mods==nil then R_ClickOnMacroSliders = true end
                     if r.ImGui_IsItemClicked(ctx, 1) == true and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'Macro' .. i .. 'Menu')
@@ -1741,10 +1734,10 @@ function loop()
 
 
                     --- Macro Label
-                    reaper.ImGui_TableSetColumnIndex(ctx, MacroNums[i] * 2 - 1)
-                    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), EightColors.LowSat[i])
+                    r.ImGui_TableSetColumnIndex(ctx, MacroNums[i] * 2 - 1)
+                    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.LowSat[i])
                     r.ImGui_PushItemWidth(ctx, -FLT_MIN)
-                    MacroNameEdited, I.Name = reaper.ImGui_InputText(ctx, '##', I.Name or 'Macro ' .. i)
+                    MacroNameEdited, I.Name = r.ImGui_InputText(ctx, '##', I.Name or 'Macro ' .. i)
                     if MacroNameEdited then
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name,
                             true)
@@ -1845,9 +1838,9 @@ function loop()
                     end
                     r.ImGui_TableSetColumnIndex(ctx, i * 2 - 1)
                     r.ImGui_PushItemWidth(ctx, -FLT_MIN)
-                    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), EightColors.LowSat[i])
+                    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.LowSat[i])
                     if I.Name == 'Macro ' .. i then I.Name = 'Env ' .. i end
-                    MacroNameEdited, I.Name = reaper.ImGui_InputText(ctx, '##', I.Name or 'Env ' .. i)
+                    MacroNameEdited, I.Name = r.ImGui_InputText(ctx, '##', I.Name or 'Env ' .. i)
                     if MacroNameEdited then
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name,
                             true)
@@ -2287,7 +2280,7 @@ function loop()
                     Mc.Freq = Mc.Freq or 1
                     Mc.Gain = Mc.Gain or 5
                     r.ImGui_TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
-                    --[[  IsMacroSlidersEdited, I.Val = reaper.ImGui_SliderDouble(ctx, i .. '##LFO', I.Val, Slider1Min or 0,
+                    --[[  IsMacroSlidersEdited, I.Val = r.ImGui_SliderDouble(ctx, i .. '##LFO', I.Val, Slider1Min or 0,
                     Slider1Max or 1) ]]
                     
                     local W = (VP.w - 10) / 12 -3
@@ -2992,21 +2985,21 @@ function loop()
 
 
                 --check if there's envelope
-                --[[  IsThereEnvOnMacro[i] = reaper.GetFXEnvelope(LT_Track, 0, i-1, false)
+                --[[  IsThereEnvOnMacro[i] = r.GetFXEnvelope(LT_Track, 0, i-1, false)
                     Str_IsThereEnvOnMacro = tostring(IsThereEnvOnMacro[i])
                     if Str_IsThereEnvOnMacro ~= 'nil'  then     --if theres env on macros, Sync Macro on Gui to Actual Values
 
-                        Mc.Val_Trk[MacroValueLBL]= reaper.TrackFX_GetParamNormalized( LT_Track, 0, i-1  )
-                        PosX_Left, PosY_Top = reaper.ImGui_GetItemRectMin(ctx)
+                        Mc.Val_Trk[MacroValueLBL]= r.TrackFX_GetParamNormalized( LT_Track, 0, i-1  )
+                        PosX_Left, PosY_Top = r.ImGui_GetItemRectMin(ctx)
                         Array_Parameter.PosX_Left[i]=PosX_Left
                         Array_Parameter.PosY_Top[i]=PosY_Top
-                        drawlist=reaper.ImGui_GetForegroundDrawList(ctx)
+                        drawlist=r.ImGui_GetForegroundDrawList(ctx)
                         MacroColor= 'Macro'..i..'Color'
-                        reaper.ImGui_DrawList_AddCircleFilled(drawlist, Array_Parameter.PosX_Left[i], Array_Parameter.PosY_Top[i],4,_G[MacroColor])
+                        r.ImGui_DrawList_AddCircleFilled(drawlist, Array_Parameter.PosX_Left[i], Array_Parameter.PosY_Top[i],4,_G[MacroColor])
                     else IsThereEnvOnMacro[i]=0
                     end ]]
                 local function SetTypeToEnv()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Envelope') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Envelope', false) then
                         Trk[TrkID].Mod[i].Type = 'env'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
                         r.gmem_write(4, 4) -- tells jsfx macro type = env
@@ -3015,7 +3008,7 @@ function loop()
                 end
 
                 local function SetTypeToStepSEQ()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Step Sequencer') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Step Sequencer', false) then
                         Trk[TrkID].Mod[i].Type = 'Step'
                         r.gmem_write(4, 6) -- tells jsfx macro type = step seq
                         r.gmem_write(5, i)
@@ -3035,7 +3028,7 @@ function loop()
                 end
 
                 local function SetTypeToFollower()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Audio Follower') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Audio Follower', false) then
                         r.gmem_write(4, 9) -- tells jsfx macro type = Follower
                         r.gmem_write(5, i) -- tells jsfx which macro
                         Trk[TrkID].Mod[i].Type = 'Follower'
@@ -3043,7 +3036,7 @@ function loop()
                     end
                 end
                 local function SetTypeToMacro()
-                    if r.ImGui_Selectable(ctx, 'Set Type to Macro') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to Macro', false) then
                         Trk[TrkID].Mod[i].Type = 'Macro'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
                         r.gmem_write(4, 5) -- tells jsfx macro type = Macro
@@ -3052,7 +3045,7 @@ function loop()
                     end
                 end
                 local function SetTypeToLFO()
-                    if r.ImGui_Selectable(ctx, 'Set Type to LFO') then
+                    if r.ImGui_Selectable(ctx, 'Set Type to LFO', false) then
                         Trk[TrkID].Mod[i].Type = 'LFO'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
                         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
@@ -3062,7 +3055,7 @@ function loop()
                 end
 
                 if r.ImGui_BeginPopup(ctx, 'Macro' .. i .. 'Menu') then
-                    if r.ImGui_Selectable(ctx, 'Automate') then
+                    if r.ImGui_Selectable(ctx, 'Automate', false) then
                         AddMacroJSFX()
                         -- Show Envelope for Morph Slider
                         local env = r.GetFXEnvelope(LT_Track, 0, i - 1, true)
@@ -3176,7 +3169,7 @@ function loop()
                 -- StyleColor For Space Btwn Fx Windows
                 if not Hide then
                     if r.ImGui_BeginChildFrame(ctx, '##SpaceBetweenWindows' .. FX_Idx .. tostring(SpaceIsBeforeRackMixer) .. 'Last SPC in Rack = ' .. tostring(AddLastSPCinRack), 10 + Dvdr.Width[TblIdxForSpace] + (Dvdr.Spc_Hover[TblIdxForSpace] or 0) + (AdditionalWidth or 0), 220, r.ImGui_WindowFlags_NoScrollbar()|r.ImGui_WindowFlags_NoScrollWithMouse()|r.ImGui_WindowFlags_NoNavFocus()|r.ImGui_WindowFlags_NoNav()) then
-                        --HOVER_RECT = reaper.ImGui_IsWindowHovered(ctx,  reaper.ImGui_HoveredFlags_RectOnly())
+                        --HOVER_RECT = r.ImGui_IsWindowHovered(ctx,  r.ImGui_HoveredFlags_RectOnly())
                         HoverOnWindow = r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_AllowWhenBlockedByActiveItem())
 
                         if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and Wet.ActiveAny ~= true and Knob_Active ~= true and not Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 then
@@ -3233,7 +3226,7 @@ function loop()
                                                 if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
                                                     for p = 1, #CAT[i].list[j].fx do
                                                         if CAT[i].list[j].fx[p] then
-                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p]) then
+                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p], false) then
                                                                 if TRACK then
                                                                     r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
                                                                         false,
@@ -3251,25 +3244,25 @@ function loop()
                                     end
                                 end
                                 TRACK = r.GetSelectedTrack(0, 0)
-                                if r.ImGui_Selectable(ctx, "CONTAINER") then
+                                if r.ImGui_Selectable(ctx, "CONTAINER", false) then
                                     r.TrackFX_AddByName(TRACK, "Container", false,
                                         -1000 - r.TrackFX_GetCount(TRACK))
                                     LAST_USED_FX = "Container"
                                 end
-                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR", false) then
                                     r.TrackFX_AddByName(TRACK, "Video processor", false,
                                         -1000 - r.TrackFX_GetCount(TRACK))
                                     LAST_USED_FX = "Video processor"
                                 end
                                 if LAST_USED_FX then
-                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX, false) then
                                         r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
                                             -1000 - r.TrackFX_GetCount(TRACK))
                                     end
                                 end
                                 r.ImGui_EndMenu(ctx)
                             end
-                            if r.ImGui_Selectable(ctx, 'Add FX Layering') then
+                            if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
                                 local FX_Idx = FX_Idx
                                 --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
                                 local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
@@ -3302,7 +3295,7 @@ function loop()
                                 FX_Layr_Inst = 0
                                 for F = 0, Sel_Track_FX_Count, 1 do
                                     local FXGUID = r.TrackFX_GetFXGUID(LT_Track, F)
-                                    local _, FX_Name = reaper.TrackFX_GetFXName(LT_Track, F)
+                                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, F)
                                     if string.find(FX_Name, 'FXD Split to 32 Channels') ~= nil then
                                         FX_Layr_Inst                       = FX_Layr_Inst + 1
                                         Lyr.SpltrID[FX_Layr_Inst .. TrkID] = r.TrackFX_GetFXGUID(LT_Track,
@@ -3339,9 +3332,9 @@ function loop()
                                 FX_Idx_OpenedPopup = nil
                                 r.ImGui_CloseCurrentPopup(ctx)
                                 if val & 4 ~= 0 then
-                                    reaper.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
+                                    r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
                                 end
-                            elseif r.ImGui_Selectable(ctx, 'Add Band Split') then
+                            elseif r.ImGui_Selectable(ctx, 'Add Band Split', false) then
                                 r.gmem_attach('FXD_BandSplit')
                                 table.insert(AddFX.Name, 'FXD Saike BandSplitter')
                                 table.insert(AddFX.Pos, FX_Idx)
@@ -3781,7 +3774,7 @@ function loop()
 
                             if (DragFX_ID - (math.max(lyrFxInst, 1)) <= FX_Idx and FX_Idx <= DragFX_ID + 1) or DragFX_ID - lyrFxInst == FX_Idx then
                                 DontAllowDrop = true
-                                reaper.ImGui_SameLine(ctx, nil, 0)
+                                r.ImGui_SameLine(ctx, nil, 0)
                                 Dvdr.Width[TblIdxForSpace] = 0
                                 r.ImGui_EndDragDropTarget(ctx)
 
@@ -3817,7 +3810,7 @@ function loop()
                     else
                         Dvdr.Width[TblIdxForSpace] = 0
                         Dvdr.Clr[ClrLbl] = 0x131313ff
-                        reaper.ImGui_SameLine(ctx, nil, 0)
+                        r.ImGui_SameLine(ctx, nil, 0)
                     end
                     r.ImGui_SameLine(ctx, nil, 0)
                 end
@@ -3830,11 +3823,11 @@ function loop()
 
             RepeatTimeForWindows = Sel_Track_FX_Count
 
-            MaxX, MaxY = reaper.ImGui_GetContentRegionMax(ctx)
-            framepadding = reaper.ImGui_StyleVar_FramePadding()
-            BorderSize = reaper.ImGui_StyleVar_FrameBorderSize()
-            FrameRounding = reaper.ImGui_StyleVar_FrameRounding()
-            BtnTxtAlign = reaper.ImGui_StyleVar_ButtonTextAlign()
+            MaxX, MaxY = r.ImGui_GetContentRegionMax(ctx)
+            framepadding = r.ImGui_StyleVar_FramePadding()
+            BorderSize = r.ImGui_StyleVar_FrameBorderSize()
+            FrameRounding = r.ImGui_StyleVar_FrameRounding()
+            BtnTxtAlign = r.ImGui_StyleVar_ButtonTextAlign()
 
             r.ImGui_PushStyleVar(ctx, framepadding, 0, 3) --StyleVar#1 (Child Frame for all FX Devices)
             --r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x121212ff)
@@ -3880,7 +3873,7 @@ function loop()
             Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
 
 
-            r.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ChildBorderSize(), 0)
+            r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ChildBorderSize(), 0)
             Cx_LeftEdge, Cy_BeforeFXdevices = r.ImGui_GetCursorScreenPos(ctx)
             MouseAtLeftEdge = r.ImGui_IsMouseHoveringRect(ctx, Cx_LeftEdge - 50, Cy_BeforeFXdevices, Cx_LeftEdge + 5,
                 Cy_BeforeFXdevices + 220)
@@ -4019,7 +4012,7 @@ function loop()
 
                     local FxGUID = FXGUID[FX_Idx]
                     FX.Win_Name[FX_Idx] = FX_Name
-                    focusedFXState, trackNumOfFocusFX, _, FX_Index_FocusFX = reaper.GetFocusedFX2()
+                    focusedFXState, trackNumOfFocusFX, _, FX_Index_FocusFX = r.GetFocusedFX2()
 
                     if FXGUID[FX_Idx] then
                         FX[FxGUID] = FX[FxGUID] or {}
@@ -4033,7 +4026,7 @@ function loop()
                         return RV
                     end
 
-                    FXGUID_To_Check_If_InLayer = reaper.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+                    FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
                     if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
                         if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
@@ -4075,7 +4068,7 @@ function loop()
                         if FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] --[[  findDuplicates(FXGUID) ]] and FxGUID then
                             r.ImGui_BeginGroup(ctx)
 
-                            FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
+                            FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
                             local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx); local FxGUID = FXGUID
                                 [FX_Idx];
                             local FxNameS = FX.Win_Name_S[FX_Idx]
@@ -4253,7 +4246,7 @@ function loop()
                                     end
 
                                     if not FX[FxGUID].Morph_ID or FX[FxGUID].Unlink then
-                                        if r.ImGui_Selectable(ctx, 'Automate') then
+                                        if r.ImGui_Selectable(ctx, 'Automate', false) then
                                             r.gmem_attach('ParamValues')
 
                                             if not Trk[TrkID].Morph_ID then
@@ -4306,7 +4299,7 @@ function loop()
                                                 FX.Win_Name_S[FX_Idx]:gsub("%b()", "") .. ' - Morph AB ')
                                         end
                                     elseif FX[FxGUID].Morph_ID or not FX[FxGUID].Unlink then
-                                        if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation') then
+                                        if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
                                             for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
                                                 Unlink_Parm(LT_TrackNum, FX_Idx, i)
                                             end
@@ -4320,18 +4313,18 @@ function loop()
                                     end
 
                                     if FX[FxGUID].Morph_Value_Edit then
-                                        if r.ImGui_Selectable(ctx, 'EXIT Edit Preset Value Mode') then
+                                        if r.ImGui_Selectable(ctx, 'EXIT Edit Preset Value Mode', false) then
                                             FX[FxGUID].Morph_Value_Edit = false
                                         end
                                     else
                                         if Disable then r.ImGui_BeginDisabled(ctx) end
-                                        if r.ImGui_Selectable(ctx, 'ENTER Edit Preset Value Mode') then
+                                        if r.ImGui_Selectable(ctx, 'ENTER Edit Preset Value Mode', false) then
                                             FX[FxGUID].Morph_Value_Edit = true
                                         end
                                     end
                                     if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then r.ImGui_EndDisabled(ctx) end
 
-                                    if r.ImGui_Selectable(ctx, 'Morphing Blacklist Settings') then
+                                    if r.ImGui_Selectable(ctx, 'Morphing Blacklist Settings', false) then
                                         if OpenMorphSettings then
                                             OpenMorphSettings = FxGUID
                                         else
@@ -4348,7 +4341,7 @@ function loop()
                                         end
                                     end
 
-                                    if r.ImGui_Selectable(ctx, 'Hide Morph Slider') then
+                                    if r.ImGui_Selectable(ctx, 'Hide Morph Slider', false) then
                                         FX[FxGUID].MorphHide = true
                                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
                                             'true',
@@ -4542,7 +4535,7 @@ function loop()
                                                             MsY,
                                                             Draw.clr, Draw.Df_EdgeRound[FxGUID] or 0)
                                                     elseif Draw.Type == 'circle' then
-                                                        reaper.ImGui_DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad,
+                                                        r.ImGui_DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad,
                                                             Draw.clr)
                                                     elseif Draw.Type == 'circle fill' then
                                                         r.ImGui_DrawList_AddCircleFilled(WDL, MsX_Start, MsY_Start, Rad,
@@ -4803,10 +4796,10 @@ function loop()
 
 
                                     if FX.Enable[FX_Idx] == nil then
-                                        FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
+                                        FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
                                     end
 
-                                    reaper.ImGui_SameLine(ctx, nil, 0)
+                                    r.ImGui_SameLine(ctx, nil, 0)
                                     if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true then
                                         r.ImGui_BeginDisabled(ctx); R, T = r.ImGui_GetItemRectMax(ctx)
                                     end
@@ -4833,14 +4826,14 @@ function loop()
                                     if FX[FxGUID].Collapse ~= true then
                                         if string.find(FX_Name, 'Pro Q 3') ~= nil then
                                             WindowBtn = r.ImGui_Button(ctx, 'Pro-Q 3' .. '##', 60, 20) -- create window name button
-                                            ProQ_TitlePosX_L, ProQ_TitlePosY_T = reaper.ImGui_GetItemRectMin(ctx)
-                                            ProQ_TitlePosX_R, ProQ_TitlePosY_B = reaper.ImGui_GetItemRectMax(ctx)
+                                            ProQ_TitlePosX_L, ProQ_TitlePosY_T = r.ImGui_GetItemRectMin(ctx)
+                                            ProQ_TitlePosX_R, ProQ_TitlePosY_B = r.ImGui_GetItemRectMax(ctx)
                                         elseif string.find(FX_Name, 'Pro C 2') ~= nil then
-                                            WindowBtn = reaper.ImGui_Button(ctx, 'Pro-C 2' .. '##', 60, 20) -- create window name button
+                                            WindowBtn = r.ImGui_Button(ctx, 'Pro-C 2' .. '##', 60, 20) -- create window name button
                                         else
                                             if DebugMode then
                                                 FX.Win_Name[FX_Idx] = FxGUID
-                                                WindowBtn = reaper.ImGui_Button(ctx, FxGUID .. '## ',
+                                                WindowBtn = r.ImGui_Button(ctx, FxGUID .. '## ',
                                                     FX.TitleWidth[FxGUID] or DefaultWidth - 30, 20) -- create window name button
                                             else
                                                 WindowBtn = r.ImGui_Button(ctx,
@@ -4877,7 +4870,7 @@ function loop()
                                         --if Name:find('FabFilter Pro%-C 2')  then Name = 'Pro|C 2' end
                                         local Name_V = Name:gsub("(.)", "%1\n")
                                         local Name_V_NoManuFacturer = Name_V:gsub("%b()", "")
-                                        reaper.ImGui_PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
+                                        r.ImGui_PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
                                         r.ImGui_SameLine(ctx, nil, 0)
 
                                         WindowBtn = r.ImGui_Button(ctx, Name_V_NoManuFacturer, 25, 220)
@@ -5087,7 +5080,7 @@ function loop()
                                                 FX[FxGUID].MorphB = {}
                                                 local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
                                                 for i = 0, PrmCount - 4, 1 do
-                                                    local Prm_Val, minval, maxval = reaper.TrackFX_GetParamNormalized(
+                                                    local Prm_Val, minval, maxval = r.TrackFX_GetParamNormalized(
                                                         LT_Track, FX_Idx, i)
                                                     FX[FxGUID].MorphA[i] = Prm_Val
                                                     r.GetSetMediaTrackInfo_String(LT_Track,
@@ -5157,9 +5150,7 @@ function loop()
 
 
                                         if r.ImGui_Button(ctx, 'Save all values as default', -FLT_MIN) then
-                                            
-                                            local dir_path = ConcatPath(reaper.GetResourcePath(), 'Scripts',
-                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                            local dir_path = CurrentDirectory .. 'src'
                                             local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
                                             local file = io.open(file_path, 'a+')
 
@@ -5227,15 +5218,15 @@ function loop()
 
 
                                         if r.ImGui_BeginCombo(ctx, '## P type', FX.Def_Type[FxGUID] or 'Slider', r.ImGui_ComboFlags_NoArrowButton()) then
-                                            if r.ImGui_Selectable(ctx, 'Slider') then
+                                            if r.ImGui_Selectable(ctx, 'Slider', false) then
                                                 FX.Def_Type[FxGUID] = 'Slider'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
-                                            elseif r.ImGui_Selectable(ctx, 'Knob') then
+                                            elseif r.ImGui_Selectable(ctx, 'Knob', false) then
                                                 FX.Def_Type[FxGUID] = 'Knob'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
-                                            elseif r.ImGui_Selectable(ctx, 'Drag') then
+                                            elseif r.ImGui_Selectable(ctx, 'Drag', false) then
                                                 FX.Def_Type[FxGUID] = 'Drag'
                                                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                                     FX.Def_Type[FxGUID])
@@ -5260,7 +5251,7 @@ function loop()
                                                 if FilterTxt then SpaceForBtn = 170 end
                                                 if r.ImGui_TextFilter_Draw(Filter, ctx, '##', -1 - (SpaceForBtn or 0)) then
                                                     FilterTxt = r.ImGui_TextFilter_Get(Filter)
-                                                    reaper.ImGui_TextFilter_Set(Filter, Txt)
+                                                    r.ImGui_TextFilter_Set(Filter, Txt)
                                                 end
                                                 if FilterTxt then
                                                     SL()
@@ -5646,9 +5637,9 @@ function loop()
                                         end
 
                                         if SyncWetValues == true then
-                                            Wet.P_Num[FX_Idx] = reaper.TrackFX_GetParamFromIdent(LT_Track, FX_Idx,
+                                            Wet.P_Num[FX_Idx] = r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx,
                                                 ':wet')
-                                            Wet.Get = reaper.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                            Wet.Get = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                                                 Wet.P_Num[FX_Idx])
                                             Wet.Val[FX_Idx] = Wet.Get
                                         end
@@ -5656,7 +5647,7 @@ function loop()
                                             SyncWetValues = false
                                         end
                                         if LT_ParamNum == Wet.P_Num[FX_Idx] and focusedFXState == 1 then
-                                            Wet.Get = reaper.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                            Wet.Get = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                                                 Wet.P_Num[FX_Idx])
                                             Wet.Val[FX_Idx] = Wet.Get
                                         elseif LT_ParamNum == FX[FxGUID].DeltaP then
@@ -5690,16 +5681,16 @@ function loop()
                                         --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                                         if FX.Enable[FX_Idx] == true then
                                             -- Params Colors-----
-                                            --[[ reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x32403aff)
-                                            reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(), 0x44444488)
+                                            --[[ r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x32403aff)
+                                            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), 0x44444488)
 
                                             times = 2 ]]
                                         else
-                                            --[[ r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x17171744)
+                                            --[[ r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x17171744)
                                             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), 0x66666644)
                                             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrab(), 0x66666644)
-                                            r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(), 0x66666622)
-                                            r.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgHovered(), 0x44444422)
+                                            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), 0x66666622)
+                                            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), 0x44444422)
                                             times = 5 ]]
                                         end
 
@@ -5728,7 +5719,7 @@ function loop()
                                         for Fx_P, v in ipairs(FX[FxGUID]) do --parameter faders
                                             --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
 
-                                            local FP = FX[FxGUID][Fx_P]
+                                            local FP = FX[FxGUID][Fx_P] ---@class FX_P
 
                                             local F_Tp = FX.Prm.ToTrkPrm[FXGUID[FX_Idx] .. Fx_P]; local ID = FxGUID ..
                                                 Fx_P
@@ -5793,9 +5784,15 @@ function loop()
 
                                             --- if there's condition for parameters --------
                                             local CreateParam, ConditionPrms, Pass = nil, {}, {}
+
+                                            ---@param ConditionPrm "ConditionPrm"
+                                            ---@param ConditionPrm_PID "ConditionPrm_PID"
+                                            ---@param ConditionPrm_V_Norm "ConditionPrm_V_Norm"
+                                            ---@param ConditionPrm_V "ConditionPrm_V"
+                                            ---@return boolean
                                             local function CheckIfCreate(ConditionPrm, ConditionPrm_PID,
                                                                          ConditionPrm_V_Norm, ConditionPrm_V)
-                                                local Pass
+                                                local Pass -- TODO should this be initialized to false?
                                                 if FP[ConditionPrm] then
                                                     if not FX[FxGUID][Fx_P][ConditionPrm_PID] then
                                                         for i, v in ipairs(FX[FxGUID]) do
@@ -5898,8 +5895,7 @@ function loop()
 
                                                     if r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                                         if Mods == 0 then
-                                                            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts',
-                                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                                            local dir_path = CurrentDirectory .. 'src'
                                                             local file_path = ConcatPath(dir_path,
                                                                 'FX Default Values.ini')
                                                             local file = io.open(file_path, 'r')
@@ -6232,7 +6228,7 @@ function loop()
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                                                 end
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
-                                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope') then
+                                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
                                                         local env = r.GetFXEnvelope(LT_Track, 0, FP.Num, true)
                                                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                                                             r.BR_EnvGetProperties(env)
@@ -6288,16 +6284,16 @@ function loop()
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
                                             PluginScript.Guid = FXGUID[FX_Idx]
-                                            if Prm.InstAdded[FXGUID[FX_Idx] ] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
+                                            if Prm.InstAdded[FXGUID[FX_Idx]] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
                                                 --- number in green represents FX Prm Index
                                             end
                                             dofile(pluginScriptPath .. '/' .. v .. '.lua')
                                         end
                                     end
                                     --PluginScript.FX_Idx = FX_Idx
-                                   -- PluginScript.Guid = FXGUID[FX_Idx]
-                                    --require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro C 2")
-                                   -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
+                                    -- PluginScript.Guid = FXGUID[FX_Idx]
+                                    --require("src.FX Layout Plugin Scripts.Pro C 2")
+                                    -- require("src.FX Layout Plugin Scripts.Pro Q 3")
 
 
 
@@ -6319,8 +6315,8 @@ function loop()
 
                             --------------------FX Devices--------------------
 
-                            reaper.ImGui_PopStyleColor(ctx, poptimes) -- -- PopColor #1 FX Window
-                            reaper.ImGui_SameLine(ctx, nil, 0)
+                            r.ImGui_PopStyleColor(ctx, poptimes) -- -- PopColor #1 FX Window
+                            r.ImGui_SameLine(ctx, nil, 0)
 
 
 
@@ -6498,7 +6494,7 @@ function loop()
                                         r.ImGui_SetNextItemWidth(ctx, FullWidth)
                                         if r.ImGui_BeginCombo(ctx, '##', typelbl or Draw.Type or 'line', r.ImGui_ComboFlags_NoArrowButton()) then
                                             local function setType(str)
-                                                if r.ImGui_Selectable(ctx, str) then
+                                                if r.ImGui_Selectable(ctx, str, false) then
                                                     if It then D.Type[It] = str end
                                                     Draw.Type = str
                                                 end
@@ -6521,12 +6517,12 @@ function loop()
                                                 D.clr[Draw.SelItm] or 0xffffffff,
                                                 r.ImGui_ColorEditFlags_NoInputs()|
                                                 r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                                reaper.ImGui_ColorEditFlags_AlphaBar())
+                                                r.ImGui_ColorEditFlags_AlphaBar())
                                         else
                                             clrpick, Draw.clr = r.ImGui_ColorEdit4(ctx, '##', Draw.clr or 0xffffffff,
                                                 r.ImGui_ColorEditFlags_NoInputs()|
                                                 r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                                reaper.ImGui_ColorEditFlags_AlphaBar())
+                                                r.ImGui_ColorEditFlags_AlphaBar())
                                         end
                                         r.ImGui_Text(ctx, 'Default edge rounding :')
                                         r.ImGui_SameLine(ctx)
@@ -6743,7 +6739,7 @@ function loop()
                                     end
                                     local function AddOption(Name, TargetVar, TypeCondition)
                                         if FrstSelItm.Type == TypeCondition or not TypeCondition then
-                                            if r.ImGui_Selectable(ctx, Name) then
+                                            if r.ImGui_Selectable(ctx, Name, false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v][TargetVar] = Name end
                                             end
                                         end
@@ -6770,17 +6766,17 @@ function loop()
                                             end
                                         end
 
-                                        if r.ImGui_Selectable(ctx, 'Slider') then
+                                        if r.ImGui_Selectable(ctx, 'Slider', false) then
                                             SetItemType('Slider')
-                                        elseif r.ImGui_Selectable(ctx, 'Knob') then
+                                        elseif r.ImGui_Selectable(ctx, 'Knob', false) then
                                             SetItemType('Knob')
-                                        elseif r.ImGui_Selectable(ctx, 'V-Slider') then
+                                        elseif r.ImGui_Selectable(ctx, 'V-Slider', false) then
                                             SetItemType('V-Slider')
-                                        elseif r.ImGui_Selectable(ctx, 'Drag') then
+                                        elseif r.ImGui_Selectable(ctx, 'Drag', false) then
                                             SetItemType('Drag')
-                                        elseif r.ImGui_Selectable(ctx, 'Switch') then
+                                        elseif r.ImGui_Selectable(ctx, 'Switch', false) then
                                             SetItemType('Switch')
-                                        elseif r.ImGui_Selectable(ctx, 'Selection') then
+                                        elseif r.ImGui_Selectable(ctx, 'Selection', false) then
                                             SetItemType('Selection')
                                         end
                                         r.ImGui_EndCombo(ctx)
@@ -6868,11 +6864,11 @@ function loop()
                                         r.ImGui_SameLine(ctx)
                                         r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                         if r.ImGui_BeginCombo(ctx, '## Drag Dir' .. LE.Sel_Items[1], FrstSelItm.DragDir or '', r.ImGui_ComboFlags_NoArrowButton()) then
-                                            if r.ImGui_Selectable(ctx, 'Right') then
+                                            if r.ImGui_Selectable(ctx, 'Right', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Right' end
-                                            elseif r.ImGui_Selectable(ctx, 'Left-Right') then
+                                            elseif r.ImGui_Selectable(ctx, 'Left-Right', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left-Right' end
-                                            elseif r.ImGui_Selectable(ctx, 'Left') then
+                                            elseif r.ImGui_Selectable(ctx, 'Left', false) then
                                                 for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left' end
                                             end
                                             r.ImGui_EndCombo(ctx)
@@ -7073,7 +7069,7 @@ function loop()
                                     end
                                     if FrstSelItm.Type == 'Selection' then --r.ImGui_Text(ctx,'Edit Values Manually: ') ;r.ImGui_SameLine(ctx)
                                         local Itm = LE.Sel_Items[1]
-                                        local FP = FX[FxGUID][Itm]
+                                        local FP = FX[FxGUID][Itm] ---@class FX_P
 
 
 
@@ -7167,7 +7163,7 @@ function loop()
                                                         SubFolder = 'Knobs'
                                                     end
 
-                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' ..  SubFolder .. filename:sub(index)
+                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/src/Images/' ..  SubFolder .. filename:sub(index)
                                                     CopyFile(filename, NewFileName) ]]
 
                                                     AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
@@ -7261,7 +7257,7 @@ function loop()
                                             SetStyle('Minimalistic', 'Pro C')
                                             SetStyle('Invisible', 'Invisible')
                                             local Dir = r.GetResourcePath() ..
-                                                '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/Knobs'
+                                                CurrentDirectory .. '/src/Images/Knobs' 
 
                                             if r.ImGui_IsWindowAppearing(ctx) then
                                                 StyleWindowImgFiles = scandir(Dir)
@@ -7326,7 +7322,7 @@ function loop()
                                     ClrEdited, PrmBgClr = r.ImGui_ColorEdit4(ctx, '##Clr' .. ID,
                                         FrstSelItm.BgClr or r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()),
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                        reaper.ImGui_ColorEditFlags_AlphaBar())
+                                        r.ImGui_ColorEditFlags_AlphaBar())
                                     if not FX[FxGUID][LE.Sel_Items[1]].BgClr or FX[FxGUID][LE.Sel_Items[1]] == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
                                         HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect')
                                     end
@@ -7342,7 +7338,7 @@ function loop()
                                             FrstSelItm.GrbClr or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrab()),
                                             r.ImGui_ColorEditFlags_NoInputs()|    r
                                             .ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                            reaper.ImGui_ColorEditFlags_AlphaBar())
+                                            r.ImGui_ColorEditFlags_AlphaBar())
                                         if not FX[FxGUID][LE.Sel_Items[1]].GrbClr or FX[FxGUID][LE.Sel_Items[1]].GrbClr == r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrab()) then
                                             HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 0, 0,
                                                 'GetItemRect')
@@ -7400,11 +7396,17 @@ function loop()
                                     ----- Condition to show ------
 
                                     local P = LE.Sel_Items[1]
-                                    local fp = FX[FxGUID][LE.Sel_Items[1]]
+                                    local fp = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
 
 
 
 
+                                    ---@param ConditionPrm string "ConditionPrm"..number
+                                    ---@param ConditionPrm_PID string "ConditionPrm_PID"..number
+                                    ---@param ConditionPrm_V string "ConditionPrm_V"..number
+                                    ---@param ConditionPrm_V_Norm string "ConditionPrm_V_Norm"..number
+                                    ---@param BtnTitle string
+                                    ---@param ShowCondition string "ShowCondition"..number
                                     local function Condition(ConditionPrm, ConditionPrm_PID, ConditionPrm_V,
                                                              ConditionPrm_V_Norm, BtnTitle, ShowCondition)
                                         if r.ImGui_Button(ctx, BtnTitle) then
@@ -7453,7 +7455,7 @@ function loop()
                                                     end
                                                 end
                                                 if not found then
-                                                    local P = StoreNewParam(LT_FXGUID, LstTchd_ParamName,
+                                                    local P = StoreNewParam(LT_FXGUID, LT_ParamName,
                                                         LT_ParamNum,
                                                         LT_FXNum, true --[[ , nil, #F+1  ]])
                                                     fp[ConditionPrm_PID] = P
@@ -7500,7 +7502,7 @@ function loop()
                                                 r.ImGui_Text(ctx, 'is at Value:')
 
                                                 r.ImGui_SameLine(ctx)
-                                                local FP = FX[FxGUID][LE.Sel_Items[1]]
+                                                local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
                                                 local CP = FX[FxGUID][P][ConditionPrm]
                                                 --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
                                                 Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx,
@@ -7626,7 +7628,7 @@ function loop()
                                             local W = Win_W
                                             if r.ImGui_BeginCombo(ctx, '## Combo type' .. LBL, D.Type or '', r.ImGui_ComboFlags_NoArrowButton()) then
                                                 local function AddOption(str)
-                                                    if r.ImGui_Selectable(ctx, str) then
+                                                    if r.ImGui_Selectable(ctx, str, false) then
                                                         D.Type = str; D.T = str;
                                                     end
                                                 end
@@ -8200,7 +8202,7 @@ function loop()
                                 local clrhdr = r.ImGui_GetColor(ctx, r.ImGui_Col_Button())
                                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_TableHeaderBg(), clrhdr)
 
-                                r.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(), 0, 0)
+                                r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, 0)
 
 
                                 r.ImGui_BeginTable(ctx, '##FX Layer' .. FX_Idx, 1)
@@ -8500,7 +8502,7 @@ function loop()
                                                 if LyrID ~= i then Lyr.Rename[i .. FxGUID] = false end
                                             end
                                             FXLayerRenaming = true
-                                            reaper.ImGui_SetKeyboardFocusHere(ctx)
+                                            r.ImGui_SetKeyboardFocusHere(ctx)
                                             r.ImGui_SetNextItemWidth(ctx, FXLayeringWin_X - BtnSizeManual * 3 - 23)
                                             local ID = FX[FxGUID].LyrID[LyrID]
                                             FX[FxGUID].LyrTitle = FX[FxGUID].LyrTitle or {}
@@ -8615,7 +8617,7 @@ function loop()
                                             'FX Layering', BtnSizeManual / 2, 0, Disabled, 9, 'Within', 'None')
                                         r.ImGui_SameLine(ctx, nil, 10)
 
-                                        if LBtnDC and reaper.ImGui_IsItemClicked(ctx, 0) then
+                                        if LBtnDC and r.ImGui_IsItemClicked(ctx, 0) then
                                             FX[FxGUID][Fx_P_Knob].V = 0.5
                                             local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0.5)
                                         end
@@ -8638,7 +8640,7 @@ function loop()
 
 
                                         if ClickOnSolo then
-                                            Lyr.Solo[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(
+                                            Lyr.Solo[LyrID .. FxGUID] = r.TrackFX_GetParamNormalized(
                                                 LT_Track,
                                                 FX_Idx, 4 + (5 * (LyrID - 1)))
                                             if Lyr.Solo[LyrID .. FxGUID] == 1 then
@@ -8682,12 +8684,12 @@ function loop()
                                         end
 
                                         if ClickOnMute then
-                                            Lyr.Mute[LyrID .. FxGUID] = reaper.TrackFX_GetParamNormalized(
+                                            Lyr.Mute[LyrID .. FxGUID] = r.TrackFX_GetParamNormalized(
                                                 LT_Track,
                                                 FX_Idx, 5 * (LyrID - 1))
                                             if Lyr.Mute[LyrID .. FxGUID] == 1 then
                                                 Lyr.Mute[LyrID .. FxGUID] = 0
-                                                reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                                                     5 * (LyrID - 1),
                                                     Lyr.Mute[LyrID .. FxGUID])
                                             elseif Lyr.Mute[LyrID .. FxGUID] == 0 then
@@ -8756,7 +8758,7 @@ function loop()
                                 local DL = r.ImGui_GetWindowDrawList(ctx)
                                 local title = (FX[FxGUID].ContainerTitle or 'FX Layering'):gsub("(.)", "%1\n")
 
-                                WindowBtnVertical = reaper.ImGui_Button(ctx, title .. '##Vertical', 25, 220) -- create window name button
+                                WindowBtnVertical = r.ImGui_Button(ctx, title .. '##Vertical', 25, 220) -- create window name button
                                 if WindowBtnVertical and Mods == 0 then
                                 elseif WindowBtnVertical == true and Mods == Shift then
                                     ToggleBypassFX()
@@ -8809,7 +8811,7 @@ function loop()
                                             r.ImGui_SameLine(ctx, nil, 0)
 
                                             AddSpaceBtwnFXs(FX_Idx_InLayer, false, nil, LyrID)
-                                            Xpos_Left, Ypos_Top = reaper.ImGui_GetItemRectMin(ctx)
+                                            Xpos_Left, Ypos_Top = r.ImGui_GetItemRectMin(ctx)
                                             r.ImGui_SameLine(ctx, nil, 0)
                                             if not FindStringInTable(BlackListFXs, FX.Win_Name[FX_Idx_InLayer]) then
                                                 createFXWindow(FX_Idx_InLayer)
@@ -8855,8 +8857,8 @@ function loop()
 
                                 AddSpaceBtwnFXs(FX_Idx, nil, nil, Sel_LyrID)
                                 AddLastSPCinRack = false
-                                Xpos_Right, Ypos_Btm = reaper.ImGui_GetItemRectMax(ctx)
-                                Xpos_Left, Ypos_Top = reaper.ImGui_GetItemRectMin(ctx)
+                                Xpos_Right, Ypos_Btm = r.ImGui_GetItemRectMax(ctx)
+                                Xpos_Left, Ypos_Top = r.ImGui_GetItemRectMin(ctx)
 
 
                                 local TheresFXinLyr
@@ -10453,7 +10455,7 @@ function loop()
 
             r.ImGui_PopFont(ctx)
             --r.ImGui_PopStyleColor(ctx,Clr.poptimes)
-            Track_Fetch_At_End = reaper.GetLastTouchedTrack()
+            Track_Fetch_At_End = r.GetLastTouchedTrack()
             TrkID_End = r.GetTrackGUID(Track_Fetch_At_End)
 
             FirstLoop = false
@@ -10486,7 +10488,7 @@ function loop()
 
 
     if open then
-        reaper.defer(loop)
+        r.defer(loop)
     else --on script close
         NumOfTotalTracks = r.GetNumTracks()
         for T = 0, NumOfTotalTracks - 1, 1 do
@@ -10499,8 +10501,8 @@ function loop()
             end
         end
     end
-    Track_Fetch_At_End = reaper.GetLastTouchedTrack()
+    Track_Fetch_At_End = r.GetLastTouchedTrack()
     waitForGmem = waitForGmem + 1
 end --end for loop
 
-reaper.defer(loop)
+r.defer(loop)

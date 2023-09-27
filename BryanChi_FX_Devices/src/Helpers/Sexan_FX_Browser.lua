@@ -1,6 +1,5 @@
 
--- @version 0.1
-
+r = reaper
 ---@class VSTINFO
 ---@field id string
 ---@field name string

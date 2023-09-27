@@ -4,6 +4,7 @@
 r = reaper
 
 ---General functions list
+
 ---@param str string
 function GetFileExtension(str)
     return str:match("^.+(%..+)$")
@@ -49,6 +50,7 @@ function Normalize_Val (V1, V2, ActualV ,  Bipolar)
 end
 
 
+---@param FX_Name string
 function ChangeFX_Name(FX_Name)
     if FX_Name then
         local FX_Name = FX_Name:gsub("%w+%:%s+",
@@ -68,11 +70,11 @@ function ChangeFX_Name(FX_Name)
 end
 
 function AddMacroJSFX()
-    local MacroGetLT_Track = reaper.GetLastTouchedTrack()
-    MacrosJSFXExist = reaper.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
+    local MacroGetLT_Track = r.GetLastTouchedTrack()
+    MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
     if MacrosJSFXExist == -1 then
-        reaper.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, -1000)
-        reaper.TrackFX_Show(MacroGetLT_Track, 0, 2)
+        r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, -1000)
+        r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else
         return true
@@ -80,32 +82,34 @@ function AddMacroJSFX()
 end
 
 function GetLTParam()
-    LT_Track = reaper.GetLastTouchedTrack()
-    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = reaper.GetLastTouchedFX()
-    --GetTrack_LT_Track = reaper.GetTrack(0,LT_TrackNum)
+    LT_Track = r.GetLastTouchedTrack()
+    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
+    --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
     if LT_Track ~= nil then
-        retval, LT_FXName = reaper.TrackFX_GetFXName(LT_Track, LT_FXNum)
-        retval, LT_ParamName = reaper.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
+        retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
+        retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     end
 end
 
 function GetLT_FX_Num()
-    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = reaper.GetLastTouchedFX()
+    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
     LT_Track = r.GetLastTouchedTrack()
 end
 
+---@param enable boolean
+---@param title string
 function MouseCursorBusy(enable, title)
-    mx, my = reaper.GetMousePosition()
+    mx, my = r.GetMousePosition()
 
-    local hwnd = reaper.JS_Window_FindTop(title, true)
-    local hwnd = reaper.JS_Window_FromPoint(mx, my)
+    local hwnd = r.JS_Window_FindTop(title, true)
+    local hwnd = r.JS_Window_FromPoint(mx, my)
 
     if enable then -- set cursor to hourglass
-        reaper.JS_Mouse_SetCursor(Invisi_Cursor)
+        r.JS_Mouse_SetCursor(Invisi_Cursor)
         -- block app from changing mouse cursor
-        reaper.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
+        r.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
     else -- set cursor to arrow
-        reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(32512))
+        r.JS_Mouse_SetCursor(r.JS_Mouse_LoadCursor(32512))
         -- allow app to change mouse cursor
     end
 end
@@ -116,6 +120,10 @@ function ConcatPath(...)
     return table.concat({ ... }, sep)
 end
 
+---@param Input number
+---@param Min number
+---@param Max number
+---@return number
 function SetMinMax(Input, Min, Max)
     if Input >= Max then
         Input = Max
@@ -127,15 +135,21 @@ function SetMinMax(Input, Min, Max)
     return Input
 end
 
+---TODO do we need this function? It’s unused
+---@param str string|number|nil
 function ToNum(str)
     str = tonumber(str)
 end
 
+---@generic T
+---@param v? T
+---@return boolean
 function toggle(v)
     if v then v = false else v = true end
     return v
 end
 
+---@param str string
 function get_aftr_Equal(str)
     if str then
         local o = str:sub((str:find('=') or -2) + 2)
@@ -144,6 +158,11 @@ function get_aftr_Equal(str)
     end
 end
 
+---@param Str string
+---@param Id string
+---@param Fx_P integer
+---@param Type? "Num"|"Bool"
+---@param untilwhere? integer
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
         local Out, LineChange
@@ -168,6 +187,10 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     end
 end
 
+---@param Str string
+---@param ID string
+---@param Type? "Num"|"Bool"
+---@param untilwhere? integer
 function RecallGlobInfo(Str, ID, Type, untilwhere)
     if Str then
         local Out, LineChange
@@ -192,6 +215,11 @@ function RecallGlobInfo(Str, ID, Type, untilwhere)
     end
 end
 
+---@param Str string|nil
+---@param Id string
+---@param Fx_P integer
+---@param Type? "Num"|"Bool"
+---@return string[]|nil
 function RecallIntoTable(Str, Id, Fx_P, Type)
     if Str then
         local _, End = Str:find(Id)
@@ -225,9 +253,10 @@ function RecallIntoTable(Str, Id, Fx_P, Type)
     end
 end
 
+---@param str string|nil
 function get_aftr_Equal_bool(str)
     if str then
-        local o = str:sub(str:find('=') + 2)
+        local o = str:sub(str:find('=') + 2) ---@type string |boolean | nil
         if o == '' or o == ' ' or 0 == 'nil' then
             o = nil
         elseif o == 'true' then
@@ -241,6 +270,7 @@ function get_aftr_Equal_bool(str)
     end
 end
 
+---@param str string|nil
 function get_aftr_Equal_Num(str)
     if str then
         if str:find('=') then
@@ -251,10 +281,13 @@ function get_aftr_Equal_Num(str)
     end
 end
 
+---@param str string
 function OnlyNum(str)
     return tonumber(str:gsub('[%D%.]', ''))
 end
 
+---@param filename string
+---@return string[]
 function get_lines(filename)
     local lines = {}
     -- io.lines returns an iterator, so we need to manually unpack it into an array
@@ -264,11 +297,22 @@ function get_lines(filename)
     return lines
 end
 
+---@generic T
+---@generic Index
+---@param Table table<Index, T>
+---@param Pos1 Index
+---@param Pos2 Index
+---@return table<Index,T> Table
 function TableSwap(Table, Pos1, Pos2)
     Table[Pos1], Table[Pos2] = Table[Pos2], Table[Pos1]
     return Table
 end
 
+---@generic T
+---@generic Index
+---@param tab table<Index, T>
+---@param el T
+---@return Index|nil
 function tablefind(tab, el)
     if tab then
         for index, value in pairs(tab) do
@@ -279,6 +323,7 @@ function tablefind(tab, el)
     end
 end
 
+---@param FxGUID string
 function GetProjExt_FxNameNum(FxGUID)
     local PrmCount
     rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
@@ -297,6 +342,9 @@ function GetProjExt_FxNameNum(FxGUID)
     end
 end
 
+---@param FX_Idx integer
+---@param Target_FX_Idx integer
+---@param FX_Name string
 function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     -- input --
     local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0) -- L chan
@@ -349,6 +397,10 @@ function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     end
 end
 
+---TODO I think Position is meant to be used as «instantiate» variable, is this the intent?
+---@param track MediaTrack
+---@param fx_name string
+---@param Position integer
 function AddFX_HideWindow(track, fx_name, Position)
     local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
     if val & 4 == 0 then
@@ -360,6 +412,8 @@ function AddFX_HideWindow(track, fx_name, Position)
     end
 end
 
+---@param FX_Idx integer
+---@return integer|nil
 function ToggleCollapseAll(FX_Idx)
     -- check if all are collapsed
     local All_Collapsed
@@ -380,6 +434,8 @@ function ToggleCollapseAll(FX_Idx)
     return BlinkFX
 end
 
+---@param str string
+---@param DecimalPlaces number
 function RoundPrmV(str, DecimalPlaces)
     local A = tostring('%.' .. DecimalPlaces .. 'f')
     --local num = tonumber(str:gsub('[^%d%.]', '')..str:gsub('[%d%.]',''))
@@ -388,13 +444,16 @@ function RoundPrmV(str, DecimalPlaces)
     return string.format(A, tonumber(num) or 0) .. otherthanNum
 end
 
+---@param str string
 function StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
 
+---TODO empty function
 function TableMaxVal()
 end
 
+---TODO this is a duplicate, it’s unused and can’t you use #table instead?
 ---@param T table
 ---@return integer
 function tablelength(T)
@@ -403,15 +462,26 @@ function tablelength(T)
     return count
 end
 
+---@param num number
+---@param multipleOf number
+---@return number
 function roundUp(num, multipleOf)
     return math.floor((num + multipleOf / 2) / multipleOf) * multipleOf;
 end
 
-function F_Tp(FX_P, FxGUID)
+---@param FX_P integer
+---@param FxGUID string
+---@return unknown
+function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
     return FX.Prm.ToTrkPrm[FxGUID .. FX_P]
 end
 
-function FindStringInTable(Table, V)
+---@generic T
+---@param Table table<string, T>
+---@param V T
+---@return boolean|nil
+---@return T[]|nil
+function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?
     local found = nil
     local Tab = {}
     if V then
@@ -427,6 +497,11 @@ function FindStringInTable(Table, V)
     end
 end
 
+---@generic T
+---@param Table table<string, T>
+---@param V T
+---@return boolean|nil
+---@return T[]|nil
 function FindExactStringInTable(Table, V)
     local found = nil
     local Tab = {}
@@ -443,6 +518,9 @@ function FindExactStringInTable(Table, V)
     end
 end
 
+---@param num number|nil|string
+---@param numDecimalPlaces number
+---@return number|nil
 function round(num, numDecimalPlaces)
     num = tonumber(num)
     if num then
@@ -453,6 +531,10 @@ end
 
 StringToBool = { ['true'] = true, ['false'] = false }
 
+---@generic T
+---@param tab table<string, T>
+---@param val T
+---@return boolean
 function has_value(tab, val)
     local found = false
     for index, value in pairs(tab) do
@@ -467,12 +549,15 @@ function has_value(tab, val)
     end
 end
 
+---@generic T
+---@param t T[]
+---@return T[]|nil
 function findDuplicates(t)
-    seen = {}       --keep record of elements we've seen
-    duplicated = {} --keep a record of duplicated elements
+    local seen = {}       --keep record of elements we've seen
+    local duplicated = {} --keep a record of duplicated elements
     if t then
         for i, v in ipairs(t) do
-            element = t[i]
+            local element = t[i]
             if seen[element] then          --check if we've seen the element before
                 duplicated[element] = true --if we have then it must be a duplicate! add to a table to keep track of this
             else
@@ -505,6 +590,26 @@ function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
     return PinStatus, TintClr
 end
 
+---@param FillClr number
+---@param OutlineClr number
+---@param Padding number
+---@param L number
+---@param T number
+---@param R number
+---@param B number
+---@param h number
+---@param w number
+---@param H_OutlineSc any
+---@param V_OutlineSc any
+---@param GetItemRect "GetItemRect"|nil
+---@param Foreground? ImGui_DrawList
+---@param rounding? number
+---@return number|nil L
+---@return number|nil T
+---@return number|nil R
+---@return number|nil B
+---@return number|nil w
+---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
     if GetItemRect == 'GetItemRect' then
@@ -532,14 +637,22 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
+---TODO I think this function is un-used. Should we remove it?
+---@param ctx ImGui_Context
+---@param itm integer
+---@param clr integer rgba color
 function PC(ctx, itm, clr)
     r.ImGui_PushStyleColor(ctx, itm, clr)
 end
 
+---@param ctx ImGui_Context
+---@param time integer count in
 function PopClr(ctx, time)
     r.ImGui_PopStyleColor(ctx, time)
 end
 
+---@param FX_Idx integer
+---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
     local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
         'FX Layouts')
@@ -590,33 +703,36 @@ function SaveDrawings(FX_Idx, FxGUID)
     end
 end
 
+---TODO remove this duplicate of tooltip()
+---@param A string text for tooltip
 function ttp(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
+---@param time number
 function HideCursor(time)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-        Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
+        Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
-    mx, my = reaper.GetMousePosition()
-    window = reaper.JS_Window_FromPoint(mx, my)
-    release_time = reaper.time_precise() + (time or 1) -- hide/freeze mouse for 3 secs.
+    mx, my = r.GetMousePosition()
+    window = r.JS_Window_FromPoint(mx, my)
+    release_time = r.time_precise() + (time or 1) -- hide/freeze mouse for 3 secs.
 
     local function Hide()
-        if reaper.time_precise() < release_time then
-            reaper.JS_Mouse_SetPosition(mx, my)
-            reaper.JS_Mouse_SetCursor(Invisi_Cursor)
+        if r.time_precise() < release_time then
+            r.JS_Mouse_SetPosition(mx, my)
+            r.JS_Mouse_SetCursor(Invisi_Cursor)
 
-            reaper.defer(Hide)
+            r.defer(Hide)
         else
-            reaper.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+            r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
         end
     end
-    --[[ reaper.JS_WindowMessage_Intercept(window, "WM_SETCURSOR", false)
-        release_time = reaper.time_precise() + 3 ]]
+    --[[ r.JS_WindowMessage_Intercept(window, "WM_SETCURSOR", false)
+        release_time = r.time_precise() + 3 ]]
 
     Hide()
 end
@@ -624,7 +740,7 @@ end
 function HideCursorTillMouseUp(MouseBtn, triggerKey)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-        Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
+        Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
     if MouseBtn then 
@@ -699,6 +815,8 @@ function GetMouseDelta(MouseBtn, triggerKey)
 end
 
 
+---@param Name string
+---@param FX_Idx integer
 function CreateWindowBtn_Vertical(Name, FX_Idx)
     local rv = r.ImGui_Button(ctx, Name, 25, 220) -- create window name button
     if rv and Mods == 0 then
@@ -728,12 +846,25 @@ function HighlightHvredItem()
     end
 end
 
+---@param dur number
+---@param rpt integer
+---@param var integer | nil
+---@param highlightEdge? any -- TODO is this a number?
+---@param EdgeNoBlink? "EdgeNoBlink"
+---@param L number
+---@param T number
+---@param R number
+---@param B number
+---@param h number
+---@param w number
+---@return nil|integer var
+---@return string "Stop"
 function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     TimeBegin = TimeBegin or r.time_precise()
     local Now = r.time_precise()
     local EdgeClr = 0x00000000
     if highlightEdge then EdgeClr = highlightEdge end
-    local GetItemRect = 'GetItemRect'
+    local GetItemRect = 'GetItemRect' ---@type string | nil
     if L then GetItemRect = nil end
 
     if rpt then
@@ -769,14 +900,18 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     end
 end
 
+---@param text string
+---@param font? ImGui_Font
+---@param color? number rgba
+---@param WrapPosX? number
 function MyText(text, font, color, WrapPosX)
     if WrapPosX then r.ImGui_PushTextWrapPos(ctx, WrapPosX) end
 
     if font then r.ImGui_PushFont(ctx, font) end
     if color then
-        reaper.ImGui_TextColored(ctx, color, text)
+        r.ImGui_TextColored(ctx, color, text)
     else
-        reaper.ImGui_Text(ctx, text)
+        r.ImGui_Text(ctx, text)
     end
 
     if font then r.ImGui_PopFont(ctx) end
@@ -790,31 +925,31 @@ end
 ---@param v_min number
 ---@param v_max number
 ---@param FX_Idx number
----@param P_Num number
+---@param P_Num? number
 ---@return boolean ActiveAny
 ---@return boolean ValueChanged
 ---@return integer p_value
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
     r.ImGui_SetNextItemWidth(ctx, 40)
     local radius_outer = 10
-    local pos = { reaper.ImGui_GetCursorScreenPos(ctx) }
+    local pos = { r.ImGui_GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
     local CircleClr
-    local line_height = reaper.ImGui_GetTextLineHeight(ctx)
-    local draw_list = reaper.ImGui_GetWindowDrawList(ctx)
-    local item_inner_spacing = { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_ItemInnerSpacing()) }
-    local mouse_delta = { reaper.ImGui_GetMouseDelta(ctx) }
+    local line_height = r.ImGui_GetTextLineHeight(ctx)
+    local draw_list = r.ImGui_GetWindowDrawList(ctx)
+    local item_inner_spacing = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_ItemInnerSpacing()) }
+    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
 
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
     local FxGUID = FXGUID[FX_Idx]
 
-    reaper.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
+    r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
         item_inner_spacing[2])
 
     local value_changed = false
-    local is_active = reaper.ImGui_IsItemActive(ctx)
-    local is_hovered = reaper.ImGui_IsItemHovered(ctx)
+    local is_active = r.ImGui_IsItemActive(ctx)
+    local is_hovered = r.ImGui_IsItemHovered(ctx)
 
     if is_active and mouse_delta[2] ~= 0.0 and FX[FxGUID].DeltaP_V ~= 1 then
         local step = (v_max - v_min) / 200.0
@@ -853,10 +988,10 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         local P = Total_P - 1
         local DeltaV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P)
         if DeltaV == 1 then
-            reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 0)
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 0)
             FX[FxGUID].DeltaP_V = 0
         else
-            reaper.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 1)
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 1)
             FX[FxGUID].DeltaP_V = 1
         end
         FX[FxGUID].DeltaP = P
@@ -867,7 +1002,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         r.ImGui_DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
             center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
         r.ImGui_DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
-            reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_Text()), labeltoShow)
+            r.ImGui_GetColor(ctx, r.ImGui_Col_Text()), labeltoShow)
     else
         local radius_outer = radius_outer
         r.ImGui_DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
@@ -878,16 +1013,16 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     end
 
     if is_active or is_hovered and FX[FxGUID].DeltaP_V ~= 1 then
-        local window_padding = { reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding()) }
-        reaper.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
+        local window_padding = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
+        r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
             pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
-        reaper.ImGui_BeginTooltip(ctx)
+        r.ImGui_BeginTooltip(ctx)
         if Mods == Shift then
             r.ImGui_Text(ctx, ('%.1f'):format(p_value * 100) .. '%')
         else
             r.ImGui_Text(ctx, ('%.0f'):format(p_value * 100) .. '%' --[[ ('%.3f'):format(p_value) ]])
         end
-        reaper.ImGui_EndTooltip(ctx)
+        r.ImGui_EndTooltip(ctx)
     end
     if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
 
@@ -931,7 +1066,7 @@ end
 ---@param BGClr? number
 ---@param center? string
 ---@param Identifier? string
----@return boolean
+---@return boolean|nil
 function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     r.ImGui_PushFont(ctx, FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
@@ -992,19 +1127,27 @@ function Generate_Active_And_Hvr_CLRs(Clr)
     return ActClr, HvrClr
 end
 
+---@param Fx_P integer fx parameter index
+---@param FxGUID string
+---@param Shape "Circle"|"Rect"
+---@param L number p_min_x
+---@param T number p_min_y
+---@param R? number p_max_x
+---@param B? number p_max_y
+---@param Rad? number radius
 function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
     if Fx_P .. FxGUID == TryingToAddExistingPrm then
         if r.time_precise() > TimeNow and r.time_precise() < TimeNow + 0.1 or r.time_precise() > TimeNow + 0.2 and r.time_precise() < TimeNow + 0.3 then
             if Shape == 'Circle' then
                 r.ImGui_DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
             elseif Shape == 'Rect' then
-                local L, T = reaper.ImGui_GetItemRectMin(ctx)
+                local L, T = r.ImGui_GetItemRectMin(ctx)
                 r.ImGui_DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
             end
         end
     end
     if Fx_P .. FxGUID == TryingToAddExistingPrm_Cont then
-        local L, T = reaper.ImGui_GetItemRectMin(ctx)
+        local L, T = r.ImGui_GetItemRectMin(ctx)
         if Shape == 'Circle' then
             r.ImGui_DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
         elseif Shape == 'Rect' then
@@ -1013,6 +1156,10 @@ function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
     end
 end
 
+---@param FxGUID string
+---@param FX_Idx integer
+---@param LT_Track MediaTrack
+---@param PrmCount integer
 function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID, '', false)
     rv, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
@@ -1033,6 +1180,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
         if whether == 'Yes' then -- if there's Project-specific BL settings
             for i = 0, PrmCount - 4, 1 do
                 FX[FxGUID].PrmList[i] = FX[FxGUID].PrmList[i] or {}
+                ---@type integer, string|number|nil
                 local rv, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
                 if BLprm ~= '' then
                     BLprm = tonumber(BLprm)
@@ -1057,37 +1205,44 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     end
 end
 
+---@param A string text for tooltip
 function tooltip(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
+---@param A string text for tooltip
 function HintToolTip(A)
-    reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_SetTooltip(ctx, A)
-    reaper.ImGui_EndTooltip(ctx)
+    r.ImGui_BeginTooltip(ctx)
+    r.ImGui_SetTooltip(ctx, A)
+    r.ImGui_EndTooltip(ctx)
 end
 
+---@param LT_Track MediaTrack
+---@param FX_Idx integer
 function openFXwindow(LT_Track, FX_Idx)
     FX.Win.FocusState = r.TrackFX_GetOpen(LT_Track, FX_Idx)
     if FX.Win.FocusState == false then
-        reaper.TrackFX_Show(LT_Track, FX_Idx, 3)
+        r.TrackFX_Show(LT_Track, FX_Idx, 3)
     elseif FX.Win.FocusState == true then
-        reaper.TrackFX_Show(LT_Track, FX_Idx, 2)
+        r.TrackFX_Show(LT_Track, FX_Idx, 2)
     end
 end
 
+---@param LT_Track MediaTrack
+---@param FX_Idx integer
 function ToggleBypassFX(LT_Track, FX_Idx)
     FX.Enable = FX.Enable or {}
-    FX.Enable[FX_Idx] = reaper.TrackFX_GetEnabled(LT_Track, FX_Idx)
+    FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
     if FX.Enable[FX_Idx] == true then
-        reaper.TrackFX_SetEnabled(LT_Track, FX_Idx, false)
+        r.TrackFX_SetEnabled(LT_Track, FX_Idx, false)
     elseif FX.Enable[FX_Idx] == false then
-        reaper.TrackFX_SetEnabled(LT_Track, FX_Idx, true)
+        r.TrackFX_SetEnabled(LT_Track, FX_Idx, true)
     end
 end
 
+---@param FX_Idx integer
 function DeleteFX(FX_Idx)
     local DelFX_Name
     r.Undo_BeginBlock()
@@ -1140,6 +1295,9 @@ function DeleteFX(FX_Idx)
     r.Undo_EndBlock('Delete ' .. (DelFX_Name or 'FX'), 0)
 end
 
+---@param FxGUID string
+---@param Fx_P integer parameter index
+---@param FX_Idx integer
 function DeletePrm(FxGUID, Fx_P, FX_Idx)
     --LE.Sel_Items[1] = nil
     local FP = FX[FxGUID][Fx_P]
@@ -1185,14 +1343,14 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
 end
 
 function SyncTrkPrmVtoActualValue()
-    for FX_Idx = 0, Sel_Track_FX_Count, 1 do
-        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+    for FX_Idx = 0, Sel_Track_FX_Count, 1 do                 ---for every selected FX in cur track
+        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx) ---get FX’s GUID
         if FxGUID then
-            FX[FxGUID] = FX[FxGUID] or {}
-            for Fx_P = 1, #FX[FxGUID] or 0, 1 do
+            FX[FxGUID] = FX[FxGUID] or {}                    ---create new params table for FX if it doesn’t exist
+            for Fx_P = 1, #FX[FxGUID] or 0, 1 do             ---for each param
                 if TrkID then
                     if not FX[FxGUID][Fx_P].WhichMODs then
-                        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
+                        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0) ---get param value
                     end
                 end
             end
@@ -1204,6 +1362,8 @@ end
 
 
 
+---@param directory string path to directory
+---@return table
 function scandir(directory)
     local Files = {}
     for i = 0, 999, 1 do
@@ -1213,12 +1373,14 @@ function scandir(directory)
         if not F then return Files end
     end
 
-    return F
+    return F ---TODO should this be Files instead of F ?
 end
 
+---@param ShowAlreadyAddedPrm boolean
+---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     GetLTParam()
-    local FX_Count = reaper.TrackFX_GetCount(LT_Track); local RptPrmFound
+    local FX_Count = r.TrackFX_GetCount(LT_Track); local RptPrmFound
     local F = FX[LT_FXGUID] or {}
 
     if F then
@@ -1239,16 +1401,21 @@ function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     return RptPrmFound
 end
 
+---@param str string | nil
+---@return nil|string
 function RemoveEmptyStr(str)
     if str == '' then return nil else return str end
 end
 
+---@param T table
+---@return integer
 function tablelength(T)
     local count = 0
     for _ in pairs(T) do count = count + 1 end
     return count
 end
 
+---@param Rpt integer
 function AddSpacing(Rpt)
     for i = 1, Rpt, 1 do
         r.ImGui_Spacing(ctx)
