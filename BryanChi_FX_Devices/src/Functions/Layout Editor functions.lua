@@ -368,15 +368,15 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsY - BtnT) / sizeY
                         local Scale = FX[FxGUID].MorphB[P_Num] - A
-                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A, Scale)
+                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID, A, Scale)
                     end
                 elseif IsRBtnHeld then
                     local drag = FX[FxGUID].MorphB[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx, 1)) * -0.01
                     FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
                     if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
-                            Orig_Baseline,
-                            FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
+                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID,
+                                Orig_Baseline,
+                                FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
                     end
                 end
                 if IsLBtnHeld then
@@ -892,14 +892,14 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                         if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FX[FxGUID].MorphB[P_Num] - A
-                            Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A,
-                                Scale)
+                            Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID, A,
+                                    Scale)
                         end
                     elseif IsRBtnHeld then
                         FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
                         if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                            Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
-                                Orig_Baseline, FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
+                            Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID,
+                                    Orig_Baseline, FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
                         end
                     end
                     if IsLBtnHeld then
@@ -1553,14 +1553,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsX - PosL) / sizeX
                         local Scale = FX[FxGUID].MorphB[P_Num] - A
-                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID, A, Scale)
+                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID, A, Scale)
                     end
                 elseif IsRBtnHeld then
                     FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
                     if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, 160, FX[FxGUID].Morph_ID,
-                            Orig_Baseline,
-                            FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
+                        Link_Param_to_CC(LT_TrackNum, FX_Idx, P_Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID,
+                                Orig_Baseline,
+                                FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])
                     end
                 end
                 if IsLBtnHeld then

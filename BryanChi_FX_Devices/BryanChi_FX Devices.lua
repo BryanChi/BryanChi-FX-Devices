@@ -39,11 +39,12 @@
 --   [effect] FXD JSFXs/firhalfband.jsfx-inc
 --   [effect] FXD JSFXs/spectrum.jsfx-inc
 --   [effect] FXD JSFXs/svf_filter.jsfx-inc
+--   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Analog Knob 1.png
@@ -3603,7 +3604,7 @@ function loop()
                                                 'P_EXT: FX Morph A' .. i .. FxGUID,
                                                 FX[FxGUID].MorphA[i], true)
                                             if LinkCC then
-                                                Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, 160,
+                                                Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, -101, nil, -1, 160,
                                                     LinkCC, Prm_Val, FX[FxGUID].MorphB[i])
                                             end
                                         else
@@ -3613,7 +3614,7 @@ function loop()
                                                     'P_EXT: FX Morph B' .. i ..
                                                     FxGUID, FX[FxGUID].MorphB[i], true)
                                                 if LinkCC then
-                                                    Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, 160,
+                                                    Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, -101, nil, -1, 160,
                                                         LinkCC, FX[FxGUID].MorphA[i], Prm_Val - FX[FxGUID].MorphA[i])
                                                 end
                                             end
@@ -3769,7 +3770,7 @@ function loop()
 
                                                 if v ~= FX[FxGUID].MorphB[i] then
                                                     local function LinkPrm()
-                                                        Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, 160,
+                                                        Link_Param_to_CC(LT_TrackNum, FX_Idx, i, true, true, -101, nil, -1, 160,
                                                             FX[FxGUID].Morph_ID, v, Scale)
                                                         FX[FxGUID][i] = FX[FxGUID][i] or {}
                                                         r.GetSetMediaTrackInfo_String(LT_Track,
@@ -5446,7 +5447,7 @@ function loop()
                                                                 PM.TimeNow = r.time_precise()
                                                                 r.gmem_write(11000 + Prm.WhichCC, ToDef.V)
                                                                 Link_Param_to_CC(LT_TrackNum, ToDef.ID, ToDef.P, true,
-                                                                    true, 176, Prm.WhichCC)
+                                                                    true, -101, nil, -1, 176, Prm.WhichCC)
                                                             end
                                                         end
                                                         Prm.V = ToDef.V
@@ -5721,12 +5722,28 @@ function loop()
                                                     end --FX_Index_FocusFX
                                                     if FP.UnlinkedModTable then
                                                         if not r.TrackFX_GetOpen(LT_Track, FocusedFX) then -- if the fx is closed
-                                                            Link_Param_to_CC(LT_TrackNum, FocusedFX, Prm.Num, true, true, 160, FX[FxGUID].Morph_ID, UnlinkedModTable['PARAMOD_BASELINE'], UnlinkedModTable['PARMLINK_SCALE'])
+                                                            Link_Param_to_CC(LT_TrackNum, FocusedFX, Prm.Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID, UnlinkedModTable['PARAMOD_BASELINE'], UnlinkedModTable['PARMLINK_SCALE'])
                                                             FocusedFX=nil      FP.UnlinkedModTable = nil
                                                         end
                                                     end ]]
                                                 end
-
+                                                if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then                                                    
+                                                    local P_Num = Prm.Num
+                                                    parentfxnumber = FX_Idx
+                                                    parentparamnumber = P_Num                                                                                        
+                                                end
+                                                if r.ImGui_IsItemClicked(ctx, 1) and Mods == Shift then
+                                                    local P_Num = Prm.Num
+                                                    local childtracknumber = LT_TrackNum
+                                                    local childfxnumber = FX_Idx 
+                                                    local childparamnumber = P_Num 
+                                                    if parentfxnumber == childfxnumber then
+                                                        selflink = 0
+                                                    else
+                                                        selflink = nil
+                                                    end                                                   
+                                                    Link_Param_to_CC(childtracknumber, childfxnumber, childparamnumber, true, false, parentfxnumber, selflink, parentparamnumber, nil, nil)
+                                                end 
                                                 if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                                                 end
