@@ -39,6 +39,8 @@
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/Images/Attached Drawings/LED light.png
+--   src/Images/Knobs/Bitwig.png
 --   src/Images/Analog Knob 1.png
 --   src/Images/trash.png
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
