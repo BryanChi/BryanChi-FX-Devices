@@ -5,9 +5,12 @@
 --   - less nested menus for FX adder
 --   - Fix Adding fx chain crash
 -- @provides
+--   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
+--   [effect] FXD JSFXs/FXD Band Joiner.jsfx
+--   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
 --   [effect] FXD JSFXs/FXD Macros.jsfx
 --   [effect] FXD JSFXs/FXD ReSpectrum.jsfx
---   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
+--   [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
 --   [effect] FXD JSFXs/FXD Split to 32 Channels.jsfx
 --   [effect] FXD JSFXs/FXD Split To 4 Channels.jsfx
 --   [effect] FXD JSFXs/cookdsp.jsfx-inc
@@ -31,13 +34,13 @@
 --   [effect] FXD JSFXs/firhalfband.jsfx-inc
 --   [effect] FXD JSFXs/spectrum.jsfx-inc
 --   [effect] FXD JSFXs/svf_filter.jsfx-inc
---   [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
---   [effect] FXD JSFXs/FXD Band Joiner.jsfx
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/Images/Attached Drawings/LED light.png
+--   src/Images/Knobs/Bitwig.png
 --   src/Images/Analog Knob 1.png
 --   src/Images/trash.png
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
@@ -136,7 +139,7 @@ SEQ_Default_Denom = 1
 
 ----------- Custom Colors-------------------
 CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
-    'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU' }
+    'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP'}
 CustomColorsDefault = {
     Window_BG = 0x000000ff,
     FX_Devices_Bg = 0x151515ff,
@@ -2556,7 +2559,8 @@ function loop()
                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                             r.BR_EnvGetProperties(env)
                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight, defaultShape, faderScaling)
-                        r.UpdateArrange()
+                        r.TrackList_AdjustWindows(false)
+                        r.UpdateArrange()  
                         r.ImGui_CloseCurrentPopup(ctx)
                     end
                     SetTypeToEnv()
@@ -5723,13 +5727,14 @@ function loop()
                                                 end
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
                                                     if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
-                                                        local env = r.GetFXEnvelope(LT_Track, 0, FP.Num, true)
+                                                        local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true)
                                                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                                                             r.BR_EnvGetProperties(env)
 
                                                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight,
                                                             defaultShape, faderScaling)
-                                                        r.UpdateArrange()
+                                                        r.TrackList_AdjustWindows(false)
+                                                        r.UpdateArrange()  
                                                     end
                                                     r.ImGui_BeginPopupContextItem(ctx, 'optional string str_idIn')
                                                     r.ImGui_EndPopup(ctx)
@@ -6657,7 +6662,7 @@ function loop()
                                                         SubFolder = 'Knobs'
                                                     end
 
-                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/src/Images/' ..  SubFolder .. filename:sub(index)
+                                                    local NewFileName = r.GetResourcePath() .. 'src/Images/' ..  SubFolder .. filename:sub(index)
                                                     CopyFile(filename, NewFileName) ]]
 
                                                     AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
