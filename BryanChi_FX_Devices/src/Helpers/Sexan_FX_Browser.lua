@@ -1,10 +1,5 @@
+
 r = reaper
--- @description Sexan FX Browser parser
--- @author Sexan
--- @license GPL v3
--- @version 0.1
--- @changelog
---  initial release
 ---@class VSTINFO
 ---@field id string
 ---@field name string

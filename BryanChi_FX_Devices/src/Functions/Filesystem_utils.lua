@@ -1,3 +1,4 @@
+-- @noindex
 r = reaper
 
 ---@param old_path string
@@ -38,10 +39,10 @@ function CopyImageFile(filename, subfolder)
     local index = filename:match('^.*()' .. slash)
     local SUBFOLDER = subfolder or ''
     local NewFileName = r.GetResourcePath() ..
-        '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' .. SUBFOLDER .. filename:sub(index)
-    local relativePath = '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' ..
+        '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER .. filename:sub(index)
+    local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' ..
         SUBFOLDER .. filename:sub(index)
-    local Files = scandir('/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' .. SUBFOLDER)
+    local Files = scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
     if FindExactStringInTable(Files, NewFileName) then
       return NewFileName, relativePath
     else

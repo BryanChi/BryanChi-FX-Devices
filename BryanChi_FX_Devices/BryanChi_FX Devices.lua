@@ -1,19 +1,87 @@
--- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+-- @description FX Devices
+-- @author Bryan Chi
+-- @version 1.0beta10.4.2
+-- @changelog
+--   - Many thanks to Suzuki for this bug fix update!! 
+--   - "local u = ultraschall"
+--   - "Add Parameter to Envelope" correctly shows selected parameters instead of macro envelope.
+--   - Reflecting envelope to arrange 
+--   - The old path is updated to the new one.
+--   - Fixed FX Layering
+--   - Pro-Q opens properly
+-- @provides
+--   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
+--   [effect] FXD JSFXs/FXD Band Joiner.jsfx
+--   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
+--   [effect] FXD JSFXs/FXD Macros.jsfx
+--   [effect] FXD JSFXs/FXD ReSpectrum.jsfx
+--   [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
+--   [effect] FXD JSFXs/FXD Split to 32 Channels.jsfx
+--   [effect] FXD JSFXs/FXD Split To 4 Channels.jsfx
+--   [effect] FXD JSFXs/cookdsp.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/analysis.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/buffer.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/delay.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/dynamics.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/effects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/fftobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/filters.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/granulator.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/list.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/memalloc.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/midi.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/mmath.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/oscil.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/pobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/pvocobjects.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/random.jsfx-inc
+--   [effect] FXD JSFXs/cookdsp/scaling.jsfx-inc
+--   [effect] FXD JSFXs/firhalfband.jsfx-inc
+--   [effect] FXD JSFXs/spectrum.jsfx-inc
+--   [effect] FXD JSFXs/svf_filter.jsfx-inc
+--   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+--   src/Images/Attached Drawings/LED light.png
+--   src/Images/Knobs/Bitwig.png
+--   src/Images/Analog Knob 1.png
+--   src/Images/trash.png
+--   src/FX Layout Plugin Scripts/Pro Q 3.lua
+--   src/FX Layout Plugin Scripts/Pro C 2.lua
+--   src/ThemeColors.ini
+--   src/IconFont1.ttf
+--   src/Keyboard Shortcuts.ini
+--   src/FX Default Values.ini
+--   [main] src/FXD - Record Last Touch.lua
+--   src/Functions/EQ functions.lua
+--   src/Functions/General Functions.lua
+--   src/Functions/FX Layering.lua
+--   src/Functions/Layout Editor functions.lua
+--   src/Functions/Modulation.lua
+--   src/Functions/Theme Editor Functions.lua
+--   src/Functions/Filesystem_utils.lua
+--   src/Constants.lua
+--   src/Helpers/Sexan_FX_Browser.lua
+-- @about
+--   Please check the forum post for info:
+--   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 
 r = reaper
-require("BryanChi_FX Devices.Helpers.Sexan_FX_Browser")
-require("BryanChi_FX Devices.Functions.General Functions")
-require("BryanChi_FX Devices.Functions.EQ functions")
-require("BryanChi_FX Devices.Functions.Layout Editor functions")
-require("BryanChi_FX Devices.Functions.FX Layering")
-require("BryanChi_FX Devices.Functions.Modulation")
-require("BryanChi_FX Devices.Functions.Theme Editor Functions")
-require("BryanChi_FX Devices.Functions.Filesystem_utils")
-require("BryanChi_FX Devices.Constants")
-require("BryanChi_FX Devices.Colors")
+require("src.Helpers.Sexan_FX_Browser")
+require("src.Functions.General Functions")
+require("src.Functions.EQ functions")
+require("src.Functions.Layout Editor functions")
+require("src.Functions.FX Layering")
+require("src.Functions.Modulation")
+require("src.Functions.Theme Editor Functions")
+require("src.Functions.Filesystem_utils")
+require("src.Constants")
 PluginScript = {} ---@class PluginScript
 
 dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
@@ -21,7 +89,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta10.3.2 '
+VersionNumber = 'V1.0beta1.0beta10.4.2 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -537,7 +605,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 ----- Get plugin scripts path -------
-local pluginScriptPath = CurrentDirectory .. 'BryanChi_FX Devices/FX Layout Plugin Scripts'
+local pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
 ---List of Plugin Scripts for FXD
 PluginScripts = scandir(pluginScriptPath)
 for i, v in ipairs(PluginScripts) do
@@ -551,7 +619,7 @@ end
 
 
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-script_folder       = script_folder .. '/BryanChi_FX Devices'
+script_folder       = script_folder .. '/src'
 FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
 
 
@@ -606,8 +674,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
     function attachImagesAndFonts()
         Img = { -- TODO move to constants
-            Trash = r.ImGui_CreateImage(CurrentDirectory ..
-                '/BryanChi_FX Devices/Images/trash.png')
+            Trash = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/trash.png')
         }
 
 
@@ -2379,7 +2446,8 @@ function loop()
                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                             r.BR_EnvGetProperties(env)
                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight, defaultShape, faderScaling)
-                        r.UpdateArrange()
+                        r.TrackList_AdjustWindows(false)
+                        r.UpdateArrange()  
                         r.ImGui_CloseCurrentPopup(ctx)
                     end
                     SetTypeToEnv()
@@ -2531,53 +2599,51 @@ function loop()
                                     SpcIDinPost) then
                                 r.ImGui_CloseCurrentPopup(ctx)
                             end -- Add FX Window
-                            if r.ImGui_BeginMenu(ctx, 'FX Browser') then
-                                for i = 1, #CAT do
-                                    if r.ImGui_BeginMenu(ctx, CAT[i].name) then
-                                        if CAT[i].name == "FX CHAINS" then
-                                            DrawChildMenu(CAT[i].list, nil, FX_Idx)
-                                        end
+                            r.ImGui_SeparatorText(ctx, "PLUGINS")
+                            for i = 1, #CAT do
+                                if r.ImGui_BeginMenu(ctx, CAT[i].name) then
+                                    if CAT[i].name == "FX CHAINS" then
+                                        DrawChildMenu(CAT[i].list, nil, FX_Idx)
+                                    else
                                         for j = 1, #CAT[i].list do
-                                            if CAT[i].name ~= "FX CHAINS" then
-                                                if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
-                                                    for p = 1, #CAT[i].list[j].fx do
-                                                        if CAT[i].list[j].fx[p] then
-                                                            if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p], false) then
-                                                                if TRACK then
-                                                                    r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
-                                                                        false,
-                                                                        -1000 - FX_Idx)
-                                                                    LAST_USED_FX = CAT[i].list[j].fx[p]
-                                                                end
+                                            if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
+                                                for p = 1, #CAT[i].list[j].fx do
+                                                    if CAT[i].list[j].fx[p] then
+                                                        if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p]) then
+                                                            if TRACK then
+                                                                r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p],
+                                                                    false,
+                                                                    -1000 - FX_Idx)
+                                                                LAST_USED_FX = CAT[i].list[j].fx[p]
                                                             end
                                                         end
                                                     end
-                                                    r.ImGui_EndMenu(ctx)
                                                 end
+                                                r.ImGui_EndMenu(ctx)
                                             end
                                         end
-                                        r.ImGui_EndMenu(ctx)
                                     end
+                                    r.ImGui_EndMenu(ctx)
                                 end
-                                TRACK = r.GetSelectedTrack(0, 0)
-                                if r.ImGui_Selectable(ctx, "CONTAINER", false) then
-                                    r.TrackFX_AddByName(TRACK, "Container", false,
-                                        -1000 - r.TrackFX_GetCount(TRACK))
-                                    LAST_USED_FX = "Container"
-                                end
-                                if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR", false) then
-                                    r.TrackFX_AddByName(TRACK, "Video processor", false,
-                                        -1000 - r.TrackFX_GetCount(TRACK))
-                                    LAST_USED_FX = "Video processor"
-                                end
-                                if LAST_USED_FX then
-                                    if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX, false) then
-                                        r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
-                                            -1000 - r.TrackFX_GetCount(TRACK))
-                                    end
-                                end
-                                r.ImGui_EndMenu(ctx)
                             end
+                            TRACK = r.GetSelectedTrack(0, 0)
+                            if r.ImGui_Selectable(ctx, "CONTAINER") then
+                                r.TrackFX_AddByName(TRACK, "Container", false,
+                                    -1000 - r.TrackFX_GetCount(TRACK))
+                                LAST_USED_FX = "Container"
+                            end
+                            if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+                                r.TrackFX_AddByName(TRACK, "Video processor", false,
+                                    -1000 - r.TrackFX_GetCount(TRACK))
+                                LAST_USED_FX = "Video processor"
+                            end
+                            if LAST_USED_FX then
+                                if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+                                    r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
+                                        -1000 - r.TrackFX_GetCount(TRACK))
+                                end
+                            end
+                            r.ImGui_SeparatorText(ctx, "UTILS")
                             if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
                                 local FX_Idx = FX_Idx
                                 --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
@@ -4466,8 +4532,7 @@ function loop()
 
 
                                         if r.ImGui_Button(ctx, 'Save all values as default', -FLT_MIN) then
-                                            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts',
-                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                            local dir_path = CurrentDirectory .. 'src'
                                             local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
                                             local file = io.open(file_path, 'a+')
 
@@ -5215,8 +5280,7 @@ function loop()
 
                                                     if r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                                         if Mods == 0 then
-                                                            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts',
-                                                                'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+                                                            local dir_path = CurrentDirectory .. 'src'
                                                             local file_path = ConcatPath(dir_path,
                                                                 'FX Default Values.ini')
                                                             local file = io.open(file_path, 'r')
@@ -5550,13 +5614,14 @@ function loop()
                                                 end
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
                                                     if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
-                                                        local env = r.GetFXEnvelope(LT_Track, 0, FP.Num, true)
+                                                        local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true)
                                                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
                                                             r.BR_EnvGetProperties(env)
 
                                                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight,
                                                             defaultShape, faderScaling)
-                                                        r.UpdateArrange()
+                                                        r.TrackList_AdjustWindows(false)
+                                                        r.UpdateArrange()  
                                                     end
                                                     r.ImGui_BeginPopupContextItem(ctx, 'optional string str_idIn')
                                                     r.ImGui_EndPopup(ctx)
@@ -5613,8 +5678,8 @@ function loop()
                                     end
                                     --PluginScript.FX_Idx = FX_Idx
                                     -- PluginScript.Guid = FXGUID[FX_Idx]
-                                    --require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro C 2")
-                                    -- require("BryanChi_FX Devices.FX Layout Plugin Scripts.Pro Q 3")
+                                    --require("src.FX Layout Plugin Scripts.Pro C 2")
+                                    -- require("src.FX Layout Plugin Scripts.Pro Q 3")
 
 
 
@@ -6484,7 +6549,7 @@ function loop()
                                                         SubFolder = 'Knobs'
                                                     end
 
-                                                    local NewFileName = r.GetResourcePath() .. '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/' ..  SubFolder .. filename:sub(index)
+                                                    local NewFileName = r.GetResourcePath() .. 'src/Images/' ..  SubFolder .. filename:sub(index)
                                                     CopyFile(filename, NewFileName) ]]
 
                                                     AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
@@ -6578,7 +6643,7 @@ function loop()
                                             SetStyle('Minimalistic', 'Pro C')
                                             SetStyle('Invisible', 'Invisible')
                                             local Dir = r.GetResourcePath() ..
-                                                '/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Images/Knobs'
+                                                CurrentDirectory .. '/src/Images/Knobs' 
 
                                             if r.ImGui_IsWindowAppearing(ctx) then
                                                 StyleWindowImgFiles = scandir(Dir)
