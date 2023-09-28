@@ -1,9 +1,14 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4.1.2
+-- @version 1.0beta10.4.2
 -- @changelog
---   - less nested menus for FX adder
---   - Fix Adding fx chain crash
+--   - Many thanks to Suzuki for this bug fix update!! 
+--   - "local u = ultraschall"
+--   - "Add Parameter to Envelope" correctly shows selected parameters instead of macro envelope.
+--   - Reflecting envelope to arrange 
+--   - The old path is updated to the new one.
+--   - Fixed FX Layering
+--   - Pro-Q opens properly
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -84,7 +89,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta1.0beta10.4 '
+VersionNumber = 'V1.0beta1.0beta10.4.2 '
 FX_Add_Del_WaitTime = 2
 
 
