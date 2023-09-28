@@ -817,25 +817,19 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
 
     function attachImagesAndFonts()
+
         Img = {
-            Trash = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/trash.png');
-            Pin   = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/pin.png');
-            Pinned= r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/pinned.png');
-            Copy  = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/copy.png');
-            Paste  = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/paste.png');
-            Save  = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/save.png');
-            Sine  = r.ImGui_CreateImage(CurrentDirectory ..'/BryanChi_FX Devices/Images/sinewave.png');
-
-
-
-
+            Trash = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/trash.png');
+            Pin   = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/pin.png');
+            Pinned= r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/pinned.png');
+            Copy  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/copy.png');
+            Paste  = r.ImGui_CreateImage(CurrentDirectory ..'src/Images/paste.png');
+            Save  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/save.png');
+            Sine  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/sinewave.png');
         }
-
-
         for i = 6, 64, 1 do
             _G['Font_Andale_Mono_' .. i] = r.ImGui_CreateFont('andale mono', i)
         end
-
 
         Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold()) -- TODO move to constants
         r.ImGui_Attach(ctx, Font_Andale_Mono_20_B)
@@ -2286,7 +2280,7 @@ function loop()
                             notHoverFOL_Time = 0
                         end
                     end
-                elseif Trk[TrkID].Mod[i].Type == 'LFO' then
+                elseif Trk[TrkID].Mod[i].Type == 'LFO' then  
                     local function ChangeLFO(mode, V, gmem, StrName)
                         r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
                         r.gmem_write(5, i)    -- Tells jsfx which macro
@@ -2326,52 +2320,43 @@ function loop()
                     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'LFO' .. i .. 'Menu')
                     end
-                    local Y_Mid = T + H / 2
+
                     local G = 1  -- Gap between Drawing Coord values retrieved from jsfx
                     local HdrPosL, HdrPosT = r.ImGui_GetCursorScreenPos(ctx)
-
+                    function DrawShape (Node, L, W, H, T, Clr )
+                        if Node then 
+                            for i, v  in ipairs(Node) do 
+                                local W, H = W or  w , H or h
+                                
+                                local N = Node
+                                local L = L or HdrPosL 
+                                local h =LFO.DummyH
+                                local lastX =  N[math.max(i-1,1)].x * W +L
+                                local lastY = T +H - (-N[math.max(i-1,1)].y + 1)  * H 
+    
+                                local x =  N[i].x  *W + L
+                                local y = T + H- (-N[math.min(i, #Node)].y+1)  *H 
+    
+                                local CtrlX =   (N[i].ctrlX or ((N[math.max(i-1,1)].x  + N[i].x) / 2)) * W + L
+                                local CtrlY =   T + H - (- (N[i].ctrlY or ((N[math.max(i-1,1)].y + N[i].y) / 2))+1) *H 
+    
+                                local PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,x,y)
+    
+                                for i, v in ipairs(PtsX) do  
+                                    
+                                    if i > 1 and PtsX[i] <= L+W then      -- >1 because you need two points to draw a line
+                                        r.ImGui_DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], Clr or EightColors.LFO[Macro])
+                                    end
+                                end
+                            end
+                        end
+                    end
                     -- Draw Tiny Playhead
                     local PlayPos = L + r.gmem_read(108+i)/4 * w / ((Mc.LFO_leng or LFO.Def.Len)/4 )
                     r.ImGui_DrawList_AddLine(WDL ,PlayPos , T ,PlayPos, T+h , EightColors.LFO[Macro], 1 )
                     r.ImGui_DrawList_AddCircleFilled(WDL,PlayPos, T+ h -  MOD * h - 3/2 , 3, EightColors.LFO[Macro])
-                    if Mc.Node then 
-                        local X_is_Beyond_right_bound 
-                        for i, v  in ipairs(Mc.Node) do 
-                            local W, H = w , h
-                            
-                            local N = Mc.Node
-                            local L, w  = HdrPosL,  X_range -- (Which is X_range)
-                            local h =LFO.DummyH
-                            local lastX =  N[math.max(i-1,1)].x * W +L
-                            local lastY = T +H - (-N[math.max(i-1,1)].y + 1)  * H 
 
-                            local x =  N[i].x  *W + L
-                            local y = T + H- (-N[math.min(i, #Mc.Node)].y+1)  *H 
-
-                            local CtrlX =   (N[i].ctrlX or ((N[math.max(i-1,1)].x  + N[i].x) / 2)) * W + L
-                            local CtrlY =   T + H - (- (N[i].ctrlY or ((N[math.max(i-1,1)].y + N[i].y) / 2))+1) *H 
-
-                            local PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,x,y)
-
-                            for i, v in ipairs(PtsX) do  
-                                
-                                if i > 1 and PtsX[i] <= L+W then      -- >1 because you need two points to draw a line
-                                    r.ImGui_DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], EightColors.LFO[Macro])
-                                    --  r.ImGui_DrawList_AddText(FDL, PtsX[i-1] ,PtsY[i-1], 0xffffffff,i)
-                                end
-                            end
-
-
-
-
-                            --[[ if x < L+W and not X_is_Beyond_right_bound then -- prevents line from going over right broundary
-                                r.ImGui_DrawList_AddBezierQuadratic(WDL, lastX, lastY, CtrlX, CtrlY, x, y, EightColors.LFO[Macro], 1)
-                            elseif  x >= L+W and not X_is_Beyond_right_bound then 
-                                r.ImGui_DrawList_AddBezierQuadratic(WDL, lastX, lastY, CtrlX, CtrlY, math.min (x, L+W), y, EightColors.LFO[Macro], 1)
-                                X_is_Beyond_right_bound= true 
-                            end ]]
-                        end
-                    end
+                    DrawShape (Mc.Node, HdrPosL, w, h, T  )
 
 
                     if rv and not LFO_DragDir and Mods == 0 then
@@ -2419,13 +2404,13 @@ function loop()
                             SL(nil, 30)
                             if r.ImGui_ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
                                   LFO.OpenSaveDialog= Macro 
-
                             end
 
                             
                             SL()
                             if r.ImGui_ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
-                                r.ImGui_OpenPopup(ctx, 'Shape Selection Popup')
+                                LFO.OpenShapeSelect = Macro
+                                
                             end 
 
                             r.ImGui_Dummy(ctx, (LFO.Win.w ) * ((Mc.LFO_leng or LFO.Def.Len)/4 ) ,  LFO.DummyH)
@@ -2491,7 +2476,7 @@ function loop()
                                 local InsertPos
                                 local x = (x - L)/ LFO.DummyW
                                 local y = (y - T)/ LFO.DummyH
-                                msg(x ..'\n'..y)
+
 
                                 for i = 1, #Node, 1 do
                                     if i ~= #Node then
@@ -2867,7 +2852,7 @@ function loop()
                     
                     local HvrOnBtn = r.ImGui_IsItemHovered(ctx) 
                     local PinID = TrkID..'Macro = '..Macro
-                    if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog then  
+                    if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog or LFO.OpenShapeSelect then  
                         LFO.notHvrTime = 0
                         LFO.Tweaking, Mc.All_Coord =  open_LFO_Win(Track, Macro)
                         LFO.WinHovered = Macro
@@ -2928,8 +2913,6 @@ function loop()
                     if Mc.All_Coord then 
                         if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                             for i  , v in ipairs(Mc.All_Coord.X) do 
-                                msg(v)  -----!!!! all x coord is 0.02 bigger than intended!!!!
-                                        -----!!!!!   FIX values not recalled correctly on jsfx when switching tracks !!!!!  
                                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
                                 r.gmem_write(5, Macro)
                                 r.gmem_write(6, #Mc.Node*11)
@@ -2974,26 +2957,25 @@ function loop()
 
                             if r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) then 
                                 local LFO_Name = buf 
-                                local path = ConcatPath(CurrentDirectory, 'BryanChi_FX Devices', 'LFO Shapes')
+                                local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
                                 local file_path = ConcatPath(path, LFO_Name..'.ini')
                                 local file = io.open(file_path, 'w')
 
                                 
                                 for i, v in ipairs(Mc.Node) do 
-                                    file:write(i , '. x = ' , v.x , '\n') 
-                                    file:write(i , '. y = ' , v.y , '\n') 
+                                    if i ==1 then 
+                                        file:write('Total Number Of Nodes = ', #Mc.Node, '\n')
+                                    end
+                                    file:write(i , '.x = ' , v.x , '\n') 
+                                    file:write(i , '.y = ' , v.y , '\n') 
                                     if v.ctrlX and v.ctrlY then 
-                                        file:write(i , '. ctrlX = ' , v.ctrlX , '\n') 
-                                        file:write(i , '. ctrlY = ' , v.ctrlY , '\n') 
+                                        file:write(i , '.ctrlX = ' , v.ctrlX , '\n') 
+                                        file:write(i , '.ctrlY = ' , v.ctrlY , '\n') 
 
                                     end
                                     file:write( '\n')
 
                                 end
-
-
-
-
 
                                 LFO.OpenSaveDialog = nil 
                                 r.ImGui_CloseCurrentPopup(ctx)
@@ -3006,6 +2988,76 @@ function loop()
                         end
                     end
                         
+                    if LFO.OpenShapeSelect then 
+                        r.ImGui_OpenPopup(ctx, 'Shape Selection Popup')
+                        r.ImGui_SetNextWindowPos(ctx, L+LFO.DummyW + 30  ,T-LFO.DummyH - 200)
+                        if r.ImGui_BeginPopup(ctx, 'Shape Selection Popup', r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
+                            if r.ImGui_IsWindowAppearing(ctx) then  
+                                LFO.NodeBeforePreview = Mc.Node
+                            end
+                            local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+                            local W, H = 200, 100
+                             Shapes = Shapes or  {}
+                            
+                                for i, v in ipairs(F ) do 
+
+                                    local Shape = Get_LFO_Shape_From_File(v)
+                                    if Shape then 
+                                        Shapes[i] = Shape 
+                                        Shapes[i].Name = tostring(v):sub(0, -5) 
+                                    end 
+                                end
+
+
+                            local AnyShapeHovered 
+                            for i,v in pairs(Shapes) do 
+                                --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
+                                r.ImGui_Text(ctx, v.Name)
+                                if r.ImGui_Button(ctx,'##'..v.Name..i, W, H ) then 
+                                    Mc.Node = v 
+                                    LFO.NewShapeChosen = v
+                                end
+                                if r.ImGui_IsItemHovered(ctx) then
+                                    Mc.Node = v
+                                    AnyShapeHovered = true 
+                                    LFO.AnyShapeHovered = true 
+                                end
+                                local L, T = r.ImGui_GetItemRectMin(ctx)
+                                local w, h = r.ImGui_GetItemRectSize(ctx)
+                                r.ImGui_DrawList_AddRectFilled(WDL, L,T,L+w, T+h , 0xffffff33)
+                                r.ImGui_DrawList_AddRect(WDL, L,T,L+w, T+h , 0xffffff66)
+
+                                DrawShape (v , L,  w, h, T , 0xffffffaa)
+                                --[[ for i, V in ipairs(v) do 
+                                    msg(V)
+                                end ]]
+                            end
+
+
+
+                            -----!!!!!  add a revert to saved shape button, to recall from saved data-------
+
+                            if LFO.AnyShapeHovered  then  -- if any shape was hovered
+                                if not AnyShapeHovered then   -- if 'unhovered'
+                                    if  LFO.NewShapeChosen then 
+                                        local V = LFO.NewShapeChosen
+                                        Mc.Node = V   ---keep newly selected shape
+                                    else
+                                        Mc.Node = LFO.NodeBeforePreview     -- restore original shape
+                                    end
+                                    LFO.AnyShapeHovered = nil 
+                                    LFO.NewShapeChosen = nil 
+                                end
+                            end 
+
+
+                            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
+                                r.ImGui_CloseCurrentPopup(ctx)
+                                LFO.OpenShapeSelect = nil
+                            end
+                            r.ImGui_EndPopup(ctx)
+                        end
+                    end
 
                 end
                 

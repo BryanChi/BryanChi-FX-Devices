@@ -381,3 +381,37 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
     return Tweaking
 end
+
+
+function Get_LFO_Shape_From_File(filename)
+    if filename then 
+        local L = get_lines(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
+
+        local file = io.open(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
+        local content = file:read("a+")
+
+
+        local Count = get_aftr_Equal_Num(L[1])
+        local Node = {}
+
+
+
+        for i= 1, Count or 0, 1 do 
+
+            Node[i] = {}
+            local N = Node[i] 
+            --N.x = get_aftr_Equal_Num(content, i..'.x = ' )
+            N.x = RecallGlobInfo(content , i..'.x = ', 'Num')
+
+            N.y = RecallGlobInfo(content , i..'.y = ', 'Num')
+
+            N.ctrlX = RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
+
+            N.ctrlY = RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
+
+        end
+        if Node[1] then 
+            return Node
+        end
+    end
+end

@@ -10,8 +10,9 @@ function GetFileExtension(str)
     return str:match("^.+(%..+)$")
 end
 function InvisiBtn (ctx, x, y, str, w, h )  
-    
-    r.ImGui_SetCursorScreenPos(ctx, x,y)
+    if x and y then 
+        r.ImGui_SetCursorScreenPos(ctx, x,y)
+    end
     local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
 
 
@@ -271,10 +272,16 @@ function get_aftr_Equal_bool(str)
 end
 
 ---@param str string|nil
-function get_aftr_Equal_Num(str)
+function get_aftr_Equal_Num(str, Title)
     if str then
-        if str:find('=') then
-            return tonumber(str:sub(str:find('=') + 2))
+        if not Title then 
+            if str:find('=') then
+                return tonumber(str:sub(str:find('=') + 2))
+            end
+        else 
+            if str:find(Title) then
+                return tonumber(str:sub(str:find(Title) + 2))
+            end
         end
     else
         return nil
