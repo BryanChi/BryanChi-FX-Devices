@@ -56,14 +56,12 @@ end
 ---@param parmidx integer
 ---@param AliasName string
 function SetPrmAlias(TrkNum, fxid, parmidx, AliasName)
-    local u = ultraschall
-
-    retval, TrackStateChunk = u.GetTrackStateChunk_Tracknumber(TrkNum)
-    FXStateChunk = u.GetFXStateChunk(TrackStateChunk)
+    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrkNum)
+    FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
     retval, alteredFXStateChunk = ultraschall.AddParmAlias_FXStateChunk(FXStateChunk, fxid, parmidx, AliasName) --rv, alteredFXStateChunk = u.AddParmAlias_FXStateChunk( FXStateChunk, fxid, parmalias)
 
-    _, TrackStateChunk = u.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
-    _ = u.SetTrackStateChunk_Tracknumber(TrkNum, TrackStateChunk)
+    _, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
+    _ = ultraschall.SetTrackStateChunk_Tracknumber(TrkNum, TrackStateChunk)
 end
 
 ---@param TrkNum number

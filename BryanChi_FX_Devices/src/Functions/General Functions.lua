@@ -661,8 +661,7 @@ end
 ---@param FX_Idx integer
 ---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
-    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
-        'FX Layouts')
+    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
 
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')

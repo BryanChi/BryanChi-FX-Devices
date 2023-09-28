@@ -1930,8 +1930,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
 
-            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX',
-                'BryanChi_FX Devices', 'FX Layouts')
+            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
             local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
 
             -- Create directory for file if it doesn't exist
@@ -2450,8 +2449,7 @@ end
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
 function SaveLayoutEditings(FX_Name, ID, FxGUID)
-    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices',
-        'FX Layouts')
+    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
     r.RecursiveCreateDirectory(dir_path, 0)
