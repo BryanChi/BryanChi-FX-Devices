@@ -41,8 +41,8 @@ function demo.PushStyle()
             r.ImGui_PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX',
-            'BryanChi_FX Devices', 'ThemeColors.ini')
+        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
+            'src', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 
 
@@ -105,9 +105,9 @@ end
 function CallFile(mode, filename, folder)
     local dir_path
     if folder then
-        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices', folder)
+        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', folder)
     else
-        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'BryanChi_FX Devices')
+        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src')
     end
     local file_path = ConcatPath(dir_path, filename)
 
