@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.3
+-- @version 1.0beta10.5
 -- @changelog
 --   - Add New Modulator - LFO 
 -- @provides
