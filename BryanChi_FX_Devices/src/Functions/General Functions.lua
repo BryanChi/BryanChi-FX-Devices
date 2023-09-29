@@ -1,4 +1,5 @@
 -------------General Functions ------------------------------
+-- @version 1.0Beta 1
 
 r = reaper
 
@@ -8,6 +9,62 @@ r = reaper
 function GetFileExtension(str)
     return str:match("^.+(%..+)$")
 end
+function InvisiBtn (ctx, x, y, str, w, h )  
+    if x and y then 
+        r.ImGui_SetCursorScreenPos(ctx, x,y)
+    end
+    local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
+
+
+    return rv
+end
+
+function Curve_3pt_Bezier(startX,startY,controlX,controlY,endX,endY)
+    local X , Y = {}, {}
+    for t = 0, 1, 0.1 do
+
+        local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
+        local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
+        table.insert(X, x)
+        table.insert(Y, y)
+    end
+    return X,Y
+end
+
+
+function GetTrkSavedInfo(str, track, type  )
+
+    if type=='str' then 
+        return select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false))
+    else
+        return tonumber( select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false)))
+    end
+end
+
+function getProjSavedInfo(str, type  )
+
+    if type=='str' then 
+        return select(2, r.GetProjExtState(0, 'FX Devices', str ))
+    else
+        return tonumber(select(2, r.GetProjExtState(0, 'FX Devices', str ))) 
+    end
+end
+
+
+
+function Normalize_Val (V1, V2, ActualV ,  Bipolar)
+
+    local Range = math.abs( (math.max(V1, V2) - math.min(V1, V2)) )
+    
+    local NormV = (math.min(V1, V2)+ Range - ActualV) / Range
+
+    if Bipolar  then 
+        return  -1 + (NormV  )* 2
+    else 
+        return NormV
+    end
+end
+
 
 ---@param FX_Name string
 function ChangeFX_Name(FX_Name)
@@ -230,10 +287,16 @@ function get_aftr_Equal_bool(str)
 end
 
 ---@param str string|nil
-function get_aftr_Equal_Num(str)
+function get_aftr_Equal_Num(str, Title)
     if str then
-        if str:find('=') then
-            return tonumber(str:sub(str:find('=') + 2))
+        if not Title then 
+            if str:find('=') then
+                return tonumber(str:sub(str:find('=') + 2))
+            end
+        else 
+            if str:find(Title) then
+                return tonumber(str:sub(str:find(Title) + 2))
+            end
         end
     else
         return nil
@@ -532,6 +595,25 @@ function findDuplicates(t)
 end
 
 --------------ImGUI Related ---------------------
+function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
+    if PinStatus then 
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
+            PinStatus = nil 
+        end
+    else 
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
+            PinStatus = PinStr 
+        end
+    end
+    
+        if r.ImGui_IsItemHovered(ctx) then
+            TintClr = 0xCE1A28ff
+        end
+    return PinStatus, TintClr
+end
+
+
+
 ---@param FillClr number
 ---@param OutlineClr number
 ---@param Padding number
@@ -554,7 +636,7 @@ end
 ---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
-    if GetItemRect == 'GetItemRect' then
+    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
         L, T = r.ImGui_GetItemRectMin(ctx); R, B = r.ImGui_GetItemRectMax(ctx); w, h = r.ImGui_GetItemRectSize(ctx)
         --Get item rect
     end
@@ -579,13 +661,15 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
----TODO I think this function is un-used. Should we remove it?
----@param ctx ImGui_Context
----@param itm integer
----@param clr integer rgba color
-function PC(ctx, itm, clr)
-    r.ImGui_PushStyleColor(ctx, itm, clr)
+function Highlight_Itm(WDL, FillClr, OutlineClr )
+    local L, T = r.ImGui_GetItemRectMin(ctx); 
+    local R, B = r.ImGui_GetItemRectMax(ctx); 
+    
+    if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
+    if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
 end
+
+
 
 ---@param ctx ImGui_Context
 ---@param time integer count in
@@ -677,35 +761,113 @@ function HideCursor(time)
 
     Hide()
 end
+function GetAllInfoNeededEachLoop()
+    TimeEachFrame = r.ImGui_GetDeltaTime(ctx)
+    if ImGUI_Time == nil then ImGUI_Time = 0 end
+    ImGUI_Time             = ImGUI_Time + TimeEachFrame
+    _, TrkName             = r.GetTrackName(LT_Track)
 
----@param MouseBtn integer
-function HideCursorTillMouseUp(MouseBtn)
+    Wheel_V, Wheel_H       = r.ImGui_GetMouseWheel(ctx)
+    LT_Track               = r.GetLastTouchedTrack()
+    IsAnyMouseDown         = r.ImGui_IsAnyMouseDown(ctx)
+    LBtn_MousdDownDuration = r.ImGui_GetMouseDownDuration(ctx, 0)
+    LBtnRel                = r.ImGui_IsMouseReleased(ctx, 0)
+    RBtnRel                = r.ImGui_IsMouseReleased(ctx, 1)
+    IsLBtnClicked          = r.ImGui_IsMouseClicked(ctx, 0)
+    LBtnClickCount         = r.ImGui_GetMouseClickedCount(ctx, 0)
+    IsLBtnHeld             = r.ImGui_IsMouseDown(ctx, 0)
+    IsRBtnHeld             = r.ImGui_IsMouseDown(ctx, 1)
+    Mods                   = r.ImGui_GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
+    IsRBtnClicked          = r.ImGui_IsMouseClicked(ctx, 1)
+    LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0),
+        LT_FX_Number or 0)
+    TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
+    Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
+    LBtnDrag               = r.ImGui_IsMouseDragging(ctx, 0)
+    LBtnDC                 = r.ImGui_IsMouseDoubleClicked(ctx, 0)
+end
+
+function HideCursorTillMouseUp(MouseBtn, triggerKey)
     UserOS = r.GetOS()
     if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
-    if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
-        MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+    if MouseBtn then 
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+            MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+        end
+    elseif triggerKey then 
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+            MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+            
+        end
     end
 
     if MousePosX_WhenClick then
-        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
+        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick  )
+       
+        r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         local function Hide()
-            if r.ImGui_IsMouseDown(ctx, MouseBtn) then
-                r.JS_Mouse_SetCursor(Invisi_Cursor)
-                r.defer(Hide)
-            else
-                r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
-                if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
-                    r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+            if MouseBtn then 
+                if r.ImGui_IsMouseDown(ctx, MouseBtn) then
+
+                    r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+                    r.defer(Hide)
+                else
+                    r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                    if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
+                        r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                    end
+                end
+            elseif triggerKey then 
+
+                if r.ImGui_IsKeyDown(ctx, triggerKey) then
+                    r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+                    r.defer(Hide)
+                else
+                    r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                    if r.ImGui_IsKeyReleased(ctx, triggerKey) then 
+                        r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                    end
                 end
             end
         end
+       -- r.JS_Mouse_SetCursor(Invisi_Cursor)
+
         Hide()
     end
 end
+
+
+function GetMouseDelta(MouseBtn, triggerKey)
+    MouseDelta= MouseDelta or {}
+    local M = MouseDelta
+    if MouseBtn then 
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+            M.StX, M.StY = r.GetMousePosition()
+        end
+    end
+
+    if triggerKey then 
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+            M.StX, M.StY = r.GetMousePosition()
+        end
+    end
+
+    M.X_now, M.Y_now = r.GetMousePosition()
+
+    if M.StX ~= M.X_now or M.StY ~= M.Y_now then 
+        local outX, outY =  M.X_now-M.StX , M.StY - M.Y_now
+        M.StX, M.StY = r.GetMousePosition()
+        return outX, outY
+    else  return 0, 0
+    end
+
+
+end
+
 
 ---@param Name string
 ---@param FX_Idx integer
@@ -1260,12 +1422,13 @@ function scandir(directory)
     local Files = {}
     for i = 0, 999, 1 do
         local F = r.EnumerateFiles(directory, i)
-        if F then table.insert(Files, F) end
+        
+        if F and F ~= '.DS_Store' then table.insert(Files, F) end
 
         if not F then return Files end
     end
 
-    return F ---TODO should this be Files instead of F ?
+    --return F ---TODO should this be Files instead of F ?
 end
 
 ---@param ShowAlreadyAddedPrm boolean

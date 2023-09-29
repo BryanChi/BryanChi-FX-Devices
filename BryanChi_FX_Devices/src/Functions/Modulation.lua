@@ -1,3 +1,5 @@
+-- @version 1.0Beta 1
+
 -- @noindex
 
 r = reaper
@@ -376,4 +378,55 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     end
 
     return Tweaking
+end
+
+
+function Get_LFO_Shape_From_File(filename)
+    if filename then 
+
+
+        local file = io.open(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
+        if file then 
+
+            local L = get_lines(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
+
+            local content = file:read("a+")
+
+
+            local Count = get_aftr_Equal_Num(L[1])
+            local Node = {}
+
+
+
+            for i= 1, Count or 0, 1 do 
+
+                Node[i] = {}
+                local N = Node[i] 
+                --N.x = get_aftr_Equal_Num(content, i..'.x = ' )
+                N.x = RecallGlobInfo(content , i..'.x = ', 'Num')
+
+                N.y = RecallGlobInfo(content , i..'.y = ', 'Num')
+
+                N.ctrlX = RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
+
+                N.ctrlY = RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
+
+            end
+            if Node[1] then 
+                return Node
+            end
+        end
+    end
+end
+
+function WhenRightClickOnModulators(Macro)
+    if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
+        r.ImGui_OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
+    end
+    if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
+        if not AssigningMacro then AssigningMacro = Macro
+        else AssigningMacro = nil
+        end
+    end
+    if AssigningMacro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
 end

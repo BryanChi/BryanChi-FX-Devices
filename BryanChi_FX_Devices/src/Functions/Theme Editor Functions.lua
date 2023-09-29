@@ -105,9 +105,9 @@ end
 function CallFile(mode, filename, folder)
     local dir_path
     if folder then
-        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', folder)
+        dir_path = ConcatPath(CurrentDirectory, 'src', folder)
     else
-        dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src')
+        dir_path = ConcatPath(CurrentDirectory, 'src')
     end
     local file_path = ConcatPath(dir_path, filename)
 
