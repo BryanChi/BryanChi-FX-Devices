@@ -1,14 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.4.2
+-- @version 1.0beta10.3
 -- @changelog
---   - Many thanks to Suzuki for this bug fix update!! 
---   - "local u = ultraschall"
---   - "Add Parameter to Envelope" correctly shows selected parameters instead of macro envelope.
---   - Reflecting envelope to arrange 
---   - The old path is updated to the new one.
---   - Fixed FX Layering
---   - Pro-Q opens properly
+--   - Add New Modulator - LFO 
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -48,6 +42,9 @@
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Analog Knob 1.png
 --   src/Images/trash.png
+--   src/LFO Shapes/Square.ini
+--   src/LFO Shapes/Sine.ini
+--   src/LFO Shapes/Saw.ini
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
 --   src/ThemeColors.ini
@@ -1156,6 +1153,15 @@ function loop()
         ChangeFont_Var = nil
     end
 
+    if r.ImGui_IsKeyDown(ctx, r.ImGui_Key_X()) then 
+        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+    end
+
+    if r.ImGui_IsMouseDown(ctx, 0) then 
+        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+    end
+
+
 
 
     if Dock_Now then
@@ -1249,31 +1255,7 @@ function loop()
                 0xffffffff,
                 'Select a track to start')
         else -- of if LT_Track
-            function GetAllInfoNeededEachLoop()
-                TimeEachFrame = r.ImGui_GetDeltaTime(ctx)
-                if ImGUI_Time == nil then ImGUI_Time = 0 end
-                ImGUI_Time             = ImGUI_Time + TimeEachFrame
-                _, TrkName             = r.GetTrackName(LT_Track)
-
-                Wheel_V, Wheel_H       = r.ImGui_GetMouseWheel(ctx)
-                LT_Track               = r.GetLastTouchedTrack()
-                IsAnyMouseDown         = r.ImGui_IsAnyMouseDown(ctx)
-                LBtn_MousdDownDuration = r.ImGui_GetMouseDownDuration(ctx, 0)
-                LBtnRel                = r.ImGui_IsMouseReleased(ctx, 0)
-                RBtnRel                = r.ImGui_IsMouseReleased(ctx, 1)
-                IsLBtnClicked          = r.ImGui_IsMouseClicked(ctx, 0)
-                LBtnClickCount         = r.ImGui_GetMouseClickedCount(ctx, 0)
-                IsLBtnHeld             = r.ImGui_IsMouseDown(ctx, 0)
-                IsRBtnHeld             = r.ImGui_IsMouseDown(ctx, 1)
-                Mods                   = r.ImGui_GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
-                IsRBtnClicked          = r.ImGui_IsMouseClicked(ctx, 1)
-                LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0),
-                    LT_FX_Number or 0)
-                TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
-                Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
-                LBtnDrag               = r.ImGui_IsMouseDragging(ctx, 0)
-                LBtnDC                 = r.ImGui_IsMouseDoubleClicked(ctx, 0)
-            end
+            
 
             HintMessage = nil
             GetAllInfoNeededEachLoop()
@@ -1962,13 +1944,13 @@ function loop()
                                 r.ImGui_ResetMouseDragDelta(ctx)
                             end
                             SmallSEQActive = true
-                        elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
-                            if AssigningMacro then AssigningMacro = nil else AssigningMacro = i end
                         elseif r.ImGui_IsItemDeactivated(ctx) then
                             r.GetSetMediaTrackInfo_String(LT_Track,
                                 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St ..
                                 ' Val', S[St], true)
                         end
+                        WhenRightClickOnModulators(Macro)
+
 
 
                         local W, H = r.ImGui_GetItemRectSize(ctx)
@@ -1985,9 +1967,7 @@ function loop()
                             r.ImGui_DrawList_AddRect(Macros_WDL, L, T + H, L + W - 1, T, 0xffffff99)
                         end
                         SL(nil, 0)
-                        if (r.ImGui_IsItemClicked(ctx, 1)) and Mods == Ctrl then
-                            r.ImGui_OpenPopup(ctx, 'Step' .. i .. 'Menu')
-                        end
+
                     end
 
 
@@ -2197,17 +2177,8 @@ function loop()
                     r.ImGui_Button(ctx, 'Follower     ')
                     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'Follower' .. i .. 'Menu')
-                    elseif r.ImGui_IsItemClicked(ctx, 1) then
-                        if not AssigningMacro then
-                            AssigningMacro = i
-                        else
-                            AssigningMacro = nil
-                        end
                     end
-                    if AssigningMacro == i then
-                        BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
-                    end
-
+                    WhenRightClickOnModulators(Macro)
                     if r.ImGui_IsItemHovered(ctx) then FolMacroHover = i end
 
 
@@ -2327,8 +2298,10 @@ function loop()
 
                     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'LFO' .. i .. 'Menu')
+                    
                     end
 
+                    WhenRightClickOnModulators(Macro)
                     local G = 1  -- Gap between Drawing Coord values retrieved from jsfx
                     local HdrPosL, HdrPosT = r.ImGui_GetCursorScreenPos(ctx)
                     function DrawShape (Node, L, W, H, T, Clr )
@@ -2416,10 +2389,12 @@ function loop()
 
                             
                             SL()
-                            if r.ImGui_ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
-                                LFO.OpenShapeSelect = Macro
-                                
+
+                            if r.ImGui_ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint) then 
+                                if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end 
                             end 
+                            if LFO.OpenShapeSelect then Highlight_Itm(WDL, 0xffffff55 ) end 
+
 
                             r.ImGui_Dummy(ctx, (LFO.Win.w ) * ((Mc.LFO_leng or LFO.Def.Len)/4 ) ,  LFO.DummyH)
                             --local old_Win_T, old_Win_B = VP.y - 320, VP.y - 20
@@ -2429,12 +2404,15 @@ function loop()
                             LFO.DummyW = w
                             local L, T = r.ImGui_GetItemRectMin(ctx)
                             local Win_T, Win_B = T  , T+h     -- 7 is prob the window padding
-                            r.ImGui_DrawList_AddRectFilled(WDL , L, T, L+w, T+h , 0xffffff22)
+                            r.ImGui_DrawList_AddRectFilled(WDL , L, T, L+w, T+h , 0xffffff22)   
+                            SL()
+                            r.ImGui_Dummy(ctx, 10,  10)
+
 
                             LFO.Win.L, LFO.Win.R = L , L + X_range
                             local LineClr, CtClr = 0xffffff99, 0xffffff44
 
-                            Mc.Node = Mc.Node or {{x=0 , y = 0.5 },{x=1, y = 0.5 } } -- create two default tables for first and last point
+                            Mc.Node = Mc.Node or {{x=0 , y = 0 },{x=1, y = 1 } } -- create two default tables for first and last point
                             local Node = Mc.Node
 
 
@@ -2589,7 +2567,6 @@ function loop()
                                     SaveLFO('Node '..ID..' X', Node[ID].x)
                                     SaveLFO('Node '..ID..' Y',Node[ID].y)
                                     SaveLFO('Total Number of Nodes', #Node )
-
 
 
                                     if ID ~= #Node then
@@ -2794,7 +2771,7 @@ function loop()
                             r.ImGui_AlignTextToFramePadding(ctx)
                             r.ImGui_Text(ctx,'Speed:') SL()
                             r.ImGui_SetNextItemWidth(ctx, 50)
-                            local rv, V =  r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 4, 'x %.3f' )
+                            local rv, V =  r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 16, 'x %.3f' )
                             if r.ImGui_IsItemActive(ctx) then 
                                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
                                 tweaking = Macro 
@@ -2851,6 +2828,320 @@ function loop()
 
                             r.ImGui_End(ctx)
                         end
+
+
+                        if LFO.OpenShapeSelect == Macro then 
+
+                            r.ImGui_SetNextWindowPos(ctx, L+LFO.DummyW + 30  ,T-LFO.DummyH - 200)
+                            ShapeFilter = r.ImGui_CreateTextFilter(Shape_Filter_Txt)
+                            r.ImGui_SetNextWindowSizeConstraints( ctx, 220, 150, 240, 700)
+                            if r.ImGui_Begin(ctx, 'Shape Selection Popup',true,  r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
+                                local W, H = 150, 75
+                                local function DrawShapesInSelector(Shapes)
+                                    local AnyShapeHovered
+                                    for i,v in pairs(Shapes) do 
+                                        --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
+
+                                        if r.ImGui_TextFilter_PassFilter(ShapeFilter, v.Name) then
+                                            r.ImGui_Text(ctx, v.Name or i)
+                                           
+                                            --reaper.ImGui_SetCursorPosX( ctx, - 15 )
+                                            local L, T = r.ImGui_GetItemRectMin(ctx)
+                                            if r.ImGui_IsMouseHoveringRect( ctx, L,T, L+ 200, T + 10 ) then 
+                                                SL( W-8)
+    
+                                                if TrashIcon(8, 'delete'..(v.Name or i), 0xffffff00) then 
+                                                    r.ImGui_OpenPopup(ctx, 'Delete shape prompt'..i)
+                                                    r.ImGui_SetNextWindowPos(ctx,L, T)
+                                                end
+                                            end
+                                            
+                                            if r.ImGui_Button(ctx,'##'..(v.Name or i)..i, W, H ) then 
+                                                Mc.Node = v 
+                                                LFO.NewShapeChosen = v
+                                            end
+                                            if r.ImGui_IsItemHovered(ctx) then
+                                                Mc.Node = v
+                                                AnyShapeHovered = true 
+                                                LFO.AnyShapeHovered = true 
+                                            end
+                                            local L, T = r.ImGui_GetItemRectMin(ctx)
+                                            local w, h = r.ImGui_GetItemRectSize(ctx)
+                                            r.ImGui_DrawList_AddRectFilled(WDL, L,T,L+w, T+h , 0xffffff33)
+                                            r.ImGui_DrawList_AddRect(WDL, L,T,L+w, T+h , 0xffffff66)
+    
+                                            DrawShape (v , L,  w, h, T , 0xffffffaa)
+                                        end
+                                        if r.ImGui_BeginPopupModal(ctx, 'Delete shape prompt'..i, true ,  r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_NoResize()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
+                                            r.ImGui_Text(ctx, 'Confirm deleting this shape:')
+                                            if  r.ImGui_Button(ctx, 'yes') or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Y()) or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) then 
+                                               LFO.DeleteShape = i 
+                                               r.ImGui_CloseCurrentPopup(ctx)
+    
+                                            end
+                                            SL()
+                                            if r.ImGui_Button(ctx, 'No') or  r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_N()) or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
+                                                r.ImGui_CloseCurrentPopup(ctx)
+                                            end
+                                            r.ImGui_EndPopup(ctx)
+                                        end
+                                    end
+                                    if LFO.AnyShapeHovered  then  -- if any shape was hovered
+                                        if not AnyShapeHovered then   -- if 'unhovered'
+                                            if  LFO.NewShapeChosen then 
+                                                local V = LFO.NewShapeChosen
+                                                Mc.Node = V   ---keep newly selected shape
+                                            else
+                                                Mc.Node = LFO.NodeBeforePreview     -- restore original shape
+                                            end
+                                            LFO.NodeBeforePreview = Mc.Node
+                                            LFO.AnyShapeHovered = nil 
+                                            LFO.NewShapeChosen = nil 
+                                        end
+                                    end 
+
+                                    
+                                    return AnyShapeHovered
+                                end
+
+
+                                local function  Global_Shapes()
+                                    
+                                    if r.ImGui_IsWindowAppearing(ctx) then  
+                                        LFO.NodeBeforePreview = Mc.Node
+                                    end
+                                    
+                                    Shapes =  {}
+    
+    
+    
+                                    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+                                    
+    
+                                    for i, v in ipairs(F ) do 
+    
+                                        local Shape = Get_LFO_Shape_From_File(v)
+                                        if Shape then 
+                                            Shape.Name = tostring(v):sub(0, -5) 
+                                            table.insert( Shapes, Shape )
+                                        end 
+                                    end
+    
+    
+                                    if LFO.DeleteShape then
+                                        os.remove(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', Shapes[LFO.DeleteShape].Name..'.ini' ))
+                                        table.remove(Shapes, LFO.DeleteShape)
+                                        LFO.DeleteShape = nil 
+                                    end
+    
+                                    if r.ImGui_TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1 ) then
+                                        Shape_Filter_Txt = r.ImGui_TextFilter_Get(ShapeFilter)
+                                        r.ImGui_TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
+                                    end
+    
+    
+    
+
+                                    AnyShapeHovered = DrawShapesInSelector(Shapes)
+    
+                                    
+    
+                                    
+                                  
+    
+    
+                                   
+    
+    
+                                    if r.ImGui_IsWindowFocused( ctx) and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
+                                        
+                                        r.ImGui_CloseCurrentPopup(ctx)
+                                        LFO.OpenShapeSelect = nil
+                                    end
+                                end
+
+
+                                local function Save_Shape_To_Track()
+                                    local HowManySavedShapes = GetTrkSavedInfo ('LFO Saved Shape Count')
+
+                                    if HowManySavedShapes then 
+                                        r.GetSetMediaTrackInfo_String(LT_Track,  'P_EXT: LFO Saved Shape Count', (HowManySavedShapes or 0)+1, true )
+                                    else r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', 1, true )
+                                    end
+                                    local I  = (HowManySavedShapes or 0 )+1
+                                    for i, v in ipairs(Mc.Node) do 
+                                        if i ==1 then 
+                                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'LFO Node Count = ', #Mc.Node, true)
+                                        end
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. 'x = ', v.x, true)
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. 'y = ', v.y, true)
+
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. '.ctrlX = ' , v.ctrlX or '',true)
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. '.ctrlY = ' , v.ctrlY or '',true)
+
+                                    end
+                                   
+                                end
+                                local function Save_Shape_To_Project()
+
+                                    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count' )
+
+                                    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count' , (HowManySavedShapes or 0)+1 )
+
+
+                                    local I  = (HowManySavedShapes or 0 )+1
+                                    for i, v in ipairs(Mc.Node) do 
+                                        if i ==1 then 
+                                            r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node Count = ' ,  #Mc.Node )
+                                        end
+                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. 'x = ', v.x)
+                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. 'y = ', v.y)
+
+                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. '.ctrlX = ' , v.ctrlX or '' )
+                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. '.ctrlY = ' , v.ctrlY or '' )
+                                    end
+                                end
+
+                                local function Track_Shapes()
+                                    local Shapes = {}
+                                    local HowManySavedShapes = GetTrkSavedInfo ('LFO Saved Shape Count')
+                                    
+
+                                    for I=1, HowManySavedShapes or 0, 1 do 
+                                        local Shape = {}
+                                        local Ct = GetTrkSavedInfo ('Shape'..I..'LFO Node Count = ')
+
+                                        for i=1, Ct or 1  , 1 do 
+                                            Shape[i] =  Shape[i] or {}
+                                            Shape[i].x =     GetTrkSavedInfo ('Shape'..I..'Node '..i.. 'x = ')
+                                            Shape[i].y =     GetTrkSavedInfo ('Shape'..I..'Node '..i.. 'y = ')
+                                            Shape[i].ctrlX = GetTrkSavedInfo ('Shape'..I..'Node '..i.. '.ctrlX = ' )
+                                            Shape[i].ctrlY = GetTrkSavedInfo ('Shape'..I..'Node '..i.. '.ctrlY = ' )
+                                        end
+                                        if Shape[1] then 
+                                            table.insert(Shapes, Shape)
+                                        end
+                                    end
+
+                                    if LFO.DeleteShape then
+                                        local Count = GetTrkSavedInfo ('LFO Saved Shape Count')
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count' , Count-1 , true ) 
+                                        table.remove(Shapes, LFO.DeleteShape)
+                                        
+                                        for  I, V in ipairs(Shapes) do -- do for every shape
+                                            for i, v in ipairs(V) do  --- do for every node
+                                                if i ==1 then 
+                                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'LFO Node Count = ', #V, true)
+                                                end
+
+                                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. 'x = ', v.x or '', true)
+                                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. 'y = ', v.y or '', true)
+
+                                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. '.ctrlX = ' , v.ctrlX or '' ,true)
+                                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape'..I..'Node '..i.. '.ctrlY = ' , v.ctrlY or '' ,true)
+
+                                            end
+                                        end
+                                        LFO.DeleteShape = nil 
+                                    end
+                                    
+                                    DrawShapesInSelector(Shapes)
+
+                                end
+                                local function Proj_Shapes()
+                                    local Shapes = {}
+                                    local HowManySavedShapes = getProjSavedInfo ('LFO Saved Shape Count')
+
+                                    for I=1, HowManySavedShapes or 0, 1 do 
+                                        local Shape = {}
+                                        local Ct = getProjSavedInfo ('LFO Shape'..I..'Node Count = ')
+                                        for i=1, Ct or 1  , 1 do 
+                                            Shape[i] =  Shape[i] or {}
+                                            Shape[i].x =     getProjSavedInfo ('LFO Shape'..I..'Node '..i.. 'x = ')
+                                            Shape[i].y =     getProjSavedInfo ('LFO Shape'..I..'Node '..i.. 'y = ')
+                                            Shape[i].ctrlX = getProjSavedInfo ('LFO Shape'..I..'Node '..i.. '.ctrlX = ' )
+                                            Shape[i].ctrlY = getProjSavedInfo ('LFO Shape'..I..'Node '..i.. '.ctrlY = ' )
+                                        end
+                                        if Shape[1] then 
+                                            table.insert(Shapes, Shape)
+                                        end
+                                    end
+
+                                    if LFO.DeleteShape then
+                                        local Count = getProjSavedInfo ('LFO Saved Shape Count')
+                                        r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count' , Count-1  ) 
+                                        table.remove(Shapes, LFO.DeleteShape)
+                                        
+                                        for  I, V in ipairs(Shapes) do -- do for every shape
+                                            for i, v in ipairs(V) do  --- do for every node
+                                                if i ==1 then 
+                                                    r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node Count = ', #V)
+                                                end
+
+                                                 r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. 'x = ', v.x or '')
+                                                 r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. 'y = ', v.y or '')
+
+                                                 r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. '.ctrlX = ' , v.ctrlX or '' )
+                                                 r.SetProjExtState(0, 'FX Devices', 'LFO Shape'..I..'Node '..i.. '.ctrlY = ' , v.ctrlY or '' )
+
+                                            end
+                                        end
+                                        LFO.DeleteShape = nil 
+                                    end
+                                    
+                                    DrawShapesInSelector(Shapes)
+
+                                end 
+
+                                if r.ImGui_ImageButton(ctx, '## save' .. Macro, Img.Save, 12, 12, nil, nil, nil, nil, ClrBG, ClrTint) then 
+                                    if LFO.OpenedTab == 'Global' then 
+                                        LFO.OpenSaveDialog= Macro 
+                                    elseif LFO.OpenedTab == 'Project' then 
+                                        Save_Shape_To_Project()
+                                    elseif LFO.OpenedTab == 'Track' then
+                                        Save_Shape_To_Track()
+                                    end
+                                end
+                                SL()
+                                r.ImGui_AlignTextToFramePadding(ctx)
+
+    
+                                if r.ImGui_BeginTabBar(ctx, 'shape select tab bar') then 
+                                    
+                                    if r.ImGui_BeginTabItem(ctx, 'Global') then 
+                                        Global_Shapes ()
+                                        LFO.OpenedTab = 'Global'
+                                        r.ImGui_EndTabItem(ctx)
+                                    end
+    
+                                    if r.ImGui_BeginTabItem(ctx, 'Project') then 
+                                        Proj_Shapes()
+                                        LFO.OpenedTab = 'Project'
+                                        r.ImGui_EndTabItem(ctx)
+                                    end
+    
+                                    if r.ImGui_BeginTabItem(ctx, 'Track') then 
+                                        Track_Shapes()
+                                        LFO.OpenedTab = 'Track'
+                                        r.ImGui_EndTabItem(ctx)
+                                    end
+
+                                    r.ImGui_EndTabBar(ctx)
+                                end
+
+                                if r.ImGui_IsWindowHovered(ctx,r.ImGui_FocusedFlags_RootAndChildWindows()) then 
+                                    LFO.HoveringShapeWin = Macro 
+                                else LFO.HoveringShapeWin = nil 
+                                end
+                                r.ImGui_End(ctx)
+                            end
+                        end
+
+
+
+
+
+
                         return tweaking, All_Coord
                        
                         
@@ -2860,7 +3151,7 @@ function loop()
                     
                     local HvrOnBtn = r.ImGui_IsItemHovered(ctx) 
                     local PinID = TrkID..'Macro = '..Macro
-                    if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog or LFO.OpenShapeSelect then  
+                    if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog==Macro or LFO.HoveringShapeWin ==Macro  then  
                         LFO.notHvrTime = 0
                         LFO.Tweaking, Mc.All_Coord =  open_LFO_Win(Track, Macro)
                         LFO.WinHovered = Macro
@@ -2946,7 +3237,7 @@ function loop()
                             T + H - (Mc.StepV[s] or 0), EightColors.LFO[i], 2)
                         --r.ImGui_DrawList_PathLineTo(WDL, L+s,  Y_Mid+math.sin(s/Mc.Freq) * Mc.Gain)
                     end ]]
-                    if LFO.OpenSaveDialog then 
+                    if LFO.OpenSaveDialog==Macro then 
                         r.ImGui_OpenPopup(ctx,  'Decide Name')
                         r.ImGui_SetNextWindowPos(ctx, L  ,T-LFO.DummyH)
                         r.ImGui_SetNextWindowFocus( ctx)
@@ -2954,21 +3245,21 @@ function loop()
                         if r.ImGui_BeginPopupModal( ctx, 'Decide Name',  true ,r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
                             r.ImGui_Text(ctx, 'Enter a name for the shape: ')
                             SL()
-                            r.ImGui_Text(ctx, '(?)')
+                            --[[ r.ImGui_Text(ctx, '(?)')
                             if r.ImGui_IsItemHovered(ctx) then 
                                 tooltip('use / in file name to save into sub-directories')
-                            end
+                            end ]]
 
                             r.ImGui_SetNextItemWidth(ctx, LFO.Def.DummyW)  
                              r.ImGui_SetKeyboardFocusHere(ctx)  
                             local rv, buf =  r.ImGui_InputText(ctx, buf or '##Name' ,buf)
 
-                            if r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) then 
+                            if r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0 then 
                                 local LFO_Name = buf 
                                 local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
                                 local file_path = ConcatPath(path, LFO_Name..'.ini')
                                 local file = io.open(file_path, 'w')
-
+                                
                                 
                                 for i, v in ipairs(Mc.Node) do 
                                     if i ==1 then 
@@ -2991,81 +3282,14 @@ function loop()
                                 r.ImGui_CloseCurrentPopup(ctx)
                                 LFO.OpenSaveDialog = nil 
                             end
+                            
+
                             r.ImGui_EndPopup(ctx)
         
                         end
                     end
                         
-                    if LFO.OpenShapeSelect then 
-                        r.ImGui_OpenPopup(ctx, 'Shape Selection Popup')
-                        r.ImGui_SetNextWindowPos(ctx, L+LFO.DummyW + 30  ,T-LFO.DummyH - 200)
-                        if r.ImGui_BeginPopup(ctx, 'Shape Selection Popup', r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
-                            if r.ImGui_IsWindowAppearing(ctx) then  
-                                LFO.NodeBeforePreview = Mc.Node
-                            end
-                            local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
-                            local W, H = 200, 100
-                             Shapes = Shapes or  {}
-                            
-                                for i, v in ipairs(F ) do 
-
-                                    local Shape = Get_LFO_Shape_From_File(v)
-                                    if Shape then 
-                                        Shapes[i] = Shape 
-                                        Shapes[i].Name = tostring(v):sub(0, -5) 
-                                    end 
-                                end
-
-
-                            local AnyShapeHovered 
-                            for i,v in pairs(Shapes) do 
-                                --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
-                                r.ImGui_Text(ctx, v.Name)
-                                if r.ImGui_Button(ctx,'##'..v.Name..i, W, H ) then 
-                                    Mc.Node = v 
-                                    LFO.NewShapeChosen = v
-                                end
-                                if r.ImGui_IsItemHovered(ctx) then
-                                    Mc.Node = v
-                                    AnyShapeHovered = true 
-                                    LFO.AnyShapeHovered = true 
-                                end
-                                local L, T = r.ImGui_GetItemRectMin(ctx)
-                                local w, h = r.ImGui_GetItemRectSize(ctx)
-                                r.ImGui_DrawList_AddRectFilled(WDL, L,T,L+w, T+h , 0xffffff33)
-                                r.ImGui_DrawList_AddRect(WDL, L,T,L+w, T+h , 0xffffff66)
-
-                                DrawShape (v , L,  w, h, T , 0xffffffaa)
-                                --[[ for i, V in ipairs(v) do 
-                                    msg(V)
-                                end ]]
-                            end
-
-
-
-                            -----!!!!!  add a revert to saved shape button, to recall from saved data-------
-
-                            if LFO.AnyShapeHovered  then  -- if any shape was hovered
-                                if not AnyShapeHovered then   -- if 'unhovered'
-                                    if  LFO.NewShapeChosen then 
-                                        local V = LFO.NewShapeChosen
-                                        Mc.Node = V   ---keep newly selected shape
-                                    else
-                                        Mc.Node = LFO.NodeBeforePreview     -- restore original shape
-                                    end
-                                    LFO.AnyShapeHovered = nil 
-                                    LFO.NewShapeChosen = nil 
-                                end
-                            end 
-
-
-                            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
-                                r.ImGui_CloseCurrentPopup(ctx)
-                                LFO.OpenShapeSelect = nil
-                            end
-                            r.ImGui_EndPopup(ctx)
-                        end
-                    end
+                    
 
                 end
                 

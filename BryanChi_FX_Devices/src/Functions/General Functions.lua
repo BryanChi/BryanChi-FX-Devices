@@ -32,8 +32,23 @@ function Curve_3pt_Bezier(startX,startY,controlX,controlY,endX,endY)
 end
 
 
+function GetTrkSavedInfo(str, track, type  )
 
+    if type=='str' then 
+        return select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false))
+    else
+        return tonumber( select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false)))
+    end
+end
 
+function getProjSavedInfo(str, type  )
+
+    if type=='str' then 
+        return select(2, r.GetProjExtState(0, 'FX Devices', str ))
+    else
+        return tonumber(select(2, r.GetProjExtState(0, 'FX Devices', str ))) 
+    end
+end
 
 
 
@@ -597,6 +612,8 @@ function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
     return PinStatus, TintClr
 end
 
+
+
 ---@param FillClr number
 ---@param OutlineClr number
 ---@param Padding number
@@ -619,7 +636,7 @@ end
 ---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding)
-    if GetItemRect == 'GetItemRect' then
+    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
         L, T = r.ImGui_GetItemRectMin(ctx); R, B = r.ImGui_GetItemRectMax(ctx); w, h = r.ImGui_GetItemRectSize(ctx)
         --Get item rect
     end
@@ -644,13 +661,15 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
----TODO I think this function is un-used. Should we remove it?
----@param ctx ImGui_Context
----@param itm integer
----@param clr integer rgba color
-function PC(ctx, itm, clr)
-    r.ImGui_PushStyleColor(ctx, itm, clr)
+function Highlight_Itm(WDL, FillClr, OutlineClr )
+    local L, T = r.ImGui_GetItemRectMin(ctx); 
+    local R, B = r.ImGui_GetItemRectMax(ctx); 
+    
+    if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
+    if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
 end
+
+
 
 ---@param ctx ImGui_Context
 ---@param time integer count in
@@ -742,6 +761,31 @@ function HideCursor(time)
 
     Hide()
 end
+function GetAllInfoNeededEachLoop()
+    TimeEachFrame = r.ImGui_GetDeltaTime(ctx)
+    if ImGUI_Time == nil then ImGUI_Time = 0 end
+    ImGUI_Time             = ImGUI_Time + TimeEachFrame
+    _, TrkName             = r.GetTrackName(LT_Track)
+
+    Wheel_V, Wheel_H       = r.ImGui_GetMouseWheel(ctx)
+    LT_Track               = r.GetLastTouchedTrack()
+    IsAnyMouseDown         = r.ImGui_IsAnyMouseDown(ctx)
+    LBtn_MousdDownDuration = r.ImGui_GetMouseDownDuration(ctx, 0)
+    LBtnRel                = r.ImGui_IsMouseReleased(ctx, 0)
+    RBtnRel                = r.ImGui_IsMouseReleased(ctx, 1)
+    IsLBtnClicked          = r.ImGui_IsMouseClicked(ctx, 0)
+    LBtnClickCount         = r.ImGui_GetMouseClickedCount(ctx, 0)
+    IsLBtnHeld             = r.ImGui_IsMouseDown(ctx, 0)
+    IsRBtnHeld             = r.ImGui_IsMouseDown(ctx, 1)
+    Mods                   = r.ImGui_GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
+    IsRBtnClicked          = r.ImGui_IsMouseClicked(ctx, 1)
+    LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0),
+        LT_FX_Number or 0)
+    TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
+    Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
+    LBtnDrag               = r.ImGui_IsMouseDragging(ctx, 0)
+    LBtnDC                 = r.ImGui_IsMouseDoubleClicked(ctx, 0)
+end
 
 function HideCursorTillMouseUp(MouseBtn, triggerKey)
     UserOS = r.GetOS()
@@ -756,16 +800,19 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
     elseif triggerKey then 
         if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+            
         end
     end
 
     if MousePosX_WhenClick then
         window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick  )
+       
+        r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         local function Hide()
             if MouseBtn then 
                 if r.ImGui_IsMouseDown(ctx, MouseBtn) then
-                    r.JS_Mouse_SetCursor(Invisi_Cursor)
+
                     r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
                     r.defer(Hide)
                 else
@@ -777,7 +824,6 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
             elseif triggerKey then 
 
                 if r.ImGui_IsKeyDown(ctx, triggerKey) then
-                    r.JS_Mouse_SetCursor(Invisi_Cursor)
                     r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
                     r.defer(Hide)
                 else
@@ -788,6 +834,8 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
                 end
             end
         end
+       -- r.JS_Mouse_SetCursor(Invisi_Cursor)
+
         Hide()
     end
 end
@@ -1374,12 +1422,13 @@ function scandir(directory)
     local Files = {}
     for i = 0, 999, 1 do
         local F = r.EnumerateFiles(directory, i)
-        if F then table.insert(Files, F) end
+        
+        if F and F ~= '.DS_Store' then table.insert(Files, F) end
 
         if not F then return Files end
     end
 
-    return F ---TODO should this be Files instead of F ?
+    --return F ---TODO should this be Files instead of F ?
 end
 
 ---@param ShowAlreadyAddedPrm boolean
