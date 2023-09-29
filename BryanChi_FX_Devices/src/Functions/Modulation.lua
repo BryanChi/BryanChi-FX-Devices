@@ -11,44 +11,50 @@ ultraschall = ultraschall
 ---@param PARAM_Num number
 ---@param parmlink boolean
 ---@param MIDIPLINK boolean
----@param Category? integer
----@param CC_or_Note_Num? integer
----@param Baseline_V? number
----@param Scale? number
-function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Category,
-                          CC_or_Note_Num,
-                          Baseline_V, Scale)
-    --NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
-    --('TrackNumToBeMod'..TrackNumToBeMod.. '\n FX_Slt_Indx_ToBeMod'..FX_Slt_Indx_ToBeMod..'\n PARAM_Num'..PARAM_Num..'\n'..'CC_or_Note_Num'..CC_or_Note_Num..'\n')
-    ParmModTable                                        = ultraschall.CreateDefaultParmModTable()
+---@param Linked_Plugin number
+---@param Linked_Self number
+---@param Linked_Parm number
+---@param Category integer
+---@param CC_or_Note_Num integer
+---@param Baseline_V number
+---@param Scale number
+function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Linked_Plugin, Linked_Self, Linked_Parm, Category,
+    CC_or_Note_Num,
+    Baseline_V, Scale)
+--NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
+--('TrackNumToBeMod'..TrackNumToBeMod.. '\n FX_Slt_Indx_ToBeMod'..FX_Slt_Indx_ToBeMod..'\n PARAM_Num'..PARAM_Num..'\n'..'CC_or_Note_Num'..CC_or_Note_Num..'\n')
+ParmModTable                                        = ultraschall.CreateDefaultParmModTable()
 
-    ParmModTable["PARMLINK"]                            = parmlink
+ParmModTable["PARMLINK"]                            = parmlink
 
-    ParmModTable["MIDIPLINK"]                           = MIDIPLINK
-    ParmModTable["PARAM_TYPE"]                          = ""
+ParmModTable["MIDIPLINK"]                           = MIDIPLINK
+ParmModTable["PARAM_TYPE"]                          = ""
 
-    ParmModTable["WINDOW_ALTERED"]                      = false
-    ParmModTable["PARMLINK_LINKEDPLUGIN"]               = -100
-    ParmModTable["MIDIPLINK_BUS"]                       = 16
-    ParmModTable["MIDIPLINK_CHANNEL"]                   = 16
-    ParmModTable["MIDIPLINK_MIDICATEGORY"]              = Category      -- 176 is CC
-    ParmModTable["MIDIPLINK_MIDINOTE"]                  = CC_or_Note_Num
-    ParmModTable["PARAM_NR"]                            = PARAM_Num + 1 --Param Number to be modulated
-    ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"] = true
-    if Baseline_V then ParmModTable["PARAMOD_BASELINE"] = Baseline_V end
-    if Scale then ParmModTable["PARMLINK_SCALE"] = Scale end
+ParmModTable["WINDOW_ALTERED"]                      = false
+
+ParmModTable["PARMLINK_LINKEDPLUGIN"]               = Linked_Plugin + 1 -- -100 for MIDI-parameter-settings, so you need to set -101
+ParmModTable["PARMLINK_LINKEDPLUGIN_RELATIVE"]      = Linked_Self -- for (self) FX link
+ParmModTable["MIDIPLINK_BUS"]                       = 16
+ParmModTable["MIDIPLINK_CHANNEL"]                   = 16
+ParmModTable["MIDIPLINK_MIDICATEGORY"]              = Category      -- 176 is CC
+ParmModTable["MIDIPLINK_MIDINOTE"]                  = CC_or_Note_Num
+ParmModTable["PARAM_NR"]                            = PARAM_Num + 1 --Param Number to be modulated
+ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"] = true
+if Linked_Parm == -1 then ParmModTable["PARMLINK_LINKEDPARMIDX"] = Linked_Parm else ParmModTable["PARMLINK_LINKEDPARMIDX"] = Linked_Parm + 1 end -- Use -1 instead of nil, or it doesn't work
+if Baseline_V then ParmModTable["PARAMOD_BASELINE"] = Baseline_V end
+if Scale then ParmModTable["PARMLINK_SCALE"] = Scale end
 
 
-    whetherValid = ultraschall.IsValidParmModTable(ParmModTable)
+whetherValid = ultraschall.IsValidParmModTable(ParmModTable)
 
 
-    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumToBeMod)
-    FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-    alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, ParmModTable)
-    retval, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
-    retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
+retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumToBeMod)
+FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
+alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, ParmModTable)
+retval, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
+retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
 
-    tab = ultraschall.GetParmModTable_FXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, PARAM_Num + 1)
+tab = ultraschall.GetParmModTable_FXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, PARAM_Num + 1)
 end
 
 ---@param TrkNum number
@@ -179,7 +185,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow = r.time_precise()
             r.gmem_write(11000 + CC, p_value)
-            Link_Param_to_CC(LT_TrackNum, LT_FX_Number, P_Num, true, true, 176, CC)
+            Link_Param_to_CC(LT_TrackNum, LT_FX_Number, P_Num, true, true, -101, nil, -1, 176, CC)
         end
 
         Tweaking = nil
@@ -292,7 +298,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
         r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
         PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
-        Link_Param_to_CC(LT_TrackNum, AssignMODtoFX, AssignToPrmNum, true, true, 176, CC)
+        Link_Param_to_CC(LT_TrackNum, AssignMODtoFX, AssignToPrmNum, true, true, -101, nil, -1, 176, CC)
         r.gmem_write(3, Trk[TrkID].ModPrmInst)
 
         r.gmem_write(7, CC) --tells jsfx to rfetrieve P value
