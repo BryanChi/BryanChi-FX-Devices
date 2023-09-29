@@ -3,6 +3,7 @@
 -- @version 1.0beta10.5
 -- @changelog
 --   - Add New Modulator - LFO 
+--   - Add Parameter linking
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -43,6 +44,12 @@
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Analog Knob 1.png
 --   src/Images/trash.png
+--   src/Images/sinewave.png
+--   src/Images/save.png
+--   src/Images/pinned.png
+--   src/Images/pin.png
+--   src/Images/paste.png
+--   src/Images/copy.png
 --   src/LFO Shapes/Square.ini
 --   src/LFO Shapes/Sine.ini
 --   src/LFO Shapes/Saw.ini
@@ -2772,7 +2779,7 @@ function loop()
                             r.ImGui_AlignTextToFramePadding(ctx)
                             r.ImGui_Text(ctx,'Speed:') SL()
                             r.ImGui_SetNextItemWidth(ctx, 50)
-                            local rv, V =  r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 16, 'x %.3f' )
+                            local rv, V =  r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f' )
                             if r.ImGui_IsItemActive(ctx) then 
                                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
                                 tweaking = Macro 
