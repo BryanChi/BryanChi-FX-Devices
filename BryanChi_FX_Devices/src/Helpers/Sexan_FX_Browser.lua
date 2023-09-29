@@ -46,6 +46,52 @@ local function GetDirFilesRecursive(dir, tbl)
         tbl[#tbl + 1] = file
     end
 end
+function DrawFXList()
+    local search = FilterBox()
+    if search then return end
+    for i = 1, #CAT do
+        if r.ImGui_BeginMenu(ctx, CAT[i].name) then
+            if CAT[i].name == "FX CHAINS" then
+                DrawFxChains(CAT[i].list)
+            elseif CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
+                DrawTrackTemplates(CAT[i].list)
+            else
+                DrawItems(CAT[i].list)
+            end
+            r.ImGui_EndMenu(ctx)
+        end
+    end
+    if r.ImGui_Selectable(ctx, "CONTAINER") then AddFX("Container") end
+    DragAddDDSource("Container")
+    if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then AddFX("Video processor") end
+    DragAddDDSource("Video processor")
+   
+    if LAST_USED_FX then
+        if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then AddFX(LAST_USED_FX) end
+        DragAddDDSource(LAST_USED_FX)
+    end
+end
+
+
+local function DrawTrackTemplates(tbl, path)
+    local extension = ".RTrackTemplate"
+    path = path or ""
+    for i = 1, #tbl do
+        if tbl[i].dir then
+            if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
+                local cur_path = table.concat({ path, os_separator, tbl[i].dir })
+                DrawTrackTemplates(tbl[i], cur_path)
+                r.ImGui_EndMenu(ctx)
+            end
+        end
+        if type(tbl[i]) ~= "table" then
+            if r.ImGui_Selectable(ctx, tbl[i]) then
+                local template_str = table.concat({ path, os_separator, tbl[i], extension })
+                LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
+            end
+        end
+    end
+end
 
 local function FindCategory(cat)
     for i = 1, #CAT do

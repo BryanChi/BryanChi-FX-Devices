@@ -3433,7 +3433,7 @@ function loop()
                 ImGUI_Time = 0
             end
 
-            if not r.ImGui_IsPopupOpen(ctx, '', r.ImGui_PopupFlags_AnyPopup()) then
+            if not r.ImGui_IsPopupOpen(ctx, '##', r.ImGui_PopupFlags_AnyPopup()) then
                 FX_Idx_OpenedPopup = nil
             end
 
@@ -3528,6 +3528,25 @@ function loop()
                         if HoverOnWindow then
                             -- tooltip ('fx idx = ' .. tostring (FX_Idx) .. 'space is before mixer- '.. tostring (SpaceIsBeforeRackMixer).. 'AddLastSPCinRack - '.. tostring(AddLastSPCinRack))
                         end
+                        local function DrawTrackTemplates(tbl, path)
+                            local extension = ".RTrackTemplate"
+                            path = path or ""
+                            for i = 1, #tbl do
+                                if tbl[i].dir then
+                                    if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
+                                        local cur_path = table.concat({ path, os_separator, tbl[i].dir })
+                                        DrawTrackTemplates(tbl[i], cur_path)
+                                        r.ImGui_EndMenu(ctx)
+                                    end
+                                end
+                                if type(tbl[i]) ~= "table" then
+                                    if r.ImGui_Selectable(ctx, tbl[i]) then
+                                        local template_str = table.concat({ path, os_separator, tbl[i], extension })
+                                        LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
+                                    end
+                                end
+                            end
+                        end
 
                         if r.ImGui_BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
                             FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
@@ -3541,9 +3560,11 @@ function loop()
                                 if r.ImGui_BeginMenu(ctx, CAT[i].name) then
                                     if CAT[i].name == "FX CHAINS" then
                                         DrawChildMenu(CAT[i].list, nil, FX_Idx)
+                                    elseif CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
+                                        DrawTrackTemplates(CAT[i].list)                        
                                     else
                                         for j = 1, #CAT[i].list do
-                                            if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name) then
+                                            if r.ImGui_BeginMenu(ctx, CAT[i].list[j].name ) then
                                                 for p = 1, #CAT[i].list[j].fx do
                                                     if CAT[i].list[j].fx[p] then
                                                         if r.ImGui_Selectable(ctx, CAT[i].list[j].fx[p]) then
