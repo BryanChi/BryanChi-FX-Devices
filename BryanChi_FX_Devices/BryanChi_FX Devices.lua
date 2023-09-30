@@ -1164,14 +1164,6 @@ function loop()
         ChangeFont_Var = nil
     end
 
-    if r.ImGui_IsKeyDown(ctx, r.ImGui_Key_X()) then 
-        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
-    end
-
-    if r.ImGui_IsMouseDown(ctx, 0) then 
-        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
-    end
-
 
 
 
@@ -3264,7 +3256,7 @@ function loop()
                              r.ImGui_SetKeyboardFocusHere(ctx)  
                             local rv, buf =  r.ImGui_InputText(ctx, buf or '##Name' ,buf)
 
-                            if r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0 then 
+                            if  (r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0) or r.ImGui_Button(ctx,'Enter') then 
                                 local LFO_Name = buf 
                                 local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
                                 local file_path = ConcatPath(path, LFO_Name..'.ini')
@@ -3288,10 +3280,13 @@ function loop()
 
                                 LFO.OpenSaveDialog = nil 
                                 r.ImGui_CloseCurrentPopup(ctx)
-                            elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
+                            end
+                            SL()
+                            if r.ImGui_Button(ctx,'Cancel (Esc)') or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
                                 r.ImGui_CloseCurrentPopup(ctx)
                                 LFO.OpenSaveDialog = nil 
                             end
+
                             
 
                             r.ImGui_EndPopup(ctx)
