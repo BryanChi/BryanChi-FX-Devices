@@ -55,6 +55,7 @@
 --   src/LFO Shapes/Saw.ini
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
+--   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/ThemeColors.ini
 --   src/IconFont1.ttf
 --   src/Keyboard Shortcuts.ini
