@@ -1,25 +1,16 @@
-
-r = reaper
----@class VSTINFO
----@field id string
----@field name string
-
----@class CATEGORY
----@field list FX[]
----@field name string
-
----@class FX
----@field name string
----@field smart? unknown
----@field fx string
+-- @description Sexan FX Browser parser
+-- @author Sexan
+-- @license GPL v3
+-- @version 1.1
+-- @changelog
+--  Added Developer names table to use with name stripping
 
 local r = reaper
 local os = r.GetOS()
 local os_separator = package.config:sub(1, 1)
-local CAT = {} ---@type CATEGORY[]
+local CAT = {}
+local DEVELOPER_LIST = { "Waves" , 'Cockos', 'Valhalla','FabFilter'}
 
----@param fp string filepath
----@return string
 function GetFileContext(fp)
     local str = "\n"
     -- DONT CRASH SCRIPT IF PATH IS NOT PROVIDED
@@ -32,64 +23,18 @@ function GetFileContext(fp)
     return str
 end
 
-local function GetDirFilesRecursive(dir, tbl)
+local function GetDirFilesRecursive(dir, tbl, filter)
     for index = 0, math.huge do
         local path = r.EnumerateSubdirectories(dir, index)
         if not path then break end
         tbl[#tbl + 1] = { dir = path, {} }
-        GetDirFilesRecursive(dir .. os_separator .. path, tbl[#tbl])
+        GetDirFilesRecursive(dir .. os_separator .. path, tbl[#tbl], filter)
     end
 
     for index = 0, math.huge do
         local file = r.EnumerateFiles(dir, index)
         if not file then break end
-        tbl[#tbl + 1] = file
-    end
-end
---[[ function DrawFXList()
-    local search = FilterBox()
-    if search then return end
-    for i = 1, #CAT do
-        if r.ImGui_BeginMenu(ctx, CAT[i].name) then
-            if CAT[i].name == "FX CHAINS" then
-                DrawFxChains(CAT[i].list)
-            elseif CAT[i].name == "TRACK TEMPLATES" then 
-                DrawTrackTemplates(CAT[i].list)
-            else
-                DrawItems(CAT[i].list)
-            end
-            r.ImGui_EndMenu(ctx)
-        end
-    end
-    if r.ImGui_Selectable(ctx, "CONTAINER") then AddFX("Container") end
-    DragAddDDSource("Container")
-    if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then AddFX("Video processor") end
-    DragAddDDSource("Video processor")
-   
-    if LAST_USED_FX then
-        if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then AddFX(LAST_USED_FX) end
-        DragAddDDSource(LAST_USED_FX)
-    end
-end ]]
-
-
-local function DrawTrackTemplates(tbl, path)
-    local extension = ".RTrackTemplate"
-    path = path or ""
-    for i = 1, #tbl do
-        if tbl[i].dir then
-            if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
-                local cur_path = table.concat({ path, os_separator, tbl[i].dir })
-                DrawTrackTemplates(tbl[i], cur_path)
-                r.ImGui_EndMenu(ctx)
-            end
-        end
-        if type(tbl[i]) ~= "table" then
-            if r.ImGui_Selectable(ctx, tbl[i]) then
-                local template_str = table.concat({ path, os_separator, tbl[i], extension })
-                LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
-            end
-        end
+        tbl[#tbl + 1] = file:gsub(filter, "")
     end
 end
 
@@ -99,10 +44,6 @@ local function FindCategory(cat)
     end
 end
 
----@param tbl VSTINFO[]
----@param id string
----@param js? "JS"
----@return string|nil
 local function FindFXIDName(tbl, id, js)
     for i = 1, #tbl do
         if js then
@@ -120,16 +61,20 @@ function InTbl(tbl, val)
     end
 end
 
----@param plugin_list string[]
----@param INSTRUMENTS string[]
----@return VSTINFO[] VST_INFO, string[] VST, string[] VSTi, string[] VST3, string[] VST3i
+function AddDevList(val)
+    for i = 1, #DEVELOPER_LIST do
+        if DEVELOPER_LIST[i] == val then return end
+    end
+    DEVELOPER_LIST[#DEVELOPER_LIST + 1] = val
+end
+
 local function ParseVST(plugin_list, INSTRUMENTS)
-    local VST_INFO = {} ---@type VSTINFO[]
-    local VST = {} ---@type string[]
-    local VSTi = {} ---@type string[]
-    local VST3 = {} ---@type string[]
-    local VST3i = {} ---@type string[]
-    local rename_tbl = {} ---@type string[]
+    local VST_INFO = {}
+    local VST = {}
+    local VSTi = {}
+    local VST3 = {}
+    local VST3i = {}
+    local rename_tbl = {}
 
     local vst_path
     local vst_str
@@ -202,8 +147,6 @@ local function ParseVST(plugin_list, INSTRUMENTS)
     return VST_INFO, VST, VSTi, VST3, VST3i
 end
 
----@param plugin_list string[]
----@return VSTINFO[] JS_INFO, string[] JS
 local function ParseJSFX(plugin_list)
     local JS_INFO   = {}
     local JS        = {}
@@ -230,13 +173,10 @@ local function ParseJSFX(plugin_list)
     return JS_INFO, JS
 end
 
----@param plugin_list string[]
----@param INSTRUMENTS string[]
----@return VSTINFO[] AU_INFO, string[] AU, string[] AUi
 local function ParseAU(plugin_list, INSTRUMENTS)
-    local AU_INFO = {} ---@type VSTINFO[]
-    local AU      = {} ---@type string[]
-    local AUi     = {} ---@type string[]
+    local AU_INFO = {}
+    local AU      = {}
+    local AUi     = {}
 
     local au_path
     local au_str
@@ -270,10 +210,6 @@ local function ParseAU(plugin_list, INSTRUMENTS)
     return AU_INFO, AU, AUi
 end
 
-
----@param plugin_list string[]
----@param INSTRUMENTS string[]
----@return VSTINFO[] CLAP_INFO, string[] CLAP, string[] CLAPi
 local function ParseCLAP(plugin_list, INSTRUMENTS)
     local CLAP_INFO  = {}
     local CLAP       = {}
@@ -290,7 +226,7 @@ local function ParseCLAP(plugin_list, INSTRUMENTS)
         clap_path = r.GetResourcePath() .. "/reaper-clap-macos-x86_64.ini"
     elseif os == "macOS-arm64" then
         clap_path = r.GetResourcePath() .. "/reaper-clap-macos-arm64.ini"
-    else
+    elseif os == "Other" then
         -- LINUX
         clap_path = r.GetResourcePath() .. "/reaper-clap-linux-x86_64.ini"
     end
@@ -304,7 +240,7 @@ local function ParseCLAP(plugin_list, INSTRUMENTS)
         clap_rename_path = r.GetResourcePath() .. "/reaper-clap-rename-macos-x86_64.ini"
     elseif os == "macOS-arm64" then
         clap_rename_path = r.GetResourcePath() .. "/reaper-clap-rename-macos-arm64.ini"
-    else
+    elseif os == "Other" then
         -- LINUX
         clap_rename_path = r.GetResourcePath() .. "reaper-clap-rename-linux-x86_64.ini"
     end
@@ -347,8 +283,6 @@ local function ParseCLAP(plugin_list, INSTRUMENTS)
     return CLAP_INFO, CLAP, CLAPi
 end
 
----@param plugin_list string[]
----@return VSTINFO[] LV2_INFO, string[] LV2, string[] LV2i
 local function ParseLV2(plugin_list)
     local LV2_INFO = {}
     local LV2 = {}
@@ -374,17 +308,16 @@ local function ParseLV2(plugin_list)
     return LV2_INFO, LV2, LV2i
 end
 
----@param VST_INFO VSTINFO
----@param JS_INFO VSTINFO
----@param AU_INFO VSTINFO
----@param CLAP_INFO VSTINFO
 local function ParseFXTags(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     -- PARSE CATEGORIES
     local tags_path = r.GetResourcePath() .. "/reaper-fxtags.ini"
     local tags_str  = GetFileContext(tags_path)
-
+    local DEV       = true
     for line in tags_str:gmatch('[^\r\n]+') do
         local category = line:match("%[(.+)%]")
+        if line:match("%[(category)%]") then
+            DEV = false
+        end
         -- CATEGORY FOUND
         if category then
             CAT[#CAT + 1] = { name = category:upper(), list = {} }
@@ -392,6 +325,7 @@ local function ParseFXTags(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
         -- PLUGIN FOUND
         local FX, dev_category = line:match("(.+)=(.+)")
         if dev_category then
+            if DEV then AddDevList(dev_category) end
             local fx_name = FindFXIDName(VST_INFO, FX)
             fx_name = fx_name and fx_name or FindFXIDName(AU_INFO, FX)
             fx_name = fx_name and fx_name or FindFXIDName(CLAP_INFO, FX)
@@ -427,15 +361,10 @@ local function ParseFXTags(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     end
 end
 
----@param VST_INFO VSTINFO[]
----@param JS_INFO VSTINFO[]
----@param AU_INFO VSTINFO[]
----@param CLAP_INFO VSTINFO[]
 local function ParseCustomCategories(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     local fav_path = r.GetResourcePath() .. "/reaper-fxfolders.ini"
     local fav_str  = GetFileContext(fav_path)
     local cur_cat_tbl
-
     for line in fav_str:gmatch('[^\r\n]+') do
         local category = line:match("%[(.-)%]")
         if category then
@@ -472,10 +401,6 @@ local function ParseCustomCategories(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     end
 end
 
----@param VST_INFO VSTINFO
----@param JS_INFO VSTINFO
----@param AU_INFO VSTINFO
----@param CLAP_INFO VSTINFO
 local function ParseFavorites(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
     -- PARSE FAVORITES FOLDER
     local fav_path = r.GetResourcePath() .. "/reaper-fxfolders.ini"
@@ -483,7 +408,6 @@ local function ParseFavorites(VST_INFO, JS_INFO, AU_INFO, CLAP_INFO)
 
     CAT[#CAT + 1]  = { name = "FOLDERS", list = {} }
     local current_folder
-    local folder_lvl
     for line in fav_str:gmatch('[^\r\n]+') do
         local folder = line:match("%[(Folder%d+)%]")
 
@@ -556,7 +480,7 @@ end
 local function ParseFXChains()
     local fxChainsFolder = r.GetResourcePath() .. "/FXChains"
     local FX_CHAINS = {}
-    GetDirFilesRecursive(fxChainsFolder, FX_CHAINS)
+    GetDirFilesRecursive(fxChainsFolder, FX_CHAINS, ".RfxChain")
     if #FX_CHAINS ~= 0 then
         --table.sort(FX_CHAINS, function(a, b) if a and b then return a:lower() < b:lower() end end)
         CAT[#CAT + 1] = { name = "FX CHAINS", list = FX_CHAINS }
@@ -566,25 +490,13 @@ end
 local function ParseTrackTemplates()
     local trackTemplatesFolder = r.GetResourcePath() .. "/TrackTemplates"
     local TRACK_TEMPLATES = {}
-    GetDirFilesRecursive(trackTemplatesFolder, TRACK_TEMPLATES)
+    GetDirFilesRecursive(trackTemplatesFolder, TRACK_TEMPLATES, ".RTrackTemplate")
     if #TRACK_TEMPLATES ~= 0 then
         --table.sort(FX_CHAINS, function(a, b) if a and b then return a:lower() < b:lower() end end)
         CAT[#CAT + 1] = { name = "TRACK TEMPLATES", list = TRACK_TEMPLATES }
     end
 end
 
-
-
----@param JS string[]
----@param AU string[]
----@param AUi string[]
----@param CLAP string[]
----@param CLAPi string[]
----@param VST string[]
----@param VSTi string[]
----@param VST3 string[]
----@param VST3i string[]
----@param INSTRUMENTS string[]
 local function AllPluginsCategory(JS, AU, AUi, CLAP, CLAPi, VST, VSTi, VST3, VST3i, INSTRUMENTS)
     CAT[#CAT + 1] = { name = "ALL PLUGINS", list = {} }
     if #JS ~= 0 then table.insert(CAT[#CAT].list, { name = "JS", fx = JS }) end
@@ -615,8 +527,8 @@ local function AllPluginsCategory(JS, AU, AUi, CLAP, CLAPi, VST, VSTi, VST3, VST
 end
 
 function GenerateFxList()
-    local plugin_list = {} ---@type string[]
-    local INSTRUMENTS = {} ---@type string[]
+    local plugin_list = {}
+    local INSTRUMENTS = {}
 
     plugin_list[#plugin_list + 1] = "Container"
     plugin_list[#plugin_list + 1] = "Video processor"
@@ -636,6 +548,237 @@ function GenerateFxList()
     return plugin_list
 end
 
+function Stripname(name, prefix, suffix)
+    -- REMOVE DEVELOPER
+    if suffix then
+        for i = 1, #DEVELOPER_LIST do
+            msg(DEVELOPER_LIST[i])
+            if name:match(DEVELOPER_LIST[i]) then
+                name = name:gsub('%(' .. DEVELOPER_LIST[i] .. '%)', "")
+            end
+        end
+    end
+    -- REMOVE VST: JS: AU: CLAP:
+    name = prefix and name:gsub("(%S+: )", "") or name
+    return name
+end
+
 function GetFXTbl()
     return GenerateFxList(), CAT
 end
+
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- EXAMPLE FOR IMPLEMENTING IN YOUR SCRIPTS
+-- COPY PASTE CODE BELLOW INTO NEW SCRIPT
+-- MAKE SURE THIS SCRIPT "Sexan_FX_Browser" IS IN SAME FOLDER AS YOUR MAIN SCRIPT
+-- DO NOT UNCOMMENT CODE BELLOW (ONLY FOR STANDALONE TESTING PURPOSES)
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+
+
+-- local os_separator = package.config:sub(1, 1)
+-- package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" -- GET DIRECTORY FOR REQUIRE
+-- require("Sexan_FX_Browser")
+
+-- local r = reaper
+-- local ctx = r.ImGui_CreateContext('FX INI PARSER')
+
+-- local FX_LIST, CAT = GetFXTbl()
+-- local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
+
+-- local function Filter_actions(filter_text)
+--     filter_text = Lead_Trim_ws(filter_text)
+--     local t = {}
+--     if filter_text == "" or not filter_text then return t end
+--     for i = 1, #FX_LIST do
+--         local action = FX_LIST[i]
+--         local name = action:lower()
+--         local found = true
+--         for word in filter_text:gmatch("%S+") do
+--             if not name:find(word:lower(), 1, true) then
+--                 found = false
+--                 break
+--             end
+--         end
+
+--         if found then t[#t + 1] = action end
+--     end
+--     return t
+-- end
+
+-- local function SetMinMax(Input, Min, Max)
+--     if Input >= Max then
+--         Input = Max
+--     elseif Input <= Min then
+--         Input = Min
+--     else
+--         Input = Input
+--     end
+--     return Input
+-- end
+
+-- local FILTER = ''
+-- local function FilterBox()
+--     local MAX_FX_SIZE = 300
+--     r.ImGui_PushItemWidth(ctx, MAX_FX_SIZE)
+--     if r.ImGui_IsWindowAppearing(ctx) then r.ImGui_SetKeyboardFocusHere(ctx) end
+--     _, FILTER = r.ImGui_InputTextWithHint(ctx, '##input', "SEARCH FX", FILTER)
+--     local filtered_fx = Filter_actions(FILTER)
+--     local filter_h = #filtered_fx == 0 and 0 or (#filtered_fx > 40 and 20 * 17 or (17 * #filtered_fx))
+--     ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
+--     if #filtered_fx ~= 0 then
+--         if r.ImGui_BeginChild(ctx, "##popupp", MAX_FX_SIZE, filter_h) then
+--             for i = 1, #filtered_fx do
+--                 if r.ImGui_Selectable(ctx, filtered_fx[i], i == ADDFX_Sel_Entry) then
+--                     r.TrackFX_AddByName(TRACK, filtered_fx[i], false, -1000 - r.TrackFX_GetCount(TRACK))
+--                     r.ImGui_CloseCurrentPopup(ctx)
+--                     LAST_USED_FX = filtered_fx[i]
+--                 end
+--             end
+--             r.ImGui_EndChild(ctx)
+--         end
+--         if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) then
+--             r.TrackFX_AddByName(TRACK, filtered_fx[ADDFX_Sel_Entry], false, -1000 - r.TrackFX_GetCount(TRACK))
+--             LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
+--             ADDFX_Sel_Entry = nil
+--             FILTER = ''
+--             r.ImGui_CloseCurrentPopup(ctx)
+--         elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_UpArrow()) then
+--             ADDFX_Sel_Entry = ADDFX_Sel_Entry - 1
+--         elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_DownArrow()) then
+--             ADDFX_Sel_Entry = ADDFX_Sel_Entry + 1
+--         end
+--     end
+--     if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then
+--         FILTER = ''
+--         r.ImGui_CloseCurrentPopup(ctx)
+--     end
+--     return #filtered_fx ~= 0
+-- end
+
+-- local function DrawFxChains(tbl, path)
+--     local extension = ".RfxChain"
+--     path = path or ""
+--     for i = 1, #tbl do
+--         if tbl[i].dir then
+--             if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
+--                 DrawFxChains(tbl[i], table.concat({ path, os_separator, tbl[i].dir }))
+--                 r.ImGui_EndMenu(ctx)
+--             end
+--         end
+--         if type(tbl[i]) ~= "table" then
+--             if r.ImGui_Selectable(ctx, tbl[i]) then
+--                 if TRACK then
+--                     r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i], extension }), false,
+--                         -1000 - r.TrackFX_GetCount(TRACK))
+--                 end
+--             end
+--         end
+--     end
+-- end
+
+-- local function LoadTemplate(template, replace)
+--     local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
+--     if replace then
+--         local chunk = GetFileContext(track_template_path)
+--         r.SetTrackStateChunk( TRACK, chunk, true )
+--     else
+--         r.Main_openProject( track_template_path )
+--     end
+-- end
+
+-- local function DrawTrackTemplates(tbl, path)
+--     local extension = ".RTrackTemplate"
+--     path = path or ""
+--     for i = 1, #tbl do
+--         if tbl[i].dir then
+--             if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
+--                 local cur_path = table.concat({ path, os_separator, tbl[i].dir })
+--                 DrawTrackTemplates(tbl[i], cur_path)
+--                 r.ImGui_EndMenu(ctx)
+--             end
+--         end
+--         if type(tbl[i]) ~= "table" then
+--             if r.ImGui_Selectable(ctx, tbl[i]) then
+--                 if TRACK then
+--                     local template_str = table.concat({ path, os_separator, tbl[i], extension })
+--                     LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
+--                     LoadTemplate(template_str, true) -- REPLACE CURRENT TRACK WITH TEMPLATE
+--                 end
+--             end
+--         end
+--     end
+-- end
+
+-- local function DrawItems(tbl)
+--     for i = 1, #tbl do
+--         if r.ImGui_BeginMenu(ctx, tbl[i].name) then
+--             for j = 1, #tbl[i].fx do
+--                 if tbl[i].fx[j] then
+--                     if r.ImGui_Selectable(ctx, tbl[i].fx[j]) then
+--                         if TRACK then
+--                             r.TrackFX_AddByName(TRACK, tbl[i].fx[j], false,
+--                                 -1000 - r.TrackFX_GetCount(TRACK))
+--                             LAST_USED_FX = tbl[i].fx[j]
+--                         end
+--                     end
+--                 end
+--             end
+--             r.ImGui_EndMenu(ctx)
+--         end
+--     end
+-- end
+
+-- function Frame()
+--     local search = FilterBox()
+--     if search then return end
+--     for i = 1, #CAT do
+--         if r.ImGui_BeginMenu(ctx, CAT[i].name) then
+--             if CAT[i].name == "FX CHAINS" then
+--                 DrawFxChains(CAT[i].list)
+--             elseif CAT[i].name == "TRACK TEMPLATES" then
+--                 DrawTrackTemplates(CAT[i].list)
+--             else
+--                 DrawItems(CAT[i].list)
+--             end
+--             r.ImGui_EndMenu(ctx)
+--         end
+--     end
+--     if r.ImGui_Selectable(ctx, "CONTAINER") then
+--         r.TrackFX_AddByName(TRACK, "Container", false,
+--             -1000 - r.TrackFX_GetCount(TRACK))
+--         LAST_USED_FX = "Container"
+--     end
+--     if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+--         r.TrackFX_AddByName(TRACK, "Video processor", false,
+--             -1000 - r.TrackFX_GetCount(TRACK))
+--         LAST_USED_FX = "Video processor"
+--     end
+--     if LAST_USED_FX then
+--         if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+--             r.TrackFX_AddByName(TRACK, LAST_USED_FX, false,
+--                 -1000 - r.TrackFX_GetCount(TRACK))
+--         end
+--     end
+-- end
+
+-- function Main()
+--     TRACK = r.GetSelectedTrack(0, 0)
+--     local visible, open = r.ImGui_Begin(ctx, 'FX INI PARSER', true)
+--     if visible then
+--         if TRACK then
+--             Frame()
+--         else
+--             reaper.ImGui_Text( ctx, "SELECT TRACK" )
+--         end
+--         r.ImGui_End(ctx)
+--     end
+--     if open then
+--         r.defer(Main)
+--     end
+-- end
+
+-- r.defer(Main)

@@ -7,6 +7,9 @@ r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
+FX.TitleWidth[FxGUID]  = 60 
+FX[FxGUID].CustomTitle = 'Pro-C 2'
+FX.Width[FxGUID] = 280
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------

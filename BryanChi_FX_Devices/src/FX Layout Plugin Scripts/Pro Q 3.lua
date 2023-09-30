@@ -4,6 +4,10 @@ r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
+FX[FxGUID].CustomTitle = 'Pro-Q 3'
+FX.TitleWidth[FxGUID] = 50
+FX.BgClr[FxGUID]  = 0x000000ff
+FX.Width[FxGUID] = 340
 
 
 ---------------------------------------------
@@ -196,8 +200,9 @@ if not FX[FxGUID].Collapse then
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x090909ff)
 
     ProQ3.H = 200
+    local L , T = r.ImGui_GetCursorScreenPos(ctx)
 
-    r.ImGui_SetNextWindowPos(ctx, ProQ_TitlePosX_L, ProQ_TitlePosY_B)
+    r.ImGui_SetNextWindowPos(ctx, L, T-28)
 
 
     if r.ImGui_BeginChildFrame(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then

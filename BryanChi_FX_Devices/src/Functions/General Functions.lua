@@ -471,6 +471,8 @@ function StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
 
+
+
 ---TODO empty function
 function TableMaxVal()
 end

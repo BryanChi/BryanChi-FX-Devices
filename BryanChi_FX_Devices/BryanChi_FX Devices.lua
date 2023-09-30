@@ -2310,8 +2310,10 @@ function loop()
                     function DrawShape (Node, L, W, H, T, Clr )
                         if Node then 
                             for i, v  in ipairs(Node) do 
+
                                 local W, H = W or  w , H or h
-                                
+
+
                                 local N = Node
                                 local L = L or HdrPosL 
                                 local h =LFO.DummyH
@@ -2616,6 +2618,8 @@ function loop()
                                 local lastX, lastY = L+ (Node[last].x or 0) * LFO.DummyW, T+ (Node[last].y or Node[i].y)* LFO.DummyH
                                 local X , Y = L+ Node[i].x * LFO.DummyW , T+  Node[i].y * LFO.DummyH
 
+                                
+
 
                                 if AddNode(X -15/2 , Y -15 /2, i) then AnyNodeHovered = true end
                                 local CtrlX, CtrlY  = L+ (Node[i].ctrlX or (Node[last].x + Node[i].x) / 2)* LFO.DummyW, T+ (Node[i].ctrlY or (Node[last].y + Node[i].y) / 2)*LFO.DummyH
@@ -2667,39 +2671,46 @@ function loop()
                                     Node[i].ctrlX   = SetMinMax(CtrlX + Dx, Node[last].x , Node[i].x)
                                     Node[i].ctrlY   = SetMinMax(CtrlY + Dy, math.min(Node[last].y , Node[i].y), math.max(Node[last].y , Node[i].y))
 
-                                    ChangeLFO(14, last, 11 )  -- Tells jsfx which ctrl node is adjusted 
-                                    ChangeLFO(14,  Node[i].ctrlX  , 9,'Node'..i..'Ctrl X')
+                                    SaveLFO('Node'..i..'Ctrl X',  Node[i].ctrlX)
+                                    SaveLFO('Node'..i..'Ctrl Y',  Node[i].ctrlY)
 
-
-                                    --ttp(-Normalize_Val (LFO.Win.L, LFO.Win.R,  Node.ctrlX  )  ..'\n    '..Normalize_Val (Win_T, Win_T + LFO.Win.h, Node.ctrlY))
-                                    ChangeLFO(14,  Node[i].ctrlY , 10, 'Node'..i..'Ctrl Y')
-
-                                    --ttp( 'X = '.. -Normalize_Val (lastX, v,  Node.ctrlX)+1 .. ' \n '.. 'Y = '.. Normalize_Val (lastY, Y , Node.ctrlY))
 
                                     
+                                end
+
+
+
+
+
+                                if (Mc.LFO_Gain or 1) ~=1 then 
+                                    local B = T+LFO.DummyH
+                                    local y = -Node[i].y+1
+                                    local Y = B-  y * LFO.DummyH * Mc.LFO_Gain
+                                    ttp(Node[i].y * LFO.DummyH * Mc.LFO_Gain)
+                                    local lastY = B- (-(Node[last].y or Node[i].y)+1)* LFO.DummyH* Mc.LFO_Gain
+                                    local CtrlY = B- (-(Node[i].ctrlY or (Node[last].y + Node[i].y) / 2)+1) *LFO.DummyH * Mc.LFO_Gain
+                                    local PtsX = {}
+                                    local PtsY = {}
+                                    local PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,X,Y)
+
+                                    for i= 1, #PtsX, 2 do  
+                                        if i > 1 then      -- >1 because you need two points to draw a line
+                                            r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
+                                        end
+                                    end
                                 end
                                 
                                 PtsX = {}
                                 PtsY = {}
 
-                                --[[ for t = 0, 1, 0.1 do
-                                    local startX = lastX
-                                    local startY = lastY
-                                    local controlX = CtrlX
-                                    local controlY = CtrlY
-                                    local endX = v
-                                    local endY = Y
-                                    local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
-                                    local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
-                                    table.insert(PtsX, x)
-                                    table.insert(PtsY, y)
-                                end ]]
                                 PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,X,Y)
 
                                 if Wheel_V~=0 then Sqr = ( Sqr or 0 ) + Wheel_V / 100 end 
 
                             
                                 --r.ImGui_DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
+
+
 
                                 local N = i
                                 for i, v in ipairs(PtsX) do  
@@ -2793,6 +2804,8 @@ function loop()
                             end
                             SL(nil, 30)
 
+                            
+                            ---- Add Length slider
                             r.ImGui_Text(ctx, 'Length:') SL()
                             r.ImGui_SetNextItemWidth(ctx, 80)
 
@@ -2814,7 +2827,29 @@ function loop()
                             end 
 
 
+                            ------ Add LFO Gain  
+                            SL()
+                            r.ImGui_Text(ctx, 'Gain')
+                            r.ImGui_Text(ctx, Stripname(FX_Name,true , true ))
 
+                            SL()
+                            r.ImGui_SetNextItemWidth(ctx, 80)
+                            local ShownV =math.floor( ( Mc.LFO_Gain or 0)* 100)
+                            rv, Mc.LFO_Gain = r.ImGui_DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain', Mc.LFO_Gain or 1 , 0.01, 0 , 1, ShownV .. '%%')
+                            if r.ImGui_IsItemActive(ctx ) then 
+                                tweaking=Macro  
+                                ChangeLFO(14, Mc.LFO_Gain, 9, 'LFO Gain' )
+                            end
+                            if r.ImGui_IsItemClicked(ctx,1 ) and Mods ==Ctrl then 
+                                if r.ImGui_BeginPopup(ctx, '##LFO Gain menu' .. FP.Num) then
+                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
+                                        r.gmem_write(4, 15)  -- set mode to 15 
+                                        r.gmem_write(5, Macro) 
+                                        Trk[TrkID].HowManyAutomatedPrm = (Trk[TrkID].HowManyAutomatedPrm or 0) + 1
+                                    end
+                                    r.ImGui_EndPopup(ctx)
+                                end
+                            end
 
 
 
@@ -3174,35 +3209,6 @@ function loop()
                     end
                     LFO.DontOpenNextFrame = nil 
 
-
-
-                    if r.ImGui_IsItemActive(ctx) then
-                        open_LFO_Win(Track, Macro)
-                        if not LFO_MsX_Start then LFO_MsX_Start, LFO_MsY_Start = r.GetMousePosition() end
-                        LFO_MsX_Now, LFO_MsY_Now = r.GetMousePosition()
-                        local thresh = 10
-                        local DragX, DragY = LFO_MsX_Start - LFO_MsX_Now, LFO_MsY_Start - LFO_MsY_Now
-
-                        if not LFO_DragDir then
-                            if DragX > thresh or DragX < -thresh then
-                                LFO_DragDir = 'H'
-                            elseif DragY > thresh or DragY < -thresh then
-                                LFO_DragDir = 'V'
-                            end
-                        end
-                        local Dx, Dy = r.ImGui_GetMouseDelta(ctx)
-                        local DragSpd = 0.1
-                        if LFO_DragDir == 'H' then
-                            Mc.Freq = SetMinMax(Mc.Freq + (Dx * DragSpd), 0.1, 20)
-                            local ActualFreq = Mc.Freq * 100
-                            ChangeLFO(13, ActualFreq)
-                        elseif LFO_DragDir == 'V' then
-                            Mc.Gain = SetMinMax(Mc.Gain - (Dy * DragSpd), 0, 6)
-                            local ActualGain = Mc.Gain / 6
-
-                            ChangeLFO(14, ActualGain)
-                        end
-                    end 
 
                     
 
@@ -4753,12 +4759,10 @@ function loop()
                             end
 
                             local FX_Devices_Bg = FX_Devices_Bg
-                            if string.find(FX_Name, 'Pro Q 3') then FX_Devices_Bg = 0x000000ff end
 
                             -- FX window color
 
-                            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(),
-                                FX.BgClr[FxGUID] or FX_Devices_Bg or 0x151515ff); local poptimes = 1
+                            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), FX.BgClr[FxGUID] or FX_Devices_Bg or 0x151515ff); local poptimes = 1
 
 
                             FX[FxGUID] = FX[FxGUID] or {}
@@ -4779,27 +4783,9 @@ function loop()
                             elseif FX.Def_Type[FxGUID] == 'Knob' then
                                 local Ct = math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
                                 DefaultWidth = Df.KnobSize * Ct + GapBtwnPrmColumns
-                                --[[
-                                if PrmCount <= 6 then
-                                    DefaultWidth = Df.KnobSize * 3
-                                elseif PrmCount > 6 and PrmCount <= 9 then
-                                    DefaultWidth = Df.KnobSize * 4
-                                elseif PrmCount > 9 and PrmCount <= 12 then
-                                    DefaultWidth = (Df.KnobSize + 10) * 4
-                                elseif PrmCount > 16 and PrmCount <= 20 then
-                                    DefaultWidth = Df.KnobSize * 5
-                                elseif PrmCount > 20 and PrmCount <= 24 then
-                                    DefaultWidth = Df.KnobSize * 6
-                                else
-                                    DefaultWidth = Df.Sldr_W + 10
-                                end ]]
                             end
 
-                            if string.find(FX_Name, 'Pro Q 3') then
-                                FX.Width[FxGUID] = 340
-                            elseif string.find(FX_Name, 'Pro C 2') then
-                                FX.Width[FxGUID] = ProC.Width
-                            elseif FindStringInTable(BlackListFXs, FX_Name) then
+                            if FindStringInTable(BlackListFXs, FX_Name) then
                                 Hide = true
                             elseif FX.Width[FxGUID] == 340 then
                                 FX.Width[FxGUID] = nil
@@ -5170,23 +5156,16 @@ function loop()
                                     local WindowBtn
                                     --[[ r.ImGui_PushStyleColor(ctx, ) ]]
                                     if FX[FxGUID].Collapse ~= true then
-                                        if string.find(FX_Name, 'Pro Q 3') ~= nil then
-                                            WindowBtn = r.ImGui_Button(ctx, 'Pro-Q 3' .. '##', 60, 20) -- create window name button
-                                            ProQ_TitlePosX_L, ProQ_TitlePosY_T = r.ImGui_GetItemRectMin(ctx)
-                                            ProQ_TitlePosX_R, ProQ_TitlePosY_B = r.ImGui_GetItemRectMax(ctx)
-                                        elseif string.find(FX_Name, 'Pro C 2') ~= nil then
-                                            WindowBtn = r.ImGui_Button(ctx, 'Pro-C 2' .. '##', 60, 20) -- create window name button
-                                        else
+
                                             if DebugMode then
                                                 FX.Win_Name[FX_Idx] = FxGUID
                                                 WindowBtn = r.ImGui_Button(ctx, FxGUID .. '## ',
                                                     FX.TitleWidth[FxGUID] or DefaultWidth - 30, 20) -- create window name button
                                             else
                                                 WindowBtn = r.ImGui_Button(ctx,
-                                                    (FX[FxGUID].CustomTitle or FX.Win_Name[FX_Idx] or '') .. '## ',
+                                                    (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or '') .. '## ',
                                                     FX.TitleWidth[FxGUID] or DefaultWidth - 30, 20) -- create window name button
                                             end
-                                        end
                                         if r.ImGui_IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                                             FX[FxGUID].TtlHvr = true
                                             TtlR, TtlB = r.ImGui_GetItemRectMax(ctx)
