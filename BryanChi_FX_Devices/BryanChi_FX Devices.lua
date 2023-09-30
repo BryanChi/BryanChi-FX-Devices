@@ -3255,7 +3255,6 @@ function loop()
 
                         if r.ImGui_BeginPopupModal( ctx, 'Decide Name',  true ,r.ImGui_WindowFlags_NoTitleBar()|r.ImGui_WindowFlags_AlwaysAutoResize()) then 
                             r.ImGui_Text(ctx, 'Enter a name for the shape: ')
-                            SL()
                             --[[ r.ImGui_Text(ctx, '(?)')
                             if r.ImGui_IsItemHovered(ctx) then 
                                 tooltip('use / in file name to save into sub-directories')
@@ -6642,8 +6641,6 @@ function loop()
 
                                     for i, v in pairs(PluginScripts) do
                                         local FX_Name = FX_Name
-                                        msg(FX_Name)
-
                                         if FX_Name:find(v) then
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
