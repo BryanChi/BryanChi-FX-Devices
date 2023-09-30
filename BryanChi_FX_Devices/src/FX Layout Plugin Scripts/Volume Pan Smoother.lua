@@ -52,21 +52,20 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
     FX[FxGUID][1].BgClr = 0xffffffff     -- FX[FxGUID][1] is the volume parameter    BgClr sets it's background color 
-
     AddKnob(ctx, '##Vol', 'Volume', FX[FxGUID][1--[[Prm table index]]].V or 0, 0, 1, 1, FX_Idx, 0--[[Prm number]],
-        style --[[default style]], 20 --[[Radius]], 0, Disabled, 12 --[[Lbl Txt size ]], 'Bottom')
+    style --[[default style]], 20 --[[Radius]], 0, Disabled, 12 --[[Lbl Txt size ]], 'Bottom')
     --[[AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
-                 item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)]]
+                item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)]]
 
     AddSpacing(5)
 
-    AddSlider(ctx, '##Pan', 'Pan', FX[FxGUID][2--[[Prm table index]]].V or 0, 0, 1, 2, FX_Idx, 2, SliderStyle, 120 --[[Sldr width]],
+    AddSlider(ctx, '##Pan', 'Pan', FX[FxGUID][2--[[Prm table index]]].V or 0, 0, 1, 2, FX_Idx, 1, SliderStyle, 120 --[[Sldr width]],
         item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)
     --[[AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, SliderStyle, Sldr_Width,
-                   item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)]]
+                item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)]]
 
     r.ImGui_Text(ctx, 'example text')
-    AddDrag(ctx, '##Pan Law', 'Pan Law', FX[FxGUID][3--[[Prm table index]]].V or 0, 0, 1, 3, FX_Idx, 0 --[[Prm Num]], Style, 80 --[[width]],
+    AddDrag(ctx, '##Pan Law', 'Pan Law', FX[FxGUID][3--[[Prm table index]]].V or 0, 0, 1, 3, FX_Idx, 2 --[[Prm Num]], Style, 80 --[[width]],
     0, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, 'Left-Right', AllowInput)
 
     --[[AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Sldr_Width,
