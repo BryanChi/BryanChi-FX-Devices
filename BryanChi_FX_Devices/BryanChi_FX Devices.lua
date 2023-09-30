@@ -1,9 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.5
+-- @version 1.0beta10.5.1
 -- @changelog
---   - Add New Modulator - LFO 
---   - Add Parameter linking
+--   - Plugin scripts example
+--   - Add conditions to hide default controls and Wet/Dry knob when there are plugin scripts that corresponds with current FX.
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -6190,7 +6190,7 @@ function loop()
                                             if CreateParam or not FP.ConditionPrm then
                                                 local Prm = FP
                                                 local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
-                                                
+
 
 
 
