@@ -108,6 +108,7 @@ end
 
 local FX_LIST, CAT = GetFXTbl()
 
+
 ---@class ViewPort
 VP = {} -- viewport info
 -- demo = {}
@@ -1152,6 +1153,7 @@ end
 function loop()
     GetLT_FX_Num()
     GetLTParam()
+   
     if ChangeFont then
         r.ImGui_Attach(ctx, _G
             [(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)])
@@ -5996,7 +5998,8 @@ function loop()
                                         end
                                     end
 
-                                    if FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
+
+                                    if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx]) then
                                         SyncWetValues()
 
                                         if FX[FXGUID[FX_Idx]].Collapse ~= true then
@@ -6016,7 +6019,7 @@ function loop()
                                     ------------------------------------------
                                     ------ Generic FX's knobs and sliders area
                                     ------------------------------------------
-                                    if not FX[FXGUID[FX_Idx]].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
+                                    if not FX[FXGUID[FX_Idx]].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false and FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx])~=true  then
                                         local WinP_X; local WinP_Y;
                                         --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                                         if FX.Enable[FX_Idx] == true then
@@ -6187,7 +6190,7 @@ function loop()
                                             if CreateParam or not FP.ConditionPrm then
                                                 local Prm = FP
                                                 local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
-
+                                                
 
 
 
@@ -6637,6 +6640,9 @@ function loop()
 
 
                                     for i, v in pairs(PluginScripts) do
+                                        local FX_Name = FX_Name
+                                        msg(FX_Name)
+
                                         if FX_Name:find(v) then
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
@@ -6644,6 +6650,8 @@ function loop()
                                             if Prm.InstAdded[FXGUID[FX_Idx]] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
                                                 --- number in green represents FX Prm Index
                                             end
+
+                                           
                                             dofile(pluginScriptPath .. '/' .. v .. '.lua')
                                         end
                                     end

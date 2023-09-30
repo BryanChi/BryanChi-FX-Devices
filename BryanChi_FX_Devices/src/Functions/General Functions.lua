@@ -998,6 +998,9 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     local ANGLE_MAX = 3.141592 * 2.25
     local FxGUID = FXGUID[FX_Idx]
 
+
+    Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx]  or  r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+
     r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
         item_inner_spacing[2])
 
