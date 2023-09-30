@@ -46,14 +46,14 @@ local function GetDirFilesRecursive(dir, tbl)
         tbl[#tbl + 1] = file
     end
 end
-function DrawFXList()
+--[[ function DrawFXList()
     local search = FilterBox()
     if search then return end
     for i = 1, #CAT do
         if r.ImGui_BeginMenu(ctx, CAT[i].name) then
             if CAT[i].name == "FX CHAINS" then
                 DrawFxChains(CAT[i].list)
-            elseif CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
+            elseif CAT[i].name == "TRACK TEMPLATES" then 
                 DrawTrackTemplates(CAT[i].list)
             else
                 DrawItems(CAT[i].list)
@@ -70,7 +70,7 @@ function DrawFXList()
         if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then AddFX(LAST_USED_FX) end
         DragAddDDSource(LAST_USED_FX)
     end
-end
+end ]]
 
 
 local function DrawTrackTemplates(tbl, path)
@@ -572,6 +572,8 @@ local function ParseTrackTemplates()
         CAT[#CAT + 1] = { name = "TRACK TEMPLATES", list = TRACK_TEMPLATES }
     end
 end
+
+
 
 ---@param JS string[]
 ---@param AU string[]

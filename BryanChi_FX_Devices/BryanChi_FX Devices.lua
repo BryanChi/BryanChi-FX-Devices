@@ -3525,6 +3525,15 @@ function loop()
                         if HoverOnWindow then
                             -- tooltip ('fx idx = ' .. tostring (FX_Idx) .. 'space is before mixer- '.. tostring (SpaceIsBeforeRackMixer).. 'AddLastSPCinRack - '.. tostring(AddLastSPCinRack))
                         end
+                        local function LoadTemplate(template, replace)
+                            local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
+                            if replace then
+                                local chunk = GetFileContext(track_template_path)
+                                r.SetTrackStateChunk( TRACK, chunk, true )
+                            else
+                                r.Main_openProject( track_template_path )
+                            end
+                        end
                         local function DrawTrackTemplates(tbl, path)
                             local extension = ".RTrackTemplate"
                             path = path or ""
