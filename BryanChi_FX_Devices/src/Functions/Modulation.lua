@@ -425,6 +425,26 @@ function Get_LFO_Shape_From_File(filename)
     end
 end
 
+function AutomateModPrm (Macro,str, jsfxMode, alias)
+    Trk[TrkID].AutoPrms = Trk[TrkID].AutoPrms or {}
+    if not FindExactStringInTable(Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
+        table.insert(Trk[TrkID].AutoPrms, 'Mod'.. Macro..str)
+        SetPrmAlias(LT_TrackNum, 1, 16+#Trk[TrkID].AutoPrms ,  alias)
+        r.GetFXEnvelope(LT_Track, 0, 15+#Trk[TrkID].AutoPrms, true)
+    end
+    
+    r.gmem_write(4, jsfxMode)  -- set mode to assigned mode
+    r.gmem_write(5, Macro) 
+    r.gmem_write(9, #Trk[TrkID].AutoPrms)
+    
+    for i, v in ipairs(Trk[TrkID].AutoPrms) do 
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Auto Mod'..i , v, true)
+    end
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: How Many Automated Prm in Modulators' , #Trk[TrkID].AutoPrms, true)
+end
+
+
+
 function WhenRightClickOnModulators(Macro)
     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
         r.ImGui_OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
@@ -435,4 +455,40 @@ function WhenRightClickOnModulators(Macro)
         end
     end
     if AssigningMacro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
+end
+
+
+
+function DrawLFOvalueTrail (MacroTable , x, y )
+    local Pos = r.gmem_read(108+i)/4
+    local M = MacroTable
+    M.Trail = M.Trail or {}
+    table.insert(M.Trail, { x = x ; y = y ; })
+
+    if #M.Trail > 40 then table.remove(M.Trail, 1) end 
+
+
+
+    for i, v in ipairs( M.Trail ) do 
+        
+        local ls = M.Trail[math.max(i-1, 1)]
+
+        if v.x < ls.x then 
+            
+
+        elseif i > 2 then 
+            r.ImGui_DrawList_AddLine(WDL, v.x , v.y , ls.x, ls.y, 0xffffff55, 8 - 16 / i )
+
+        end 
+
+    end
+
+
+end
+
+
+function Draw_LFO_Trail ()
+
+
+
 end

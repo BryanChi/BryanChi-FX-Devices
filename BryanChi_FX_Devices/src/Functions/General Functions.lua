@@ -35,7 +35,9 @@ end
 function GetTrkSavedInfo(str, track, type  )
 
     if type=='str' then 
-        return select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false))
+        local o = select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false))
+        if o == '' then o = nil end 
+        return o
     else
         return tonumber( select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false)))
     end
@@ -505,7 +507,7 @@ end
 ---@param V T
 ---@return boolean|nil
 ---@return T[]|nil
-function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?
+function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?  -- this one uses string:find whereas exact uses ==
     local found = nil
     local Tab = {}
     if V then

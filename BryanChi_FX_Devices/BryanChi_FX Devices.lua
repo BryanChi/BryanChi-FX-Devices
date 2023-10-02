@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.5.1
+-- @version 1.0beta10.6
 -- @changelog
 --   - Plugin scripts example
 --   - Add conditions to hide default controls and Wet/Dry knob when there are plugin scripts that corresponds with current FX.
@@ -95,7 +95,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta1.0beta10.4.2 '
+VersionNumber = 'V1.0beta1.0beta10.6 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -483,8 +483,7 @@ Array = {}
 
 
 -----------------Script Testing Area---------------------------
-aaa= {{},{}}
-table.insert(aaa,{})
+
 
 
 
@@ -772,6 +771,13 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     Trk[TrkID].Mod = {}
     Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
     Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
+    local AutoPrmCount =  GetTrkSavedInfo('How Many Automated Prm in Modulators', Track  )
+    Trk[TrkID].AutoPrms = Trk[TrkID].AutoPrms or {}
+    for i= 1, (AutoPrmCount or 0)+1, 1 do
+        Trk[TrkID].AutoPrms[i]= GetTrkSavedInfo('Auto Mod'..i, Track, 'str' )
+    end
+
+
     local function RC (str, type)
         if type == 'str' then 
             return select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' ..str, '', false))
@@ -2612,6 +2618,9 @@ function loop()
                                 LFO.DeleteNode = nil 
                             end
 
+
+                            local PlayPosX = HdrPosL + r.gmem_read(108+i)/4 * LFO.Win.w
+
                             for i = 1 ,#Mc.Node, 1 do --- Rpt for every node   
 
                                 local last = math.max(i-1 , 1)
@@ -2686,7 +2695,6 @@ function loop()
                                     local B = T+LFO.DummyH
                                     local y = -Node[i].y+1
                                     local Y = B-  y * LFO.DummyH * Mc.LFO_Gain
-                                    ttp(Node[i].y * LFO.DummyH * Mc.LFO_Gain)
                                     local lastY = B- (-(Node[last].y or Node[i].y)+1)* LFO.DummyH* Mc.LFO_Gain
                                     local CtrlY = B- (-(Node[i].ctrlY or (Node[last].y + Node[i].y) / 2)+1) *LFO.DummyH * Mc.LFO_Gain
                                     local PtsX = {}
@@ -2713,12 +2721,23 @@ function loop()
 
 
                                 local N = i
+                                local CurrentPlayPos 
                                 for i, v in ipairs(PtsX) do  
+                                    
                                     if i > 1 then      -- >1 because you need two points to draw a line
+                                        local n = math.min (i+1, #PtsX )
+                                        
+                                        if PlayPosX > PtsX[i-1] and PlayPosX < PtsX[i] then 
+
+                                            CurrentPlayPos = i 
+
+                                        end
                                         r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
-                                    --  r.ImGui_DrawList_AddText(FDL, PtsX[i-1] ,PtsY[i-1], 0xffffffff,i)
+                                        
                                     end
                                     ----- things below don't need >1 because jsfx needs all points to draw lines
+                                    
+                                   
 
                                     --- normalize values
                                     local NormX = (PtsX[i] - HdrPosL) / LFO.Win.w
@@ -2734,7 +2753,48 @@ function loop()
                                     table.insert(All_Coord.X,  NormX or 0)
                                     table.insert(All_Coord.Y,  NormY or 0)
 
+
+
+
+
+
                                 end
+
+
+                                if CurrentPlayPos then 
+                                    for i= 1, CurrentPlayPos , 1  do  
+                                        local pos = CurrentPlayPos-1
+                                        local L = math.max(pos-i, 1)
+                                        --if PtsX[pos] > PtsX[i] -30  then  -- if playhead is 60 pixels right to current point 
+                                            r.ImGui_DrawList_AddLine(FDL, PtsX[L+1] ,PtsY[L+1], PtsX[L],PtsY[L], 0xffffff88, 7 - 7*(i*0.1) )
+                                       -- end
+                                        --r.ImGui_DrawList_AddText(FDL, PtsX[i] ,PtsY[i], 0xffffffff, i)
+                                       --[[  if i == CurrentPlayPos then 
+                                            r.ImGui_DrawList_AddLine(FDL, PtsX[pos] ,PtsY[pos], PlayPosX, PtsY[CurrentPlayPos], 0xffffff88, 7  )
+                                        end ]]
+
+
+                                        -- calculate how far X and last x 
+                                        local Ly , Lx    
+
+                                        testTB = {}
+
+                                        for i= 0 , (PlayPosX - PtsX[pos] ) , (PlayPosX - PtsX[pos]) / 4 do 
+                                            local n = math.min(pos+1  , #PtsX)
+                                            local x2 =  PtsX[pos] +  i 
+                                            local y2 =  PtsY[pos] + (PtsY[CurrentPlayPos] - PtsY[pos]) *  ( i/  (PtsX[n] -PtsX[pos]) )
+                                            
+                                            r.ImGui_DrawList_AddLine(FDL, Lx or x2 , Ly or y2 , x2, y2, Change_Clr_A( 0xffffff00, (i /(PlayPosX - PtsX[pos])) * 0.3  ), 7     )
+                                            Ly = y2 
+                                            Lx = x2
+                                            
+                                            table.insert(testTB ,  (i /(PlayPosX - PtsX[pos])))
+                                        end
+                                    end
+                                end
+
+
+
                                 r.gmem_write(6, #Node*11)
 
                                 --r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
@@ -2763,9 +2823,21 @@ function loop()
 
                             --- Draw Playhead 
 
-                            local PlayPos = HdrPosL + r.gmem_read(108+i)/4 * LFO.Win.w
-                            r.ImGui_DrawList_AddLine(WDL ,PlayPos , Win_T,PlayPos, Win_B , 0xffffff99, 4 )
-                            r.ImGui_DrawList_AddCircleFilled(WDL,PlayPos, Win_B - MOD * LFO.DummyH , 5, 0xffffffcc)
+                            r.ImGui_DrawList_AddLine(WDL ,PlayPosX , Win_T,PlayPosX, Win_B , 0xffffff99, 4 )
+                            r.ImGui_DrawList_AddCircleFilled(WDL,PlayPosX, Win_B - MOD * LFO.DummyH , 5, 0xffffffcc)
+
+                            --- Draw animated Trail for modulated value 
+                            --[[ Mc.LFO_Trail = Mc.LFO_Trail or {}
+                            table.insert(Mc.LFO_Trail , Win_B - MOD * LFO.DummyH)
+                            if # Mc.LFO_Trail > 100 then table.remove(Mc.LFO_Trail, 1) end 
+                            for i, v in ipairs( Mc.LFO_Trail) do 
+                                
+                            end ]]
+                            
+                            --DrawLFOvalueTrail (Mc , PlayPos,  Win_B - MOD * LFO.DummyH  )
+
+
+
 
                             -- Draw Grid 
 
@@ -2790,7 +2862,17 @@ function loop()
                                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
                                 tweaking = Macro 
                                 Mc.LFO_spd = V
-                                
+                            end
+                            if r.ImGui_IsItemClicked(ctx,1 ) and Mods ==Ctrl then 
+                                r.ImGui_OpenPopup(ctx,'##LFO Speed menu' .. Macro)
+                            end
+                            if r.ImGui_BeginPopup(ctx, '##LFO Speed menu' .. Macro) then
+                                tweaking = Macro
+                                if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
+                                    AutomateModPrm (Macro,'LFO Speed', 17, 'LFO '..Macro..' Speed')
+                                end
+
+                                r.ImGui_EndPopup(ctx)
                             end
                             if Mods == Alt and r.ImGui_IsItemActivated(ctx) then Mc.LFO_spd = 1 end 
                             if r.ImGui_IsItemHovered(ctx) then 
@@ -2830,27 +2912,37 @@ function loop()
                             ------ Add LFO Gain  
                             SL()
                             r.ImGui_Text(ctx, 'Gain')
-                            r.ImGui_Text(ctx, Stripname(FX_Name,true , true ))
-
                             SL()
                             r.ImGui_SetNextItemWidth(ctx, 80)
                             local ShownV =math.floor( ( Mc.LFO_Gain or 0)* 100)
+
+                            -- check if prm has been assigned automation
+                            local  AutoPrmIdx = tablefind(Trk[TrkID].AutoPrms, 'Mod'.. Macro..'LFO Gain')  
+                            
+                            
                             rv, Mc.LFO_Gain = r.ImGui_DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain', Mc.LFO_Gain or 1 , 0.01, 0 , 1, ShownV .. '%%')
                             if r.ImGui_IsItemActive(ctx ) then 
                                 tweaking=Macro  
                                 ChangeLFO(14, Mc.LFO_Gain, 9, 'LFO Gain' )
-                            end
-                            if r.ImGui_IsItemClicked(ctx,1 ) and Mods ==Ctrl then 
-                                if r.ImGui_BeginPopup(ctx, '##LFO Gain menu' .. FP.Num) then
-                                    if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
-                                        r.gmem_write(4, 15)  -- set mode to 15 
-                                        r.gmem_write(5, Macro) 
-                                        Trk[TrkID].HowManyAutomatedPrm = (Trk[TrkID].HowManyAutomatedPrm or 0) + 1
-                                    end
-                                    r.ImGui_EndPopup(ctx)
+                                if AutoPrmIdx then 
+                                    r.TrackFX_SetParamNormalized(LT_Track, 0 , 15+ AutoPrmIdx , Mc.LFO_Gain)
+                                end
+                            else 
+                                if AutoPrmIdx then 
+                                    Mc.LFO_Gain = r.TrackFX_GetParamNormalized(LT_Track, 0, 15+ AutoPrmIdx)
                                 end
                             end
+                            if r.ImGui_IsItemClicked(ctx,1 ) and Mods ==Ctrl then 
+                                r.ImGui_OpenPopup(ctx,'##LFO Gain menu' .. Macro)
+                            end
+                            if r.ImGui_BeginPopup(ctx, '##LFO Gain menu' .. Macro) then
+                                tweaking = Macro
+                                if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
+                                    AutomateModPrm (Macro,'LFO Gain', 16, 'LFO '..Macro..' Gain')
+                                end
 
+                                r.ImGui_EndPopup(ctx)
+                            end
 
 
                             if  r.ImGui_IsWindowHovered(ctx,r.ImGui_HoveredFlags_RootAndChildWindows()) then 
@@ -6572,15 +6664,13 @@ function loop()
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
                                                     if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
                                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true)
-                                                        local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =
-                                                            r.BR_EnvGetProperties(env)
+                                                        local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =r.BR_EnvGetProperties(env)
 
                                                         r.BR_EnvSetProperties(env, true, true, armed, inLane, laneHeight,
                                                             defaultShape, faderScaling)
                                                         r.TrackList_AdjustWindows(false)
                                                         r.UpdateArrange()  
                                                     end
-                                                    r.ImGui_BeginPopupContextItem(ctx, 'optional string str_idIn')
                                                     r.ImGui_EndPopup(ctx)
                                                 end
                                             end

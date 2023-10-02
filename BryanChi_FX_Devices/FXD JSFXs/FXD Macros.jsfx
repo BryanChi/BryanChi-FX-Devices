@@ -20,24 +20,14 @@ slider13:0<0,127>Morph 5
 slider14:0<0,127>Morph 6
 slider15:0<0,127>Morph 7
 slider16:0<0,127>Morph 8
-slider17:20<0,500>LFO1 Frequency
-slider18:20<0,500>LFO2 Frequency
-slider19:20<0,500>LFO3 Frequency
-slider20:20<0,500>LFO4 Frequency
-slider21:20<0,500>LFO5 Frequency
-slider22:20<0,500>LFO6 Frequency
-slider23:20<0,500>LFO7 Frequency
-slider24:20<0,500>LFO8 Frequency
-slider25:1<0,1>LFO1 Amp
-slider26:1<0,1>LFO2 Amp
-slider27:1<0,1>LFO3 Amp
-slider28:1<0,1>LFO4 Amp
-slider29:1<0,1>LFO5 Amp
-slider30:1<0,1>LFO6 Amp
-slider31:1<0,1>LFO7 Amp
-slider32:1<0,1>LFO8 Amp
-slider33:0<0,5,1{Saw Up,Saw Down,Square,Triangle,Pulse,Bi-Pulse}>Shape
-slider34:0.5<0,1>Sharp
+slider17:0<0,1>Automatable Param 1
+slider18:0<0,1>Automatable Param 2
+slider19:0<0,1>Automatable Param 3
+slider20:0<0,1>Automatable Param 4
+slider21:0<0,1>Automatable Param 5
+slider22:0<0,1>Automatable Param 6
+slider23:0<0,1>Automatable Param 7
+slider24:0<0,1>Automatable Param 8
 
 
 
@@ -52,53 +42,96 @@ options:gmem=ParamValues
 
 
 @init 
+
+
 ext_noinit=1;
 ext_midi_bus = 1;
-
+is_init = 0;
 midiamp = midinote = 0;
 
 
 totalTrackCount =  gmem[0];
 trkGUID_Num = gmem[1];
 
+//  Follower Gain 
+  Mc1.Fol_Gain= 0.7 ; 
+  Mc2.Fol_Gain= 0.7 ; 
+  Mc3.Fol_Gain= 0.7 ; 
+  Mc4.Fol_Gain= 0.7 ; 
+  Mc5.Fol_Gain= 0.7 ; 
+  Mc6.Fol_Gain= 0.7 ; 
+  Mc7.Fol_Gain= 0.7 ; 
+  Mc8.Fol_Gain= 0.7 ; 
 
-Mc1.Fol_Gain= 0.7 ; 
-Mc2.Fol_Gain= 0.7 ; 
-Mc3.Fol_Gain= 0.7 ; 
-Mc4.Fol_Gain= 0.7 ; 
-Mc5.Fol_Gain= 0.7 ; 
-Mc6.Fol_Gain= 0.7 ; 
-Mc7.Fol_Gain= 0.7 ; 
-Mc8.Fol_Gain= 0.7 ; 
+//LFO Gain auto 
+  Mc1.LFO_Gain_Auto= 0 ;
+  Mc2.LFO_Gain_Auto= 0 ;
+  Mc3.LFO_Gain_Auto= 0 ;
+  Mc4.LFO_Gain_Auto= 0 ;
+  Mc5.LFO_Gain_Auto= 0 ;
+  Mc6.LFO_Gain_Auto= 0 ;
+  Mc7.LFO_Gain_Auto= 0 ;
+  Mc8.LFO_Gain_Auto= 0 ;
+
+// LFO Spd 
+  Mc1.LFO_Spd = 1;
+  Mc2.LFO_Spd = 1;
+  Mc3.LFO_Spd = 1;
+  Mc4.LFO_Spd = 1;
+  Mc5.LFO_Spd = 1;
+  Mc6.LFO_Spd = 1;
+  Mc7.LFO_Spd = 1;
+  Mc8.LFO_Spd = 1;
+//LFO Spd Auto
+  Mc1.LFO_Spd_Auto= 0 ;
+  Mc2.LFO_Spd_Auto= 0 ;
+  Mc3.LFO_Spd_Auto= 0 ;
+  Mc4.LFO_Spd_Auto= 0 ;
+  Mc5.LFO_Spd_Auto= 0 ;
+  Mc6.LFO_Spd_Auto= 0 ;
+  Mc7.LFO_Spd_Auto= 0 ;
+  Mc8.LFO_Spd_Auto= 0 ;
+//LFO_Len '
+
+  Mc1.LFO_Len = 4;
+  Mc2.LFO_Len = 4;
+  Mc3.LFO_Len = 4;
+  Mc4.LFO_Len = 4;
+  Mc5.LFO_Len = 4;
+  Mc6.LFO_Len = 4;
+  Mc7.LFO_Len = 4;
+  Mc8.LFO_Len = 4;
+// LGO_Gain 
+  Mc1.LFO_Gain = 1;
+  Mc2.LFO_Gain = 1;
+  Mc3.LFO_Gain = 1;
+  Mc4.LFO_Gain = 1;
+  Mc5.LFO_Gain = 1;
+  Mc6.LFO_Gain = 1;
+  Mc7.LFO_Gain = 1;
+  Mc8.LFO_Gain = 1;
 
 
 
-Mc1.SEQ_DNom = 1;
-Mc1.SEQ_Leng = 8;
-Mc2.SEQ_DNom = 1;
-Mc2.SEQ_Leng = 8;
-Mc3.SEQ_DNom = 1;
-Mc3.SEQ_Leng = 8;
-Mc4.SEQ_DNom = 1;
-Mc4.SEQ_Leng = 8;
-Mc5.SEQ_DNom = 1;
-Mc5.SEQ_Leng = 8;
-Mc6.SEQ_DNom = 1;
-Mc6.SEQ_Leng = 8;
-Mc7.SEQ_DNom = 1;
-Mc7.SEQ_Leng = 8;
-Mc8.SEQ_DNom = 1;
-Mc8.SEQ_Leng = 8;
+// SEQ DNom And Leng
+  Mc1.SEQ_DNom = 1;
+  Mc1.SEQ_Leng = 8;
+  Mc2.SEQ_DNom = 1;
+  Mc2.SEQ_Leng = 8;
+  Mc3.SEQ_DNom = 1;
+  Mc3.SEQ_Leng = 8;
+  Mc4.SEQ_DNom = 1;
+  Mc4.SEQ_Leng = 8;
+  Mc5.SEQ_DNom = 1;
+  Mc5.SEQ_Leng = 8;
+  Mc6.SEQ_DNom = 1;
+  Mc6.SEQ_Leng = 8;
+  Mc7.SEQ_DNom = 1;
+  Mc7.SEQ_Leng = 8;
+  Mc8.SEQ_DNom = 1;
+  Mc8.SEQ_Leng = 8;
 
 
-Mc1.LFO_Spd = 4;
-Mc2.LFO_Spd = 4;
-Mc3.LFO_Spd = 4;
-Mc4.LFO_Spd = 4;
-Mc5.LFO_Spd = 4;
-Mc6.LFO_Spd = 4;
-Mc7.LFO_Spd = 4;
-Mc8.LFO_Spd = 4;
 
 
 
@@ -145,13 +178,7 @@ SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
 Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
 
 
-Node.x = Lfo+0;
-Node.y = Lfo+1;
-Node.type = Lfo+2;
-Node.CtrlX = Lfo+3;
-Node.CtrlY = Lfo+4;
 
-Node_length = 6;
 
 
 function setNode(index, attribute, value) (
@@ -175,7 +202,7 @@ function getNode(index, attribute) (
 // TABLE INDEX ------------------------------
 // 1,3,5,7,9,11,13,15 = envelope 1~8 's atk
 // 2,4,6,8,10,12,14,16 = envelope 1~8 's rel
-
+// 17 ~ 64 = Automatable parameters
 
 
 function fmod (n, k) (
@@ -205,7 +232,6 @@ Mc8.Macro = 8;
 
 
 
-Mc1.blosc(slider17, slider34, slider33);
 
 Mc1.EnvToImGui = 101;
 Mc2.EnvToImGui = 102;
@@ -283,36 +309,59 @@ function CalculatMacroAmt(ModRange)
 
       this.out = this.FOL_out*this.FOL_Gain *127*ModRange ;
 
-    ):this.type=='LFO'?( // if type is LFO
-      this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
-      this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
-      loop (this.LFO_NodeCt  *11 ,
-        N+=1;  // N means segment actually , there are 11 segments between each nodes
-        X_idx = (this.Macro-1)*1000+N;
-        Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
-
-
-        x1 = LFO[X_idx];
-        y1 = LFO[Y_idx];
-        x2 = LFO[X_idx+1];
-        y2 = LFO[Y_idx+1];
-       
-
-        p=this.CurrentPos/4;
-        s = (x2 - x1)  ; // s for segment
-        x1_howMuch  =  (x2-p) / s ;
-        x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
-
-
-        x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
-          this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127 * ModRange;
-          this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127;
-
-        ):x1< p && x2==0?(    // if playhead is beyond last node
-          this.out = y1 * 127;
-        );
-        N == this.LFO_NodeCt ? (N=0);
+    ):this.type=='LFO'   ?( // if type is LFO
+      this.LFO_Gain_Auto != 0 ? ( 
+        this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
       );
+      this.LFO_Spd_Auto!= 0 ? (
+        this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
+      );
+
+      play_state == 1 ? ( // if playing
+
+        this.bp += beat_per_block * this.LFO_Spd;
+        this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
+
+      ): play_state != 1 ? (   // if not playing
+        this.bp =  beat_position * this.LFO_Spd ;
+        this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+      );
+
+        
+
+
+
+
+        //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
+        this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
+        loop (this.LFO_NodeCt  *11 ,
+          N+=1;  // N means segment actually , there are 11 segments between each nodes
+          X_idx = (this.Macro-1)*1000+N;
+          Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+
+
+          x1 = LFO[X_idx];
+          y1 = LFO[Y_idx];
+          x2 = LFO[X_idx+1];
+          y2 = LFO[Y_idx+1];
+        
+
+          p=this.CurrentPos/4;
+          s = (x2 - x1)  ; // s for segment
+          x1_howMuch  =  (x2-p) / s ;
+          x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+
+          x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+            this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127 * ModRange *this.LFO_Gain;
+            this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
+
+          ):x1< p && x2==0?(    // if playhead is beyond last node
+            this.out = y1 * 127;
+          );
+          N == this.LFO_NodeCt ? (N=0);
+        );
+      
       
 
     ):(   //if type is macro
@@ -351,9 +400,7 @@ Mc5.Slider = slider5;
 Mc6.Slider = slider6;
 Mc7.Slider = slider7;
 Mc8.Slider = slider8;
-Mc1.blosc_set_freq(slider17);
-Mc1.blosc_set_type(slider33);
-Mc1.blosc_set_sharp(slider34);
+
 
 
 @sample 
@@ -373,11 +420,24 @@ Mc8.FOL_out  = Mc8.follow_do((spl0+spl1));
 
 
 @block
+Automate = 16; // first one will be 17 
+
+// Calculate current play position
+  beat_per_spl = tempo / (srate * 60);
+  beat_per_block = beat_per_spl * samplesblock;
+
+  play_state == 1  && playstate_started == 0  ? (
+    bp = beat_position;
+    playstate_started = 1 ; 
+  ): play_state == 0 || play_state == 2 || play_state ==6 ? (
+    playstate_started = 0 ;
+  );
+  
 
 
 
 Sel_Trk_GUID_num = gmem[2];
-// This will only execute once when playback starts
+//This will only execute once when playback starts
 play_state === 0 ? (   
 sendMidi = 0;
 );  
@@ -551,7 +611,7 @@ trkGUID_Num === gmem[2]? (
     Macro==7?(Mc7.LFO_Spd = gmem[9];);
     Macro==8?(Mc8.LFO_Spd = gmem[9];);
   );
-   mode == 13?( //if user is adjusting LFO Length
+  mode == 13?( //if user is adjusting LFO Length
     SetTypeTo('LFO');
     Macro==1?(Mc1.LFO_Len = gmem[9];); 
     Macro==2?(Mc2.LFO_Len = gmem[9];); 
@@ -562,19 +622,24 @@ trkGUID_Num === gmem[2]? (
     Macro==7?(Mc7.LFO_Len = gmem[9];);
     Macro==8?(Mc8.LFO_Len = gmem[9];);
   );
-  /* mode == 14?(
+  mode == 14?(   // if user is adjusting LFO Gain
     SetTypeTo('LFO');
-    setNode(gmem[11], Node.CtrlX, gmem[9]);  
-    setNode(gmem[11], Node.CtrlY, gmem[10]);  
+    Macro==1?(Mc1.LFO_Gain = gmem[9];); 
+    Macro==2?(Mc2.LFO_Gain = gmem[9];); 
+    Macro==3?(Mc3.LFO_Gain = gmem[9];);
+    Macro==4?(Mc4.LFO_Gain = gmem[9];);
+    Macro==5?(Mc5.LFO_Gain = gmem[9];);
+    Macro==6?(Mc6.LFO_Gain = gmem[9];);
+    Macro==7?(Mc7.LFO_Gain = gmem[9];);
+    Macro==8?(Mc8.LFO_Gain = gmem[9];);
+  );
+  
 
-
-  );  */
   mode == 15?(  // if user changing LFO Shape
     SetTypeTo('LFO');
     Pts_Count = gmem[6];
     Macro = gmem[5];
     LFO[1*(Macro-1)*10000] = Pts_Count;  // 30000 = lfo 1's pt count,  40000 = lfo 2's pt count
-    aaa300000 =  1*(Macro-1)*10000;
     i=0;
     loop(Pts_Count,
       i+=1;
@@ -603,6 +668,30 @@ trkGUID_Num === gmem[2]? (
     Macro==7?( Mc7.blosc_set_type(gmem[10]));
     Macro==8?( Mc8.blosc_set_type(gmem[10])); */
   );
+
+  mode ==16?(  // if user set LFO_Gain as automatable parameter...
+    AutomatedPrm_Num = gmem[9];
+    Macro==1?(Mc1.LFO_Gain_Auto = AutomatedPrm_Num;); 
+    Macro==2?(Mc2.LFO_Gain_Auto = AutomatedPrm_Num;); 
+    Macro==3?(Mc3.LFO_Gain_Auto = AutomatedPrm_Num;);
+    Macro==4?(Mc4.LFO_Gain_Auto = AutomatedPrm_Num;);
+    Macro==5?(Mc5.LFO_Gain_Auto = AutomatedPrm_Num;);
+    Macro==6?(Mc6.LFO_Gain_Auto = AutomatedPrm_Num;);
+    Macro==7?(Mc7.LFO_Gain_Auto = AutomatedPrm_Num;);
+    Macro==8?(Mc8.LFO_Gain_Auto = AutomatedPrm_Num;);
+  );
+  mode == 17 ? ( 
+    AutomatedPrm_Num = gmem[9];   // if set LFO speed as automatable paramter
+    Macro==1?(Mc1.LFO_Spd_Auto = AutomatedPrm_Num;); 
+    Macro==2?(Mc2.LFO_Spd_Auto = AutomatedPrm_Num;); 
+    Macro==3?(Mc3.LFO_Spd_Auto = AutomatedPrm_Num;);
+    Macro==4?(Mc4.LFO_Spd_Auto = AutomatedPrm_Num;);
+    Macro==5?(Mc5.LFO_Spd_Auto = AutomatedPrm_Num;);
+    Macro==6?(Mc6.LFO_Spd_Auto = AutomatedPrm_Num;);
+    Macro==7?(Mc7.LFO_Spd_Auto = AutomatedPrm_Num;);
+    Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
+  );
+  
       
   gmem[7] != 0?( // if user uses Imgui to tweak param...
     P_Id = gmem[7];
@@ -617,21 +706,6 @@ trkGUID_Num === gmem[2]? (
 
 
 
-  MeasureNum= floor(beat_position/ts_denom);
-
-  
-
-  beat_pos = play_position * tempo ; 
-
-
-
-  BeatPos= beat_position - ts_denom* (MeasureNum);
-
-
-
-  beat_per_block = beat_per_spl * samplesblock;
-  beat_per_block *= speed;
-  next_block_pos = fmod(bp + beat_per_block, sequence_length);
 
 ); // --------------------- End of if track is selected -----------------------
 
