@@ -3531,6 +3531,26 @@ function loop()
                         if HoverOnWindow then
                             -- tooltip ('fx idx = ' .. tostring (FX_Idx) .. 'space is before mixer- '.. tostring (SpaceIsBeforeRackMixer).. 'AddLastSPCinRack - '.. tostring(AddLastSPCinRack))
                         end
+                        local function DrawFxChains(tbl, path)
+                            local extension = ".RfxChain"
+                            path = path or ""
+                            for i = 1, #tbl do
+                                if tbl[i].dir then
+                                    if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
+                                        DrawFxChains(tbl[i], table.concat({ path, os_separator, tbl[i].dir }))
+                                        r.ImGui_EndMenu(ctx)
+                                    end
+                                end
+                                if type(tbl[i]) ~= "table" then
+                                    if r.ImGui_Selectable(ctx, tbl[i]) then
+                                        if TRACK then
+                                            r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i], extension }), false,
+                                                -1000 - r.TrackFX_GetCount(TRACK))
+                                        end
+                                    end
+                                end
+                            end
+                        end
                         local function LoadTemplate(template, replace)
                             local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
                             if replace then
@@ -3571,7 +3591,7 @@ function loop()
                             for i = 1, #CAT do
                                 if r.ImGui_BeginMenu(ctx, CAT[i].name) then
                                     if CAT[i].name == "FX CHAINS" then
-                                        DrawChildMenu(CAT[i].list, nil, FX_Idx)
+                                        DrawFxChains(CAT[i].list)
                                     elseif CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
                                         DrawTrackTemplates(CAT[i].list)                        
                                     else
