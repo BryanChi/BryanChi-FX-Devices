@@ -6631,7 +6631,7 @@ function loop()
                                                             value = 0
                                                         else
                                                             value = 1
-                                                            retval, retvals_csv = reaper.GetUserInputs('Set CC value', 1, 'Set CC value', '1')
+                                                            retval, retvals_csv = r.GetUserInputs('Set CC value', 1, 'Set CC value', '1')
                                                             local retvals_csv = tonumber(retvals_csv)
                                                         end
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
