@@ -6,57 +6,6 @@ r = reaper
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
----@param TrackNumToBeMod number
----@param FX_Slt_Indx_ToBeMod integer
----@param PARAM_Num number
----@param parmlink boolean
----@param MIDIPLINK boolean
----@param Linked_Plugin number
----@param Linked_Self number
----@param Linked_Parm number
----@param Category integer
----@param CC_or_Note_Num integer
----@param Baseline_V number
----@param Scale number
-function Link_Param_to_CC(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num, parmlink, MIDIPLINK, Linked_Plugin, Linked_Self, Linked_Parm, Category,
-    CC_or_Note_Num,
-    Baseline_V, Scale)
---NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
---('TrackNumToBeMod'..TrackNumToBeMod.. '\n FX_Slt_Indx_ToBeMod'..FX_Slt_Indx_ToBeMod..'\n PARAM_Num'..PARAM_Num..'\n'..'CC_or_Note_Num'..CC_or_Note_Num..'\n')
-ParmModTable                                        = ultraschall.CreateDefaultParmModTable()
-
-ParmModTable["PARMLINK"]                            = parmlink
-
-ParmModTable["MIDIPLINK"]                           = MIDIPLINK
-ParmModTable["PARAM_TYPE"]                          = ""
-
-ParmModTable["WINDOW_ALTERED"]                      = false
-
-ParmModTable["PARMLINK_LINKEDPLUGIN"]               = Linked_Plugin + 1 -- -100 for MIDI-parameter-settings, so you need to set -101
-ParmModTable["PARMLINK_LINKEDPLUGIN_RELATIVE"]      = Linked_Self -- for (self) FX link
-ParmModTable["MIDIPLINK_BUS"]                       = 16
-ParmModTable["MIDIPLINK_CHANNEL"]                   = 16
-ParmModTable["MIDIPLINK_MIDICATEGORY"]              = Category      -- 176 is CC
-ParmModTable["MIDIPLINK_MIDINOTE"]                  = CC_or_Note_Num
-ParmModTable["PARAM_NR"]                            = PARAM_Num + 1 --Param Number to be modulated
-ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"] = true
-if Linked_Parm == -1 then ParmModTable["PARMLINK_LINKEDPARMIDX"] = Linked_Parm else ParmModTable["PARMLINK_LINKEDPARMIDX"] = Linked_Parm + 1 end -- Use -1 instead of nil, or it doesn't work
-if Baseline_V then ParmModTable["PARAMOD_BASELINE"] = Baseline_V end
-if Scale then ParmModTable["PARMLINK_SCALE"] = Scale end
-
-
-whetherValid = ultraschall.IsValidParmModTable(ParmModTable)
-
-
-retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumToBeMod)
-FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, ParmModTable)
-retval, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
-retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
-
-tab = ultraschall.GetParmModTable_FXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1, PARAM_Num + 1)
-end
-
 ---@param TrkNum number
 ---@param fxid integer
 ---@param parmidx integer
@@ -68,61 +17,6 @@ function SetPrmAlias(TrkNum, fxid, parmidx, AliasName)
 
     _, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
     _ = ultraschall.SetTrackStateChunk_Tracknumber(TrkNum, TrackStateChunk)
-end
-
----@param TrkNum number
----@param FX_Idx integer
----@param P_Num number
----@param TableIndex_Str string
----@return string TblIDReturn, string TrackStateChunk, string FXStateChunk, table PrmModTabl_FxStateChunk
-function GetParmModTable(TrkNum, FX_Idx, P_Num, TableIndex_Str)
-    local TblIDReturn
-    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrkNum)
-    FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-    if FXStateChunk then
-        tab = ultraschall.GetParmModTable_FXStateChunk(FXStateChunk, FX_Idx + 1, P_Num + 1)
-    end
-    if tab then TblIDReturn = tab[TableIndex_Str or 'PARAM_TYPE'] end
-    return TblIDReturn, TrackStateChunk, FXStateChunk, tab
-end
-
----@param TrackNumToBeMod number
----@param FX_Slt_Indx_ToBeMod integer
----@param PARAM_Num number
-function Unlink_Parm(TrackNumToBeMod, FX_Slt_Indx_ToBeMod, PARAM_Num)
-    --NOTE : ALL Numbers here are NOT zero-based, things start from 1 , hence the +1 in function
-
-    --ParmModTable = ultraschall.CreateDefaultParmModTable()
-    --[[ParmModTable["PARAM_NR"]                    =PARAM_Num
-        ParmModTable["PARAM_TYPE"]                  = ""
-        ParmModTable["WINDOW_ALTERED"]              =true
-
-        ParmModTable["PARAMOD_ENABLE_PARAMETER_MODULATION"]  = false
-        ParmModTable["MIDIPLINK"]              = false
-        ParmModTable["PARMLINK"]               =false
-        ParmModTable["MIDIPLINK_BUS"]          =nil
-        ParmModTable["MIDIPLINK_CHANNEL"]      =nil
-        ParmModTable["MIDIPLINK_MIDICATEGORY"] =nil
-        ParmModTable["MIDIPLINK_MIDINOTE"]     =nil ]]
-    whetherValidUnlink = ultraschall.IsValidParmModTable(ParmModTable)
-    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumToBeMod)
-    FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-    --ParmModTable["WINDOW_ALTERED"]              =true
-    --alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, FX_Slt_Indx_ToBeMod+1, ParmModTable)
-
-    alteredFXStateChunk = ultraschall.DeleteParmModFromFXStateChunk(FXStateChunk, FX_Slt_Indx_ToBeMod + 1,
-        PARAM_Num + 1)
-
-    retval, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
-    retval = ultraschall.SetTrackStateChunk_Tracknumber(TrackNumToBeMod, TrackStateChunk)
-end
-
----@param TrackNumber number
-function Link_Macros_to_ImGui_Sliders(TrackNumber)
-    ParmModTable = ultraschall.CreateDefaultParmModTable()
-    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrackNumber)
-    FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-    alteredFXStateChunk = ultraschall.AddParmMod_ParmModTable(FXStateChunk, 1, ParmModTable) --Always Link 1st FX, which is macros
 end
 
 ---@param FX_Idx integer
@@ -152,7 +46,7 @@ function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
         if FX[FxGUID][Fx_P].ModAMT then
             for Mc = 1, 8, 1 do
                 if FX[FxGUID][Fx_P].ModAMT[Mc] then
-                    Unlink_Parm(LT_TrackNum, FX_Idx, P_Num)
+                    local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
                     FX[FxGUID][Fx_P].ModAMT[Mc] = 0
                 end
             end
@@ -185,7 +79,13 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow = r.time_precise()
             r.gmem_write(11000 + CC, p_value)
-            Link_Param_to_CC(LT_TrackNum, LT_FX_Number, P_Num, true, true, -101, nil, -1, 176, CC)
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)   -- 176 is CC
+            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", CC) -- CC value
         end
 
         Tweaking = nil
@@ -298,7 +198,13 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
         r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
         PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
-        Link_Param_to_CC(LT_TrackNum, AssignMODtoFX, AssignToPrmNum, true, true, -101, nil, -1, 176, CC)
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.active", 1)   -- 1 active, 0 inactive
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.effect", -100) -- -100 enables midi_msg*
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.param", -1)   -- -1 not parameter link
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_msg", 176)   -- 176 is CC
+        local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_msg2", CC) -- CC value
         r.gmem_write(3, Trk[TrkID].ModPrmInst)
 
         r.gmem_write(7, CC) --tells jsfx to rfetrieve P value

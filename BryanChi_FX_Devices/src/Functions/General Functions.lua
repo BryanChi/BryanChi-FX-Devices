@@ -1382,7 +1382,7 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     for Mc = 1, 8, 1 do
         if FP.ModAMT then
             if FP.ModAMT[Mc] then
-                Unlink_Parm(LT_TrackNum, FX_Idx, FP.Num)
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..FP.Num..".plink.active", 0)   -- 1 active, 0 inactive
                 FP.ModAMT[Mc] = nil
             end
         end
