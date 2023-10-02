@@ -6551,20 +6551,22 @@ function loop()
                                                 end
                                                 if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then                                                    
                                                     local P_Num = Prm.Num
-                                                    parentfxnumber = FX_Idx
-                                                    parentparamnumber = P_Num                                                                                        
+                                                    lead_fxnumber = FX_Idx
+                                                    lead_paramnumber = P_Num                                                                                        
                                                 end
                                                 if r.ImGui_IsItemClicked(ctx, 1) and Mods == Shift then
                                                     local P_Num = Prm.Num
-                                                    local childtracknumber = LT_TrackNum
-                                                    local childfxnumber = FX_Idx 
-                                                    local childparamnumber = P_Num 
-                                                    if parentfxnumber == childfxnumber then
-                                                        selflink = 0
+                                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
+                                                    if retval and buf == "1" then
+                                                            value = 0
+                                                            lead_fxnumber = -1
+                                                            lead_paramnumber = -1
                                                     else
-                                                        selflink = nil
+                                                            value = 1
                                                     end                                                   
-                                                    Link_Param_to_CC(childtracknumber, childfxnumber, childparamnumber, true, false, parentfxnumber, selflink, parentparamnumber, nil, nil)
+                                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
+                                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", lead_fxnumber) 
+                                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", lead_paramnumber) 
                                                 end 
                                                 if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
@@ -6579,6 +6581,56 @@ function loop()
                                                             defaultShape, faderScaling)
                                                         r.TrackList_AdjustWindows(false)
                                                         r.UpdateArrange()  
+                                                    end
+                                                    if r.ImGui_Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
+                                                        local P_Num = Prm.Num
+                                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
+                                                        if retval and buf == "1" then
+                                                            value = 0
+                                                        else
+                                                            value = 1
+                                                        end
+                                                        local acs = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", value)
+                                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)  
+                                                    end
+                                                    if r.ImGui_Selectable(ctx, 'Toggle Add LFO') then
+                                                        local P_Num = Prm.Num
+                                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active") 
+                                                        if retval and buf == "1" then
+                                                            value = 0
+                                                        else
+                                                            value = 1
+                                                        end
+                                                        local lfo = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", value)      
+                                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)                                               
+                                                    end
+                                                    if r.ImGui_Selectable(ctx, 'Toggle Add CC Link') then
+                                                        local P_Num = Prm.Num
+                                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active") 
+                                                        if retval and buf == "1" then
+                                                            value = 0
+                                                        else
+                                                            value = 1
+                                                            retval, retvals_csv = reaper.GetUserInputs('Set CC value', 1, 'Set CC value', '1')
+                                                            local retvals_csv = tonumber(retvals_csv)
+                                                        end
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
+                                                        -- local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
+                                                        -- local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 0)
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)  
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals_csv)                                                      
+                                                    end
+                                                    if r.ImGui_Selectable(ctx, 'Toggle Open Modulation/Link Window') then
+                                                        local P_Num = Prm.Num
+                                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
+                                                        if retval and buf == "1" then
+                                                            value = 0
+                                                        else
+                                                            value = 1
+                                                        end
+                                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", value)                                                     
                                                     end
                                                     r.ImGui_BeginPopupContextItem(ctx, 'optional string str_idIn')
                                                     r.ImGui_EndPopup(ctx)
