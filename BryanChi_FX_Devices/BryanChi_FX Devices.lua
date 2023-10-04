@@ -65,9 +65,7 @@
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
 --   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
---   src/ThemeColors.ini
 --   src/IconFont1.ttf
---   src/FX Default Values.ini
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
 --   src/Functions/General Functions.lua
