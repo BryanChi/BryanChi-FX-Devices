@@ -1,9 +1,18 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.6
+-- @version 1.0beta10.7
 -- @changelog
---   - Plugin scripts example
---   - Add conditions to hide default controls and Wet/Dry knob when there are plugin scripts that corresponds with current FX.
+--   - New! Bipolar modulation - activate by holding alt when assigning modulation
+--   - Added a new ‘Height’ property for editing layouts.
+--   - Fix user’s keyboard shortcuts get replaced upon updating FX Device script to a new version.
+--   - Fixed clicking ‘Automate’ on preset morph slider not working properly, when FXD Macro is not present.
+--   - Fixed LFO Shape’s length changing when user changes the length slider by jumping more than one increment.
+--   - Clicking on LFO’s little preview(where you hover to show the LFO edit window) will now pin the window.
+--   - Fix multiple LFO blinking when assigning Modulation.
+--   - Added option to do native modulations in parameter context menu (accessible by ctrl + rmb)
+--   - fixed preset morphing crashes
+--   - Fixed clicking ‘add envelope to parameter’ on LFO speed/gain doesn’t show envelope lane.
+--   - fixed unable to load fx chain in fx adder.
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -58,7 +67,6 @@
 --   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/ThemeColors.ini
 --   src/IconFont1.ttf
---   src/Keyboard Shortcuts.ini
 --   src/FX Default Values.ini
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
@@ -95,7 +103,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta1.0beta10.6 '
+VersionNumber = 'V1.0beta1.0beta10.7 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -1028,12 +1036,10 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                     Trk[TrkID].Mod[m].Val = tonumber(select(2,
                         r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
 
-                    FP.ModBypass = RemoveEmptyStr(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '',
-                            false)))
+                    FP.ModBypass = RemoveEmptyStr(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '',false)))
 
-
-
+                    FP.ModBipolar = FP.ModBipolar or {}
+                    FP.ModBipolar[m] = StringToBool[ select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m.. 'Mod Bipolar', '',false))]
 
                     if Prm.McroModAmt[IdM] ~= nil then
                         local width = FX.Width[FxGUID] or DefaultWidth or 270
@@ -1264,7 +1270,7 @@ function loop()
                 0xffffffff,
                 'Select a track to start')
         else -- of if LT_Track
-            
+            r.gmem_write(4,0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
 
             HintMessage = nil
             GetAllInfoNeededEachLoop()
@@ -1419,12 +1425,13 @@ function loop()
 
             -- if user switch selected track...
             if TrkID ~= TrkID_End then
+                
                 if TrkID_End ~= nil and TrkID ~= nil then
                     NumOfTotalTracks = r.CountTracks(0)
                     --[[  r.gmem_attach('TrackNameForMacro')
                     reaper .gmem_write(0,NumOfTotalTracks )]]
                 end
-                for P = 1, Trk.Prm.Inst[TrkID] or 0, 1 do
+                for P = 0, Trk.Prm.Inst[TrkID] or 0, 1 do
                     for m = 1, 8, 1 do
                         r.gmem_write(1000 * m + P, 0)
                     end
@@ -2307,6 +2314,10 @@ function loop()
 
                     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'LFO' .. i .. 'Menu')
+                    elseif rv and Mods == 0 then 
+                        if LFO.Pin == TrkID..'Macro = '..Macro then LFO.Pin =nil
+                        else  LFO.Pin = TrkID..'Macro = '..Macro
+                        end
                     
                     end
 
@@ -2364,7 +2375,7 @@ function loop()
                         r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
                         if r.ImGui_Begin(ctx, 'LFO Shape Edit Window'..Macro, true , r.ImGui_WindowFlags_NoDecoration()+ r.ImGui_WindowFlags_AlwaysAutoResize()) then
 
-                            
+                            local Node = Trk[TrkID].Mod[i].Node
                             local function ConverCtrlNodeY (lastY, Y) 
                                 local Range = (math.max(lastY, Y) - math.min(lastY, Y)) 
                                 local NormV = (math.min(lastY, Y)+ Range - Y) / Range
@@ -2385,13 +2396,28 @@ function loop()
 
                             LFO.Pin = PinIcon (LFO.Pin,TrkID..'Macro = '..Macro  ,BtnSz, 'LFO window pin'..Macro, 0x00000000, ClrTint)
                             SL()
+
+                            
                             if r.ImGui_ImageButton(ctx, '## copy' .. Macro, Img.Copy, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
-                                LFO.Clipboard = Mc.Node
+                                LFO.Clipboard = {}
+                                for i , v in ipairs(Node)  do 
+                                    LFO.Clipboard[i] = LFO.Clipboard[i] or {}
+                                    LFO.Clipboard[i].x = v.x
+                                    LFO.Clipboard[i].y = v.y
+                                end
                             end
+
                             SL()
-                            if r.ImGui_ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
-                                Mc.Node = LFO.Clipboard
+                            if not LFO.Clipboard then r.ImGui_BeginDisabled(ctx) end 
+                            if r.ImGui_ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then
+                                for i , v in ipairs(LFO.Clipboard)  do 
+                                    Mc.Node[i] =  Mc.Node[i] or {}
+                                    Mc.Node[i].x = v.x
+                                    Mc.Node[i].y = v.y
+                                end
                             end
+                            if not LFO.Clipboard then r.ImGui_EndDisabled(ctx) end 
+
 
                             SL(nil, 30)
                             if r.ImGui_ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
@@ -2892,15 +2918,15 @@ function loop()
                             ---- Add Length slider
                             r.ImGui_Text(ctx, 'Length:') SL()
                             r.ImGui_SetNextItemWidth(ctx, 80)
-
+                            local LengthBefore = Mc.LFO_leng
                             rv, Mc.LFO_leng = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length', Mc.LFO_leng or LFO.Def.Len, 1, 8)
-                            if r.ImGui_IsItemActivated(ctx) then LengthBefore = Mc.LFO_leng end 
                             if r.ImGui_IsItemActive(ctx ) then 
                                 tweaking=Macro  
                                 ChangeLFO(13, Mc.LFO_leng or LFO.Def.Len, 9, 'LFO Length' )
                             end 
                             if r.ImGui_IsItemEdited(ctx) then 
                                 local Change =   Mc.LFO_leng - LengthBefore 
+
                                 for i, v in ipairs( Node) do 
                                     Node[i].x =  Node[i].x / ((LengthBefore+Change) / LengthBefore )
                                     if Node[i].ctrlX then 
@@ -4064,7 +4090,7 @@ function loop()
                             end
                             ----------- Add FX ---------------
                             if Payload_Type == 'AddFX_Sexan' then
-                                AddFX_Sexan(nil, ClrLbl)
+                                AddFX_Sexan(FX_Idx, ClrLbl)   -- fx layer
                             end
 
                             r.ImGui_EndDragDropTarget(ctx)
@@ -4117,7 +4143,7 @@ function loop()
                             end
                             -- Add from Sexan Add FX
                             if Payload_Type == 'AddFX_Sexan' then
-                                AddFX_Sexan(FX_Idx, ClrLbl)
+                                AddFX_Sexan(FX_Idx, ClrLbl)  -- band split
                             end
 
                             r.ImGui_EndDragDropTarget(ctx)
@@ -4272,7 +4298,7 @@ function loop()
                                 end
                             end
                         elseif Payload_Type == 'AddFX_Sexan' then
-                            AddFX_Sexan(FX_Idx, ClrLbl)
+                            AddFX_Sexan(FX_Idx, ClrLbl)     -- normal
                             r.ImGui_EndDragDropTarget(ctx)
                         end
                     else
@@ -4461,6 +4487,9 @@ function loop()
                 ------------------------------------------------------
                 ----- Loop for every FX on the track -----------------
                 ------------------------------------------------------
+
+                
+                
 
 
                 CursorStartX = r.ImGui_GetCursorStartPos(ctx)
@@ -4723,14 +4752,14 @@ function loop()
                                     local Disable
                                     MorphingMenuOpen = true
                                     if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then
-                                        r.ImGui_BeginDisabled(
-                                            ctx)
+                                        r.ImGui_BeginDisabled(ctx)
                                     end
 
                                     if not FX[FxGUID].Morph_ID or FX[FxGUID].Unlink then
                                         if r.ImGui_Selectable(ctx, 'Automate', false) then
                                             r.gmem_attach('ParamValues')
-
+                                            local FX_Idx = FX_Idx
+                                            local FxGUID = FxGUID
                                             if not Trk[TrkID].Morph_ID then
                                                 Trk[TrkID].Morph_ID = {} -- Morph_ID is the CC number jsfx sends
                                                 Trk[TrkID].Morph_ID[1] = FxGUID
@@ -4745,11 +4774,14 @@ function loop()
                                             if --[[Add Macros JSFX if not found]] r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then
                                                 r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
                                                 AddMacroJSFX()
+                                                FX_Idx = FX_Idx + 1   -- because a new fx is added in slot 0 , the fx you want to modulate is moved to one slot later
                                             end
                                             for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
                                                 local Scale = FX[FxGUID].MorphB[i] - v
 
                                                 if v ~= FX[FxGUID].MorphB[i] then
+
+
                                                     local function LinkPrm()
                                                         local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
                                                         local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Scale)   -- Scale
@@ -4770,6 +4802,7 @@ function loop()
                                                             LinkPrm()
                                                         end
                                                     else
+                                                        msg(i)
                                                         LinkPrm()
                                                     end
                                                 end
@@ -4783,6 +4816,7 @@ function loop()
                                             FX[FxGUID].Unlink = false
                                             r.GetSetMediaTrackInfo_String(LT_Track,
                                                 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', '', true)
+
 
                                             SetPrmAlias(LT_TrackNum, 1, 8 + FX[FxGUID].Morph_ID,
                                                 FX.Win_Name_S[FX_Idx]:gsub("%b()", "") .. ' - Morph AB ')
@@ -4834,8 +4868,7 @@ function loop()
                                     if r.ImGui_Selectable(ctx, 'Hide Morph Slider', false) then
                                         FX[FxGUID].MorphHide = true
                                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
-                                            'true',
-                                            true)
+                                            'true',true)
                                     end
 
                                     r.ImGui_EndPopup(ctx)
@@ -6714,7 +6747,7 @@ function loop()
                                                 if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                                                 end
-                                                if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. FP.Num) then
+                                                if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                                                     if r.ImGui_Selectable(ctx, 'Add Parameter to Envelope', false) then
                                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true)
                                                         local active, visible, armed, inLane, laneHeight, defaultShape, minValue, maxValue, centerValue, Tp, faderScaling =r.BR_EnvGetProperties(env)
@@ -7530,7 +7563,7 @@ function loop()
 
                                     ----Width -------
                                     r.ImGui_Text(ctx, 'Width: '); r.ImGui_SameLine(ctx)
-                                    r.ImGui_SetNextItemWidth(ctx, -R_ofs)
+                                    r.ImGui_SetNextItemWidth(ctx, 60)
                                     local DefaultW, MaxW, MinW
                                     if FrstSelItm.Type == 'Knob' then
                                         DefaultW = Df.KnobRadius
@@ -7555,6 +7588,7 @@ function loop()
                                     end
                                     local DragSpeed = 5
 
+                                    SL()
 
 
                                     local _, W = r.ImGui_DragDouble(ctx,
@@ -7567,6 +7601,23 @@ function loop()
                                             FX[FxGUID][v].Sldr_W = W
                                         end
                                     end
+
+
+                                    if FrstSelItm.Type ~= 'Knob' then 
+                                        SL()
+                                        r.ImGui_Text(ctx, 'Height: ') SL()
+                                        r.ImGui_SetNextItemWidth(ctx, 60)
+                                        local max , defaultH 
+                                        if FrstSelItm.Type == 'V-Slider' then max = 200  defaultH = 160 end 
+                                        local _, W = r.ImGui_DragDouble(ctx, '##Height'.. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or 3, LE.GridSize / 4, -5 , max or 40 ,'%.1f')
+                                        if r.ImGui_IsItemEdited(ctx) then
+                                            for i, v in pairs(LE.Sel_Items) do
+                                                FX[FxGUID][v].Height = W
+                                            end
+                                        end
+                                    end
+
+
 
                                     if FrstSelItm.Type == 'Knob' or FrstSelItm.Type == 'Drag' or FrstSelItm.Type == 'Slider' then
                                         r.ImGui_Text(ctx, 'Value Decimal Places: '); r.ImGui_SameLine(ctx)
@@ -7591,6 +7642,12 @@ function loop()
                                             end
                                         end
                                     end
+
+                                    
+
+
+
+
 
                                     r.ImGui_Text(ctx, 'Value to Note Length: '); r.ImGui_SameLine(ctx)
                                     r.ImGui_SetNextItemWidth(ctx, 80)
@@ -10717,9 +10774,13 @@ function loop()
                                 for P, v in ipairs(FX[FxGUID]) do
                                     local FP = FX[FxGUID][P]
                                     FP.ModAMT = FP.ModAMT or {}
+                                    FP.ModBipolar = FP.ModBipolar or {}
                                     if FP.WhichCC then
                                         for m = 1, 8, 1 do
-                                            if FP.ModAMT[m] then r.gmem_write(1000 * m + P, FP.ModAMT[m]) end
+                                            local Amt = FP.ModAMT[m]
+                                            if FP.ModBipolar[m] then   Amt = FP.ModAMT[m] + 100 end 
+
+                                            if FP.ModAMT[m] then r.gmem_write(1000 * m + P,Amt  ) end
                                         end
                                     end
                                 end
@@ -10827,7 +10888,7 @@ function loop()
             if Payload_Type == 'AddFX_Sexan' then
                 local SpcIDinPost
                 if SpcInPost then SpcIDinPost = math.max(#Trk[TrkID].PostFX, 1) end
-                AddFX_Sexan(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
+                AddFX_Sexan(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)  -- post fx
             end
 
             PostFX_Width = math.min(

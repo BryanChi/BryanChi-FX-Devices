@@ -115,6 +115,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         end
         DecideShortOrLongClick = FP
         Dur = r.ImGui_GetMouseDownDuration(ctx, 1)
+    --[[ elseif r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and Mods == Alt then
+        r.gmem_write(1000 * AssigningMacro + FP.WhichCC, (FP.ModAMT[M] or 0) +100 ) ]]  ---  if amount  is 100 ~ 101 then it's bipolar modulation
     end
 
     if DecideShortOrLongClick == FP and Dur then
@@ -188,8 +190,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             FP.WhichMODs, true)
 
         --r.SetProjExtState(0, 'FX Devices', 'Prm'..F_Tp..'Has Which Macro Assigned, TrkID ='..TrkID, Trk.Prm.WhichMcros[F_Tp..TrkID])
-        r.gmem_write(7, CC) --tells jsfx to retrieve P value
-        r.gmem_write(11000 + CC, p_value)
+        --[[ r.gmem_write(7, CC) --tells jsfx to retrieve P value
+        r.gmem_write(11000 + CC, p_value) ]]
 
         r.gmem_write(6, CC)
 
@@ -208,7 +210,12 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         r.gmem_write(3, Trk[TrkID].ModPrmInst)
 
         r.gmem_write(7, CC) --tells jsfx to rfetrieve P value
-        r.gmem_write(11000 + CC, p_value)
+
+        if FP.ModBipolar[M] then  --if it's bipolar 
+            r.gmem_write(11000 + CC, p_value )  -- sends parameter's value before being modulated
+        else            -- if not bipolar 
+            r.gmem_write(11000 + CC, p_value)
+        end 
     end
 
 
@@ -230,7 +237,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     local Vertical
     if Type == 'Vert' then Vertical = 'Vert' end
 
-
+    FP.ModBipolar = FP.ModBipolar or {}
     if --[[Right Dragging to adjust Mod Amt]] Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMacro then
         local Id = FxGUID .. Trk.Prm.Assign
         local M = AssigningMacro
@@ -253,13 +260,24 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
         if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
 
+        local BipolarOut 
+        if Mods == Alt and IsRBtnHeld then 
+            FP.ModAMT[M] = math.abs( FP.ModAMT[M])
+            BipolarOut = FP.ModAMT[M]  + 100
+
+            FP.ModBipolar[M] = true 
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','true', true)
+        elseif IsRBtnHeld and Mods == 0 then 
+            FP.ModBipolar[M] = nil
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
+        end
+
+
         if not IsLBtnHeld then r.gmem_write(4, 1) end --tells jsfx that user is changing Macro Mod Amount
-        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, FP.ModAMT[M])
+        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or  FP.ModAMT[M]) -- tells jsfx the param's mod amount
         r.ImGui_ResetMouseDragDelta(ctx, 1)
 
-        r.GetSetMediaTrackInfo_String(LT_Track,
-            'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',
-            FP.ModAMT[M], true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',FP.ModAMT[M], true)
     end
 
 
@@ -349,6 +367,10 @@ function AutomateModPrm (Macro,str, jsfxMode, alias)
     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: How Many Automated Prm in Modulators' , #Trk[TrkID].AutoPrms, true)
 end
 
+function SetModulationToBipolar(Macro)
+    r.gmem_write(4, 18) -- mode to set to bipolar 
+    r.gmem_write(5, Macro)
+end
 
 
 function WhenRightClickOnModulators(Macro)
@@ -360,7 +382,10 @@ function WhenRightClickOnModulators(Macro)
         else AssigningMacro = nil
         end
     end
-    if AssigningMacro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
+    if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
+        SetModulationToBipolar(Macro)
+    end
+    if AssigningMacro==Macro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
 end
 
 

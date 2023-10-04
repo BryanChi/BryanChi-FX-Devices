@@ -111,6 +111,16 @@ trkGUID_Num = gmem[1];
   Mc7.LFO_Gain = 1;
   Mc8.LFO_Gain = 1;
 
+// Bipolar 
+  Mc1.Bipolar = 0;
+  Mc2.Bipolar = 0;
+  Mc3.Bipolar = 0;
+  Mc4.Bipolar = 0;
+  Mc5.Bipolar = 0;
+  Mc6.Bipolar = 0;
+  Mc7.Bipolar = 0;
+  Mc8.Bipolar = 0;
+
 
 
 // SEQ DNom And Leng
@@ -288,88 +298,104 @@ function SetMacroAttribute( x , y )
     Macro==8?(Mc8.FOL_Gain = y);
 );
 
-function CalculatMacroAmt(ModRange)
+function CalculatMacroAmt() local (BipolarRange , MR )
 (
-  ModRange!==0?(
-    this.type =='step'?(
-      this.CurrentPos = (beat_position * this.SEQ_DNom) % this.SEQ_Leng ;
-      this.out = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127*ModRange  ;
+  BipolarRange = 0;
+  MR = ModRange;
+  
+
+  ModRange> 100 ? (     // if it's bipolar 
+    BipolarRange = (ModRange- 100) ; 
+    MR = (ModRange- 100) * 2;
+  );
+  
 
 
-    ):this.type =='env'?(
-
-      this.masr_set_risetime(this.atk);
-      this.masr_set_falltime(this.rel);
-      this.out =  this.masr_do(midiamp)*ModRange;
-      //trkGUID_Num === gmem[2]? (gmem[this.EnvToImGui] = this.masr_do(midiamp));
+  this.type =='step'?(
+    this.CurrentPos = (beat_position * this.SEQ_DNom) % this.SEQ_Leng ;
+    this.out = SEQ[this.CurrentPos+1+64*(this.Macro-1)]  ;
+    
 
 
+  ):this.type =='env'?(
 
-    ):this.type =='Fol' ? ( // if macro  is Follower 
-
-      this.out = this.FOL_out*this.FOL_Gain *127*ModRange ;
-
-    ):this.type=='LFO'   ?( // if type is LFO
-      this.LFO_Gain_Auto != 0 ? ( 
-        this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
-      );
-      this.LFO_Spd_Auto!= 0 ? (
-        this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
-      );
-
-      play_state == 1 ? ( // if playing
-
-        this.bp += beat_per_block * this.LFO_Spd;
-        this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
-
-      ): play_state != 1 ? (   // if not playing
-        this.bp =  beat_position * this.LFO_Spd ;
-        this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
-      );
-
-        
+    this.masr_set_risetime(this.atk);
+    this.masr_set_falltime(this.rel);
+    this.out =  this.masr_do(midiamp);
+    //trkGUID_Num === gmem[2]? (gmem[this.EnvToImGui] = this.masr_do(midiamp));
 
 
 
+  ):this.type =='Fol' ? ( // if macro  is Follower 
 
-        //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
-        this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
-        loop (this.LFO_NodeCt  *11 ,
-          N+=1;  // N means segment actually , there are 11 segments between each nodes
-          X_idx = (this.Macro-1)*1000+N;
-          Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+    this.out = this.FOL_out*this.FOL_Gain  ;
+
+  ):this.type=='LFO'   ?( // if type is LFO
+    this.LFO_Gain_Auto != 0 ? ( 
+      this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
+    );
+    this.LFO_Spd_Auto!= 0 ? (
+      this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
+    );
+
+    play_state == 1 ? ( // if playing
+
+      this.bp += beat_per_block * this.LFO_Spd;
+      this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
+
+    ): play_state != 1 ? (   // if not playing
+      this.bp =  beat_position * this.LFO_Spd ;
+      this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+    );
+
+      
 
 
-          x1 = LFO[X_idx];
-          y1 = LFO[Y_idx];
-          x2 = LFO[X_idx+1];
-          y2 = LFO[Y_idx+1];
-        
-
-          p=this.CurrentPos/4;
-          s = (x2 - x1)  ; // s for segment
-          x1_howMuch  =  (x2-p) / s ;
-          x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
 
 
-          x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
-            this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127 * ModRange *this.LFO_Gain;
-            this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
+      //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
+      this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
+      loop (this.LFO_NodeCt  *11 ,
+        N+=1;  // N means segment actually , there are 11 segments between each nodes
+        X_idx = (this.Macro-1)*1000+N;
+        Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
 
-          ):x1< p && x2==0?(    // if playhead is beyond last node
-            this.out = y1 * 127;
-          );
-          N == this.LFO_NodeCt ? (N=0);
+
+        x1 = LFO[X_idx];
+        y1 = LFO[Y_idx];
+        x2 = LFO[X_idx+1];
+        y2 = LFO[Y_idx+1];
+      
+
+        p=this.CurrentPos/4;
+        s = (x2 - x1)  ; // s for segment
+        x1_howMuch  =  (x2-p) / s ;
+        x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+
+        x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+          this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
+
+          this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
+
+        ):x1< p && x2==0?(    // if playhead is beyond last node
+          this.out = y1;
         );
-      
-      
+        N == this.LFO_NodeCt ? (N=0);
+      );
+    
+    
 
-    ):(   //if type is macro
-      this.Out = this.Slider * ModRange*127);
+  ):(   //if type is macro
+    this.Out = (this.Slider )   
+  );
+    
 
 
-  ):(this.Out = 0 );
 
+  //this.Bipolar == 1 ? (  // make whole modulator bipolar
+  //  this.out = this.out * MR - BipolarRange;
+  //) // make it bipolar
 );
 
 
@@ -387,9 +413,75 @@ function SetTypeTo (T)
   Macro==8?(Mc8.Type=T);
 );
 
+function Check_If_Bipolar(ModAmt)
+(
+  ModAmt[i]> 100 ? (     // if it's bipolar 
+    BipolarRange = (ModRange- 100) ; 
+    MR = (ModRange- 100) * 2;
+    BipolarRange; 
+  );
+
+);
 
 
+function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs)  // i is the track param number
+(
+  total = 0 ;
+  Bi_ofs= 0;
+  ModAmt[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt[i]- 100) ; 
+    Amt = (ModAmt[i]- 100)*2 ;
+  ):(Amt = ModAmt[i] ;);
 
+  AA_AMT1 = Amt;
+  AA_BI_OFS = Bi_ofs ; 
+  ModAmt[i]  != 0 ? (total += Mc1.Out * Amt - Bi_ofs  ) ; 
+
+
+  ModAmt2[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt2[i]- 100) ; 
+    Amt = (ModAmt2[i]- 100)*2 ;
+  ):(Amt = ModAmt2[i] ;);
+  ModAmt2[i]  != 0 ? (total += Mc2.Out * Amt - Bi_ofs  ) ; 
+
+  ModAmt3[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt3[i]- 100) ; 
+    Amt = (ModAmt3[i]- 100)*2 ;
+  ):(Amt = ModAmt3[i] ;);
+  ModAmt3[i] != 0 ? (total += Mc3.Out *Amt - Bi_ofs) ; 
+
+  ModAmt4[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt4[i]- 100) ; 
+    Amt = (ModAmt4[i]- 100)*2 ;
+  ):(Amt = ModAmt4[i] ;);
+  ModAmt4[i] != 0 ? (total += Mc4.Out *Amt - Bi_ofs) ; 
+
+  ModAmt5[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt5[i]- 100) ; 
+    Amt = (ModAmt5[i]- 100)*2 ;
+  ):(Amt = ModAmt5[i] ;);
+  ModAmt5[i] != 0 ? (total += Mc5.Out *Amt- Bi_ofs) ; 
+
+  ModAmt6[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt6[i]- 100) ; 
+    Amt = (ModAmt6[i]- 100)*2 ;
+  ):(Amt = ModAmt6[i] ;);
+  ModAmt6[i] != 0 ? (total += Mc6.Out *Amt - Bi_ofs) ; 
+
+  ModAmt7[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt7[i]- 100) ; 
+    Amt = (ModAmt7[i]- 100)*2 ;
+  ):(Amt = ModAmt7[i] ;);
+  ModAmt7[i] != 0 ? (total += Mc7.Out *Amt- Bi_ofs) ; 
+
+  ModAmt8[i]> 100 ? (     // if it's bipolar 
+    Bi_ofs = (ModAmt8[i]- 100) ; 
+    Amt = (ModAmt8[i]- 100)*2 ;
+  ):(Amt = ModAmt8[i] ;);
+  ModAmt8[i] != 0 ? (total += Mc8.Out *Amt - Bi_ofs) ; 
+
+  total *127 ; 
+);
 
 @slider
 Mc1.Slider = slider1;
@@ -691,6 +783,18 @@ trkGUID_Num === gmem[2]? (
     Macro==7?(Mc7.LFO_Spd_Auto = AutomatedPrm_Num;);
     Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
   );
+  mode == 18? (   // if user set modulation to bipolar
+    Macro = gmem[5];
+    Macro==1?(Mc1.Bipolar = 1;); 
+    Macro==2?(Mc2.Bipolar = 1;); 
+    Macro==3?(Mc3.Bipolar = 1;);
+    Macro==4?(Mc4.Bipolar = 1;);
+    Macro==5?(Mc5.Bipolar = 1;);
+    Macro==6?(Mc6.Bipolar = 1;);
+    Macro==7?(Mc7.Bipolar = 1;);
+    Macro==8?(Mc8.Bipolar = 1;);
+
+  );
   
       
   gmem[7] != 0?( // if user uses Imgui to tweak param...
@@ -732,27 +836,24 @@ while (midirecv(offset, msg1, msg2, msg3)) (
       midisend(offset,msg1,msg2,msg3);
   );
 );
+
+
+ Mc1.CalculatMacroAmt();
+ Mc2.CalculatMacroAmt();
+ Mc3.CalculatMacroAmt();
+ Mc4.CalculatMacroAmt();
+ Mc5.CalculatMacroAmt();
+ Mc6.CalculatMacroAmt();
+ Mc7.CalculatMacroAmt();
+ Mc8.CalculatMacroAmt();
  
 i=1;    
 while ( i <= P.Inst)(
   
   
-
-
-  Mc1.CalculatMacroAmt(ModAmt[i]);
-  Mc2.CalculatMacroAmt(ModAmt2[i]);
-  Mc3.CalculatMacroAmt(ModAmt3[i]);
-  Mc4.CalculatMacroAmt(ModAmt4[i]);
-  Mc5.CalculatMacroAmt(ModAmt5[i]);
-  Mc6.CalculatMacroAmt(ModAmt6[i]);
-  Mc7.CalculatMacroAmt(ModAmt7[i]);
-  Mc8.CalculatMacroAmt(ModAmt8[i]);
+ // ModAmtTotal = Mc1.Out +Mc2.Out+Mc3.Out+Mc4.Out+Mc5.Out+Mc6.Out+Mc7.Out+Mc8.Out;
   
-  ModAmtTotal = Mc1.Out+Mc2.Out+Mc3.Out+Mc4.Out+Mc5.Out+Mc6.Out+Mc7.Out+Mc8.Out;
-  
-  SendAmt = P_OrigV[i]*127 + ModAmtTotal;
-
-  SendAmt > 127 ? (SendAmt = 127) ;
+  SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
     
   midisend(0, $xBf, i, SendAmt);
       
@@ -772,10 +873,6 @@ trkGUID_Num === gmem[2]? (
   Mc8.SendInfoBackToImGui();
 );
   
-  
-
-
-
 
 
 
@@ -795,7 +892,6 @@ while (midirecv(offset, msg1, msg2, msg3)) (
             // Normalizes amplitude value
             midiamp = msg3 / 94;
             time = time_precise();
-            Aa_TestEnv = 1;
             
             
         ) : (
@@ -810,3 +906,4 @@ while (midirecv(offset, msg1, msg2, msg3)) (
 
 
     
+

@@ -543,26 +543,44 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
 
 
+
     if FP.ModAMT then -- Draw modlines  circular
         local offset = 0
+        local BipOfs = 0
+        FP.ModBipolar= FP.ModBipolar or {}
+
+        
         for Macro, v in ipairs(MacroNums) do
+            
             if FP.ModAMT[Macro] then
                 --if Modulation has been assigned to params
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                 --- indicator of where the param is currently
-                local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * P_V_Norm
+                local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
 
+                    if FP.ModBipolar[Macro] then 
+                        BipOfs =  - FP.ModAMT[Macro]
+                    end
 
-                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle,
-                    ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * P_V_Norm)
+                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod )
+
                 r.ImGui_DrawList_PathStroke(draw_list, EightColors.Bright[Macro], nil, radius_outer / 2)
                 r.ImGui_DrawList_PathClear(draw_list)
 
                 --- shows modulation range
-                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle,
-                    SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro], ANGLE_MIN, ANGLE_MAX))
+                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro],ANGLE_MIN, ANGLE_MAX)
+                local angle = angle 
+                if BipOfs ~=0 then 
 
+                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(  FP.ModAMT[Macro]   ) ,ANGLE_MIN, ANGLE_MAX) 
+                    r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle,Range )
+                    r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
+                    radius_outer * 0.1)
+                    r.ImGui_DrawList_PathClear(draw_list)
+                end 
+                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range )
+           
                 r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
                     radius_outer * 0.1)
                 r.ImGui_DrawList_PathClear(draw_list)
@@ -584,13 +602,21 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
         if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
 
-        r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1, angle,
-            angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[M])
-        r.ImGui_DrawList_PathStroke(draw_list, EightColors.bgWhenAsgnModAct[AssigningMacro], nil,
-            radius_outer * 0.1)
-        r.ImGui_DrawList_PathClear(draw_list)
+        local BipolarOut 
+        if Mods == Alt then 
+            FP.ModAMT[M] = math.abs( FP.ModAMT[M])
+            BipolarOut = FP.ModAMT[M]  + 100
+
+            FP.ModBipolar[M] = true 
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','True', true)
+        else 
+            FP.ModBipolar[M] = nil
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
+        end
+
+       
         r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
-        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, FP.ModAMT[M])
+        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or FP.ModAMT[M])
         r.ImGui_ResetMouseDragDelta(ctx, 1)
 
         r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID,
@@ -649,7 +675,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
 
+    
 
 
     if FP.Lbl_Pos == 'Left' then
@@ -725,7 +753,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         if Vertical == 'Vert' then
-            _, p_value = r.ImGui_VSliderDouble(ctx, label, Sldr_Width, Height, p_value, v_min, v_max, ' ')
+            _, p_value = r.ImGui_VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height, p_value, v_min, v_max, ' ')
         else
             _, p_value = r.ImGui_SliderDouble(ctx, label, p_value, v_min, v_max, ' ', r.ImGui_SliderFlags_NoInput())
         end
@@ -1046,6 +1074,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     end
 
     if LBtnDC then r.ImGui_PopStyleVar(ctx) end
+    r.ImGui_PopStyleVar(ctx)
     return value_changed, p_value
 end
 
@@ -1065,6 +1094,7 @@ end
 ---@param Lbl_Pos? Position
 function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
                   LabelOveride, CustomLbl, Lbl_Pos)
+
     LabelValue = Label .. 'Value'
     local FP
     FX[FxGUID or ''][Fx_P or ''] = FX[FxGUID or ''][Fx_P or ''] or {}
@@ -1072,7 +1102,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     if Fx_P then FP = FX[FxGUID][Fx_P] end
     local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-
+    
     if Fx_P and FP then
         if (FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl') or FP.Lbl_Pos == 'Top' then
             local name
@@ -1087,6 +1117,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 SL()
             end
         end
+        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
+
     end
 
     if LabelOveride then _G[LabelValue] = LabelOveride end
@@ -1262,10 +1294,10 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
     end
-
+    r.ImGui_PopStyleVar(ctx)
     r.ImGui_EndGroup(ctx)
     r.ImGui_PopStyleColor(ctx, PopClr or 0)
-    if rv then return rv, v_format end
+   if rv then return rv, v_format end
 end
 
 ---@param LT_Track MediaTrack
@@ -1280,10 +1312,12 @@ end
 ---@param FxGUID string
 ---@return integer
 function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, FontSize, FxGUID)
+
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
 
     if FontSize then
         Font = 'Font_Andale_Mono_' .. roundUp(FontSize, 1); r.ImGui_PushFont(ctx, _G[Font])
@@ -1425,7 +1459,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     r.ImGui_EndGroup(ctx)
 
     r.ImGui_DrawList_AddRectFilled(DL, X, Y, X + W, Y + H, clr, FX.Round[FxGUID] or 0)
-
+    r.ImGui_PopStyleVar(ctx)
     if FontSize then r.ImGui_PopFont(ctx) end
     if popClr then r.ImGui_PopStyleColor(ctx, popClr) end
     if FX[FxGUID][Fx_P].Lbl_Clr then r.ImGui_PopStyleColor(ctx) end
@@ -1461,11 +1495,12 @@ end
 function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Sldr_Width,
                  item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
     FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
+    
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
     local FxGUID = FXGUID[FX_Idx]
     local FP = FX[FxGUID][Fx_P]
+    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
 
 
     if FX[FxGUID].Morph_Value_Edit or (Mods == Alt + Ctrl and is_hovered) then r.ImGui_BeginDisabled(ctx) end
@@ -1880,7 +1915,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if item_inner_spacing then r.ImGui_PopStyleVar(ctx) end
     if FX[FxGUID].Morph_Value_Edit or is_hovered and Mods == Alt + Ctrl then r.ImGui_EndDisabled(ctx) end
 
-
+    r.ImGui_PopStyleVar(ctx)
     return value_changed, p_value
 end
 
@@ -2052,7 +2087,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.CustomLbl     = RecallInfo(Ct, 'Custom Label', Fx_P)
                             if FP.CustomLbl == '' then FP.CustomLbl = nil end
                             FP.FontSize = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
-                            FP.Sldr_H = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
+                            FP.Height = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
                             FP.BgClr = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
                             FP.GrbClr = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
                             FP.Lbl_Pos = RecallInfo(Ct, 'Label Pos', Fx_P)
@@ -2063,6 +2098,10 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Value_Thick = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
                             FP.V_Pos_X = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
                             FP.V_Pos_Y = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
+                            FP.Lbl_Pos_X = RecallInfo( Ct , 'Label Free Pos X', Fx_P, 'Num' )
+                            FP.Lbl_Pos_Y = RecallInfo( Ct , 'Label Free Pos Y', Fx_P, 'Num' )
+                
+
                             local path = RecallInfo(Ct, 'Custom Image', Fx_P)
                             if path then
                                 FP.ImagePath = path
@@ -2397,17 +2436,27 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     local SizeX, SizeY = r.ImGui_GetItemRectSize(ctx)
     MacroModLineOffset = 0
 
+    
+    
+    local ModAmt , BipOfs  = FP.ModAMT[Macro] , 0 
+    FP.ModBipolar = FP.ModBipolar or {}
+    if FP.ModBipolar[Macro] then 
+         ModAmt = FP.ModAMT[Macro] 
+         BipOfs =  - FP.ModAMT[Macro]
+
+    end
+
     if Vertical ~= 'Vert' then
         PosX_End_Of_Slider = (Sldr_Width) + L
         SldrGrabPos = SizeX * P_V
-        SliderCurPos = L + SldrGrabPos
-        SliderModPos = SliderCurPos + ((FP.ModAMT[Macro] * Sldr_Width) or 0)
+        SliderCurPos = L + SldrGrabPos 
+        SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
         SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
     elseif Vertical == 'Vert' then
         PosX_End_Of_Slider = T
         SldrGrabPos = (SizeY) * (P_V)
         SliderCurPos = B - SldrGrabPos
-        SliderModPos = SliderCurPos - ((FP.ModAMT[Macro] * Sldr_Width) or 0)
+        SliderModPos = SliderCurPos - ((ModAmt * Sldr_Width) or 0)
         SliderModPos = SetMinMax(SliderModPos, T, B)
     end
 
@@ -2419,6 +2468,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     local Midsat, MidBright = EightColors.MidSat[Macro], EightColors.HighSat_MidBright[Macro]
     if FP.ModBypass == Macro then Midsat, MidBright = 0x88888866, 0xaaaaaa66 end
 
+
     if AddIndicator and FP.ModAMT[Macro] ~= 0 then
         local ModPosWithAmt
         local M = Trk[TrkID].Mod[Macro]
@@ -2427,37 +2477,29 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
             r.gmem_attach('ParamValues')
             MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
         end
-
+        
 
         if MOD then 
-            if Vertical ~= 'Vert'   then
-                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0,
-                    PosX_End_Of_Slider)
+
+            local ModAmt = ModAmt 
+            if BipOfs~= 0  then  ModAmt = ModAmt*2  end 
+            if Vertical == 'Vert'   then
+                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs*Sldr_Width or 0, PosX_End_Of_Slider)
+                r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
             else
-                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * FP.ModAMT[Macro]) or 0, PosX_End_Of_Slider)
+                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs*Sldr_Width or 0, PosX_End_Of_Slider)
+                r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B,Midsat, Rounding)
             end
-        end
-
-
-
-
-        -- Current Value indicator
-        if Vertical ~= 'Vert' then
-            r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B,
-                Midsat, Rounding)
-        else
-            r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,
-                Rounding)
         end
     end
 
     --- mod range indicator line
-    if Vertical ~= 'Vert' then
-        r.ImGui_DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset,
-            MidBright, 2)
+    if Vertical == 'Vert' then
+        local SliderCurPos = SliderCurPos - BipOfs * Sldr_Width
+        r.ImGui_DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright,Rounding)
     else
-        r.ImGui_DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright,
-            Rounding)
+        local SliderCurPos = SliderCurPos + BipOfs * Sldr_Width
+        r.ImGui_DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset,MidBright, 2)
     end
 end
 
@@ -2540,7 +2582,7 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
             write('Value Font Size', FP.V_FontSize)
             write('Custom Label', FP.CustomLbl)
             write('Font Size', FP.FontSize)
-            write('Slider Height', FP.Sldr_H)
+            write('Slider Height', FP.Height)
             write('BgClr', FP.BgClr)
             write('GrbClr', FP.GrbClr)
             write('Label Pos', FP.Lbl_Pos)
@@ -2551,7 +2593,11 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
             write('Value Thickness', FP.Value_Thick)
             write('Value Free Pos X', FP.V_Pos_X)
             write('Value Free Pos Y', FP.V_Pos_Y)
+            write('Label Free Pos X', FP.Lbl_Pos_X)
+            write('Label Free Pos Y', FP.Lbl_Pos_Y)
+
             write('Custom Image', FP.ImagePath)
+
 
 
 

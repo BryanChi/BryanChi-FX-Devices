@@ -600,7 +600,7 @@ end
 
 --------------ImGUI Related ---------------------
 function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
-    if PinStatus then 
+    if PinStatus == PinStr then 
         if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
             PinStatus = nil 
         end
