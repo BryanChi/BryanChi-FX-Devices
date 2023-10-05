@@ -1,18 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.7
+-- @version 1.0beta10.7.1
 -- @changelog
---   - New! Bipolar modulation - activate by holding alt when assigning modulation
---   - Added a new ‘Height’ property for editing layouts.
---   - Fix user’s keyboard shortcuts get replaced upon updating FX Device script to a new version.
---   - Fixed clicking ‘Automate’ on preset morph slider not working properly, when FXD Macro is not present.
---   - Fixed LFO Shape’s length changing when user changes the length slider by jumping more than one increment.
---   - Clicking on LFO’s little preview(where you hover to show the LFO edit window) will now pin the window.
---   - Fix multiple LFO blinking when assigning Modulation.
---   - Added option to do native modulations in parameter context menu (accessible by ctrl + rmb)
---   - fixed preset morphing crashes
---   - Fixed clicking ‘add envelope to parameter’ on LFO speed/gain doesn’t show envelope lane.
---   - fixed unable to load fx chain in fx adder.
+--   - fix having to hold alt after right click for bipolar modulation to work
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
