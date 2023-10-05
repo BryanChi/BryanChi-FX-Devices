@@ -92,7 +92,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     end
 
 
-    if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and Mods == 0 then
+    if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and (Mods == 0 or Mods == Alt) then
         for M, v in ipairs(MacroNums) do
             if FP.ModAMT[M] then
                 Trk.Prm.Assign = FP.WhichCC
