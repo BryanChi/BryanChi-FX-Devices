@@ -1,8 +1,20 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.7.1
+-- @version 1.0beta10.8
 -- @changelog
---   - fix having to hold alt after right click for bipolar modulation to work
+--  - LFO : NEW! added midi triggered envelopes mode.
+--  - LFO : NEW! Legato settings for envelopes.
+--  - LFO: optimize behaviors regarding sending gmems to LFO.
+--  - Fixed unable to make a modulation bipolar when in assigning modulator mode.
+--  - Fixed pro Q 3 UI  being cropped off.
+--  - Big thanks to Suzuki for the updates below:
+--  - Added 14bit CC mode to the user inputs menu. 0 is off and 1 is on.
+--  - Remove envelope option
+--  - Added JS: Exciter layout and custom knob for it
+--  - Fixed : Right double click to remove FX Devices' modulation
+--  - Fixed : LFO Save/Cancel button does not work (key works)
+--  - Fixed : Crash when not assigining lead_parameter
+--  - Fixed : Correctly reset bus and channel when switching from FX Devices' modulation to parameter linking
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -92,7 +104,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta1.0beta10.7 '
+VersionNumber = 'V1.0beta1.0beta10.8 '
 FX_Add_Del_WaitTime = 2
 
 
