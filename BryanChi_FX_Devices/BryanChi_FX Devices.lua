@@ -844,7 +844,6 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             Paste  = r.ImGui_CreateImage(CurrentDirectory ..'src/Images/paste.png');
             Save  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/save.png');
             Sine  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/sinewave.png');
-            DrumGrid = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/FXD_DrumGrid.png')
         }
         for i = 6, 64, 1 do
             _G['Font_Andale_Mono_' .. i] = r.ImGui_CreateFont('andale mono', i)
