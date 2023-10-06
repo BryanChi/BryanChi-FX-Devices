@@ -795,6 +795,16 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         m.LFO_NodeCt = RC( 'Mod ' .. i..'Total Number of Nodes' )
         m.LFO_spd = RC( 'Mod ' .. i..'LFO Speed' )
         m.LFO_leng = RC( 'Mod ' .. i..'LFO Length' )
+        m.LFO_Env_or_Loop = RC('Mod ' .. i..'LFO_Env_or_Loop' )
+        m.Rel_Type = RC('Mod ' .. i..'LFO_Release_Type' )
+        if m.Rel_Type     == 0 then m.Rel_Type = 'Latch' 
+        elseif m.Rel_Type == 1 then m.Rel_Type = 'Simple Release' 
+        elseif m.Rel_Type == 2 then m.Rel_Type = 'Custom Release' 
+        elseif m.Rel_Type == 3 then m.Rel_Type = 'Custom Release - No Jump' 
+        end
+
+        if m.LFO_Env_or_Loop == 1 then m.LFO_Env_or_Loop = 'Envelope' else m.LFO_Env_or_Loop = nil end 
+        
 
 
         for N=1, (m.LFO_NodeCt or 0) , 1 do 
@@ -809,6 +819,11 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             m.Node[N].ctrlY  = RC('Mod ' .. i..'Node'..N..'Ctrl Y')      
             m.NodeNeedConvert = true
+        end
+        if RC('Mod ' .. i..'LFO_Rel_Node' ) then
+            local ID = RC('Mod ' .. i..'LFO_Rel_Node' )
+            m.Node[ID] = m.Node[ID] or {}
+            m.Node[ID].Rel = true 
         end
         
 
@@ -1258,7 +1273,12 @@ function loop()
                 0xffffffff,
                 'Select a track to start')
         else -- of if LT_Track
-            r.gmem_write(4,0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
+
+                r.gmem_write(4,0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
+
+            --[[ msg('10 =   '..  r.gmem_read(10))
+            msg('4 =   '..  r.gmem_read(4)) ]]
+
 
             HintMessage = nil
             GetAllInfoNeededEachLoop()
@@ -2420,14 +2440,66 @@ function loop()
                             end
                             if not LFO.Clipboard then r.ImGui_EndDisabled(ctx) end 
 
+                            SL()
+                            r.ImGui_SetNextItemWidth(ctx, 100)
+                            if r.ImGui_BeginCombo( ctx, '## Env_Or_Loop'..Macro, Mc.LFO_Env_or_Loop or 'Loop') then
+                                if r.ImGui_Selectable( ctx, 'Loop',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then 
+                                    Mc.LFO_Env_or_Loop = 'Loop' 
+                                    ChangeLFO(18, 0 , nil, 'LFO_Env_or_Loop') -- value is 0 because loop is default
+                                end
+                                if r.ImGui_Selectable( ctx, 'Envelope (MIDI)',  p_2selected, flagsIn,   size_wIn,   size_hIn) then 
+                                    Mc.LFO_Env_or_Loop = 'Envelope' 
+                                    ChangeLFO(18, 1 , nil, 'LFO_Env_or_Loop') -- 1 for envelope
+                                end
+                                tweaking = Macro 
+                                r.ImGui_EndCombo(ctx)
+                            end
+
+                            if Mc.LFO_Env_or_Loop == 'Envelope'  then 
+                                SL()
+                                r.ImGui_SetNextItemWidth(ctx, 120)
+                                local ShownName
+                                if Mc.Rel_Type == 'Custom Release - No Jump' then ShownName = 'Custom No Jump' end 
+                                if r.ImGui_BeginCombo( ctx, '## ReleaseType'..Macro, ShownName or Mc.Rel_Type or 'Latch') then
+                                    tweaking = Macro 
+                                    if r.ImGui_Selectable( ctx, 'Latch',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then 
+                                        Mc.Rel_Type = 'Latch'
+                                        ChangeLFO(19, 0, nil, 'LFO_Release_Type') -- 1 for latch
+                                    end 
+                                    QuestionHelpHint ( 'Latch on to whichever value its at when midi key is released ' )
+                                    --[[ if r.ImGui_Selectable( ctx, 'Simple Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then 
+                                        Mc.Rel_Type = 'Simple Release'
+                                        ChangeLFO(19, 1 , nil, 'LFO_Release_Type') -- 1 for Simple release
+                                    end   ]]
+                                    if r.ImGui_Selectable( ctx, 'Custom Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then 
+                                        Mc.Rel_Type = 'Custom Release'
+                                        ChangeLFO(19, 2 , nil, 'LFO_Release_Type') -- 2 for Custom release
+                                    end  
+                                    QuestionHelpHint ( 'Jump to release node when midi note is released' )
+
+                                    if r.ImGui_Selectable( ctx, 'Custom Release - No Jump',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then 
+                                        Mc.Rel_Type = 'Custom Release - No Jump'
+                                        ChangeLFO(19, 3 , nil, 'LFO_Release_Type') -- 3 for Custom release no jump
+                                    end  
+                                    QuestionHelpHint ( 'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released' )
+
+                                    if r.ImGui_Checkbox( ctx, 'Legato', Mc.LFO_Legato) then 
+                                        Mc.LFO_Legato = toggle(Mc.LFO_Legato)
+                                        ChangeLFO(21, 1 , nil, 'LFO_Legato')
+                                    end
+
+                                    r.ImGui_EndCombo(ctx)
+                                end
+                            end
+
 
                             SL(nil, 30)
                             if r.ImGui_ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
                                   LFO.OpenSaveDialog= Macro 
                             end
 
-                            
                             SL()
+
 
                             if r.ImGui_ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint) then 
                                 if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end 
@@ -2443,6 +2515,7 @@ function loop()
                             LFO.DummyW = w
                             local L, T = r.ImGui_GetItemRectMin(ctx)
                             local Win_T, Win_B = T  , T+h     -- 7 is prob the window padding
+                            local Win_L = L
                             r.ImGui_DrawList_AddRectFilled(WDL , L, T, L+w, T+h , 0xffffff22)   
                             SL()
                             r.ImGui_Dummy(ctx, 10,  10)
@@ -2506,6 +2579,7 @@ function loop()
                                 for i = 1, #Node, 1 do
                                     if i ~= #Node then
                                         if Node[i].x < x and Node[i+1].x > x then InsertPos = i + 1 end
+
                                     elseif not InsertPos then 
                                         if Node[1].x > x  then InsertPos = 1           -- if it's before the first node
                                             --[[ table.insert(Node.ctrlX, InsertPos, HdrPosL + (x-HdrPosL)/2)
@@ -2516,6 +2590,9 @@ function loop()
 
                                         elseif Node[i].x > x then InsertPos  = i 
                                         end
+                                        
+
+
                                     end
 
                                 
@@ -2525,11 +2602,13 @@ function loop()
                                     x= SetMinMax(x, 0, 1);
                                     y= SetMinMax(y, 0, 1);
                                 })
+                                
                                 Save_All_LFO_Info(Node) 
                             end
 
                             
                             local function AddNode(x, y, ID)
+                                
                                 local w, h = 15, 15
                                 InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
                                 local Hvred
@@ -2554,6 +2633,34 @@ function loop()
                                         end
                                     end
                                 end
+                                function findRelNode()
+                                    for i, v in ipairs(Mc.Node) do 
+                                        if v.Rel == true then return i end 
+                                    end
+                                end
+
+
+                                if (Mc.Rel_Type or ''):find( 'Custom Release') then 
+                                    if not findRelNode() then 
+                                        Node[#Mc.Node].Rel = true 
+                                        ChangeLFO(20, #Mc.Node, nil, 'LFO_Rel_Node') 
+                                    end     
+
+                                    if  r.ImGui_IsItemClicked(ctx,1) and Mods == Alt then 
+                                        Mc.Node[findRelNode() or 1].Rel=nil
+                                        Mc.Node[ID].Rel = true 
+                                        ChangeLFO(20, ID, nil, 'LFO_Rel_Node')  
+                                    end
+                                    if Mc.Node[ID].Rel then 
+                                        local L = L + NodeSz / 2
+                                        r.ImGui_DrawList_AddCircle(WDL, L , T + NodeSz / 2, 6, 0xffffffaa)
+                                        r.ImGui_DrawList_AddLine(WDL, L ,Win_T , L, Win_B , 0xffffff55 , 3 )
+                                        r.ImGui_DrawList_AddText(WDL, math.min(L, Win_L+ LFO.DummyW -50  ), Win_T, 0xffffffaa, 'Release')
+    
+                                    end
+                                end
+                                
+                                
 
                                 if r.ImGui_IsItemHovered(ctx) then
                                     LineClr, CtClr = 0xffffffbb, 0xffffff88
@@ -2574,6 +2681,7 @@ function loop()
                                     HideCursorTillMouseUp(nil, r.ImGui_Key_X() )
                                     HideCursorTillMouseUp(0)
                                     HoverNode = ID
+                                    Send_All_Coord ()
 
                                     local lastX = Node[math.max (ID-1, 1)].x 
                                     local nextX = Node[math.min (ID+1, #Node)].x
@@ -2642,6 +2750,7 @@ function loop()
 
                             if LFO.DeleteNode then 
                                 table.remove(Mc.Node, LFO.DeleteNode)
+                                Mc.NeedSendAllCoord = true 
                                 Save_All_LFO_Info(Node) 
                                 LFO.DeleteNode = nil 
                             end
@@ -2669,8 +2778,8 @@ function loop()
                                     ---- Draw Node
                                     if not DraggingLFOctrl or DraggingLFOctrl == i  then
                                         if not HoverNode and not DraggingNode then
-                                            r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, X, Y, 0xffffff44, 7)
-                                            r.ImGui_DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz, LineClr)
+                                            r.ImGui_DrawList_AddBezierQuadratic(WDL, lastX, lastY, CtrlX, CtrlY, X, Y, 0xffffff44, 7)
+                                            r.ImGui_DrawList_AddCircle(WDL, CtrlX, CtrlY, Sz, LineClr)
                                             --r.ImGui_DrawList_AddText(FDL, CtrlX, CtrlY, 0xffffffff, i)
                                         end
                                     end
@@ -2681,18 +2790,18 @@ function loop()
                                     end
                                     
                                     if r.ImGui_IsItemHovered(ctx) then
-                                        r.ImGui_DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz + 2, LineClr)
+                                        r.ImGui_DrawList_AddCircle(WDL, CtrlX, CtrlY, Sz + 2, LineClr)
                                     end
                                 end
 
                                 -- decide which node is mouse closest to 
                                 local Range = X - lastX
                                 if r.ImGui_IsMouseHoveringRect(ctx, lastX, Win_T, lastX + Range/2, Win_B) and not tweaking and not DraggingNode  then 
-                                    r.ImGui_DrawList_AddCircle(FDL, lastX, lastY, LFO.NodeSz+2, LineClr)
+                                    r.ImGui_DrawList_AddCircle(WDL, lastX, lastY, LFO.NodeSz+2, LineClr)
                                     MouseClosestNode = last
 
                                 elseif r.ImGui_IsMouseHoveringRect(ctx, lastX + Range/2, Win_T, X, Win_B) and not tweaking and not DraggingNode  then 
-                                    r.ImGui_DrawList_AddCircle(FDL, X, Y, LFO.NodeSz+2, LineClr)
+                                    r.ImGui_DrawList_AddCircle(WDL, X, Y, LFO.NodeSz+2, LineClr)
 
                                     MouseClosestNode = i 
                                 end
@@ -2710,8 +2819,7 @@ function loop()
 
                                     SaveLFO('Node'..i..'Ctrl X',  Node[i].ctrlX)
                                     SaveLFO('Node'..i..'Ctrl Y',  Node[i].ctrlY)
-
-
+                                    Send_All_Coord()
                                     
                                 end
 
@@ -2731,7 +2839,7 @@ function loop()
 
                                     for i= 1, #PtsX, 2 do  
                                         if i > 1 then      -- >1 because you need two points to draw a line
-                                            r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
+                                            r.ImGui_DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
                                         end
                                     end
                                 end
@@ -2760,7 +2868,7 @@ function loop()
                                             CurrentPlayPos = i 
 
                                         end
-                                        r.ImGui_DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
+                                        r.ImGui_DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
                                         
                                     end
                                     ----- things below don't need >1 because jsfx needs all points to draw lines
@@ -2773,23 +2881,34 @@ function loop()
         
 
 
-                                    r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
-                                    r.gmem_write(5, Macro)
+                                    --[[ r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
+                                    r.gmem_write(5, Macro) ]]
                                     --[[ 
                                     r.gmem_write(1000+i*N, NormX) -- gmem 1000 ~ 1999 = X coordinates
                                     r.gmem_write(2000+i*N, NormY) -- gmem 2000 ~ 2999 = Y coordinates ]]
                                     table.insert(All_Coord.X,  NormX or 0)
                                     table.insert(All_Coord.Y,  NormY or 0)
 
-
-
+                                   
 
 
 
                                 end
 
+                                function Send_All_Coord ()
+                                    for i  , v in ipairs(All_Coord.X) do 
+                                        r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
+                                        r.gmem_write(5, Macro)
+                                        r.gmem_write(6, #Mc.Node*11)
+                                        r.gmem_write(1000+i, v)
+                                        r.gmem_write(2000+i, All_Coord.Y[i])
+                                    end
+                                end
 
-                                if CurrentPlayPos then 
+
+
+
+                                 if CurrentPlayPos and (Mc.LFO_spd or 1) >=2 then 
                                     for i= 1, CurrentPlayPos , 1  do  
                                         local pos = CurrentPlayPos-1
                                         local L = math.max(pos-i, 1)
@@ -2797,9 +2916,6 @@ function loop()
                                             r.ImGui_DrawList_AddLine(FDL, PtsX[L+1] ,PtsY[L+1], PtsX[L],PtsY[L], 0xffffff88, 7 - 7*(i*0.1) )
                                        -- end
                                         --r.ImGui_DrawList_AddText(FDL, PtsX[i] ,PtsY[i], 0xffffffff, i)
-                                       --[[  if i == CurrentPlayPos then 
-                                            r.ImGui_DrawList_AddLine(FDL, PtsX[pos] ,PtsY[pos], PlayPosX, PtsY[CurrentPlayPos], 0xffffff88, 7  )
-                                        end ]]
 
 
                                         -- calculate how far X and last x 
@@ -2819,13 +2935,17 @@ function loop()
                                             table.insert(testTB ,  (i /(PlayPosX - PtsX[pos])))
                                         end
                                     end
-                                end
+                                end 
 
 
 
                                 r.gmem_write(6, #Node*11)
 
                                 --r.ImGui_DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
+                            end
+
+                            if (Mc.LFO_spd or 1) < 2 then 
+                                DrawLFOvalueTrail (Mc , PlayPosX,  Win_B - MOD * LFO.DummyH , Macro )
                             end
 
 
@@ -2861,11 +2981,12 @@ function loop()
                             for i, v in ipairs( Mc.LFO_Trail) do 
                                 
                             end ]]
+
                             
-                            --DrawLFOvalueTrail (Mc , PlayPos,  Win_B - MOD * LFO.DummyH  )
-
-
-
+                            if Mc.NeedSendAllCoord then 
+                                Send_All_Coord()
+                                Mc.NeedSendAllCoord = nil
+                            end
 
                             -- Draw Grid 
 
@@ -2975,6 +3096,15 @@ function loop()
 
                                 r.ImGui_EndPopup(ctx)
                             end
+
+
+
+                            if Mc.Changing_Rel_Node then 
+                                Mc.Rel_Node = Mc.Changing_Rel_Node
+                                ChangeLFO( 20 , Mc.Rel_Node , nil, 'LFO_Rel_Node')
+                                Mc.Changing_Rel_Node = nil 
+                            end
+
 
 
                             if  r.ImGui_IsWindowHovered(ctx,r.ImGui_HoveredFlags_RootAndChildWindows()) then 
@@ -3315,7 +3445,7 @@ function loop()
                     local PinID = TrkID..'Macro = '..Macro
                     if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog==Macro or LFO.HoveringShapeWin ==Macro  then  
                         LFO.notHvrTime = 0
-                        LFO.Tweaking, Mc.All_Coord =  open_LFO_Win(Track, Macro)
+                        LFO.Tweaking =  open_LFO_Win(Track, Macro)
                         LFO.WinHovered = Macro
                     end
                     
@@ -3342,9 +3472,10 @@ function loop()
                         LFO_MsX_Start, LFO_MsY_Start = nil
                     end
                     
-                    if Mc.All_Coord then 
+                    --[[ if Mc.All_Coord then 
                         if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                             for i  , v in ipairs(Mc.All_Coord.X) do 
+                                msg(i)
                                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
                                 r.gmem_write(5, Macro)
                                 r.gmem_write(6, #Mc.Node*11)
@@ -3352,9 +3483,9 @@ function loop()
                                 r.gmem_write(2000+i, Mc.All_Coord.Y[i])
                             end
                         end
-                    end
+                    end ]]
 
-                    
+
 
                     ---- this part draws modulation histogram (Deprecated)
                    --[[  local MOD = math.abs(SetMinMax(r.gmem_read(100 + i) / 127, -1, 1)) 
@@ -4970,8 +5101,6 @@ function loop()
 
                             if FindStringInTable(BlackListFXs, FX_Name) then
                                 Hide = true
-                            elseif FX.Width[FxGUID] == 340 then
-                                FX.Width[FxGUID] = nil
                             end
 
                             if Trk[TrkID].PreFX_Hide then

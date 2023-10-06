@@ -267,14 +267,19 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
             FP.ModBipolar[M] = true 
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','true', true)
+            r.gmem_write(4, 1)
+            r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+
         elseif IsRBtnHeld and Mods == 0 then 
             FP.ModBipolar[M] = nil
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
+            r.gmem_write(4, 1)
+            r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign,  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+
         end
 
 
-        if not IsLBtnHeld then r.gmem_write(4, 1) end --tells jsfx that user is changing Macro Mod Amount
-        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+        --if not IsLBtnHeld then r.gmem_write(4, 1) end --tells jsfx that user is changing Macro Mod Amount
         r.ImGui_ResetMouseDragDelta(ctx, 1)
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',FP.ModAMT[M], true)
@@ -390,8 +395,8 @@ end
 
 
 
-function DrawLFOvalueTrail (MacroTable , x, y )
-    local Pos = r.gmem_read(108+i)/4
+function DrawLFOvalueTrail (MacroTable , x, y, Macro )
+    local Pos = r.gmem_read(108+Macro)/4
     local M = MacroTable
     M.Trail = M.Trail or {}
     table.insert(M.Trail, { x = x ; y = y ; })

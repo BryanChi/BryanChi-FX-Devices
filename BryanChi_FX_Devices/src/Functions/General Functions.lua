@@ -616,6 +616,16 @@ function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
     return PinStatus, TintClr
 end
 
+function QuestionHelpHint (Str)
+    if r.ImGui_IsItemHovered(ctx) then 
+        SL()
+        r.ImGui_TextColored(ctx, 0x99999977, '(?)')
+        if r.ImGui_IsItemHovered(ctx) then 
+            HintToolTip(Str)
+        end
+    end
+end
+
 
 
 ---@param FillClr number

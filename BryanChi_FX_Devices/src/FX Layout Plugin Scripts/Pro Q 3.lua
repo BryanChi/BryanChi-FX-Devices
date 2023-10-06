@@ -44,19 +44,7 @@ elseif ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand -
     FreqLbl = round(ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] / 1000, 2) ..
         ' kHz'
 end
-if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
-    if Mods == Shift then
-        DragSpeed = 0.003
-    else
-        DragSpeed = 0.008
-    end
-    FreqDragging, FreqValueDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##FreqDrag',
-        FreqValueDrag[FX_Idx], DragSpeed, -1, 1, FreqLbl)
-    ProQ3.FreqDragging = r.ImGui_IsItemActive(ctx)
-    if FreqDragging then
-        -- r.TrackFX_SetParamNormalized(LT_Track,FX_Idx,13*(ProQ3.LT_EQBand[FXGUID[FX_Idx]]-1) +2,FreqValueDrag[FX_Idx]  )
-    end
-end
+
 
 r.ImGui_SameLine(ctx)
 r.ImGui_SetNextItemWidth(ctx, 60)
