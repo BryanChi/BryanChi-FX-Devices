@@ -47,6 +47,15 @@ function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
             for Mc = 1, 8, 1 do
                 if FX[FxGUID][Fx_P].ModAMT[Mc] then
                     local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
+                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
+                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
+                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
+                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1)
+                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
+                        if retval and buf == "1" then
+                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
+                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
+                        end
                     FX[FxGUID][Fx_P].ModAMT[Mc] = 0
                 end
             end
