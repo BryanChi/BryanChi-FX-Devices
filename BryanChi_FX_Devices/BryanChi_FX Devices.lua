@@ -41,6 +41,7 @@
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
+--   src/Images/Knobs/FancyRedKnob.png
 --   src/Images/Analog Knob 1.png
 --   src/Images/trash.png
 --   src/Images/sinewave.png
@@ -843,6 +844,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             Paste  = r.ImGui_CreateImage(CurrentDirectory ..'src/Images/paste.png');
             Save  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/save.png');
             Sine  = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/sinewave.png');
+            DrumGrid = r.ImGui_CreateImage(CurrentDirectory ..'/src/Images/FXD_DrumGrid.png')
         }
         for i = 6, 64, 1 do
             _G['Font_Andale_Mono_' .. i] = r.ImGui_CreateFont('andale mono', i)
@@ -3385,8 +3387,8 @@ function loop()
                             r.ImGui_SetNextItemWidth(ctx, LFO.Def.DummyW)  
                              r.ImGui_SetKeyboardFocusHere(ctx)  
                             local rv, buf =  r.ImGui_InputText(ctx, buf or '##Name' ,buf)
-
-                            if  (r.ImGui_IsItemFocused( ctx)  and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0) or r.ImGui_Button(ctx,'Enter') then 
+                            r.ImGui_Button(ctx,'Enter')
+                            if  r.ImGui_IsItemClicked(ctx) or (r.ImGui_IsItemFocused(ctx) and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0) then 
                                 local LFO_Name = buf 
                                 local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
                                 local file_path = ConcatPath(path, LFO_Name..'.ini')
@@ -3412,7 +3414,8 @@ function loop()
                                 r.ImGui_CloseCurrentPopup(ctx)
                             end
                             SL()
-                            if r.ImGui_Button(ctx,'Cancel (Esc)') or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
+                            r.ImGui_Button(ctx,'Cancel (Esc)')
+                            if r.ImGui_IsItemClicked(ctx) or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then 
                                 r.ImGui_CloseCurrentPopup(ctx)
                                 LFO.OpenSaveDialog = nil 
                             end
@@ -6747,6 +6750,10 @@ function loop()
                                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
                                                     local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus")
                                                     if bf == "15" then
+                                                        local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)
+                                                        local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
+                                                        local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
+                                                        local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
                                                         value = 1
                                                         if FX[FxGUID][Fx_P].ModAMT then
                                                             for Mc = 1, 8, 1 do
@@ -6761,17 +6768,19 @@ function loop()
                                                         lead_paramnumber = -1
                                                     else
                                                         value = 1
-                                                    end                                                   
+                                                    end
+                                                    if lead_fxnumber ~= nil then                                                  
                                                     local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
                                                     local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", lead_fxnumber) 
                                                     local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", lead_paramnumber) 
                                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
-                                                    if retval and buf == "1" then
-                                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
-                                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
+                                                        if retval and buf == "1" then
+                                                            local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
+                                                            local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
+                                                        end
                                                     end  
                                                 end 
-                                                if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
+                                                if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl and not AssigningMacro then
                                                     r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                                                 end
                                                 if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
@@ -6785,7 +6794,25 @@ function loop()
                                                                 EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
                                                                 r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                                                             else -- on but invisible
+                                                                EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ACT 0", "ACT 1")
                                                                 EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 0", "VIS 1")
+                                                                EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ARM 0", "ARM 1")
+                                                                r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
+                                                            end
+                                                        end
+                                                        r.TrackList_AdjustWindows(false)
+                                                        r.UpdateArrange()
+                                                    end
+                                                    if r.ImGui_Selectable(ctx, 'Remove Envelope', false) then
+                                                        local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false) -- Check if envelope is on
+                                                        if env == nil then  -- Envelope is off
+                                                            return
+                                                        else -- Envelope is on
+                                                            local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
+                                                            if string.find(EnvelopeStateChunk, "ACT 1") then
+                                                                EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ACT 1", "ACT 0")
+                                                                EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
+                                                                EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ARM 1", "ARM 0")
                                                                 r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                                                             end
                                                         end
@@ -6820,9 +6847,40 @@ function loop()
                                                         local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus") 
                                                         if bf == "15" then
                                                             value = 1
-                                                            retval, retvals_csv = r.GetUserInputs('Set CC value', 1, 'Set CC value', '0-119')
-                                                            retvals_csv = tonumber(retvals_csv)
-                                                            if FX[FxGUID][Fx_P].ModAMT and retvals_csv ~= nil then
+                                                            local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- For 14 bit, 128 + CC# is plink.midi_msg2 value, e.g. 02/34 become 130 (128-159)
+                                                            local input1val, input2val = retvals_csv:match("([^,]+),([^,]+)")
+                                                            if input2val == nil then
+                                                                retvals = nil -- To make global retvals nil, when users choose cancel or close the window 
+                                                            end
+                                                            if input2val ~= nil then 
+                                                                if type(input1val) == "string" then
+                                                                    local input1check = tonumber(input1val)
+                                                                    local input2check = tonumber(input2val)
+                                                                    if input1check and input2check then
+                                                                      input1val = input1check
+                                                                      input2val = input2check
+                                                                    else
+                                                                      error('Only enter a number')
+                                                                    end 
+                                                                end    
+                                                            local input1val = tonumber(input1val)
+                                                            local input2val = tonumber(input2val)                                                         
+                                                                if input2val < 0 then  
+                                                                    inpu2val = 0
+                                                                elseif input2val > 1 then
+                                                                    input2val = 1
+                                                                end
+                                                                if input1val < 0 then  
+                                                                    inpu1val = 0
+                                                                elseif inpu2val == 0 and input1val > 119 then
+                                                                    input1val = 119
+                                                                elseif inpu2val == 1 and input1val > 31 then
+                                                                    input1val = 31
+                                                                end
+                                                                input2val = input2val * 128
+                                                                retvals = input1val + input2val
+                                                            end
+                                                            if FX[FxGUID][Fx_P].ModAMT and retvals ~= nil then
                                                                 for Mc = 1, 8, 1 do
                                                                     if FX[FxGUID][Fx_P].ModAMT[Mc] then
                                                                         FX[FxGUID][Fx_P].ModAMT[Mc] = 0
@@ -6833,22 +6891,48 @@ function loop()
                                                             value = 0
                                                         else
                                                             value = 1
-                                                            retval, retvals_csv = r.GetUserInputs('Set CC value', 1, 'Set CC value', '0-119')
-                                                            retvals_csv = tonumber(retvals_csv)
-                                                        end
-                                                        if retvals_csv ~= nil then
-                                                            if retvals_csv < 0 then  
-                                                                retvals_csv = 0
-                                                            elseif retvals_csv > 119 then
-                                                                retvals_csv = 119
+                                                            local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- retvals_csv returns "input1,input2"
+                                                            local input1val, input2val = retvals_csv:match("([^,]+),([^,]+)")
+                                                            if input2val == nil then
+                                                                retvals = nil -- To make global retvals nil, when users choose cancel or close the window 
                                                             end
+                                                            if input2val ~= nil then
+                                                                if type(input1val) == "string" then
+                                                                    local input1check = tonumber(input1val)
+                                                                    local input2check = tonumber(input2val)
+                                                                    if input1check and input2check then
+                                                                      input1val = input1check
+                                                                      input2val = input2check
+                                                                    else
+                                                                      error('Only enter a number')
+                                                                    end 
+                                                                end 
+                                                            local input1val = tonumber(input1val)
+                                                            local input2val = tonumber(input2val)                                                          
+                                                                if input2val < 0 then  
+                                                                    inpu2val = 0
+                                                                elseif input2val > 1 then
+                                                                    input2val = 1
+                                                                end
+                                                                if input1val < 0 then  
+                                                                    inpu1val = 0
+                                                                elseif inpu2val == 0 and input1val > 119 then
+                                                                    input1val = 119
+                                                                elseif inpu2val == 1 and input1val > 31 then
+                                                                    input1val = 31
+                                                                end
+                                                                input2val = input2val * 128
+                                                                retvals = input1val + input2val
+                                                            end
+                                                        end
+                                                        if retvals ~= nil then
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1)
                                                         local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)  
-                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals_csv) 
+                                                        local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals) 
                                                         local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
                                                             if retval and buf == "1" then
                                                             local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
