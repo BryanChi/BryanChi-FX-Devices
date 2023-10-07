@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="54191dc8dfa6e47057e377e7e67334ea4bfc2d54" name="FX Devices">
+<index version="1" commit="2b6495820ac68c22e1336536274188d90c9963bb" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <metadata>
@@ -622,6 +622,77 @@
         <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/54191dc8dfa6e47057e377e7e67334ea4bfc2d54/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
         <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/54191dc8dfa6e47057e377e7e67334ea4bfc2d54/BryanChi_FX_Devices/src/Constants.lua</source>
         <source file="src/Helpers/Sexan_FX_Browser.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/54191dc8dfa6e47057e377e7e67334ea4bfc2d54/BryanChi_FX_Devices/src/Helpers/Sexan_FX_Browser.lua</source>
+      </version>
+      <version name="1.0beta10.8.1" author="Bryan Chi" time="2023-10-07T10:10:53Z">
+        <changelog><![CDATA[-  LFO : Fix having to edit a node in order to sync shape between jsfx and ImGui.
+-  Fix step sequencer window closing when mouse is adjusting step values and moved outside of the window.
+-  Fix sequencer opening condition penetrating topmost opened windows.
+-  Fix adding multiple instances of pro Q crashing.
+-  Fix Alt + Double right click setting parameter to max when it has modulation assigned.-- @provides
+ [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
+ [effect] FXD JSFXs/FXD Band Joiner.jsfx
+ [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
+ [effect] FXD JSFXs/FXD Macros.jsfx
+ [effect] FXD JSFXs/FXD ReSpectrum.jsfx
+ [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
+ [effect] FXD JSFXs/FXD Split to 32 Channels.jsfx
+ [effect] FXD JSFXs/FXD Split To 4 Channels.jsfx
+ [effect] FXD JSFXs/cookdsp.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/analysis.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/buffer.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/delay.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/dynamics.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/effects.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/fftobjects.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/filters.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/granulator.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/list.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/memalloc.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/midi.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/mmath.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/oscil.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/pobjects.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/pvocobjects.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/random.jsfx-inc
+ [effect] FXD JSFXs/cookdsp/scaling.jsfx-inc
+ [effect] FXD JSFXs/firhalfband.jsfx-inc
+ [effect] FXD JSFXs/spectrum.jsfx-inc
+ [effect] FXD JSFXs/svf_filter.jsfx-inc
+ src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
+ src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
+ src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
+ src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
+ src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
+ src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+ src/Images/Attached Drawings/LED light.png
+ src/Images/Knobs/Bitwig.png
+ src/Images/Knobs/FancyRedKnob.png
+ src/Images/Analog Knob 1.png
+ src/Images/trash.png
+ src/Images/sinewave.png
+ src/Images/save.png
+ src/Images/pinned.png
+ src/Images/pin.png
+ src/Images/paste.png
+ src/Images/copy.png
+ src/LFO Shapes/Square.ini
+ src/LFO Shapes/Sine.ini
+ src/LFO Shapes/Saw.ini
+ src/FX Layout Plugin Scripts/Pro Q 3.lua
+ src/FX Layout Plugin Scripts/Pro C 2.lua
+ src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
+ src/IconFont1.ttf
+ [main] src/FXD - Record Last Touch.lua
+ src/Functions/EQ functions.lua
+ src/Functions/General Functions.lua
+ src/Functions/FX Layering.lua
+ src/Functions/Layout Editor functions.lua
+ src/Functions/Modulation.lua
+ src/Functions/Theme Editor Functions.lua
+ src/Functions/Filesystem_utils.lua
+ src/Constants.lua
+ src/Helpers/Sexan_FX_Browser.lua]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/2b6495820ac68c22e1336536274188d90c9963bb/BryanChi_FX_Devices/BryanChi_FX%20Devices.lua</source>
       </version>
     </reapack>
   </category>
