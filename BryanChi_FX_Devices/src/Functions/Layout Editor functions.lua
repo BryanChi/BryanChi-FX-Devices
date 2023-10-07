@@ -2200,7 +2200,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
                                     d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
                                     d.RPT_Clr = RC('RPT_Clr', 'Num')
-
+                                    
 
                                     local path = RC('Image_Path')
                                     if path then

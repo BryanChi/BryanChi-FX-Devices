@@ -6650,7 +6650,7 @@ function loop()
 
 
 
-                                                        local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')
+                                                        local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')))
 
                                                         for i, v in ipairs(FP.Draw) do
                                                             local x, y              = r.ImGui_GetItemRectMin(ctx)
