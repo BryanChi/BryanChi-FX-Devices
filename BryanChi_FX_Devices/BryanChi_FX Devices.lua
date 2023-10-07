@@ -1,21 +1,12 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.8
+-- @version 1.0beta10.8.1
 -- @changelog
---  - LFO : NEW! added midi triggered envelopes mode.
---  - LFO : NEW! Legato settings for envelopes.
---  - LFO: optimize behaviors regarding sending gmems to LFO.
---  - Fixed unable to make a modulation bipolar when in assigning modulator mode.
---  - Fixed pro Q 3 UI  being cropped off.
---  - Big thanks to Suzuki for the updates below:
---  - Added 14bit CC mode to the user inputs menu. 0 is off and 1 is on.
---  - Remove envelope option
---  - Added JS: Exciter layout and custom knob for it
---  - Fixed : Right double click to remove FX Devices' modulation
---  - Fixed : LFO Save/Cancel button does not work (key works)
---  - Fixed : Crash when not assigining lead_parameter
---  - Fixed : Correctly reset bus and channel when switching from FX Devices' modulation to parameter linking
--- @provides
+--  -  LFO : Fix having to edit a node in order to sync shape between jsfx and ImGui.
+--  -  Fix step sequencer window closing when mouse is adjusting step values and moved outside of the window.
+--  -  Fix sequencer opening condition penetrating topmost opened windows.
+--  -  Fix adding multiple instances of pro Q crashing.
+--  -  Fix Alt + Double right click setting parameter to max when it has modulation assigned.-- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
 --   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
