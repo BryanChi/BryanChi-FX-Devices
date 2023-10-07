@@ -6,7 +6,8 @@
 --  -  Fix step sequencer window closing when mouse is adjusting step values and moved outside of the window.
 --  -  Fix sequencer opening condition penetrating topmost opened windows.
 --  -  Fix adding multiple instances of pro Q crashing.
---  -  Fix Alt + Double right click setting parameter to max when it has modulation assigned.-- @provides
+--  -  Fix Alt + Double right click setting parameter to max when it has modulation assigned.
+-- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
 --   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
@@ -6649,12 +6650,13 @@ function loop()
 
 
 
-
-
+                                                        local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')
+                                                        ttp(GR)
                                                         for i, v in ipairs(FP.Draw) do
                                                             local x, y              = r.ImGui_GetItemRectMin(ctx)
                                                             local x                 = x + (v.X_Offset or 0) +
-                                                                (Prm.V * (v.X_Offset_VA or 0))
+                                                                (Prm.V * (v.X_Offset_VA or 0)) + (GR * (v.X_Offset_VA_GR or 0))
+
                                                             local y                 = y + (v.Y_Offset or 0) +
                                                                 (Prm.V * (v.Y_Offset_VA or 0))
                                                             local Thick             = (v.Thick or 2)
@@ -6695,9 +6697,12 @@ function loop()
                                                                 local y2 = y + h
 
                                                                 if v.Width_VA and v.Width_VA ~= 0 then
-                                                                    x2 = x +
-                                                                        (w or 10) * Prm.V * (v.Width_VA)
+                                                                    x2 = x + (w or 10) * Prm.V * (v.Width_VA)
                                                                 end
+                                                                if v.Width_VA_GR then 
+                                                                    x2 = x + (w or 10) * (GR * (v.Width_VA_GR or 0))
+                                                                end
+
                                                                 if v.Height_VA and v.Height_VA ~= 0 then
                                                                     y2 = y +
                                                                         (h or 10) * Prm.V * (v.Height_VA)
@@ -8680,13 +8685,15 @@ function loop()
                                                         r.ImGui_PushItemWidth(ctx, -FLT_MIN)
 
                                                         local FORMAT = format
-                                                        if not D[Name] and not defaultV then FORMAT = '' end
+                                                        if not D[Name..'_GR'] and not D[Name] and not defaultV then FORMAT = '' end
 
                                                         rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. LBL,
-                                                            D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
+                                                            D[Name..'_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
                                                             max or W - 10, FORMAT)
 
-                                                        if rv then D[Name] = V end
+                                                        if rv and not D[Name..'_GR'] then D[Name] = V
+                                                        elseif rv and D[Name..'_GR'] then D[Name..'_GR'] = V ;   D[Name] = nil
+                                                        end
 
                                                         -- if want to show preview use this.
                                                         --if r.ImGui_IsItemActive(ctx) then FrstSelItm.ShowPreview = FrstSelItm.Num end
@@ -8696,6 +8703,27 @@ function loop()
                                                         if FrstSelItm.ShowPreview and r.ImGui_IsItemDeactivated(ctx) then FrstSelItm.ShowPreview = nil end
 
                                                         r.ImGui_PopItemWidth(ctx)
+                                                        if Name:find('_VA') then    
+                                                            if r.ImGui_IsItemClicked(ctx,1) and Mods == Ctrl then 
+                                                                r.ImGui_OpenPopup(ctx, 'Value afftect '..Name)
+                                                            end
+                                                        end
+
+                                                        if r.ImGui_BeginPopup(ctx, 'Value afftect '..Name) then 
+                                                            local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')
+                                                            if not rv then r.ImGui_BeginDisabled(ctx) end 
+                                                                if D[Name..'_GR'] then check = true end 
+                                                                 local Check, check = r.ImGui_Checkbox(ctx,'Affected by Gain Reduction', check )
+                                                                if Check then 
+                                                                    if D[Name..'_GR'] then D[Name..'_GR'] = nil else D[Name..'_GR'] = 0 end 
+                                                                end
+                                                                if D.VA_by_GR then 
+
+                                                                end
+                                                            if not rv then r.ImGui_EndDisabled(ctx) end 
+                                                            r.ImGui_EndPopup(ctx)
+                                                        end
+
                                                         if Name:find('_VA') or NextRow then r.ImGui_TableNextRow(ctx) end
 
                                                         return r.ImGui_IsItemActive(ctx)
