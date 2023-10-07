@@ -1931,9 +1931,10 @@ function loop()
                 elseif Trk[TrkID].Mod[i].Type == 'Step' then
                     Macros_WDL = Macros_WDL or r.ImGui_GetWindowDrawList(ctx)
                     r.ImGui_TableSetColumnIndex(ctx, (i - 1) * 2) --r.ImGui_PushItemWidth( ctx, -FLT_MIN)
-
+                    local Mc = Trk[TrkID].Mod[i]
                     r.gmem_attach('ParamValues')
-                    local CurrentPos       = r.gmem_read(120 + i) + 1
+                    local CurrentPos       = r.gmem_read(108+Macro)  +1  --  +1 because to make zero-based start on 1
+
 
                     --r.ImGui_SetNextItemWidth(ctx, 20)
                     Trk[TrkID].Mod[i].SEQ  = Trk[TrkID].Mod[i].SEQ or {}
@@ -1966,7 +1967,7 @@ function loop()
                         SEQ_Popup_L = SEQ_Popup_L or L
                         SEQ_Popup_T = SEQ_Popup_T or T
 
-                        if r.ImGui_IsMouseHoveringRect(ctx, L, T, R, B) and not r.ImGui_IsMouseDown(ctx, 0) then
+                        if r.ImGui_IsItemHovered(ctx) and not r.ImGui_IsMouseDown(ctx, 0) then
                             HoverOnAnyStep = true
                         end
                         if HoverOnAnyStep then WhichMacroIsHovered = i end
@@ -2012,9 +2013,10 @@ function loop()
                             Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
                         end
 
+
                         r.ImGui_DrawList_AddRectFilled(Macros_WDL, L, T + H, L + W - 1, math.max(B - H * (S[St] or 0), T),
                             Clr)
-                        if CurrentPos == St then -- if Step SEQ 'playhead' is now on current step
+                        if CurrentPos == St  then -- if Step SEQ 'playhead' is now on current step
                             r.ImGui_DrawList_AddRect(Macros_WDL, L, T + H, L + W - 1, T, 0xffffff99)
                         end
                         SL(nil, 0)
@@ -2024,6 +2026,7 @@ function loop()
 
 
                     r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - StepSEQ_H - 100)
+                    if Mc.AdjustingSteps and not r.ImGui_IsMouseDown(ctx, 0)  then  Mc.AdjustingSteps = nil end 
 
                     function open_SEQ_Win(Track, i)
                         if not HoveringSmoothness then
@@ -2034,8 +2037,8 @@ function loop()
                                     if AddMacroJSFX() then
                                         r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                         r.gmem_write(5, i) --[[tells JSFX the macro]]
-                                        r.gmem_write(111, Trk[TrkID].SEQ_Dnom[i])
-                                        r.gmem_write(110, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)
+                                        r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i])
+                                        r.gmem_write(9, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)
                                         r.GetSetMediaTrackInfo_String(LT_Track,
                                             'P_EXT: Macro ' .. i .. ' SEQ Denominator',
                                             Trk[TrkID].SEQ_Dnom[i], true)
@@ -2046,8 +2049,8 @@ function loop()
                                     if AddMacroJSFX() then
                                         r.gmem_write(4, 8)
                                         r.gmem_write(5, i)
-                                        r.gmem_write(110, Trk[TrkID].SEQL[i])
-                                        r.gmem_write(111, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
+                                        r.gmem_write(9, Trk[TrkID].SEQL[i])
+                                        r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
                                         r.GetSetMediaTrackInfo_String(LT_Track,
                                             'P_EXT: Macro ' .. i .. ' SEQ Length',
                                             Trk[TrkID].SEQL[i], true)
@@ -2145,7 +2148,7 @@ function loop()
                                 end
 
 
-
+                                local MsX, MsY = r.ImGui_GetMousePos(ctx)
                                 for St = 1, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 1 do
                                     r.ImGui_InvisibleButton(ctx, '##SEQ' .. St .. TrkID, StepSEQ_W, StepSEQ_H)
                                     local L, T = r.ImGui_GetItemRectMin(ctx); local R, B = r.ImGui_GetItemRectMax(ctx); local w, h =
@@ -2153,11 +2156,21 @@ function loop()
                                     r.ImGui_DrawList_AddText(WDL, L + StepSEQ_W / 2 / 2, B - 15, 0x999999ff, St)
                                     SL(nil, 0)
                                     local FillClr = 0x00000000
-                                    if IsLBtnHeld and r.ImGui_IsMouseHoveringRect(ctx, L, T, R, B) and not SmallSEQActive then
+
+                                    if r.ImGui_IsItemClicked(ctx ) then 
+                                        Mc.AdjustingSteps = Macro
+                                    end
+                                    local AdjustingStep 
+                                    if Mc.AdjustingSteps and  MsX >= L and MsX < R then  
+                                        AdjustingStep = St
+                                    end
+
+
+                                    if AdjustingStep==St then
                                         --Calculate Value at Mouse pos
                                         local MsX, MsY = r.ImGui_GetMousePos(ctx)
 
-                                        S[St] = ((B - MsY) / StepSEQ_H) --[[ *(-1) ]]
+                                        S[St] = SetMinMax( ((B - MsY) / StepSEQ_H), 0, 1) --[[ *(-1) ]]
                                         r.gmem_write(4, 7)                        -- tells jsfx user is changing a step's value
                                         r.gmem_write(5, i)                        -- tells which macro user is tweaking
                                         r.gmem_write(112, SetMinMax(S[St], 0, 1)) -- tells the step's value
@@ -2165,6 +2178,8 @@ function loop()
 
                                         r.GetSetMediaTrackInfo_String(LT_Track,
                                             'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', S[St], true)
+
+                                        
                                     elseif IsRBtnHeld and r.ImGui_IsMouseHoveringRect(ctx, L, T, R, B) and not SmallSEQActive then
                                         SEQ_RMB_Val = 0
                                         S[St] = SEQ_RMB_Val
@@ -2189,7 +2204,7 @@ function loop()
                                     r.ImGui_DrawList_AddRectFilled(WDL, L, T + StepSEQ_H, L + StepSEQ_W - 1,
                                         math.max(B - StepSEQ_H * (S[St] or 0), T), Clr)
 
-                                    if CurrentPos == St then
+                                    if CurrentPos == St or ( CurrentPos ==0 and St ==(Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)) then -- if Step SEQ 'playhead' is now on current step
                                         r.ImGui_DrawList_AddRect(WDL, L, B, L + StepSEQ_W - 1, T, 0xffffff88)
                                     end
                                 end
@@ -2208,12 +2223,12 @@ function loop()
                         end
                     end
 
-                    if WhichMacroIsHovered == i and HoverOnAnyStep or SmallSEQActive then
-                        open_SEQ_Win(Track, i)
+                    if (WhichMacroIsHovered == Macro and HoverOnAnyStep) or SmallSEQActive or Mc.AdjustingSteps then
+                        open_SEQ_Win(Track, Macro)
                         notHoverSEQ_Time = 0
                     end
 
-                    if WhichMacroIsHovered == i and not HoverOnAnyStep and not SmallSEQActive then
+                    if WhichMacroIsHovered == i and not HoverOnAnyStep and not SmallSEQActive and not Mc.AdjustingSteps then
                         notHoverSEQ_Time = math.min((notHoverSEQ_Time or 0), 11) + 1
                         if notHoverSEQ_Time < 10 then
                             open_SEQ_Win(Track, i)
@@ -3130,7 +3145,9 @@ function loop()
                             if r.ImGui_IsWindowAppearing(ctx) then 
                                 Save_All_LFO_Info(Node) 
                             end
-
+                            if r.ImGui_IsWindowAppearing(ctx) then 
+                                Send_All_Coord()
+                            end
                             r.ImGui_End(ctx)
                         end
 
@@ -3169,6 +3186,7 @@ function loop()
                                                 Mc.Node = v
                                                 AnyShapeHovered = true 
                                                 LFO.AnyShapeHovered = true 
+                                                Send_All_Coord()
                                             end
                                             local L, T = r.ImGui_GetItemRectMin(ctx)
                                             local w, h = r.ImGui_GetItemRectSize(ctx)
@@ -3198,6 +3216,7 @@ function loop()
                                                 Mc.Node = V   ---keep newly selected shape
                                             else
                                                 Mc.Node = LFO.NodeBeforePreview     -- restore original shape
+                                                NeedSendAllGmemLater = Macro 
                                             end
                                             LFO.NodeBeforePreview = Mc.Node
                                             LFO.AnyShapeHovered = nil 
@@ -3209,6 +3228,14 @@ function loop()
                                     return AnyShapeHovered
                                 end
 
+                                if NeedSendAllGmemLater == Macro then 
+                                    timer = (timer or 0) + 1
+                                    if timer == 2 then   
+                                        Send_All_Coord()
+                                        NeedSendAllGmemLater = nil 
+                                        timer = nil
+                                    end
+                                end
 
                                 local function  Global_Shapes()
                                     

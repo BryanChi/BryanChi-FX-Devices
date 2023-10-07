@@ -42,7 +42,7 @@ end
 ---@param P_Num number
 ---@param FX_Idx integer
 function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-    if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) then
+    if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
         if FX[FxGUID][Fx_P].ModAMT then
             for Mc = 1, 8, 1 do
                 if FX[FxGUID][Fx_P].ModAMT[Mc] then

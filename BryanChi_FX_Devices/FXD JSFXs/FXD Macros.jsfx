@@ -111,15 +111,6 @@ trkGUID_Num = gmem[1];
   Mc7.LFO_Gain = 1;
   Mc8.LFO_Gain = 1;
 
-// Bipolar 
-  Mc1.Bipolar = 0;
-  Mc2.Bipolar = 0;
-  Mc3.Bipolar = 0;
-  Mc4.Bipolar = 0;
-  Mc5.Bipolar = 0;
-  Mc6.Bipolar = 0;
-  Mc7.Bipolar = 0;
-  Mc8.Bipolar = 0;
 
 
 
@@ -266,7 +257,14 @@ Mc8.LFO_PlayPos = 116;
 
 
 
+function ChangeRange(V1, V2 , Max)(
+  V1 > V2 ? (
 
+  (V1/Max) * V2 
+  ): V2 > V1 ? (
+    V2 *  V1
+  );
+);
 
 
 
@@ -274,6 +272,7 @@ function SendInfoBackToImGui()
 (
   this.type =='step'?(
     (gmem[this.EnvToImGui] = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127);
+    gmem[this.LFO_PlayPos] = this.CurrentPos;
   ):this.type =='env'?(
     gmem[this.EnvToImGui] = this.masr_do(midiamp)
   ):this.type =='Fol' ? (
@@ -285,9 +284,179 @@ function SendInfoBackToImGui()
   );
 );
 
+
+function CalculateLFO()(
+  //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
+  this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
+  loop (this.LFO_NodeCt  *11 ,
+    N+=1;  // N means segment actually , there are 11 segments between each nodes
+    X_idx = (this.Macro-1)*1000+N;
+    Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+
+
+    x1 = LFO[X_idx];
+    y1 = LFO[Y_idx];
+    x2 = LFO[X_idx+1];
+    y2 = LFO[Y_idx+1];
+  
+
+    p=this.CurrentPos/4;
+    s = (x2 - x1)  ; // s for segment
+    x1_howMuch  =  (x2-p) / s ;
+    x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+ 
+
+    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+      this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
+
+      this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
+
+    ):x1< p && x2==0?(    // if playhead is beyond last node
+      this.out = y1;
+    );
+    N == this.LFO_NodeCt ? (N=0);
+  );
+
+);
+
+function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
+
+  this.bp += beat_per_block * this.LFO_Spd;
+  this.CurrentPos =  min( this.bp ,this.Lfo_Len );
+
+
+  
+  loop (this.LFO_NodeCt  *11 ,
+    N+=1;  // N means segment actually , there are 11 segments between each nodes
+    X_idx = (this.Macro-1)*1000+N;
+    Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+
+
+    x1 = LFO[X_idx];
+    y1 = LFO[Y_idx];
+    x2 = LFO[X_idx+1];
+    y2 = LFO[Y_idx+1];
+
+    this.Rel_Type==3 ? ( // if it's no jump
+      AA_REL_NODE_VAL = LFO[(this.Macro-1)*1000+this.Rel_Node+ this.LFO_NodeCt*11];
+      y1 = ChangeRange(this.Rel_V  , y1 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11] );
+      y2 = ChangeRange(this.Rel_V  , y2 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11]);
+    );
+  
+
+    p=this.CurrentPos/4;
+    s = (x2 - x1)  ; // s for segment
+    x1_howMuch  =  (x2-p) / s ;
+    x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+ 
+
+    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+      this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
+
+      this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
+
+    ):x1< p && x2==0?(    // if playhead is beyond last node
+      this.out = y1;
+    );
+    N == this.LFO_NodeCt ? (N=0);
+  );
+
+
+
+
+);
+
+
+
+
+
+
+function DoMidiTriggeredActions()(
+  this.EnvOrLoop == 1 ? (
+      this.bp += beat_per_block * this.LFO_Spd;
+      this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
+      this.CalculateLFO();
+  );
+);
+function DoMidi_Release()(
+  this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
+    this.CalculateLFO_Rel();
+  );
+);
+
+
+function SetBpTo0 ()(
+  this.EnvOrLoop == 1 ? (
+    this.Legato == 0 ? ( 
+      this.bp =  0;
+    ):this.Legato == 1 && TotalNotesHeld == 1 ? ( // if this is the first note played, while not holding any other notes
+      this.bp =  0;
+    );
+  );
+);
+
+function SetBpTo0_All()(
+  Mc1.SetBpTo0();
+  Mc2.SetBpTo0();
+  Mc3.SetBpTo0();
+  Mc4.SetBpTo0();
+  Mc5.SetBpTo0();
+  Mc6.SetBpTo0();
+  Mc7.SetBpTo0();
+  Mc8.SetBpTo0();
+);
+
+
+function SetBPToRel_Node()local (Rel_pos, Rel_V) (
+  this.Rel_Type == 2 ||this.Rel_Type==3 ? ( //if it's custom release
+    this.Rel_Type==3 ? (    // if it's no jump 
+      this.Rel_V = this.Out ; // get value when note was released 
+    );
+
+    Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * 4;
+
+    this.CurrentPos< Rel_pos? ( // if 'playhead' hasn't reached the release node 
+      this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
+        this.bp = Rel_pos;  // move playhead to release node 
+      );
+    );
+  );
+
+);
+
+function SetBPToRel_Node_All()(
+  Mc1.SetBPToRel_Node();
+  Mc2.SetBPToRel_Node();
+  Mc3.SetBPToRel_Node();
+  Mc4.SetBPToRel_Node();
+  Mc5.SetBPToRel_Node();
+  Mc6.SetBPToRel_Node();
+  Mc7.SetBPToRel_Node();
+  Mc8.SetBPToRel_Node();
+
+
+);
+
+function LFO_Calc_Play_Pos ()(
+  play_state == 1 ? ( // if playing
+
+    this.bp += beat_per_block * this.LFO_Spd;
+    this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
+
+  ): play_state != 1 ? (   // if not playing
+    this.bp =  beat_position * this.LFO_Spd ;
+    this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+  );
+  
+
+
+);
+
+
 function SetMacroAttribute( x , y )
 (
-    //gmem[5] == this.Macro ? ( AAA = 'suc';  this.x = y ) ;
     Macro==1?(Mc1.FOL_Gain = y); 
     Macro==2?(Mc2.FOL_Gain = y); 
     Macro==3?(Mc3.FOL_Gain = y);
@@ -330,7 +499,7 @@ function CalculatMacroAmt() local (BipolarRange , MR )
 
     this.out = this.FOL_out*this.FOL_Gain  ;
 
-  ):this.type=='LFO'   ?( // if type is LFO
+  ):this.type=='LFO'    ?( // if type is LFO
     this.LFO_Gain_Auto != 0 ? ( 
       this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
     );
@@ -338,52 +507,11 @@ function CalculatMacroAmt() local (BipolarRange , MR )
       this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
     );
 
-    play_state == 1 ? ( // if playing
-
-      this.bp += beat_per_block * this.LFO_Spd;
-      this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
-
-    ): play_state != 1 ? (   // if not playing
-      this.bp =  beat_position * this.LFO_Spd ;
-      this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+    this.EnvOrLoop == 0 ? (
+      this.LFO_Calc_Play_Pos ();
+      this.CalculateLFO();
     );
 
-      
-
-
-
-
-      //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
-      this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
-      loop (this.LFO_NodeCt  *11 ,
-        N+=1;  // N means segment actually , there are 11 segments between each nodes
-        X_idx = (this.Macro-1)*1000+N;
-        Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
-
-
-        x1 = LFO[X_idx];
-        y1 = LFO[Y_idx];
-        x2 = LFO[X_idx+1];
-        y2 = LFO[Y_idx+1];
-      
-
-        p=this.CurrentPos/4;
-        s = (x2 - x1)  ; // s for segment
-        x1_howMuch  =  (x2-p) / s ;
-        x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
-
-
-        x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
-          this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
-
-          this.LFOout = ((y1*x1_howMuch) +(y2*x2_HowMuch) ) * 127*this.LFO_Gain;
-
-        ):x1< p && x2==0?(    // if playhead is beyond last node
-          this.out = y1;
-        );
-        N == this.LFO_NodeCt ? (N=0);
-      );
-    
     
 
   ):(   //if type is macro
@@ -393,9 +521,6 @@ function CalculatMacroAmt() local (BipolarRange , MR )
 
 
 
-  //this.Bipolar == 1 ? (  // make whole modulator bipolar
-  //  this.out = this.out * MR - BipolarRange;
-  //) // make it bipolar
 );
 
 
@@ -519,11 +644,10 @@ Automate = 16; // first one will be 17
   beat_per_block = beat_per_spl * samplesblock;
 
   play_state == 1  && playstate_started == 0  ? (
-    bp = beat_position;
+    //bp = beat_position;
     playstate_started = 1 ; 
-  ): play_state == 0 || play_state == 2 || play_state ==6 ? (
-    playstate_started = 0 ;
-  );
+  ); 
+
   
 
 
@@ -634,32 +758,32 @@ trkGUID_Num === gmem[2]? (
   
   );
 
-  mode == 8 ? (// if user is changing Sequencer Lenth or note length...
+  mode == 8 ? (// if user is changing note length...
     Macro = gmem[5];
     Macro==1?( //if user is tweaking macro 1
-      gmem[110] != 0 ? (Mc1.SEQ_Leng = gmem[110];    gmem[110] = 0) ; 
-      gmem[111] != 0 ? (Mc1.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc1.SEQ_Leng = gmem[9];     gmem[9] = 0) ; 
+      gmem[10] != 0 ? (Mc1.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==2?(
-      gmem[110] != 0 ? (Mc2.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc2.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc2.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc2.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==3?(
-      gmem[110] != 0 ? (Mc3.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc3.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc3.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc3.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==4?(
-      gmem[110] != 0 ? (Mc4.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc4.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc4.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc4.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==5?(
-      gmem[110] != 0 ? (Mc5.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc5.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc5.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc5.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==6?(
-      gmem[110] != 0 ? (Mc6.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc6.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc6.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc6.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==7?(
-      gmem[110] != 0 ? (Mc7.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc7.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc7.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc7.SEQ_DNom = gmem[10];    gmem[10] = 0);
     ):Macro==8?(
-      gmem[110] != 0 ? (Mc8.SEQ_Leng = gmem[110];    gmem[110] = 0); 
-      gmem[111] != 0 ? (Mc8.SEQ_DNom = gmem[111];    gmem[111] = 0);
+      gmem[9] != 0  ? (Mc8.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+      gmem[10] != 0 ? (Mc8.SEQ_DNom = gmem[10];    gmem[10] = 0);
     );
   );
 
@@ -740,13 +864,6 @@ trkGUID_Num === gmem[2]? (
 
       LFO[X_idx]= gmem[1000+i];
       LFO[Y_idx]= gmem[2000+i];
-      A_Gmem1000 = gmem[1001];
-      A_Gmem1002 = gmem[1002];
-      A_Gmem1003 = gmem[1003];
-      A_Gmem1004 = gmem[1004];
-
-
-      AA_MAX_I= i;
     );
      
     i=0;
@@ -783,18 +900,51 @@ trkGUID_Num === gmem[2]? (
     Macro==7?(Mc7.LFO_Spd_Auto = AutomatedPrm_Num;);
     Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
   );
-  mode == 18? (   // if user set modulation to bipolar
+  mode == 18? ( // if user set LFO's type (loop or envelope)
     Macro = gmem[5];
-    Macro==1?(Mc1.Bipolar = 1;); 
-    Macro==2?(Mc2.Bipolar = 1;); 
-    Macro==3?(Mc3.Bipolar = 1;);
-    Macro==4?(Mc4.Bipolar = 1;);
-    Macro==5?(Mc5.Bipolar = 1;);
-    Macro==6?(Mc6.Bipolar = 1;);
-    Macro==7?(Mc7.Bipolar = 1;);
-    Macro==8?(Mc8.Bipolar = 1;);
+    Macro==1?(Mc1.EnvOrLoop = gmem[9]); 
+    Macro==2?(Mc2.EnvOrLoop = gmem[9]); 
+    Macro==3?(Mc3.EnvOrLoop = gmem[9]);
+    Macro==4?(Mc4.EnvOrLoop = gmem[9]);
+    Macro==5?(Mc5.EnvOrLoop = gmem[9]);
+    Macro==6?(Mc6.EnvOrLoop = gmem[9]);
+    Macro==7?(Mc7.EnvOrLoop = gmem[9]);
+    Macro==8?(Mc8.EnvOrLoop = gmem[9]);
+  );
+  mode == 19 ? ( // if user set LFO Release type 
+    // type 0 = latch , type 1 = simple , type 2 = custom
+    Macro==1?(Mc1.Rel_Type = gmem[9]); 
+    Macro==2?(Mc2.Rel_Type = gmem[9]); 
+    Macro==3?(Mc3.Rel_Type = gmem[9]);
+    Macro==4?(Mc4.Rel_Type = gmem[9]);
+    Macro==5?(Mc5.Rel_Type = gmem[9]);
+    Macro==6?(Mc6.Rel_Type = gmem[9]);
+    Macro==7?(Mc7.Rel_Type = gmem[9]);
+    Macro==8?(Mc8.Rel_Type = gmem[9]);
+  );
+  mode == 20 ? ( // if user set LFO Release Node 
+    Macro==1?(Mc1.Rel_Node = gmem[9]); 
+    Macro==2?(Mc2.Rel_Node = gmem[9]); 
+    Macro==3?(Mc3.Rel_Node = gmem[9]);
+    Macro==4?(Mc4.Rel_Node = gmem[9]);
+    Macro==5?(Mc5.Rel_Node = gmem[9]);
+    Macro==6?(Mc6.Rel_Node = gmem[9]);
+    Macro==7?(Mc7.Rel_Node = gmem[9]);
+    Macro==8?(Mc8.Rel_Node = gmem[9]);
 
   );
+  mode == 21 ? (// if user set envelope to Legato
+    Macro==1?(Mc1.Legato = gmem[9]); 
+    Macro==2?(Mc2.Legato = gmem[9]); 
+    Macro==3?(Mc3.Legato = gmem[9]);
+    Macro==4?(Mc4.Legato = gmem[9]);
+    Macro==5?(Mc5.Legato = gmem[9]);
+    Macro==6?(Mc6.Legato = gmem[9]);
+    Macro==7?(Mc7.Legato = gmem[9]);
+    Macro==8?(Mc8.Legato = gmem[9]);
+
+  );
+
   
       
   gmem[7] != 0?( // if user uses Imgui to tweak param...
@@ -818,41 +968,65 @@ trkGUID_Num === gmem[2]? (
 
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
+
   (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
       msg3 != 0 ? (
-          // noteon 
-          midinote = msg2;
-          
-          // msg3 == Velocity
-          midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
-          midisend(offset,msg1,msg2,msg3);
+        // noteon 
+        midinote = msg2;
+        NoteOn = 1  ;
+        // msg3 == Velocity
+        midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
+        TotalNotesHeld+=1;
+        SetBpTo0_All ();
+        midisend(offset,msg1,msg2,msg3);
       ) : (
-          // noteoff
-          msg2 == midinote ? midiamp = 0;
-          midisend(offset,msg1,msg2,msg3);
+        // noteoff
+        msg2 == midinote ? midiamp = 0;
+        TotalNotesHeld -=1;
+        SetBPToRel_Node_All();  
+        NoteOn = 0;
+        midisend(offset,msg1,msg2,msg3);
       );
   ) : (
+
       // passthrough other events
       midisend(offset,msg1,msg2,msg3);
   );
 );
 
+NoteOn ? (
 
- Mc1.CalculatMacroAmt();
- Mc2.CalculatMacroAmt();
- Mc3.CalculatMacroAmt();
- Mc4.CalculatMacroAmt();
- Mc5.CalculatMacroAmt();
- Mc6.CalculatMacroAmt();
- Mc7.CalculatMacroAmt();
- Mc8.CalculatMacroAmt();
+  Mc1.DoMidiTriggeredActions();
+  Mc2.DoMidiTriggeredActions();
+  Mc3.DoMidiTriggeredActions();
+  Mc4.DoMidiTriggeredActions();
+  Mc5.DoMidiTriggeredActions();
+  Mc6.DoMidiTriggeredActions();
+  Mc7.DoMidiTriggeredActions();
+  Mc8.DoMidiTriggeredActions();
+):(
+  Mc1.DoMidi_Release();
+  Mc2.DoMidi_Release();
+  Mc3.DoMidi_Release();
+  Mc4.DoMidi_Release();
+  Mc5.DoMidi_Release();
+  Mc6.DoMidi_Release();
+  Mc7.DoMidi_Release();
+  Mc8.DoMidi_Release();
+
+);
+
+Mc1.CalculatMacroAmt();
+Mc2.CalculatMacroAmt();
+Mc3.CalculatMacroAmt();
+Mc4.CalculatMacroAmt();
+Mc5.CalculatMacroAmt();
+Mc6.CalculatMacroAmt();
+Mc7.CalculatMacroAmt();
+Mc8.CalculatMacroAmt();
  
 i=1;    
 while ( i <= P.Inst)(
-  
-  
- // ModAmtTotal = Mc1.Out +Mc2.Out+Mc3.Out+Mc4.Out+Mc5.Out+Mc6.Out+Mc7.Out+Mc8.Out;
-  
   SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
     
   midisend(0, $xBf, i, SendAmt);
@@ -875,7 +1049,7 @@ trkGUID_Num === gmem[2]? (
   
 
 
-
+playstate_started ? ( playstate_started = 0 );
 
 
 
@@ -893,9 +1067,11 @@ while (midirecv(offset, msg1, msg2, msg3)) (
             midiamp = msg3 / 94;
             time = time_precise();
             
+
             
         ) : (
             // noteoff
+            
             msg2 == midinote ? midiamp = 0;
         );
     ) : (
@@ -905,5 +1081,7 @@ while (midirecv(offset, msg1, msg2, msg3)) (
 );
 
 
-    
+play_state == 0 || play_state == 2 || play_state ==6 ? (
+  playstate_started = 0 ;
+);
 
