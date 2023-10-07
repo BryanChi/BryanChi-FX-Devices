@@ -6651,11 +6651,11 @@ function loop()
 
 
                                                         local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')
-                                                        ttp(GR)
+
                                                         for i, v in ipairs(FP.Draw) do
                                                             local x, y              = r.ImGui_GetItemRectMin(ctx)
                                                             local x                 = x + (v.X_Offset or 0) +
-                                                                (Prm.V * (v.X_Offset_VA or 0)) + (GR * (v.X_Offset_VA_GR or 0))
+                                                                (Prm.V * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
 
                                                             local y                 = y + (v.Y_Offset or 0) +
                                                                 (Prm.V * (v.Y_Offset_VA or 0))
