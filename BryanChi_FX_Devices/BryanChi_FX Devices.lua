@@ -62,7 +62,7 @@
 --   src/Images/Knobs/FancyBlueKnob_Inverted.png
 --   src/Images/Knobs/FancyBlueKnob.png
 --   src/Images/Knobs/FancyLightGreenKnob.png
---   src/Images/Switches/FancyGreenCheck_2
+--   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/Square.ini
 --   src/LFO Shapes/Sine.ini
 --   src/LFO Shapes/Saw.ini
