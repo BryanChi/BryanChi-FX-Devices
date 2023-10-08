@@ -176,6 +176,8 @@ function get_aftr_Equal(str)
     end
 end
 
+
+
 ---@param Str string
 ---@param Id string
 ---@param Fx_P integer
@@ -184,7 +186,7 @@ end
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
         local Out, LineChange
-        local ID = Fx_P .. '. ' .. Id .. ' = '
+        local ID = Fx_P .. '%. ' .. Id .. ' = '
         local Start, End = Str:find(ID)
         if untilwhere then
             LineChange = Str:find(untilwhere, Start)
@@ -872,8 +874,16 @@ function GetMouseDelta(MouseBtn, triggerKey)
 
     M.X_now, M.Y_now = r.GetMousePosition()
 
+
     if M.StX ~= M.X_now or M.StY ~= M.Y_now then 
+
         local outX, outY =  M.X_now-M.StX , M.StY - M.Y_now
+        local UserOS = r.GetOS()
+
+        if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+        else  outY = -outY
+        end
+
         M.StX, M.StY = r.GetMousePosition()
         return outX, outY
     else  return 0, 0

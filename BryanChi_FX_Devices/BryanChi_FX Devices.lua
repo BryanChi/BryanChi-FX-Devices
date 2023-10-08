@@ -1,12 +1,16 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.8.1
+-- @version 1.0beta10.9
 -- @changelog
---  -  LFO : Fix having to edit a node in order to sync shape between jsfx and ImGui.
---  -  Fix step sequencer window closing when mouse is adjusting step values and moved outside of the window.
---  -  Fix sequencer opening condition penetrating topmost opened windows.
---  -  Fix adding multiple instances of pro Q crashing.
---  -  Fix Alt + Double right click setting parameter to max when it has modulation assigned.
+--  - New! Beautiful ReaComp Layout made by Suzuki! (Design concept from [Eugene Reznik](https://www.behance.net/reznik_e) - [https://www.behance.net/gallery/101780783/Fancy-Reaplugs-(Reaper-DAW-plugins-concept)](https://www.behance.net/gallery/101780783/Fancy-Reaplugs-%28Reaper-DAW-plugins-concept%29) )
+--  - Layout Editor : remove duplicated Y-offest line in attached drawings saved ini files.
+--  - Layout Editor : Fixed issue where parameter type gets replaced by attached drawing type upon retrieving data from saved ini file, resulting in parameter disappearing.
+--  - Layout Editor : Now allows using plugin scripts alongside with layout editor, by adding FX[FxGUID].Compatible_W_regular = true in plugin script.
+--  - LFO : Fix Y axis is inverted when dragging node for Windows users.
+--  - 
+--  - Big thanks to Sexan for the updates below:
+--  - FX browser: add new version check to decide which version of FX parser to use.
+--  - Added requirements check, if Ultraschall or FX parser’s not found, the needed repositories will be added automatically, and repository browser will be opened for user to install.
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -43,6 +47,7 @@
 --   src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/ReaComp (Cockos).ini
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Knobs/FancyRedKnob.png
@@ -54,12 +59,18 @@
 --   src/Images/pin.png
 --   src/Images/paste.png
 --   src/Images/copy.png
+--   src/Images/Knobs/FancyGreenKnob.png
+--   src/Images/Knobs/FancyBlueKnob_Inverted.png
+--   src/Images/Knobs/FancyBlueKnob.png
+--   src/Images/Knobs/FancyLightGreenKnob.png
+--   src/Images/Switches/FancyGreenCheck_2
 --   src/LFO Shapes/Square.ini
 --   src/LFO Shapes/Sine.ini
 --   src/LFO Shapes/Saw.ini
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
 --   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
+--   src/FX Layout Plugin Scripts/ReaComp.lua
 --   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
@@ -79,8 +90,73 @@
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 
+function ThirdPartyDeps()
+    local ultraschall_path = reaper.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
+
+    local version = tonumber (string.sub( reaper.GetAppVersion() ,  0, 4))
+    --reaper.ShowConsoleMsg((version))
+
+    local fx_browser_path
+    local n,arch = reaper.GetAppVersion():match("(.+)/(.+)")
+    local fx_browser_v6_path
+    
+    if n:match("^7%.") then
+        fx_browser = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
+        fx_browser_reapack = 'sexan fx browser parser v7' 
+    else
+        fx_browser= reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"  
+        fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
+       fx_browser_reapack = 'sexan fx browser parser v6'
+
+    end
+    --local fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
+    --local fx_browser_v7_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
+    
+    local reapack_process
+    local repos = {
+      {name = "Sexan_Scripts", url = 'https://github.com/GoranKovac/ReaScripts/raw/master/index.xml'},
+      {name = "Ultraschall-API", url = 'https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/raw/master/ultraschall_api_index.xml'},
+    }
+    
+    for i = 1, #repos do
+      local retinfo, url, enabled, autoInstall = reaper.ReaPack_GetRepositoryInfo( repos[i].name )
+      if not retinfo then
+        retval, error = reaper.ReaPack_AddSetRepository( repos[i].name, repos[i].url, true, 0 )
+        reapack_process = true
+      end
+    end
+   
+    -- ADD NEEDED REPOSITORIES
+    if reapack_process then
+      reaper.ShowMessageBox("Added Third-Party ReaPack Repositories", "ADDING REPACK REPOSITORIES", 0)
+      reaper.ReaPack_ProcessQueue(true)
+      reapack_process = nil
+    end
+    
+    if not reapack_process then
+      -- ULTRASCHALL
+      if reaper.file_exists(ultraschall_path) then
+          dofile(ultraschall_path)
+      else
+          reaper.ShowMessageBox("Ultraschall API is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
+          reaper.ReaPack_BrowsePackages('ultraschall')
+          return 'error ultraschall'
+      end
+      -- FX BROWSER
+      if reaper.file_exists(fx_browser) then
+          dofile(fx_browser)
+      else
+         reaper.ShowMessageBox("Sexan FX BROWSER is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
+         reaper.ReaPack_BrowsePackages(fx_browser_reapack)
+         return 'error Sexan FX BROWSER'
+      end
+    end
+end
+
+if ThirdPartyDeps() then return end
+
 r = reaper
-require("src.Helpers.Sexan_FX_Browser")
+--require("src.Helpers.Sexan_FX_Browser") -- NOT NEEDED ANYMORE 
 require("src.Functions.General Functions")
 require("src.Functions.EQ functions")
 require("src.Functions.Layout Editor functions")
@@ -89,14 +165,21 @@ require("src.Functions.Modulation")
 require("src.Functions.Theme Editor Functions")
 require("src.Functions.Filesystem_utils")
 require("src.Constants")
+
+
+
+
+--dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua") -- NOT NEEDED ANYMORE
+local os_separator = package.config:sub(1, 1)
+
 PluginScript = {} ---@class PluginScript
 
-dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
+--dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta1.0beta10.8 '
+VersionNumber = 'V1.0beta1.0beta10.9 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -337,7 +420,7 @@ r.gmem_attach('gmemForSpectrum')
 -- FXs listed here will not have a fx window in the script UI
 BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
-    'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass', 'VST: FabFilter Pro C 2 ', 'Pro-C 2', 'Pro C 2',
+    'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
     'FXD Split to 32 Channels'
@@ -1977,6 +2060,8 @@ function loop()
 
                             if Mods == Shift then DrgSpdMod = 4 end
                             if v ~= 0 then
+                                
+
                                 v = v * (-1)
                                 if not (S[St] == 1 and v > 0) and not (S[St] == 0 and v < 0) then
                                     S[St] = S[St] + v / 100
@@ -6347,7 +6432,25 @@ function loop()
                                     ------------------------------------------
                                     ------ Generic FX's knobs and sliders area
                                     ------------------------------------------
-                                    if not FX[FXGUID[FX_Idx]].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false and FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx])~=true  then
+
+
+                                    local function Decide_If_Create_Regular_Layout()
+                                        if not FX[FXGUID[FX_Idx]].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
+                                            local FX_has_Plugin
+                                            for i, v in pairs(PluginScripts) do
+                                                if FX_Name:find(v) then
+                                                    FX_has_Plugin = true  
+                                                end
+                                            end
+
+                                            if not FX_has_Plugin then  return true  
+                                            else
+                                                if FX[FxGUID].Compatible_W_regular then  return true  end 
+                                            end
+                                        end
+                                    end
+
+                                    if Decide_If_Create_Regular_Layout() then 
                                         local WinP_X; local WinP_Y;
                                         --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                                         if FX.Enable[FX_Idx] == true then
@@ -6389,6 +6492,8 @@ function loop()
                                         end ]]
                                         for Fx_P, v in ipairs(FX[FxGUID]) do --parameter faders
                                             --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
+
+                                            
 
                                             local FP = FX[FxGUID][Fx_P] ---@class FX_P
 
@@ -6523,10 +6628,10 @@ function loop()
 
 
                                                 if Prm then
+
                                                     DL_SPLITER = r.ImGui_CreateDrawListSplitter(WDL)
                                                     r.ImGui_DrawListSplitter_Split(DL_SPLITER, 2)
                                                     r.ImGui_DrawListSplitter_SetCurrentChannel(DL_SPLITER, 1)
-
                                                     --Prm.V = Prm.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, Prm.Num)
                                                     --- Add Parameter controls ---------
                                                     if Prm.Type == 'Slider' or (not Prm.Type and not FX.Def_Type[FxGUID]) or FX.Def_Type[FxGUID] == 'Slider' then
@@ -6654,11 +6759,8 @@ function loop()
 
                                                         for i, v in ipairs(FP.Draw) do
                                                             local x, y              = r.ImGui_GetItemRectMin(ctx)
-                                                            local x                 = x + (v.X_Offset or 0) +
-                                                                (Prm.V * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
-
-                                                            local y                 = y + (v.Y_Offset or 0) +
-                                                                (Prm.V * (v.Y_Offset_VA or 0))
+                                                            local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
+                                                            local y                 = y + (v.Y_Offset or 0) + (Prm.V * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
                                                             local Thick             = (v.Thick or 2)
                                                             local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
                                                             local Clr_VA
@@ -6690,11 +6792,11 @@ function loop()
 
                                                             if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
                                                                 local w = v.Width or r.ImGui_GetItemRectSize(ctx)
-                                                                local h = v.Height or
-                                                                    select(2, r.ImGui_GetItemRectSize(ctx))
+                                                                local h = v.Height or select(2, r.ImGui_GetItemRectSize(ctx))
 
                                                                 local x2 = x + w
                                                                 local y2 = y + h
+                                                                local GR = GR or 0
 
                                                                 if v.Width_VA and v.Width_VA ~= 0 then
                                                                     x2 = x + (w or 10) * Prm.V * (v.Width_VA)
@@ -6704,12 +6806,15 @@ function loop()
                                                                 end
 
                                                                 if v.Height_VA and v.Height_VA ~= 0 then
-                                                                    y2 = y +
-                                                                        (h or 10) * Prm.V * (v.Height_VA)
+                                                                    y2 = y + (h or 10) * Prm.V * (v.Height_VA) 
+                                                                end
+                                                                if v.Height_VA_GR and v.Height_VA_GR ~=0 then 
+
+                                                                    y2 = y + (h or 10) * GR * (v.Height_VA_GR) 
+
                                                                 end
 
 
-                                                                TESTCLR = HSV_Change(0xff00ff, 0, 0, 0.7)
 
                                                                 if v.Type == 'Line' then
                                                                     if Prm.Type == 'Slider' or Prm.Type == 'Drag' or (not Prm.Type) then
@@ -6881,6 +6986,9 @@ function loop()
 
                                                                 Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0,
                                                                     AddImage, nil, v.RPT_Clr, v.Clr)
+                                                            elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then 
+                                                                local GR = round(GR, 1) 
+                                                                r.ImGui_DrawList_AddTextEx(WDL, Arial_12, 12 , x, y , v.Clr or 0xffffffff, GR or '' ) 
                                                             end
                                                         end
                                                     end
@@ -7156,15 +7264,12 @@ function loop()
 
                                     for i, v in pairs(PluginScripts) do
                                         local FX_Name = FX_Name
+
+
                                         if FX_Name:find(v) then
                                             r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                                             PluginScript.FX_Idx = FX_Idx
                                             PluginScript.Guid = FXGUID[FX_Idx]
-                                            if Prm.InstAdded[FXGUID[FX_Idx]] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
-                                                --- number in green represents FX Prm Index
-                                            end
-
-                                           
                                             dofile(pluginScriptPath .. '/' .. v .. '.lua')
                                         end
                                     end
@@ -8067,8 +8172,12 @@ function loop()
 
                                                     local NewFileName = r.GetResourcePath() .. 'src/Images/' ..  SubFolder .. filename:sub(index)
                                                     CopyFile(filename, NewFileName) ]]
+                                                    if FrstSelItm.Type == 'Knob' then 
+                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
+                                                    elseif FrstSelItm.Type == 'Switch' then 
+                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Switches')
 
-                                                    AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
+                                                    end
                                                     ToAllSelItm('Image', r.ImGui_CreateImage(AbsPath))
                                                 end
 
@@ -8158,9 +8267,8 @@ function loop()
                                             SetStyle('Default', Style)
                                             SetStyle('Minimalistic', 'Pro C')
                                             SetStyle('Invisible', 'Invisible')
-                                            local Dir = r.GetResourcePath() ..
-                                                CurrentDirectory .. '/src/Images/Knobs' 
-
+                                            local Dir = CurrentDirectory .. 'src/Images/Knobs' 
+                                            ttp(Dir)
                                             if r.ImGui_IsWindowAppearing(ctx) then
                                                 StyleWindowImgFiles = scandir(Dir)
                                                 if StyleWindowImgFiles then
@@ -8175,8 +8283,8 @@ function loop()
                                             end
 
                                             for i, v in pairs(StyleWinImg) do
-                                                SetStyle(StyleWinImgName[i], 'Custom Image', StyleWinImg[i],
-                                                    Dir .. '/' .. StyleWinImgName[i])
+                                                local Dir = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Knobs/'
+                                                SetStyle(StyleWinImgName[i], 'Custom Image', StyleWinImg[i], Dir.. StyleWinImgName[i])
                                             end
                                         end
 
@@ -8544,6 +8652,7 @@ function loop()
                                                 AddOption('Knob Image')
                                                 AddOption('Rect')
                                                 AddOption('Rect Filled')
+                                                AddOption('Gain Reduction Text')
 
 
                                                 r.ImGui_EndCombo(ctx)
@@ -8576,19 +8685,16 @@ function loop()
                                                     return r.ImGui_IsItemActive(ctx)
                                                 end
 
-                                                local BL_Width = { 'Knob Pointer', 'Knob Range' }
-                                                local BL_Height = { 'Knob Pointer', 'Knob Range', 'Circle',
-                                                    'Circle Filled', 'Knob Circle', 'Knob Image' }
+                                                local BL_Width = { 'Knob Pointer', 'Knob Range' , 'Gain Reduction Text' }
+                                                local BL_Height = { 'Knob Pointer', 'Knob Range', 'Circle', 'Circle Filled', 'Knob Circle', 'Knob Image','Gain Reduction Text' }
                                                 local Thick = { 'Knob Pointer', 'Line', 'Rect', 'Circle' }
                                                 local Round = { 'Rect', 'Rect Filled' }
                                                 local Gap = { 'Circle', 'Circle Filled', 'Knob Range' }
-                                                local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle',
-                                                    'Knob Image' }
+                                                local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Image' }
                                                 local RadiusInOut = { 'Knob Pointer', 'Knob Range' }
                                                 local Radius = { 'Knob Circle', 'Knob Image' }
-                                                local BL_Repeat = { 'Knob Range', 'Knob Circle', 'Knob Image',
-                                                    'Knob Pointer' }
-
+                                                local BL_Repeat = { 'Knob Range', 'Knob Circle', 'Knob Image','Knob Pointer','Gain Reduction Text' }
+                                                local GR_Text = {'Gain Reduction Text'}
 
 
                                                 local X_Gap_Shown_Name = 'X Gap:'
@@ -8653,7 +8759,7 @@ function loop()
 
 
 
-                                                if r.ImGui_BeginTable(ctx, 'testtable', 3, flags, -R_ofs) then
+                                                if r.ImGui_BeginTable(ctx, 'Attached Drawing Properties', 3, flags, -R_ofs) then
                                                     local function SetRowName(str, notTAB, TAB)
                                                         r.ImGui_TableSetColumnIndex(ctx, 0)
                                                         if TAB then
@@ -8687,7 +8793,7 @@ function loop()
                                                         local FORMAT = format
                                                         if not D[Name..'_GR'] and not D[Name] and not defaultV then FORMAT = '' end
 
-                                                        rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. LBL,
+                                                        local rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. LBL,
                                                             D[Name..'_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
                                                             max or W - 10, FORMAT)
 
@@ -8785,13 +8891,15 @@ function loop()
                                                         AddVal('Gap', 0, 0.2, 0, 300, '%.1f')
                                                         AddVal('Gap_VA', 0, 0.01, -1, 1)
                                                     end
-                                                    if SetRowName('X Gap', BL_XYGap) then
-                                                        AddVal('X_Gap', 0, 0.2, 0, 300, '%.1f')
-                                                        AddVal('X_Gap_VA', 0, 0.01, -1, 1)
-                                                    end
-                                                    if SetRowName('Y Gap', BL_XYGap) then
-                                                        AddVal('Y_Gap', 0, 0.2, 0, 300, '%.1f')
-                                                        AddVal('Y_Gap_VA', 0, 0.01, -1, 1)
+                                                    if D.Type ~= 'Gain Reduction Text' then 
+                                                        if SetRowName('X Gap', BL_XYGap)  then
+                                                            AddVal('X_Gap', 0, 0.2, 0, 300, '%.1f')
+                                                            AddVal('X_Gap_VA', 0, 0.01, -1, 1)
+                                                        end
+                                                        if SetRowName('Y Gap', BL_XYGap)then
+                                                            AddVal('Y_Gap', 0, 0.2, 0, 300, '%.1f')
+                                                            AddVal('Y_Gap_VA', 0, 0.01, -1, 1)
+                                                        end
                                                     end
                                                     if SetRowName('Angle Min', nil, BL_XYGap) then
                                                         AddVal('Angle_Min',
@@ -8819,9 +8927,11 @@ function loop()
                                                             60, '%.1f', true)
                                                     end
                                                     if SetRowName('Edge Round', nil, Round) then
-                                                        AddVal('Round', 0, 0.1,
-                                                            0, 100, '%.1f', true)
+                                                        AddVal('Round', 0, 0.1, 0, 100, '%.1f', true)
                                                     end
+                                                    --[[ if SetRowName('Font Size',GR_Text ) then 
+
+                                                    end ]]
                                                     SetRowName('Color')
                                                     r.ImGui_TableSetColumnIndex(ctx, 1)
 

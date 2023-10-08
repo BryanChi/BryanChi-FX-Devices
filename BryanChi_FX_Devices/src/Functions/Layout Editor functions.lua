@@ -2104,12 +2104,14 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 
 
                             local path = RecallInfo(Ct, 'Custom Image', Fx_P)
+
                             if path then
                                 FP.ImagePath = path
-
                                 FP.Style = 'Custom Image'
 
+
                                 FP.Image = r.ImGui_CreateImage(r.GetResourcePath() .. path)
+
                                 r.ImGui_Attach(ctx, FP.Image)
                             end
 
@@ -2606,7 +2608,6 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
             write('Value Free Pos Y', FP.V_Pos_Y)
             write('Label Free Pos X', FP.Lbl_Pos_X)
             write('Label Free Pos Y', FP.Lbl_Pos_Y)
-
             write('Custom Image', FP.ImagePath)
 
 
