@@ -7,8 +7,6 @@
 --  - Layout Editor : Fixed issue where parameter type gets replaced by attached drawing type upon retrieving data from saved ini file, resulting in parameter disappearing.
 --  - Layout Editor : Now allows using plugin scripts alongside with layout editor, by adding FX[FxGUID].Compatible_W_regular = true in plugin script.
 --  - LFO : Fix Y axis is inverted when dragging node for Windows users.
---  - 
---  -  
 --  - Big thanks to Sexan for the updates below:
 --  - FX browser: add new version check to decide which version of FX parser to use.
 --  - Added requirements check, if Ultraschall or FX parser’s not found, the needed repositories will be added automatically, and repository browser will be opened for user to install.
