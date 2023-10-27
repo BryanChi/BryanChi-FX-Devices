@@ -612,7 +612,6 @@ function Stripname(name, prefix, suffix)
     -- REMOVE DEVELOPER
     if suffix then
         for i = 1, #DEVELOPER_LIST do
-            msg(DEVELOPER_LIST[i])
             if name:match(DEVELOPER_LIST[i]) then
                 name = name:gsub('%(' .. DEVELOPER_LIST[i] .. '%)', "")
             end

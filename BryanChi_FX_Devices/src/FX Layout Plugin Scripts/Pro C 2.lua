@@ -9,10 +9,11 @@ local FxGUID = PluginScript.Guid
 
 FX.TitleWidth[FxGUID]  = 60 
 FX[FxGUID].CustomTitle = 'Pro-C 2'
-FX.Width[FxGUID] = 280
+FX[FxGUID].Width = 280
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
+
 
 Rounding = 3
 r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
@@ -26,7 +27,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     MyText('Over:', nil, 0x818181ff)
 
 
-    r.ImGui_SameLine(ctx, 96, nil)
+    r.ImGui_SameLine(ctx, 210, nil)
     r.ImGui_SetNextItemWidth(ctx, 27)
     local Oversampling_Options = { 'Off', '2x', '4x' }
     local OS_V = { 0, 0.5, 1 }

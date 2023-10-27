@@ -10,8 +10,8 @@ local FxGUID = PluginScript.Guid
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
-FX.TitleWidth[FxGUID] = 50 -- Use this to set title bar width 
-FX.Width[FxGUID] = 200   -- use this to set the device's width
+FX[FxGUID].TitleWidth = 50 -- Use this to set title bar width 
+FX[FxGUID].Width = 200   -- use this to set the device's width
 
 SL()
 r.ImGui_Text(ctx, 'title area')

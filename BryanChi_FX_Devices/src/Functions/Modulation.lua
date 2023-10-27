@@ -245,8 +245,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
     local Vertical
     if Type == 'Vert' then Vertical = 'Vert' end
-
-    FP.ModBipolar = FP.ModBipolar or {}
+    if FP then  FP.ModBipolar = FP.ModBipolar or {} end 
     if --[[Right Dragging to adjust Mod Amt]] Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMacro then
         local Id = FxGUID .. Trk.Prm.Assign
         local M = AssigningMacro
@@ -306,8 +305,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                 --- indicator of where the param is currently
                 if not FX[FxGUID][Fx_P].V then
-                    FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        P_Num)
+                    FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
                 end
 
 

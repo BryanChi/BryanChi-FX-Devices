@@ -24,14 +24,13 @@ r = reaper
 function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
                  item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)
     if Style == 'Pro C' then r.gmem_attach('ParamValues') end
-
-    local FxGUID = FXGUID[FX_Idx]
+    local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
-    if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then r.ImGui_BeginDisabled(ctx) end
-
+    if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then r.ImGui_BeginDisabled(ctx) end    
+    local p_value = p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
     local FP = FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
@@ -277,7 +276,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local sz = radius_outer * scale
 
 
-                uvmin, uvmax = Calc_strip_uv(Image, FP.V)
+                uvmin, uvmax = Calc_strip_uv(Image, FP.V or FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
 
 
                 r.ImGui_DrawList_AddImage(WDL, Image, center[1] - sz / 2, center[2] - sz / 2, center[1] + sz / 2,
@@ -667,7 +666,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
     local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
-    local FxGUID = FXGUID[FX_Idx]
+    local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
 
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
@@ -1387,7 +1386,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if not FP.Image then
         r.ImGui_Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FX[FxGUID][Fx_P].Sldr_W or TextW)
     else -- if there's an image
-        uvmin, uvmax, w, h = Calc_strip_uv(FP.Image, FP.V)
+        uvmin, uvmax, w, h = Calc_strip_uv(FP.Image, FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
 
 
 
@@ -1928,11 +1927,11 @@ function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
         local PrmCount = r.GetExtState('FX Devices - ' .. FX_Name, 'Param Instance')
         local Ln = FX[FxGUID].FileLine
 
-        if FX.GrbRound[FxGUID] ~= (get_aftr_Equal_Num(Ln[4]) or 0) then end
-        if FX.Round[FxGUID] ~= (get_aftr_Equal_Num(Ln[3]) or 0) then end
-        if FX.BgClr[FxGUID] ~= get_aftr_Equal_Num(Ln[5]) then end
-        if FX.TitleWidth[FxGUID] ~= (get_aftr_Equal_Num(Ln[7]) or 0) then end
-        if FX.Width[FxGUID] ~= (get_aftr_Equal_Num(Ln[6]) or 0) then end
+        if FX[FxGUID].GrbRound ~= (get_aftr_Equal_Num(Ln[4]) or 0) then end
+        if FX[FxGUID].Round ~= (get_aftr_Equal_Num(Ln[3]) or 0) then end
+        if FX[FxGUID].BgClr ~= get_aftr_Equal_Num(Ln[5]) then end
+        if FX[FxGUID].TitleWidth ~= (get_aftr_Equal_Num(Ln[7]) or 0) then end
+        if FX[FxGUID].Width ~= (get_aftr_Equal_Num(Ln[6]) or 0) then end
 
         ChangeBeenMade = true
         --end
@@ -1992,339 +1991,412 @@ end
 
 ---@param Sel_Track_FX_Count integer
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+    --@todo  Check if info has been saved to ram , if yes - put all needed info into FX[FxGUID]table. If not - get them from ini files and save to ram  
+
     if LT_Track then
+        TREE = BuildFXTree(LT_Track or tr)
+
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-            local PrmInst, Line, FX_Name_Short
-            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-            local FX_Name = ChangeFX_Name(FX_Name)
-            --FX_Name = string.gsub(FX_Name , '[MVST:AU:]',"")
-
-
-
-
+            
+            local PrmInst, Line, FX_Name
             local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             --local file = CallFile('r', FX_Name..'.ini', 'FX Layouts')
 
+            local function GetInfo(FxGUID, FX_Idx)
+                if FxGUID then
+                    FX[FxGUID] = FX[FxGUID] or {}
+                    FX[FxGUID].File = file
+                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+                    local FX_Name = ChangeFX_Name(FX_Name)
 
 
+                    if LO[FX_Name] then 
+                        FX[FxGUID] = FX[FxGUID] or {}
+                        local T = LO[FX_Name]
+                        FX[FxGUID].MorphHide = T.MorphHide
+                        FX[FxGUID].Round = T.Round
+                        FX[FxGUID].GrbRound = T.GrbRound
+                        FX[FxGUID].BgClr = T.BgClr
+                        FX[FxGUID].Width = T.Width
+                        FX[FxGUID].TitleWidth = T.TitleWidth
+                        FX[FxGUID].TitleClr = T.TitleClr
+                        FX[FxGUID].CustomTitle = T.CustomTitle
 
-            local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
-            local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
-
-            -- Create directory for file if it doesn't exist
-            r.RecursiveCreateDirectory(dir_path, 0)
-
-
-
-            local file = io.open(file_path, 'r')
-            if FxGUID then
-                FX[FxGUID] = FX[FxGUID] or {}
-                FX[FxGUID].File = file
-                local FX_Name_Short = ChangeFX_Name(FX_Name)
-                if file then
-                    Line = get_lines(file_path)
-                    FX[FxGUID].FileLine = Line
-                    Content = file:read('*a')
-                    local Ct = Content
-
-                    FX[FxGUID].MorphHide = r.GetSetMediaTrackInfo_String(LT_Track,
-                        'P_EXT: FX Morph Hide' .. FxGUID,
-                        'true', true)
-
-                    FX.Round[FxGUID] = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
-                    FX.GrbRound[FxGUID] = RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
-                    FX.BgClr[FxGUID] = RecallGlobInfo(Ct, 'BgClr = ', 'Num')
-                    FX.Width[FxGUID] = RecallGlobInfo(Ct, 'Window Width = ', 'Num')
-                    FX.TitleWidth[FxGUID] = RecallGlobInfo(Ct, 'Title Width = ', 'Num')
-                    FX[FxGUID].TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
-                    FX[FxGUID].CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
-                    PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
-                else
-                    Draw[FX_Name_Short] = nil
-                end
-
-
-
-
-                -------------------------------------Parameters -------------------------------------------------
-                function attachFont(ctx, var, ft, sz, FP)
-                    if sz > 20 then
-                        --ChangeFont = FP
-
-                        CF = CF or {}
-
-
-                        ChangeFont_Size = roundUp(sz, 1)
-                        _G[var .. '_' .. roundUp(sz, 1)] = r.ImGui_CreateFont(ft, roundUp(sz, 1))
-
-                        r.ImGui_Attach(ctx, _G[var .. '_' .. roundUp(sz, 1)])
-                        ChangeFont_Font = var
-                    end
-                end
-
-                if --[[ r.GetExtState('FX Devices - '..FX_Name, 'Param Instance') ~= ''  ]] PrmInst then
-                    local Ct = Content
-                    PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
-
-                    if PrmCount then
-                        for Fx_P = 1, PrmCount or 0, 1 do
-                            local function L(n)
-                                return Line[n + (40 - 14) * (Fx_P - 1)]
-                            end
-                            FX[FxGUID]       = FX[FxGUID] or {}
-
-                            FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
-                            local FP         = FX[FxGUID][Fx_P]
-                            local ID         = FxGUID .. Fx_P
-
-                            FP.Name          = RecallInfo(Ct, 'Name', Fx_P)
-                            FP.Num           = RecallInfo(Ct, 'Num', Fx_P, 'Num')
-                            FP.Sldr_W        = RecallInfo(Ct, 'Width', Fx_P, 'Num')
-                            FP.Type          = RecallInfo(Ct, 'Type', Fx_P)
-                            FP.PosX          = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
-                            FP.PosY          = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
-                            FP.Style         = RecallInfo(Ct, 'Style', Fx_P)
-                            FP.V_FontSize    = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
-                            FP.CustomLbl     = RecallInfo(Ct, 'Custom Label', Fx_P)
-                            if FP.CustomLbl == '' then FP.CustomLbl = nil end
-                            FP.FontSize = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
-                            FP.Height = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
-                            FP.BgClr = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
-                            FP.GrbClr = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
-                            FP.Lbl_Pos = RecallInfo(Ct, 'Label Pos', Fx_P)
-                            FP.V_Pos = RecallInfo(Ct, 'Value Pos', Fx_P)
-                            FP.Lbl_Clr = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
-                            FP.V_Clr = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
-                            FP.DragDir = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
-                            FP.Value_Thick = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
-                            FP.V_Pos_X = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
-                            FP.V_Pos_Y = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
-                            FP.Lbl_Pos_X = RecallInfo( Ct , 'Label Free Pos X', Fx_P, 'Num' )
-                            FP.Lbl_Pos_Y = RecallInfo( Ct , 'Label Free Pos Y', Fx_P, 'Num' )
-                
-
-                            local path = RecallInfo(Ct, 'Custom Image', Fx_P)
-
-                            if path then
-                                FP.ImagePath = path
-                                FP.Style = 'Custom Image'
-
-
-                                FP.Image = r.ImGui_CreateImage(r.GetResourcePath() .. path)
-
-                                r.ImGui_Attach(ctx, FP.Image)
-                            end
-
-
-                            FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', Fx_P, 'Num', '|')
+                        for i, v in ipairs(T) do 
+                            FX[FxGUID][i] = FX[FxGUID][i] or {}
+                            local FP = FX[FxGUID][i]
+                            FP.Name         =  v.Name       
+                            FP.Num          =  v.Num        
+                            FP.Sldr_W       =  v.Sldr_W     
+                            FP.Type         =  v.Type       
+                            FP.PosX         =  v.PosX       
+                            FP.PosY         =  v.PosY       
+                            FP.Style        =  v.Style      
+                            FP.V_FontSize   =  v.V_FontSize 
+                            FP.CustomLbl    =  v.CustomLbl  
+                            FP.FontSize     =  v.FontSize
+                            FP.Height       =  v.Height
+                            FP.BgClr        =  v.BgClr
+                            FP.GrbClr       =  v.GrbClr
+                            FP.Lbl_Pos      =  v.Lbl_Pos
+                            FP.V_Pos        =  v.V_Pos 
+                            FP.Lbl_Clr      =  v.Lbl_Clr
+                            FP.V_Clr        =  v.V_Clr
+                            FP.DragDir      =  v.DragDir
+                            FP.Value_Thick  =  v.Value_Thick
+                            FP.V_Pos_X      =  v.V_Pos_X
+                            FP.V_Pos_Y      =  v.V_Pos_Y
+                            FP.Lbl_Pos_X    =  v.Lbl_Pos_X
+                            FP.Lbl_Pos_Y    =  v.Lbl_Pos_Y 
+                            FP.Image        =  v.Image
+                            FP.ConditionPrm =  v.ConditionPrm
+                            FP.ConditionPrm_V = v.ConditionPrm_V
+                            FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
                             for i = 2, 5, 1 do
-                                FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
+                                FP['ConditionPrm'..i]  = v['ConditionPrm'..i]
+                                FP['ConditionPrm_V'..i]  = v['ConditionPrm_V'..i]
+                                FP['ConditionPrm_V_Norm'..i]  = v['ConditionPrm_V_Norm'..i]
                             end
-                            FP.V_Round = RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
-                            FP.ValToNoteL = RecallInfo(Ct, 'Value to Note Length', Fx_P, 'Num')
-                            FP.SwitchType = RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
-                            FP.SwitchBaseV = RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
-                            FP.SwitchTargV = RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
+                            FP.ManualValues = v.ManualValues
+                            FP.ManualValuesFormat = v.ManualValuesFormat
+                            FP.Draw = v.Draw
+                        end
+                        FX[FxGUID].Draw =  T.Draw
+                        
+                    else
+                        local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+                        local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+
+                        -- Create directory for file if it doesn't exist
+                        r.RecursiveCreateDirectory(dir_path, 0)
+                        local file = io.open(file_path, 'r')
+
+                        local PrmInst
+                        LO[FX_Name] = LO[FX_Name] or {}
+                        local T = LO[FX_Name]
+                        if file then
+
+                            Line = get_lines(file_path)
+                            FX[FxGUID].FileLine = Line
+                            Content = file:read('*a')
+                            local Ct = Content
+
+                            
+
+                            T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
+                            T.Round = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
+                            T.GrbRound = RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
+                            T.BgClr = RecallGlobInfo(Ct, 'BgClr = ', 'Num')
+                            T.Width = RecallGlobInfo(Ct, 'Window Width = ', 'Num')
+                            T.TitleWidth = RecallGlobInfo(Ct, 'Title Width = ', 'Num')
+                            T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
+                            T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
+                            PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                        else
+                            Draw[FX_Name] = nil
+                        end
 
 
 
-                            if FP.ConditionPrm then
-                                FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=', Fx_P,
-                                    nil)
-                                FP.ConditionPrm_V_Norm = RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm = |1=',
-                                    Fx_P,
-                                    'Num')
+
+                        -------------------------------------Parameters -------------------------------------------------
+                        function attachFont(ctx, var, ft, sz, FP)
+                            if sz > 20 then
+                                --ChangeFont = FP
+
+                                CF = CF or {}
+
+
+                                ChangeFont_Size = roundUp(sz, 1)
+                                _G[var .. '_' .. roundUp(sz, 1)] = r.ImGui_CreateFont(ft, roundUp(sz, 1))
+
+                                r.ImGui_Attach(ctx, _G[var .. '_' .. roundUp(sz, 1)])
+                                ChangeFont_Font = var
                             end
-                            for i = 2, 5, 1 do
-                                FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P ..
-                                    '. Condition Param' .. i .. ' = %d+|1=', Fx_P, nil)
-                                FP['ConditionPrm_V_Norm' .. i] = RecallIntoTable(Ct,
-                                    Fx_P .. '. Condition Param Norm' .. i .. ' = |1=', Fx_P, 'Num')
-                            end
+                        end
 
-                            if Prm.InstAdded[FxGUID] ~= true then
-                                StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState',
-                                    Fx_P, FX_Idx, TrkID)
-                                r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
-                            end
+                        if --[[ r.GetExtState('FX Devices - '..FX_Name, 'Param Instance') ~= ''  ]] PrmInst then
+                            local Ct = Content
+                            PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
 
-                            FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
-                            FP.ManualValuesFormat = RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
-
-
-
-                            local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P, 'Num')
-                            if DrawNum then
-                                FP.Draw = FP.Draw or {}
-                                for D = 1, DrawNum, 1 do
-                                    FP.Draw[D] = FP.Draw[D] or {}
-                                    local d = FP.Draw[D]
-
-                                    local function RC(name, type)
-                                        return RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                            if PrmCount then
+                                for Fx_P = 1, PrmCount or 0, 1 do
+                                    local function L(n)
+                                        return Line[n + (40 - 14) * (Fx_P - 1)]
                                     end
+                                    FX[FxGUID]       = FX[FxGUID] or {}
+                                    T[Fx_P] = T[Fx_P] or {}
 
-                                    d.Type = RC('Type')
-                                    d.X_Offset = RC('X Offset', 'Num')
-                                    d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
-                                    d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
-                                    d.Y_Offset = RC('Y offset', 'Num')
-                                    d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
-                                    d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
-                                    d.Width = RC('Width', 'Num')
-                                    d.Width_VA = RC('Width Value Affect', 'Num')
-                                    d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
-                                    d.Clr = RC('Color', 'Num')
-                                    d.FillClr = RC('Fill Color', 'Num')
-                                    d.Angle_Min = RC('Angle Min', 'Num')
-                                    d.Angle_Max = RC('Angle Max', 'Num')
-                                    d.Rad_In = RC('Radius Inner', 'Num')
-                                    d.Rad_Out = RC('Radius Outer', 'Num')
-                                    d.Height = RC('Height', 'Num')
-                                    d.Height_VA = RC('Height_VA', 'Num')
-                                    d.Height_VA_GR = RC('Height_VA GR', 'Num')
-                                    d.Round = RC('Round', 'Num')
-                                    d.Thick = RC('Thick', 'Num')
-                                    d.Repeat = RC('Repeat', 'Num')
-                                    d.Repeat_VA = RC('Repeat_VA', 'Num')
-                                    d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
-                                    d.Y_Repeat = RC('Y_Repeat', 'Num')
-                                    d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
-                                    d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
-                                    d.Gap = RC('Gap', 'Num')
-                                    d.Gap_VA = RC('Gap_VA', 'Num')
-                                    d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
+                                    local FP         = T[Fx_P]
+                                    local ID         = FxGUID .. Fx_P
 
-                                    d.X_Gap = RC('X_Gap', 'Num')
-                                    d.X_Gap_VA = RC('X_Gap_VA', 'Num')
-                                    d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
-                                    d.Y_Gap = RC('Y_Gap', 'Num')
-                                    d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
-                                    d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
-                                    d.RPT_Clr = RC('RPT_Clr', 'Num')
-                                    
+                                    FP.Name          = RecallInfo(Ct, 'Name', Fx_P)
+                                    FP.Num           = RecallInfo(Ct, 'Num', Fx_P, 'Num')
+                                    FP.Sldr_W        = RecallInfo(Ct, 'Width', Fx_P, 'Num')
+                                    FP.Type          = RecallInfo(Ct, 'Type', Fx_P)
+                                    FP.PosX          = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
+                                    FP.PosY          = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
+                                    FP.Style         = RecallInfo(Ct, 'Style', Fx_P)
+                                    FP.V_FontSize    = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
+                                    FP.CustomLbl     = RecallInfo(Ct, 'Custom Label', Fx_P)
+                                    if FP.CustomLbl == '' then FP.CustomLbl = nil end
+                                    FP.FontSize     = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
+                                    FP.Height       = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
+                                    FP.BgClr        = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
+                                    FP.GrbClr       = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
+                                    FP.Lbl_Pos      = RecallInfo(Ct, 'Label Pos', Fx_P)
+                                    FP.V_Pos        = RecallInfo(Ct, 'Value Pos', Fx_P)
+                                    FP.Lbl_Clr      = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
+                                    FP.V_Clr        = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
+                                    FP.DragDir      = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
+                                    FP.Value_Thick  = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
+                                    FP.V_Pos_X      = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
+                                    FP.V_Pos_Y      = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
+                                    FP.Lbl_Pos_X    = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
+                                    FP.Lbl_Pos_Y    = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
+                        
 
-                                    local path = RC('Image_Path')
+                                    local path = RecallInfo(Ct, 'Custom Image', Fx_P)
+
                                     if path then
-                                        d.FilePath = path
-
-                                        d.Image = r.ImGui_CreateImage(r.GetResourcePath() .. d.FilePath)
-                                        r.ImGui_Attach(ctx, d.Image)
+                                        FP.ImagePath = path
+                                        FP.Style = 'Custom Image'
+                                        FP.Image = r.ImGui_CreateImage(r.GetResourcePath() .. path)
+                                        r.ImGui_Attach(ctx, FP.Image)
                                     end
+
+
+                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', Fx_P, 'Num', '|')
+                                    for i = 2, 5, 1 do
+                                        FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
+                                    end
+                                    FP.V_Round = RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
+                                    FP.ValToNoteL = RecallInfo(Ct, 'Value to Note Length', Fx_P, 'Num')
+                                    FP.SwitchType = RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
+                                    FP.SwitchBaseV = RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
+                                    FP.SwitchTargV = RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
+
+
+
+                                    if FP.ConditionPrm then
+                                        FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=', Fx_P, nil)
+                                        FP.ConditionPrm_V_Norm = RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm = |1=', Fx_P,'Num')
+                                    end
+                                    for i = 2, 5, 1 do
+                                        FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P ..
+                                            '. Condition Param' .. i .. ' = %d+|1=', Fx_P, nil)
+                                        FP['ConditionPrm_V_Norm' .. i] = RecallIntoTable(Ct,
+                                            Fx_P .. '. Condition Param Norm' .. i .. ' = |1=', Fx_P, 'Num')
+                                    end
+
+                                    if Prm.InstAdded[FxGUID] ~= true then
+                                        StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState',
+                                            Fx_P, FX_Idx, TrkID)
+                                        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
+                                    end
+
+                                    FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
+                                    FP.ManualValuesFormat = RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
+
+
+
+                                    local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P, 'Num')
+                                    if DrawNum then
+                                        FP.Draw = FP.Draw or {}
+                                        for D = 1, DrawNum, 1 do
+                                            FP.Draw[D] = FP.Draw[D] or {}
+                                            local d = FP.Draw[D]
+
+                                            local function RC(name, type)
+                                                return RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                                            end
+
+                                            d.Type = RC('Type')
+                                            d.X_Offset = RC('X Offset', 'Num')
+                                            d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
+                                            d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
+                                            d.Y_Offset = RC('Y offset', 'Num')
+                                            d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
+                                            d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
+                                            d.Width = RC('Width', 'Num')
+                                            d.Width_VA = RC('Width Value Affect', 'Num')
+                                            d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
+                                            d.Clr = RC('Color', 'Num')
+                                            d.FillClr = RC('Fill Color', 'Num')
+                                            d.Angle_Min = RC('Angle Min', 'Num')
+                                            d.Angle_Max = RC('Angle Max', 'Num')
+                                            d.Rad_In = RC('Radius Inner', 'Num')
+                                            d.Rad_Out = RC('Radius Outer', 'Num')
+                                            d.Height = RC('Height', 'Num')
+                                            d.Height_VA = RC('Height_VA', 'Num')
+                                            d.Height_VA_GR = RC('Height_VA GR', 'Num')
+                                            d.Round = RC('Round', 'Num')
+                                            d.Thick = RC('Thick', 'Num')
+                                            d.Repeat = RC('Repeat', 'Num')
+                                            d.Repeat_VA = RC('Repeat_VA', 'Num')
+                                            d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
+                                            d.Y_Repeat = RC('Y_Repeat', 'Num')
+                                            d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
+                                            d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
+                                            d.Gap = RC('Gap', 'Num')
+                                            d.Gap_VA = RC('Gap_VA', 'Num')
+                                            d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
+
+                                            d.X_Gap = RC('X_Gap', 'Num')
+                                            d.X_Gap_VA = RC('X_Gap_VA', 'Num')
+                                            d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
+                                            d.Y_Gap = RC('Y_Gap', 'Num')
+                                            d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
+                                            d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
+                                            d.RPT_Clr = RC('RPT_Clr', 'Num')
+                                            
+
+                                            local path = RC('Image_Path')
+                                            if path then
+                                                d.FilePath = path
+
+                                                d.Image = r.ImGui_CreateImage(r.GetResourcePath() .. d.FilePath)
+                                                r.ImGui_Attach(ctx, d.Image)
+                                            end
+                                        end
+                                    end
+                                end
+                                GetProjExt_FxNameNum(FxGUID)
+                                Prm.InstAdded[FxGUID] = true
+                            end
+                        else ---- if no editings has been saved to extstate
+                            if FX[FxGUID] then
+                                for Fx_P = 1, #FX[FxGUID] or 0, 1 do
+                                    local ID = FxGUID .. Fx_P
+                                    local FP = FX[FxGUID][Fx_P]
+                                    if FX[FxGUID][Fx_P] then
+                                        FP.Name         = nil
+                                        FP.Num          = nil
+                                        FP.Sldr_W       = nil
+                                        FP.Type         = nil
+                                        FP.PosX         = nil
+                                        FP.PosY         = nil
+                                        FP.Style        = nil
+                                        FP.V_FontSize   = nil
+                                        FP.CustomLbl    = nil
+                                        FP.FontSize     = nil
+                                        FP.Sldr_H       = nil
+                                        FP.BgClr        = nil
+                                        FP.GrbClr       = nil
+                                        FP.Lbl_Pos      = nil
+                                        FP.V_Pos        = nil
+                                        FP.Lbl_Clr      = nil
+                                        FP.V_Clr        = nil
+                                        FP.DragDir      = nil
+                                        FP.ConditionPrm = nil
+                                        FP.V_Round      = nil
+                                        FP.ValToNoteL   = nil
+                                        FP.SwitchType   = nil
+                                        FP.SwitchBaseV  = nil
+                                        FP.SwitchTargV  = nil
+                                    end
+                                end
+                                GetProjExt_FxNameNum(FxGUID)
+                            end
+                        end
+
+                        ------------------------------------- Drawings -------------------------------------------------
+                        if file then
+                            local All = file:read('*a')
+
+                            local Top = tablefind(Line, '========== Drawings ==========') or nil
+
+
+                            if Top then
+                                local Ct = Content
+
+                                
+                                local DrawInst = RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
+
+
+                                if DrawInst then
+                                    if DrawInst > 0 then
+                                        T.Draw = T.Draw or {}
+                                        T.Draw.Df_EdgeRound = get_aftr_Equal_Num(Line[Top + 1])
+                                    end
+                                end
+                                T.Draw = T.Draw or {}
+
+                                for i = 1, DrawInst or 0, 1 do
+                                    --D[i] = D[i] or {}
+                                    local function LN(num)
+                                        return Line[Top + 5 + ((i - 1) * 9) + num]
+                                    end
+                                    local ID = FX_Name .. i
+                                    T.Draw[i] = T.Draw[i] or {}
+                                    local D = T.Draw[i]
+
+                                    D.Type = RecallInfo(Ct, 'Type', 'D' .. i, Type, untilwhere)
+                                    D.L = RecallInfo(Ct, 'Left', 'D' .. i, 'Num')
+                                    D.R = RecallInfo(Ct, 'Right', 'D' .. i, 'Num')
+                                    D.T = RecallInfo(Ct, 'Top', 'D' .. i, 'Num')
+                                    D.B = RecallInfo(Ct, 'Bottom', 'D' .. i, 'Num')
+                                    D.clr = RecallInfo(Ct, 'Color', 'D' .. i, 'Num')
+                                    D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
+                                    D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
+                                    D.FilePath = RecallInfo(Ct, 'ImagePath', 'D' .. i)
+                                    D.KeepImgRatio = RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
+
+                                    if D.FilePath then
+                                        D.Image = r.ImGui_CreateImage(D.FilePath)
+                                        r.ImGui_Attach(ctx, D.Image)
+                                    end
+
+
+
+                                    --[[ Draw[FX_Name].Type[i] = get_aftr_Equal(LN(1))
+                                            D.L[i] =   get_aftr_Equal_Num(LN(2))
+                                            D.R[i] =   get_aftr_Equal_Num(LN(3))
+                                            D.T[i] =   get_aftr_Equal_Num(LN(4))
+                                            D.B[i] =   get_aftr_Equal_Num(LN(5))
+                                            D.clr[i] = get_aftr_Equal_Num(LN(6))
+                                            D.Txt[i] = get_aftr_Equal(LN(7)) ]]
                                 end
                             end
                         end
-                        GetProjExt_FxNameNum(FxGUID)
-                        Prm.InstAdded[FxGUID] = true
+                        GetInfo(FxGUID, FX_Idx)
                     end
-                else ---- if no editings has been saved to extstate
-                    if FX[FxGUID] then
-                        for Fx_P = 1, #FX[FxGUID] or 0, 1 do
-                            local ID = FxGUID .. Fx_P
-                            local FP = FX[FxGUID][Fx_P]
-                            if FX[FxGUID][Fx_P] then
-                                FP.Name         = nil
-                                FP.Num          = nil
-                                FP.Sldr_W       = nil
-                                FP.Type         = nil
-                                FP.PosX         = nil
-                                FP.PosY         = nil
-                                FP.Style        = nil
-                                FP.V_FontSize   = nil
-                                FP.CustomLbl    = nil
-                                FP.FontSize     = nil
-                                FP.Sldr_H       = nil
-                                FP.BgClr        = nil
-                                FP.GrbClr       = nil
-                                FP.Lbl_Pos      = nil
-                                FP.V_Pos        = nil
-                                FP.Lbl_Clr      = nil
-                                FP.V_Clr        = nil
-                                FP.DragDir      = nil
-                                FP.ConditionPrm = nil
-                                FP.V_Round      = nil
-                                FP.ValToNoteL   = nil
-                                FP.SwitchType   = nil
-                                FP.SwitchBaseV  = nil
-                                FP.SwitchTargV  = nil
+                end
+            end
+
+
+
+
+            local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
+           
+            if rv  then     -- if iterated fx is a container
+                Upcoming_Container = nil
+                if TREE[FX_Idx+1] then 
+                    if TREE[FX_Idx+1].children then 
+
+                        local function get_Container_Info ()
+                            
+                            for i, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
+
+                                local FX_Id = v.addr_fxid
+                                local GUID = v.GUID
+                                GetInfo(GUID, FX_Id)
+                                if v.children then 
+                                    Upcoming_Container = v.children
+                                end
+    
                             end
                         end
-                        GetProjExt_FxNameNum(FxGUID)
+
+                        for i, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
+                            get_Container_Info ()
+                        end
+                        
                     end
                 end
 
-                ------------------------------------- Drawings -------------------------------------------------
-                if file then
-                    local All = file:read('*a')
-
-                    local Top = tablefind(Line, '========== Drawings ==========') or nil
-
-
-                    if Top then
-                        local Ct = Content
-
-                        Draw.Df_EdgeRound[FxGUID] = get_aftr_Equal_Num(Line[Top + 1])
-                        local DrawInst = RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
-
-
-                        if DrawInst then
-                            if DrawInst > 0 then
-                                Draw[FX_Name_Short] = {
-                                    Rect = {},
-                                    clr = {},
-                                    ItemInst = {},
-                                    L = {},
-                                    R = {},
-                                    Y = {},
-                                    T = {},
-                                    B = {},
-                                    Type = {},
-                                    FxGUID = {},
-                                    Txt = {}
-                                }
-                            end
-                        end
-                        local D = Draw[FX_Name_Short]
-
-                        for i = 1, DrawInst or 0, 1 do
-                            D[i] = D[i] or {}
-                            local function LN(num)
-                                return Line[Top + 5 + ((i - 1) * 9) + num]
-                            end
-                            local ID = FX_Name .. i
-
-                            Draw[FX_Name_Short].Type[i] = RecallInfo(Ct, 'Type', 'D' .. i, Type, untilwhere)
-                            D.L[i] = RecallInfo(Ct, 'Left', 'D' .. i, 'Num')
-
-                            D.R[i] = RecallInfo(Ct, 'Right', 'D' .. i, 'Num')
-                            D.T[i] = RecallInfo(Ct, 'Top', 'D' .. i, 'Num')
-                            D.B[i] = RecallInfo(Ct, 'Bottom', 'D' .. i, 'Num')
-                            D.clr[i] = RecallInfo(Ct, 'Color', 'D' .. i, 'Num')
-                            D.Txt[i] = RecallInfo(Ct, 'Text', 'D' .. i)
-                            D.Txt[i] = RecallInfo(Ct, 'Text', 'D' .. i)
-                            D[i].FilePath = RecallInfo(Ct, 'ImagePath', 'D' .. i)
-
-                            D[i].KeepImgRatio = RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
-
-                            if D[i].FilePath then
-                                D[i].Image = r.ImGui_CreateImage(D[i].FilePath)
-                                r.ImGui_Attach(ctx, D[i].Image)
-                            end
-
-
-
-                            --[[ Draw[FX_Name_Short].Type[i] = get_aftr_Equal(LN(1))
-                                    D.L[i] =   get_aftr_Equal_Num(LN(2))
-                                    D.R[i] =   get_aftr_Equal_Num(LN(3))
-                                    D.T[i] =   get_aftr_Equal_Num(LN(4))
-                                    D.B[i] =   get_aftr_Equal_Num(LN(5))
-                                    D.clr[i] = get_aftr_Equal_Num(LN(6))
-                                    D.Txt[i] = get_aftr_Equal(LN(7)) ]]
-                        end
-                    else
-                        Draw[FX_Name_Short] = nil
-                    end
-                end
+            else 
+                GetInfo(FxGUID,FX_Idx)
             end
         end
     end
@@ -2452,12 +2524,13 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     
     
     local ModAmt , BipOfs  = FP.ModAMT[Macro] , 0 
-    FP.ModBipolar = FP.ModBipolar or {}
-    if FP.ModBipolar[Macro] then 
-         ModAmt = FP.ModAMT[Macro] 
-         BipOfs =  - FP.ModAMT[Macro]
-
-    end
+    if FP then 
+        FP.ModBipolar = FP.ModBipolar or {}
+        if FP.ModBipolar[Macro] then 
+            ModAmt = FP.ModAMT[Macro] 
+            BipOfs =  - FP.ModAMT[Macro]
+        end
+    end 
 
     if Vertical ~= 'Vert' then
         PosX_End_Of_Slider = (Sldr_Width) + L
@@ -2559,11 +2632,11 @@ function SaveLayoutEditings(FX_Name, ID, FxGUID)
 
 
         file:write('FX global settings', '\n\n')
-        write('Edge Rounding', FX.Round[FxGUID])   -- 2
-        write('Grb Rounding', FX.GrbRound[FxGUID]) -- 3
-        write('BgClr', FX.BgClr[FxGUID])           -- 4
-        write('Window Width', FX.Width[FxGUID])    -- 5
-        write('Title Width', FX.TitleWidth[FxGUID])
+        write('Edge Rounding', FX[FxGUID].Round)   -- 2
+        write('Grb Rounding', FX[FxGUID].GrbRound) -- 3
+        write('BgClr', FX[FxGUID].BgClr)           -- 4
+        write('Window Width', FX[FxGUID].Width)    -- 5
+        write('Title Width', FX[FxGUID].TitleWidth)
         write('Title Clr', FX[FxGUID].TitleClr)
         write('Custom Title', FX[FxGUID].CustomTitle)
 
@@ -3068,6 +3141,7 @@ end
 ---@return number w
 ---@return number h
 function Calc_strip_uv(img, V)
+    local V = V or 0 
     local w, h = r.ImGui_Image_GetSize(img)
     local FrameNum = h / w
 

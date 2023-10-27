@@ -5,9 +5,9 @@ local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
 FX[FxGUID].CustomTitle = 'Pro-Q 3'
-FX.TitleWidth[FxGUID] = 50
-FX.BgClr[FxGUID]  = 0x000000ff
-FX.Width[FxGUID] = 340
+FX[FxGUID].TitleWidth= 50
+FX[FxGUID].BgClr  = 0x000000ff
+FX[FxGUID].Width = 340
 
 
 ---------------------------------------------
