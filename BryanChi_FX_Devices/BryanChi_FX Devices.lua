@@ -2,9 +2,13 @@
 -- @author Bryan Chi
 -- @version 1.0beta10.10
 -- @changelog
---  - NEW! FX Container support.
+--  - NEW! FX Container support.  (press tab key to toggle collapse state, right click on FX title to show FX when collapsed )
 --  - Significantly improve performance of saved FX layouts loading time.
 --  - Fix ReaComp reversed check icons
+--  - Sexan’s FX Adder - Detect Reaper version and uses respective parser.
+--  - Layout Editor - Added new gain reduction readings settings for attach drawings.
+--  - ReaComp - Fix reversed behavior of switches
+--  - ReaComp - Add Gain reduction readings
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
