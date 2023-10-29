@@ -25,7 +25,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                  item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)
     if Style == 'Pro C' then r.gmem_attach('ParamValues') end
     local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
+    if not FxGUID then return end
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
@@ -667,6 +667,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
     local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
     local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+    if not FxGUID then return end
+
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
 
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
@@ -746,8 +748,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
             end
         end
+        
 
-
+        FP.V = FP.V or reaper.TrackFX_GetParamNormalized(LT_Track,FX_Idx,P_Num)
         if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
 
@@ -1991,7 +1994,6 @@ end
 
 ---@param Sel_Track_FX_Count integer
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-    --@todo  Check if info has been saved to ram , if yes - put all needed info into FX[FxGUID]table. If not - get them from ini files and save to ram  
 
     if LT_Track then
         TREE = BuildFXTree(LT_Track or tr)
@@ -2166,7 +2168,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     end
 
 
-                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', Fx_P, 'Num', '|')
+                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', '\n'..Fx_P , 'Num', '|')
                                     for i = 2, 5, 1 do
                                         FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
                                     end
@@ -2370,7 +2372,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
             local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
            
             if rv  then     -- if iterated fx is a container
-                Upcoming_Container = nil
+                local Upcoming_Container
                 if TREE[FX_Idx+1] then 
                     if TREE[FX_Idx+1].children then 
 
@@ -2383,14 +2385,17 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                 GetInfo(GUID, FX_Id)
                                 if v.children then 
                                     Upcoming_Container = v.children
+                                    get_Container_Info ()
+
                                 end
-    
+                                
+                                
                             end
                         end
 
-                        for i, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
+                        
                             get_Container_Info ()
-                        end
+
                         
                     end
                 end
@@ -2618,7 +2623,7 @@ end
 ---@param FX_Name string
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
-function SaveLayoutEditings(FX_Name, ID, FxGUID)
+function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')

@@ -153,11 +153,11 @@ function RepositionFXsInContainer(FX_Idx)
 
 
     -- Move the Head of Container
-    if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+    if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx-1)
-        r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
-    elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-        r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
+        r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
+    elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+        r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx, true)
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx)
     end
 
@@ -171,7 +171,7 @@ function RepositionFXsInContainer(FX_Idx)
                 if DropDest == nil then DropDest = 0 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
 
-                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Payload]].FXsInBS, ID) then
+                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Glob.Payload]].FXsInBS, ID) then
                     if FX_Idx > DropDest and FX_Idx ~= RepeatTimeForWindows or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
                         r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx-2)
@@ -185,7 +185,7 @@ function RepositionFXsInContainer(FX_Idx)
             elseif DragFX_ID > FX_Idx then
                 if DropDest == nil then DropDest = 1 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
-                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Payload]].FXsInBS, ID) then
+                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Glob.Payload]].FXsInBS, ID) then
                     r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                     --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
 
@@ -196,20 +196,20 @@ function RepositionFXsInContainer(FX_Idx)
             end
         end
     elseif Payload_Type == 'BS_Drag' then
-        for i, v in ipairs(FX[FXGUID[Payload]].FXsInBS) do
-            if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
-            elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-                r.TrackFX_CopyToTrack(LT_Track, Payload + i, LT_Track, FX_Idx + i, true)
+        for i, v in ipairs(FX[FXGUID[Glob.Payload]].FXsInBS) do
+            if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+                r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
+            elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+                r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + i, LT_Track, FX_Idx + i, true)
             end
         end
 
         --Move Joiner
-        if FX_Idx > Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-            r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
-        elseif Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-            r.TrackFX_CopyToTrack(LT_Track, Payload + #FX[FXGUID[Payload]].FXsInBS + 1, LT_Track,
-                FX_Idx + #FX[FXGUID[Payload]].FXsInBS + 1, true)
+        if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+            r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
+        elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+            r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, LT_Track,
+                FX_Idx + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, true)
         end
     end
     if Payload_Type == 'FX Layer Repositioning' then

@@ -1,7 +1,6 @@
 -- @noindex
 
 
-
 r = reaper
 
 local FX_Idx = PluginScript.FX_Idx
@@ -16,7 +15,10 @@ FX[FxGUID].Cont_Collapse = FX[FxGUID].Cont_Collapse or 0
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
---msg(FX_Idx .. 'Begin Container script')
+DEBUG_W = DEBUG_W or {}
+
+local Accent_Clr = 0x49CC85ff
+
 
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
@@ -32,14 +34,15 @@ if not FX[FxGUID].Collapse then
     SyncWetValues(FX_Idx)
     local x, y = r.ImGui_GetCursorPos(ctx)
     r.ImGui_SetCursorPos(ctx, 3, 135)
-    Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+        SyncWetValues(FX_Idx)
+
+    Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
     r.ImGui_SetCursorPos(ctx,x,y)
 
 end
 
 
-local Hover = FX[FxGUID].Hover 
-
+FX[FxGUID].BgClr = 0x258551ff
 
 ---------------------------------------------
 ---------Body--------------------------------
@@ -50,64 +53,143 @@ rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count'
 local WinW = 0 
 local AllW = 0
 
-function CollapseIfTab(FxGUID)
-    if r.ImGui_IsWindowHovered(ctx) then Hover = true  end 
-    if Hover and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab()) then 
+function CollapseIfTab(FxGUID, FX_Idx)
 
-        if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
-        elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
+
+    if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
+    elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
+
+end
+
+
+function AddTitleBgClr ()
+
+    local x , y = r.ImGui_GetCursorScreenPos(ctx)
+    local X = x
+    local WDL = r.ImGui_GetWindowDrawList(ctx)
+
+    r.ImGui_DrawList_AddRectFilled(WDL, X-25, y , X, y + 220, 0x49CC8544)
+
+end
+
+
+local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
+    if  (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan') then 
+        
+        
+        local W, H = 130, 20
+        local L,T = r.ImGui_GetCursorScreenPos(ctx)
+        local L = Xpos
+        --if FX_Id ~= FX[FxGUID].LastSpc then  L = L-135  end 
+
+        if r.ImGui_IsMouseHoveringRect(ctx,L , T-H/2, L+W, T+H/2 )  then 
+            r.ImGui_DrawList_AddLine(Glob.FDL, L, T, L+W , T  ,Accent_Clr, 3)
+            if r.ImGui_IsMouseReleased(ctx,0) then 
+                --msg(FX[GUID].parent .. '   id = '..FX_Idx)
+                local Drag_GUID = r.TrackFX_GetFXGUID(LT_Track, Payload)
+                local ofs  = 0 
+                if FX[GUID].parent == FX[Drag_GUID].parent then -- if they're in the same container
+                    if Payload < FX_Id then 
+                        ofs = v.scale
+                    end
+                end 
+
+                table.insert(MovFX.FromPos, Payload )
+                table.insert(MovFX.ToPos,   FX_Id - ofs)
+                if Mods == Apl then  NeedCopyFX=true   DropPos = FX_Id end 
+            end
+        end
+        --r.ImGui_DrawList_AddRect(WDL, L , T-H/2, L+W, T+H/(Last or 2), 0xff77ffff)
     end 
 end
 
-local function Render_Collapsed ( TB ,  FxGUID , FX_Id)
+local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUID,TB)
+    local Hv
+    FX[FxGUID].BgClr=nil
+    
 
-        local X = r.ImGui_GetCursorPosX(ctx)
+    r.ImGui_SetCursorPosX(ctx, tonumber( CollapseXPos))
+    --local FX_Id = 0x2000000 + i*(r.TrackFX_GetCount(LT_Track)+1) + (FX_Idx+1)
+    local GUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Id)
+    FX[FxGUID].Width = 50 + 150
+    if GUID then 
         r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ItemSpacing(),1 , -3)
+
+        FX[GUID] = FX[GUID]  or {}
+        local Click = AddWindowBtn (GUID, FX_Id, 130, true , true , true ) 
+
+        
+        SL(165)
+        DragDropToCollapseView (FX_Id,CollapseXPos_screen,GUID, v )
+
+        
+        --SyncWetValues(FX_Id)
+        if Click == 2  then 
+            if FX[FxGUID].Sel_Preview ~= FX_Id then 
+                FX[FxGUID].Sel_Preview = FX_Id
+            else 
+                FX[FxGUID].Sel_Preview = nil
+            end
+        end
+        if FX[FxGUID].Sel_Preview == FX_Id then 
+            HighlightSelectedItem(nil,Accent_Clr,nil,nil,nil,nil,nil,nil,nil,1,1,'GetItemRect')
+        end
+        SyncWetValues(FX_Id)
+        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a'..FX_Id, '', Wet.Val[FX_Id] or 1, 0, 1, FX_Id)
+        
         
 
-        r.ImGui_SetCursorPosX(ctx,X)
-        --local FX_Id = 0x2000000 + i*(r.TrackFX_GetCount(LT_Track)+1) + (FX_Idx+1)
-        local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-        AddWindowBtn (GUID,FX_Id, 130, true , true ) 
-        if r.ImGui_BeginDragDropTarget(ctx) then 
-        end
-        SL(165)
-        --SyncWetValues(FX_Id)
-        
-        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a'..FX_Id, '', Wet.Val[FX_Id] or 0, 0, 1, FX_Id)
-        
 
         r.ImGui_PopStyleVar(ctx)
-        if tonumber(FX_Count) > 9 and Hover then 
-            FX_DeviceWindow_NoScroll = r.ImGui_WindowFlags_NoScrollWithMouse() 
-            DisableScroll = true 
-        else FX_DeviceWindow_NoScroll = 0
-            DisableScroll = false 
+        if Hover then 
+            if tonumber(FX_Count) > 9  then 
+                FX_DeviceWindow_NoScroll = r.ImGui_WindowFlags_NoScrollWithMouse() 
+                DisableScroll = true 
+                FX[FxGUID].NoScroll = nil 
+
+            else 
+                FX_DeviceWindow_NoScroll = 0
+                DisableScroll = false 
+                FX[FxGUID].NoScroll =  r.ImGui_WindowFlags_NoScrollWithMouse()  +  r.ImGui_WindowFlags_NoScrollbar() +  r.ImGui_WindowFlags_AlwaysAutoResize()
+
+            end
         end
-        FX[FxGUID].Width = 50+140
 
-        WinW = FX[FxGUID].Width
-        CollapseIfTab(FxGUID)
 
+        
+         --[[ + (    Hv or 0) ]]
+
+        if FX[FxGUID].Cont_Collapse ==1 then 
+
+            FX[FxGUID].LastSpc = FX_Id + (v.scale or 0)
+
+        end
+        
+        if Hv then  return Hv end 
+    end
+    
 end
-local x , y = r.ImGui_GetCursorScreenPos(ctx)
+local X , Y = r.ImGui_GetCursorScreenPos(ctx)
  -- 
  
 
+local TB = Upcoming_Container or TREE[Root_ID+1].children
+
 if tonumber( FX_Count) == 0 then 
-    r.ImGui_SetCursorScreenPos(ctx, x-50 , y )
+
+    r.ImGui_SetCursorScreenPos(ctx, X-50 , Y)
     r.ImGui_InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
 
-    local TB = Upcoming_Container or TREE[Root_ID+1].children
+    
 
     --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
-    ------  33554460------
-    ------  33554454 ------
+
 
     if r.ImGui_BeginDragDropTarget(ctx)then 
         local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
         Highlight_Itm(WDL, 0xffffff33)
+
 
         if rv and Mods == 0 then 
             local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
@@ -116,123 +198,146 @@ if tonumber( FX_Count) == 0 then
                 --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
                 local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
                 
-                local Frs_Lyr_FX_Ct =  Rt_FX_Ct *  (#TREE[Root_ID+1].children + 1 )
-                local Sec_Lyr_FX_Ct = Frs_Lyr_FX_Ct * (math.max(#TB,1) + 1)
+                local function Get_Fx_Ct (TB, base_FX_Ct )
+                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
 
-                local Root = 0x2000000 +1
-                Frst_Lyr_FX_Id = Root + 1 * (4-1)
-                Frst_Lyr_Cont_Id = Root +  1 * (4)
+                    if not C then -- if container has no children
+                        Final_FX_Ct = base_FX_Ct
+                        
+                    else
+                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
+                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
+                    end
 
-
-                Sec_Lyr_FX_ID = FX_Idx + (Frs_Lyr_FX_Ct  * 1) 
-
-                third_Lyr_Fx_Id = FX_Idx + (Sec_Lyr_FX_Ct * 1) 
-
-                if Upcoming_Container then 
-
+                    return Final_FX_Ct
                 end
-                FX_Id = third_Lyr_Fx_Id
+
+                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
+
+                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
                 
-                msg( Sec_Lyr_FX_Ct )
+                FX_Id =   Empty_Cont_Fx_Id
+
             end
 
             r.TrackFX_CopyToTrack(LT_Track,DragFX_ID, LT_Track, FX_Id, true )
+            r.ImGui_EndDragDropTarget(ctx)
         end
     end
 
 else
+    local CollapseXPos, CollapseYPos  = r.ImGui_GetCursorPos(ctx)
+     CollapseXPos_screen = r.ImGui_GetCursorScreenPos(ctx)
+    local PreviewW , LastSpc 
 
     for i, v in ipairs(Upcoming_Container or TREE[Root_ID+1].children) do 
 
         local FX_Id = v.addr_fxid
         local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
+        
 
-        if FX[GUID]  and   FX[GUID].Cont_Collapse == 1  then 
-            Render_Collapsed(v,GUID,FX_Id)
-        else        -- if not collapsed
+        if  FX[FxGUID].Cont_Collapse == 1  then 
+
+            local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
+            if W then PreviewW = W end 
+            --FX[FxGUID].BgClr = 0xffffff44
+
+        else       -- if not collapsed
+            --FX[FxGUID].BgClr = 0xff22ff44
             local function Render_Normal()
-                local WinW
+                local WinW, diff, Cur_X_ofs
                 if i == 1 then 
                     SL(nil,0)
-                    local SpcW = AddSpaceBtwnFXs(FX_Id , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
+                    local SpcW = AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
                     SL(nil,0)
                     WinW = SpcW 
+
                 end
+
             
                 if v.children then 
                     Upcoming_Container = v.children
-                    Upcoming_ContainerID = i
+                    Upcoming_Container_Parent = v 
                 end
-            
-                SL(nil,0)
+
+                
                 local Hv = createFXWindow(FX_Id)
                 SL(nil,0)
-
-
-
-                --[[ first_layer_fx_id = root_container_id + (root_fx_count * first_layer_fx_pos)
-                first_layer_container_id =  root_container_id + (root_fx_count * first_layer_container_pos)
-                second_layer_fx_id = first_layer_container_id + (first_layer_fx_count * second_layer_fx_pos)
-                second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
-                third_layer_fx_id =  second_layer_container_id + (second_layer_fx_count * third_layer_fx_pos) ]]
-
+                
+                if v.scale  then  FX[GUID].parent =  v.addr_fxid - v.scale * i   end 
             
                 local w = r.ImGui_GetItemRectSize(ctx)
-                local FX_Id_next = 0x2000000 + (i+1)*(r.TrackFX_GetCount(LT_Track)+1) + (FX_Idx+1)
                 local TB = Upcoming_Container or TREE[Root_ID+1].children
+                local FX_Id_next = FX_Id + (v.scale or 0)
 
-
-
-                --local FX_Id_next = TB[ math.min(i+1, #TB)].addr_fxid
-                --msg(i..'       FX_IDNext= '..FX_Id_next..'     math.min(i+1, #TB) '..math.min(i+1, #TB))
                 if r.ImGui_IsItemHovered(ctx) then Hover = true end 
             
-                local SpcW = AddSpaceBtwnFXs(FX_Id_next , nil, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth, FX_Id)
+                LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
+
+                FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + (SpcW or 0) +( LastSpc or 0)
 
 
-                FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + SpcW
+                
 
-
-                WinW = (WinW or 0) + w + SpcW   
-
-                if Hv then  Hover = true end 
+                
                 if Hover then  DisableScroll = false  end 
-                CollapseIfTab(GUID)
-                if not v.children then
-                    return WinW
-                else return 35
-                end
+               -- CollapseIfTab(FxGUID, FX_Idx)
+
             end
             local W= Render_Normal()
-            AllW = AllW + (W or 0)
+
         end
 
         if Upcoming_Container and tonumber(i) == (#Upcoming_Container or #TREE[Root_ID+1].children) then 
             Upcoming_Container = nil
-            if Root_FxGuid~= FxGUID then 
-                --FX[Root_FxGuid].Width = (FX[Root_FxGuid].Width + (FX[FxGUID].Width or 0))
-            end
-        
         end
+    end
+
+
+    local Add_FX_Btn_Ypos
+    if FX[FxGUID].Cont_Collapse == 1   and FX[FxGUID].Sel_Preview then 
+        SL()
+        Add_FX_Btn_Ypos = r.ImGui_GetCursorPosY(ctx) + 24
+        r.ImGui_SetCursorPosY(ctx,tonumber( CollapseYPos)  )
+
+        Hv = createFXWindow(FX[FxGUID].Sel_Preview)
+        if Hv then PreviewW = Hv end 
+        if PreviewW then FX[FxGUID].Width = 50 + 150 + PreviewW end
+    end
+    if FX[FxGUID].Cont_Collapse == 1 then
+        if Add_FX_Btn_Ypos then r.ImGui_SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
+        r.ImGui_SetCursorPosX(ctx,tonumber( CollapseXPos)  )
+        DragDropToCollapseView (FX[FxGUID].LastSpc, CollapseXPos_screen)
+        if r.ImGui_Button(ctx,'+' , 130) then 
+            r.ImGui_OpenPopup(ctx, 'Btwn FX Windows' .. FX[FxGUID].LastSpc)
+        end 
+        AddFX_Menu(FX[FxGUID].LastSpc)
     end
 
     if Upcoming_Container  then 
         if not Upcoming_Container[1] then 
             Upcoming_Container =nil
         end
+
     else 
     
     end
+                            
+   --[[  if NeedRetrieveLayout then 
+        RetrieveFXsSavedLayout(Sel_Track_FX_Count) 
+        NeedRetrieveLayout = nil 
+    end  ]]
 
 
     
     if not FX[FxGUID].Collapse then 
         local WDL = r.ImGui_GetWindowDrawList(ctx)
-        r.ImGui_DrawList_AddRect(WDL ,x - 33, y, x+FX[FxGUID].Width -35, y+220, 0xffffffff)
+        --r.ImGui_DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
+        HighlightSelectedItem(nil, Accent_Clr, Pad, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, rounding, 4)
     end 
 
 
-end
 
+end
 

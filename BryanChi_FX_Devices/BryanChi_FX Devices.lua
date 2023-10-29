@@ -65,6 +65,7 @@
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
 --   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/FX Layout Plugin Scripts/ReaComp.lua
+--   src/FX Layout Plugin Scripts/Container.lua
 --   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
@@ -75,7 +76,7 @@
 --   src/Functions/Theme Editor Functions.lua
 --   src/Functions/Filesystem_utils.lua
 --   src/Constants.lua
---   src/Helpers/Sexan_FX_Browser.lua
+
 -- @about
 --   Please check the forum post for info:
 --   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
@@ -1359,9 +1360,7 @@ function loop()
         if LT_Track == nil then
             local Viewport = r.ImGui_GetWindowViewport(ctx)
 
-            r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2,
-                0xffffffff,
-                'Select a track to start')
+            r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2, 0xffffffff, 'Select a track to start')
         else -- of if LT_Track
 
                 r.gmem_write(4,0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
@@ -1463,7 +1462,7 @@ function loop()
                 r.Undo_BeginBlock()
                 for i, v in ipairs(MovFX.FromPos) do
                     if NeedCopyFX then
-                        if v >= DropPos then offset = 1 else offset = 0 end
+                        --if v >= DropPos then offset = 1 else offset = 0 end
                         MovFX.ToPos[i] = math.max(MovFX.ToPos[i] - (offset or 0), 0)
                         r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, v, false)
                     end
@@ -1471,7 +1470,6 @@ function loop()
 
                 for i, v in ipairs(MovFX.FromPos) do
                     r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
-
                 end
                 r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
                 MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} }
@@ -1551,9 +1549,10 @@ function loop()
                 LT_TrackNum = math.floor(r.GetMediaTrackInfo_Value(LT_Track, 'IP_TRACKNUMBER'))
             end
 
+            -- if new fx is added 
             if RepeatTimeForWindows ~= r.TrackFX_GetCount(LT_Track) and not layoutRetrieved then
                 RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-                TREE = BuildFXTree(tr)
+                --TREE = BuildFXTree(tr)
             end
 
             TREE = BuildFXTree(tr)
@@ -4051,24 +4050,34 @@ function loop()
                     end
 
                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
+                    local SpcW 
                     if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
                         if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
                             and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
                             and string.find(FX_Name, 'RackMixer') == nil
                             and FX_Idx ~= RepeatTimeForWindows                   --not last fx
                             and not FX[FxGUID].InWhichBand --[[Not in Band Split]] then
+
                             local Idx = FX_Idx
                             if FX_Idx == 1 then
                                 local Nm = FX.Win_Name[0]
                                 if Nm == 'JS: FXD Macros' or FindStringInTable(BlackListFXs, Nm) then Idx = 0 end
                             end
-                            AddSpaceBtwnFXs(Idx)
+                            local CurX = r.ImGui_GetCursorPosX(ctx)
+
+                            
+                            local SpcW = AddSpaceBtwnFXs(Idx)
+
+
+
+
                         elseif FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID[FX_Idx] and FXGUID[FX_Idx] then
                             AddSpaceBtwnFXs(FX_Idx, true)
                         elseif FX_Idx == RepeatTimeForWindows then
                         end
                     end
+
+
 
 
                     ------------END Space between FXs--------------------
@@ -4088,6 +4097,7 @@ function loop()
 
                     if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FX.InLyr[FXGUID[FX_Idx]] == nil and FX_Idx ~= RepeatTimeForWindows and FindStringInTable(BlackListFXs, FX_Name) ~= true then
                         --FX_IdxREAL =  FX_Idx+Lyr.FX_Ins[FXGUID[FX_Idx]]
+                        Tab_Collapse_Win = false 
 
                         if not tablefind(Trk[TrkID].PostFX, FxGUID) and not FX[FxGUID].InWhichBand then
                             createFXWindow(FX_Idx)
@@ -4115,7 +4125,7 @@ function loop()
 
 
                                 if r.ImGui_Button(ctx, 'Save') then
-                                    SaveLayoutEditings(FX_Name, ID or 1, FXGUID[FX_Idx])
+                                    SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
                                     CloseLayEdit = true; FX.LayEdit = nil
                                 end
                                 SL()
@@ -5587,10 +5597,11 @@ function loop()
                                                         end
 
                                                         if r.ImGui_BeginPopup(ctx, 'Value afftect '..Name) then 
-                                                            local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')
+                                                            local rv,GR = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')
                                                             if not rv then r.ImGui_BeginDisabled(ctx) end 
-                                                                if D[Name..'_GR'] then check = true end 
-                                                                 local Check, check = r.ImGui_Checkbox(ctx,'Affected by Gain Reduction', check )
+
+                                                                if D[Name..'_GR'] then D.check = true end 
+                                                                 Check, D.check = r.ImGui_Checkbox(ctx,'Affected by Gain Reduction', D.check )
                                                                 if Check then 
                                                                     if D[Name..'_GR'] then D[Name..'_GR'] = nil else D[Name..'_GR'] = 0 end 
                                                                 end
@@ -5755,21 +5766,20 @@ function loop()
 
                                     r.ImGui_Text(ctx, 'Edge Round:')
                                     r.ImGui_SameLine(ctx)
-                                    Edited, FX.Round[FxGUID] = r.ImGui_DragDouble(ctx, '##' .. FxGUID .. 'Round',
-                                        FX.Round[FxGUID], 0.01, 0, 40, '%.2f')
+                                    Edited, FX[FxGUID].Round = r.ImGui_DragDouble(ctx, '##' .. FxGUID .. 'Round',
+                                        FX[FxGUID].Round, 0.01, 0, 40, '%.2f')
 
                                     r.ImGui_Text(ctx, 'Grab Round:')
                                     r.ImGui_SameLine(ctx)
-                                    Edited, FX.GrbRound[FxGUID] = r.ImGui_DragDouble(ctx, '##' .. FxGUID .. 'GrbRound',
-                                        FX.GrbRound[FxGUID], 0.01, 0, 40, '%.2f')
+                                    Edited, FX[FxGUID].GrbRound = r.ImGui_DragDouble(ctx, '##' .. FxGUID .. 'GrbRound',
+                                        FX[FxGUID].GrbRound, 0.01, 0, 40, '%.2f')
 
                                     r.ImGui_Text(ctx, 'Background Color:')
                                     r.ImGui_SameLine(ctx)
-                                    _, FX.BgClr[FxGUID] = r.ImGui_ColorEdit4(ctx, '##' .. FxGUID .. 'BgClr',
-                                        FX.BgClr[FxGUID] or FX_Devices_Bg or 0x151515ff,
+                                    _, FX[FxGUID].BgClr = r.ImGui_ColorEdit4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff,
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
-                                    if FX.BgClr[FxGUID] == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
+                                    if FX[FxGUID].BgClr == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
                                         HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
                                     end
 
@@ -5811,7 +5821,7 @@ function loop()
                                     r.ImGui_SameLine(ctx)
 
                                     if r.ImGui_Button(ctx, '(y) Yes') or r.ImGui_IsKeyPressed(ctx, 89) then
-                                        SaveLayoutEditings(FX_Name, ID, FXGUID[FX_Idx])
+                                        SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
                                         r.ImGui_CloseCurrentPopup(ctx)
                                         FX.LayEdit = nil
                                         LE.SelectedItem = nil
@@ -5975,8 +5985,7 @@ function loop()
                             Mx, My = r.ImGui_GetMousePos(ctx)
                             FDL = r.ImGui_GetForegroundDrawList(ctx)
 
-                            r.ImGui_DrawList_AddRectFilled(FDL, Draw.Rect.L, Draw.Rect.T, Draw.Rect.R, Draw.Rect.B,
-                                0xbbbbbb66)
+                            r.ImGui_DrawList_AddRectFilled(FDL, Draw.Rect.L, Draw.Rect.T, Draw.Rect.R, Draw.Rect.B, 0xbbbbbb66)
                         else
                             AdjustDrawRectPos = nil
                         end
@@ -7314,8 +7323,7 @@ function loop()
 
                                             if r.ImGui_IsMouseReleased(ctx, 0) then
                                                 local InsPos = Find_InsPos()
-                                                local rv, type, payload, is_preview, is_delivery = r
-                                                    .ImGui_GetDragDropPayload(ctx)
+                                                local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
                                                 r.TrackFX_AddByName(LT_Track, payload, false, -1000 - InsPos - 1)
                                                 local FXid = r.TrackFX_GetFXGUID(LT_Track, InsPos + 1)
                                                 DropFXintoBS(FXid, FxGUID, i, InsPos, FX_Idx, 'DontMove')
@@ -7890,8 +7898,7 @@ function loop()
                     end --  for if FX_Name ~='JS: FXD (Mix)RackMixer'
                     r.ImGui_SameLine(ctx, nil, 0)
 
-
-
+                    local CurX = r.ImGui_GetCursorPosX(ctx)
 
 
 
