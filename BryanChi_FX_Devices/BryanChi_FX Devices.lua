@@ -69,7 +69,7 @@
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
 --   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/FX Layout Plugin Scripts/ReaComp.lua
---   src/FX Layout Plugin Scripts/Container.lua
+--   src/FX Layout Plugin Scripts/Container.lua  
 --   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
