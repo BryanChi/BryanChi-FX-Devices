@@ -1692,6 +1692,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
 
         if WindowBtn and Mods == 0 then
+            msg('a')
             openFXwindow(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Shift then
             ToggleBypassFX(LT_Track, FX_Idx)

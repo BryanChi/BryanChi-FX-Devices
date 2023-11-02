@@ -15,7 +15,8 @@ FX[FxGUID].CustomTitle = 'ReaComp'
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
 
-local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'GainReduction_dB')))
+local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
+
 if GR and GR ~= 0 then 
     FX[FxGUID][1].CustomLbl = '  '
     FX[FxGUID].DontShowGR = nil
@@ -23,8 +24,4 @@ elseif GR and GR == 0 then
     FX[FxGUID][1].CustomLbl = 'Threshold'
     FX[FxGUID].DontShowGR = true 
 end
-
-
-
-
-
+    
