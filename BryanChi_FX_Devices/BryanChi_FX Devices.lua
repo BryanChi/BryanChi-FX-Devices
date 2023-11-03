@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.1
+-- @version 1.0beta10.10.2
 -- @changelog
---  - Fix ReaComp layout
+--  - Much much faster startup time by using latest FX parser features made by Sexan. (Thank you Sexan!!)
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -188,11 +188,10 @@ FX_Add_Del_WaitTime = 2
 
 
 
-
-
-
-FX_LIST, CAT = GetFXTbl()
-
+ FX_LIST, CAT = ReadFXFile()
+if not FX_LIST or not CAT then
+   FX_LIST, CAT = MakeFXFiles()
+end
 
 ---@class ViewPort
 VP = {} -- viewport info
@@ -254,7 +253,6 @@ CustomColorsDefault = {
     FX_Adder_JS = 0x9348A9FF,
     FX_Adder_AU = 0x526D97FF,
     FX_Adder_CLAP = 0xB62424FF
-
 }
 
 
@@ -1618,6 +1616,10 @@ function loop()
                         Dock_Now = true
                     end
                 end
+                if select(2, r.ImGui_MenuItem(ctx,"Rescan Plugin List")) then
+                    FX_LIST, CAT = MakeFXFiles()
+                end
+               
 
                 MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
                 r.ImGui_EndMenu(ctx)

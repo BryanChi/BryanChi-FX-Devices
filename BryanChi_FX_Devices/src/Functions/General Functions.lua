@@ -4438,7 +4438,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if BTN_Btwn_FXWindows then
                     FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
-
                     r.ImGui_OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
                 end
                 r.ImGui_PopStyleColor(ctx, 2)
