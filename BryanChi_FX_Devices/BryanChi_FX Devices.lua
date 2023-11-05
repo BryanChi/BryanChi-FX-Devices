@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.4
+-- @version 1.0beta10.10.5
 -- @changelog
---  - layout editor - fix background edit properties not working
+--  - layout editor - fix Fix image path disappearing when saving layouts
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -180,7 +180,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta 10.10.4 '
+VersionNumber = 'V1.0beta 10.10.5 '
 FX_Add_Del_WaitTime = 2
 
 
