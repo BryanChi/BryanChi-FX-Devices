@@ -2054,6 +2054,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.ConditionPrm =  v.ConditionPrm
                             FP.ConditionPrm_V = v.ConditionPrm_V
                             FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
+                            FP.Switch_On_Clr = v.Switch_On_Clr
                             for i = 2, 5, 1 do
                                 FP['ConditionPrm'..i]  = v['ConditionPrm'..i]
                                 FP['ConditionPrm_V'..i]  = v['ConditionPrm_V'..i]
@@ -2156,7 +2157,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     FP.V_Pos_Y      = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
                                     FP.Lbl_Pos_X    = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
                                     FP.Lbl_Pos_Y    = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
-                        
+                                    FP.Switch_On_Clr= RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
 
                                     local path = RecallInfo(Ct, 'Custom Image', Fx_P)
 
@@ -2680,6 +2681,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Value Pos', FP.V_Pos)
             write('Lbl Clr', FP.Lbl_Clr)
             write('V Clr', FP.V_Clr)
+            write('Switch On Clr', FP.Switch_On_Clr)
             write('Drag Direction', FP.DragDir)
             write('Value Thickness', FP.Value_Thick)
             write('Value Free Pos X', FP.V_Pos_X)

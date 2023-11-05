@@ -1,8 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.2
+-- @version 1.0beta10.10.3
 -- @changelog
---  - Much much faster startup time by using latest FX parser features made by Sexan. (Thank you Sexan!!)
+--  - layout editor - fix switch on color not saving in
+--  - layout editor - fix entering background edit mode crashing
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -40,7 +41,7 @@
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ReaComp (Cockos).ini
---   src/Images/Attached Drawings/LED light.png
+--   src/Images/Attached Drawings/LED light.png 
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Knobs/FancyRedKnob.png
 --   src/Images/Analog Knob 1.png
@@ -180,7 +181,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta 10.10 '
+VersionNumber = 'V1.0beta 10.10.3 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -4294,6 +4295,7 @@ function loop()
                                         r.ImGui_SameLine(ctx)
                                         r.ImGui_SetNextItemWidth(ctx, 40)
 
+                                        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
                                         EditER, FX[FxGUID].Draw.Df_EdgeRound = r.ImGui_DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
 
 
@@ -5175,10 +5177,8 @@ function loop()
                                         r.ImGui_SameLine(ctx)
                                         local DragLbl_Clr_Edited, V_Clr = r.ImGui_ColorEdit4(ctx,
                                             '##Switch on Clr' .. LE.Sel_Items[1],
-                                            FX[FxGUID][LE.Sel_Items[1] or ''].Switch_On_Clr or
-                                            0xffffff55,
-                                            r.ImGui_ColorEditFlags_NoInputs()|    r
-                                            .ImGui_ColorEditFlags_AlphaPreviewHalf()|r.ImGui_ColorEditFlags_AlphaBar())
+                                            FX[FxGUID][LE.Sel_Items[1] or ''].Switch_On_Clr or 0xffffff55,
+                                            r.ImGui_ColorEditFlags_NoInputs()| r.ImGui_ColorEditFlags_AlphaPreviewHalf()|r.ImGui_ColorEditFlags_AlphaBar())
                                         if DragLbl_Clr_Edited then
                                             for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Switch_On_Clr = V_Clr end
                                         end
