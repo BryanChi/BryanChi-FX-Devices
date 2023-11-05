@@ -2011,8 +2011,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
                     local FX_Name = ChangeFX_Name(FX_Name)
 
-
                     if LO[FX_Name] then 
+
                         FX[FxGUID] = FX[FxGUID] or {}
                         local T = LO[FX_Name]
                         FX[FxGUID].MorphHide = T.MorphHide
@@ -2051,6 +2051,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Pos_X    =  v.Lbl_Pos_X
                             FP.Lbl_Pos_Y    =  v.Lbl_Pos_Y 
                             FP.Image        =  v.Image
+                            FP.ImagePath    =  v.ImagePath
                             FP.ConditionPrm =  v.ConditionPrm
                             FP.ConditionPrm_V = v.ConditionPrm_V
                             FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
@@ -2626,8 +2627,11 @@ end
 ---@param FxGUID string
 function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+    --local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+
+
     r.RecursiveCreateDirectory(dir_path, 0)
 
     local file = io.open(file_path, 'w')
@@ -2689,6 +2693,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Label Free Pos X', FP.Lbl_Pos_X)
             write('Label Free Pos Y', FP.Lbl_Pos_Y)
             write('Custom Image', FP.ImagePath)
+            
 
 
 

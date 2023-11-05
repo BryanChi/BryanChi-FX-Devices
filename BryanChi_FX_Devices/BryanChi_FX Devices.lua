@@ -4408,8 +4408,7 @@ function loop()
                                         r.ImGui_PopStyleColor(ctx)
                                     end
                                 elseif LE.Sel_Items[1] then
-                                    local ID, TypeID; local FrstSelItm = FX[FxGUID][LE.Sel_Items[1]]; local FItm = LE
-                                        .Sel_Items[1]
+                                    local ID, TypeID; local FrstSelItm = FX[FxGUID][LE.Sel_Items[1]]; local FItm = LE.Sel_Items[1]
                                     local R_ofs = 50
                                     if LE.Sel_Items[1] and not LE.Sel_Items[2] then
                                         ID       = FxGUID .. LE.Sel_Items[1]
@@ -4911,7 +4910,7 @@ function loop()
 
                                     DragDropPics = DragDropPics or {}
 
-                                    rv, ImgTrashTint = TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
+                                    local rv, ImgTrashTint = TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
                                     if rv then
                                         ToAllSelItm('Style', nil)
                                         ToAllSelItm('ImagePath', nil)
@@ -4921,6 +4920,7 @@ function loop()
 
                                     SL()
                                     if r.ImGui_BeginChildFrame(ctx, '##drop_files', -R_ofs, 20) then
+                                        
                                         if not FrstSelItm.ImagePath then
                                             r.ImGui_Text(ctx, 'Drag and drop files here...')
                                         else
