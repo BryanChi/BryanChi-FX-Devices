@@ -1692,7 +1692,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
 
         if WindowBtn and Mods == 0 then
-            msg('a')
+
             openFXwindow(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Shift then
             ToggleBypassFX(LT_Track, FX_Idx)
@@ -2406,8 +2406,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                     if r.ImGui_IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItm and Draw.Time == 0 then
                         if Draw.Type == 'Text' then
-                            r.ImGui_SetMouseCursor(ctx,
-                                r.ImGui_MouseCursor_TextInput())
+                            r.ImGui_SetMouseCursor(ctx,r.ImGui_MouseCursor_TextInput())
                         end
                         if r.ImGui_IsMouseClicked(ctx, 0) and Mods == 0 then
                             Draw.CurrentylDrawing = true
@@ -2447,7 +2446,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             if r.ImGui_IsMouseReleased(ctx, 0) and Mods == 0 and Draw.Type ~= 'Text' then
                                 FX[FxGUID].Draw[(#FX[FxGUID].Draw or 0) + 1] =  {}
                                 local D = FX[FxGUID].Draw[(#FX[FxGUID].Draw or 1)]
-                                
+
 
                                 LE.BeenEdited = true
                                 --find the next available slot in table
@@ -2463,7 +2462,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 D.Type =  Draw.Type
                                 D.B =  Win_MsY
                                 D.clr =  Draw.clr or 0xffffffff
-                                if not Draw.SelItm then Draw.SelItm = #D.Type end
+                                --if not Draw.SelItm then Draw.SelItm = #D.Type end
                             end
 
 
@@ -2535,8 +2534,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                             if Draw.SelItm == i then
-                                r.ImGui_DrawList_AddCircleFilled(WDL, CircleX,
-                                    CircleY, 7, 0x99999955)
+                                r.ImGui_DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
                             end
 
 

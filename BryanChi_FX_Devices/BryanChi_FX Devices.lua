@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.3
+-- @version 1.0beta10.10.4
 -- @changelog
---  - layout editor - fix switch on color not saving in
---  - layout editor - fix entering background edit mode crashing
+--  - layout editor - fix background edit properties not working
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -181,7 +180,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta 10.10.3 '
+VersionNumber = 'V1.0beta 10.10.4 '
 FX_Add_Del_WaitTime = 2
 
 
@@ -1361,9 +1360,6 @@ function loop()
         else -- of if LT_Track
 
                 r.gmem_write(4,0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
-
-            --[[ msg('10 =   '..  r.gmem_read(10))
-            msg('4 =   '..  r.gmem_read(4)) ]]
 
 
             HintMessage = nil
@@ -4251,18 +4247,21 @@ function loop()
                                         r.ImGui_SameLine(ctx)
                                         r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x99999933)
                                         local D = Draw[FX.Win_Name_S[FX_Idx]]
+                                        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+                                        local D = FX[FxGUID].Draw
                                         local FullWidth = -50
 
-                                        local typelbl; local It = Draw.SelItm
-                                        D[It or 1] = D[It or 1] or {}
+                                        local typelbl; local It = Draw.SelItm 
+                                        --D[It or 1] = D[It or 1] or {}
 
-                                        if Draw.SelItm then typelbl = D.Type[Draw.SelItm] end
+
+                                        if Draw.SelItm then typelbl = D[It].Type end
                                         if Draw.Type == nil then Draw.Type = 'line' end
                                         r.ImGui_SetNextItemWidth(ctx, FullWidth)
                                         if r.ImGui_BeginCombo(ctx, '##', typelbl or Draw.Type or 'line', r.ImGui_ComboFlags_NoArrowButton()) then
                                             local function setType(str)
                                                 if r.ImGui_Selectable(ctx, str, false) then
-                                                    if It then D.Type[It] = str end
+                                                    if It then D[It].Type = str end
                                                     Draw.Type = str
                                                 end
                                             end
@@ -4277,132 +4276,128 @@ function loop()
 
                                             r.ImGui_EndCombo(ctx)
                                         end
-                                        r.ImGui_Text(ctx, 'Color :')
-                                        r.ImGui_SameLine(ctx)
-                                        if Draw.SelItm and D.clr[Draw.SelItm] then
-                                            clrpick, D.clr[Draw.SelItm] = r.ImGui_ColorEdit4(ctx, '##',
-                                                D.clr[Draw.SelItm] or 0xffffffff,
-                                                r.ImGui_ColorEditFlags_NoInputs()|
-                                                r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                                r.ImGui_ColorEditFlags_AlphaBar())
-                                        else
-                                            clrpick, Draw.clr = r.ImGui_ColorEdit4(ctx, '##', Draw.clr or 0xffffffff,
-                                                r.ImGui_ColorEditFlags_NoInputs()|
-                                                r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
-                                                r.ImGui_ColorEditFlags_AlphaBar())
-                                        end
-                                        r.ImGui_Text(ctx, 'Default edge rounding :')
-                                        r.ImGui_SameLine(ctx)
-                                        r.ImGui_SetNextItemWidth(ctx, 40)
 
-                                        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
-                                        EditER, FX[FxGUID].Draw.Df_EdgeRound = r.ImGui_DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
-
-
-
-                                        if D.Type[It] == 'Picture' then
-                                            r.ImGui_Text(ctx, 'File Path:')
-                                            SL()
-                                            DragDropPics = DragDropPics or {}
-
-                                            if r.ImGui_BeginChildFrame(ctx, '##drop_files', FullWidth, 40) then
-                                                if not D[It].FilePath then
-                                                    r.ImGui_Text(ctx, 'Drag and drop files here...')
-                                                else
-                                                    r.ImGui_Text(ctx, D[It].FilePath)
-
-                                                    if r.ImGui_SmallButton(ctx, 'Clear') then
-
-                                                    end
-                                                end
-                                                if D[It].FilePath then
-                                                    r.ImGui_Bullet(ctx)
-                                                    r.ImGui_TextWrapped(ctx, D[It].FilePath)
-                                                end
-                                                r.ImGui_EndChildFrame(ctx)
-                                            end
-
-
-                                            if r.ImGui_BeginDragDropTarget(ctx) then
-                                                local rv, count = r.ImGui_AcceptDragDropPayloadFiles(ctx)
-                                                if rv then
-                                                    for i = 0, count - 1 do
-                                                        local filename
-                                                        rv, filename = r.ImGui_GetDragDropPayloadFile(ctx, i)
-                                                        D[It].FilePath = filename
-
-                                                        D[It].Image = r.ImGui_CreateImage(filename)
-                                                        r.ImGui_Attach(ctx, D[It].Image)
-                                                    end
-                                                end
-                                                r.ImGui_EndDragDropTarget(ctx)
-                                            end
-
-                                            rv, D[It].KeepImgRatio = r.ImGui_Checkbox(ctx, 'Keep Image Ratio',
-                                                D[It].KeepImgRatio)
-                                        end
-
-                                        if Draw.SelItm then
-                                            r.ImGui_Text(ctx, 'Start Pos X:')
+                                        if It then 
+                                            
+                                            r.ImGui_Text(ctx, 'Color :')
                                             r.ImGui_SameLine(ctx)
-                                            local CurX = r.ImGui_GetCursorPosX(ctx)
-                                            r.ImGui_SetNextItemWidth(ctx, FullWidth)
-                                            _, D.L[It] = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'L',
-                                                D.L[Draw.SelItm], 1, 0, Win_W, '%.0f')
-                                            if D.Type[It] ~= 'V-line' and D.Type[It] ~= 'circle' and D.Type[It] ~= 'circle fill' then
-                                                r.ImGui_Text(ctx, 'End Pos X:')
-                                                r.ImGui_SetNextItemWidth(ctx, FullWidth)
+                                            if Draw.SelItm and D[It].clr then
+                                                clrpick, D[It].clr = r.ImGui_ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, r.ImGui_ColorEditFlags_NoInputs()|r.ImGui_ColorEditFlags_AlphaPreviewHalf()|r.ImGui_ColorEditFlags_AlphaBar())
 
-                                                r.ImGui_SameLine(ctx, CurX)
-                                                _, D.R[It] = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'R',
-                                                    D.R[Draw.SelItm], 1, 0, Win_W, '%.0f')
+                                            else
+                                                clrpick, Draw.clr = r.ImGui_ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, r.ImGui_ColorEditFlags_NoInputs()|r.ImGui_ColorEditFlags_AlphaPreviewHalf()|r.ImGui_ColorEditFlags_AlphaBar())
                                             end
-
-                                            if D.Type[It] == 'circle' or D.Type[It] == 'circle fill' then
-                                                r.ImGui_Text(ctx, 'Radius:')
-                                                r.ImGui_SameLine(ctx)
-                                                r.ImGui_SetNextItemWidth(ctx, FullWidth)
-                                                _, D.R[It] = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'R',
-                                                    D.R[Draw.SelItm], 1, 0, Win_W, '%.0f')
-                                            end
-
-
-                                            r.ImGui_Text(ctx, 'Start Pos Y:')
-
+                                            r.ImGui_Text(ctx, 'Default edge rounding :')
                                             r.ImGui_SameLine(ctx)
-                                            r.ImGui_SetNextItemWidth(ctx, FullWidth)
+                                            r.ImGui_SetNextItemWidth(ctx, 40)
 
-                                            _, D.T[Draw.SelItm] = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'T',
-                                                D.T[Draw.SelItm], 1, 0, Win_W, '%.0f')
+                                            FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+                                            EditER, FX[FxGUID].Draw.Df_EdgeRound = r.ImGui_DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
 
 
-                                            if D.Type[It] ~= 'line' and D.Type[It] ~= 'circle fill' and D.Type[It] ~= 'circle' then
-                                                r.ImGui_Text(ctx, 'End Pos Y:')
-                                                r.ImGui_SameLine(ctx, CurX)
-                                                r.ImGui_SetNextItemWidth(ctx, FullWidth)
 
-                                                _, D.B[It] = r.ImGui_DragDouble(ctx, '##' .. It .. 'B', D.B[It], 1, 0,
-                                                    Win_W, '%.0f')
-                                            end
-
-                                            if D.Type[It] == 'Text' then
-                                                r.ImGui_Text(ctx, 'Text:')
-                                                r.ImGui_SameLine(ctx)
-
-                                                _, D.Txt[It] = r.ImGui_InputText(ctx, '##' .. It .. 'Txt', D.Txt[It])
-
+                                            if D[It].Type == 'Picture' then
+                                                r.ImGui_Text(ctx, 'File Path:')
                                                 SL()
-                                                r.ImGui_Text(ctx, 'Font Size:')
-                                                local rv, Sz = r.ImGui_InputInt(ctx, '## font size ' .. It,
-                                                    D[It].FtSize or 12)
-                                                if rv then
-                                                    D[It].FtSize = Sz
-                                                    if not _G['Font_Andale_Mono' .. '_' .. Sz] then
-                                                        _G['Font_Andale_Mono' .. '_' .. Sz] = r.ImGui_CreateFont(
-                                                            'andale mono', Sz)
-                                                        ChangeFont = D[It]
+                                                DragDropPics = DragDropPics or {}
+
+                                                if r.ImGui_BeginChildFrame(ctx, '##drop_files', FullWidth, 40) then
+                                                    if not D[It].FilePath then
+                                                        r.ImGui_Text(ctx, 'Drag and drop files here...')
                                                     else
-                                                        D[It].Font = _G['Font_Andale_Mono' .. '_' .. Sz]
+                                                        r.ImGui_Text(ctx, D[It].FilePath)
+
+                                                        if r.ImGui_SmallButton(ctx, 'Clear') then
+
+                                                        end
+                                                    end
+                                                    if D[It].FilePath then
+                                                        r.ImGui_Bullet(ctx)
+                                                        r.ImGui_TextWrapped(ctx, D[It].FilePath)
+                                                    end
+                                                    r.ImGui_EndChildFrame(ctx)
+                                                end
+
+
+                                                if r.ImGui_BeginDragDropTarget(ctx) then
+                                                    local rv, count = r.ImGui_AcceptDragDropPayloadFiles(ctx)
+                                                    if rv then
+                                                        for i = 0, count - 1 do
+                                                            local filename
+                                                            rv, filename = r.ImGui_GetDragDropPayloadFile(ctx, i)
+                                                            D[It].FilePath = filename
+
+                                                            D[It].Image = r.ImGui_CreateImage(filename)
+                                                            r.ImGui_Attach(ctx, D[It].Image)
+                                                        end
+                                                    end
+                                                    r.ImGui_EndDragDropTarget(ctx)
+                                                end
+
+                                                rv, D[It].KeepImgRatio = r.ImGui_Checkbox(ctx, 'Keep Image Ratio',
+                                                    D[It].KeepImgRatio)
+                                            end
+
+                                            if Draw.SelItm then
+                                                r.ImGui_Text(ctx, 'Start Pos X:')
+                                                r.ImGui_SameLine(ctx)
+                                                local CurX = r.ImGui_GetCursorPosX(ctx)
+                                                r.ImGui_SetNextItemWidth(ctx, FullWidth)
+                                                _, D[It].L = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'L', D[It].L, 1, 0, Win_W, '%.0f')
+                                                if D[It].Type ~= 'V-line' and D[It].Type ~= 'circle' and D[It].Type ~= 'circle fill' then
+                                                    r.ImGui_Text(ctx, 'End Pos X:')
+                                                    r.ImGui_SetNextItemWidth(ctx, FullWidth)
+
+                                                    r.ImGui_SameLine(ctx, CurX)
+                                                    _, D[It].R = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, 0, Win_W, '%.0f')
+                                                end
+
+                                                if D[It].Type == 'circle' or D[It].Type  == 'circle fill' then
+                                                    r.ImGui_Text(ctx, 'Radius:')
+                                                    r.ImGui_SameLine(ctx)
+                                                    r.ImGui_SetNextItemWidth(ctx, FullWidth)
+                                                    _, D[It].R = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'R',
+                                                        D[It].R, 1, 0, Win_W, '%.0f')
+                                                end
+
+
+                                                r.ImGui_Text(ctx, 'Start Pos Y:')
+
+                                                r.ImGui_SameLine(ctx)
+                                                r.ImGui_SetNextItemWidth(ctx, FullWidth)
+
+                                                _, D[It].T = r.ImGui_DragDouble(ctx, '##' .. Draw.SelItm .. 'T',
+                                                    D[It].T, 1, 0, Win_W, '%.0f')
+
+
+                                                if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
+                                                    r.ImGui_Text(ctx, 'End Pos Y:')
+                                                    r.ImGui_SameLine(ctx, CurX)
+                                                    r.ImGui_SetNextItemWidth(ctx, FullWidth)
+
+                                                    _, D[It].B = r.ImGui_DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, 0,
+                                                        Win_W, '%.0f')
+                                                end
+
+                                                if D[It].Type == 'Text' then
+                                                    r.ImGui_Text(ctx, 'Text:')
+                                                    r.ImGui_SameLine(ctx)
+
+                                                    _, D[It].Txt = r.ImGui_InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
+
+                                                    SL()
+                                                    r.ImGui_Text(ctx, 'Font Size:')
+                                                    local rv, Sz = r.ImGui_InputInt(ctx, '## font size ' .. It,
+                                                        D[It].FtSize or 12)
+                                                    if rv then
+                                                        D[It].FtSize = Sz
+                                                        if not _G['Font_Andale_Mono' .. '_' .. Sz] then
+                                                            _G['Font_Andale_Mono' .. '_' .. Sz] = r.ImGui_CreateFont(
+                                                                'andale mono', Sz)
+                                                            ChangeFont = D[It]
+                                                        else
+                                                            D[It].Font = _G['Font_Andale_Mono' .. '_' .. Sz]
+                                                        end
                                                     end
                                                 end
                                             end
