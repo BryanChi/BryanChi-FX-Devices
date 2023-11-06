@@ -3789,7 +3789,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             Y_Gap = (v.Y_Gap or 0) * Prm.V * v.Y_Gap_VA
                                         end
 
-                                        if v.Gap_VA and v.Gap_VA ~= 0 then
+                                        if v.Gap_VA and v.Gap_VA ~= 0 and v.Gap then
                                             Gap = v.Gap * Prm.V * v.Gap_VA
                                         end
 

@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.5
+-- @version 1.0beta10.10.6
 -- @changelog
 --  - layout editor - fix Fix image path disappearing when saving layouts
 -- @provides
@@ -180,7 +180,7 @@ local os_separator = package.config:sub(1, 1)
 
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = 'V1.0beta 10.10.5 '
+VersionNumber = '1.0beta10.10.6'
 FX_Add_Del_WaitTime = 2
 
 
@@ -5717,8 +5717,7 @@ function loop()
                                                     if rv then D.Clr = Clr end
 
                                                     r.ImGui_TableSetColumnIndex(ctx, 2)
-                                                    local rv, Clr_VA = r.ImGui_ColorEdit4(ctx, 'Color_VA' .. LBL,
-                                                        D.Clr_VA or 0xffffffff, ClrFLG)
+                                                    local rv, Clr_VA = r.ImGui_ColorEdit4(ctx, 'Color_VA' .. LBL, D.Clr_VA or 0xffffffff, ClrFLG)
                                                     if rv then D.Clr_VA = Clr_VA end
 
 
