@@ -2,7 +2,7 @@
 -- @author Bryan Chi
 -- @version 1.0beta10.10.6
 -- @changelog
---  - layout editor - fix Fix image path disappearing when saving layouts
+--  - layout editor - fix value affect for colors not working
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
