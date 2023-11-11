@@ -1828,6 +1828,14 @@ function AddFX_Menu(FX_Idx)
                 r.ImGui_EndMenu(ctx)
             end
         end
+        if r.ImGui_BeginMenu(ctx, "FXD INSTRUMENTS & EFFECTS") then
+            if r.ImGui_Selectable(ctx, "ReaDrum Machine") then
+                local chain_src = "../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain"
+                r.TrackFX_AddByName(TRACK, chain_src, false, -1000 - FX_Idx)
+                AddedFX=true
+            end
+            r.ImGui_EndMenu(ctx)
+        end
         TRACK = r.GetSelectedTrack(0, 0)
         if r.ImGui_Selectable(ctx, "CONTAINER") then
             r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
