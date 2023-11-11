@@ -74,7 +74,8 @@
 --   src/Functions/Modulation.lua
 --   src/Functions/Theme Editor Functions.lua
 --   src/Functions/Filesystem_utils.lua
---   src/Constants.lua
+--   src/Constants.luac
+--   src/FXChains/*.RfxChain
 
 -- @about
 --   Please check the forum post for info:
