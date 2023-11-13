@@ -4113,23 +4113,23 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local P_Num = Prm.Num
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
                                     if retval and buf == "1" then -- Toggle
-                                        value = 0
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", 0)
                                     else
-                                        value = 1
-                                    end
-                                    local acs = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", value)
-                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.chan", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.stereo", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)
+                                    end  
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add LFO') then
                                     local P_Num = Prm.Num
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active") 
                                     if retval and buf == "1" then
-                                        value = 0
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", 0)  
                                     else
-                                        value = 1
-                                    end
-                                    local lfo = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", value)      
-                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)                                               
+                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", 1)      
+                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1) 
+                                    end                                              
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add CC Link') then
                                     local P_Num = Prm.Num
@@ -4162,9 +4162,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end
                                             if input1val < 0 then  
                                                 input1val = 0
-                                            elseif inpu2val == 0 and input1val > 119 then
+                                            elseif input2val == 0 and input1val > 119 then
                                                 input1val = 119
-                                            elseif inpu2val == 1 and input1val > 31 then
+                                            elseif input2val == 1 and input1val > 31 then
                                                 input1val = 31
                                             end
                                             input2val = input2val * 128
@@ -4206,9 +4206,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end
                                             if input1val < 0 then  
                                                 input1val = 0
-                                            elseif inpu2val == 0 and input1val > 119 then
+                                            elseif input2val == 0 and input1val > 119 then
                                                 input1val = 119
-                                            elseif inpu2val == 1 and input1val > 31 then
+                                            elseif input2val == 1 and input1val > 31 then
                                                 input1val = 31
                                             end
                                             input2val = input2val * 128
