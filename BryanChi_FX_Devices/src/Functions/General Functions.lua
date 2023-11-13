@@ -4071,6 +4071,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                             if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                                 if r.ImGui_Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
+                                    local path = get_container_path_from_fx_id(LT_Track, FX_Idx)
+                                        if path then
+                                            FX_Idx, FP.Num = fx_map_parameter(LT_Track, FX_Idx, FP.Num)
+                                        end
                                     local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false) -- Check if envelope is on
                                     if env == nil then  -- Envelope is off
                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true) -- true = Create envelope
@@ -4152,12 +4156,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         local input1val = tonumber(input1val)
                                         local input2val = tonumber(input2val)                                                         
                                             if input2val < 0 then  
-                                                inpu2val = 0
+                                                input2val = 0
                                             elseif input2val > 1 then
                                                 input2val = 1
                                             end
                                             if input1val < 0 then  
-                                                inpu1val = 0
+                                                input1val = 0
                                             elseif inpu2val == 0 and input1val > 119 then
                                                 input1val = 119
                                             elseif inpu2val == 1 and input1val > 31 then
@@ -4196,12 +4200,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         local input1val = tonumber(input1val)
                                         local input2val = tonumber(input2val)                                                          
                                             if input2val < 0 then  
-                                                inpu2val = 0
+                                                input2val = 0
                                             elseif input2val > 1 then
                                                 input2val = 1
                                             end
                                             if input1val < 0 then  
-                                                inpu1val = 0
+                                                input1val = 0
                                             elseif inpu2val == 0 and input1val > 119 then
                                                 input1val = 119
                                             elseif inpu2val == 1 and input1val > 31 then
@@ -4212,18 +4216,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                     if retvals ~= nil then
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1)
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)  
-                                    local cc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals) 
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
-                                        if retval and buf == "1" then
-                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
-                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
-                                        end
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals) 
                                     end                                                      
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Open Modulation/Link Window') then
@@ -4365,7 +4364,62 @@ function get_fx_id_from_container_path(tr, idx1, ...)
     return rv
 end
 
+function get_container_path_from_fx_id(tr, fxidx) -- returns a list of 1-based IDs from a fx-address
+    if fxidx & 0x2000000 then
+      local ret = { }
+      local n = reaper.TrackFX_GetCount(tr)
+      local curidx = (fxidx - 0x2000000) % (n+1)
+      local remain = math.floor((fxidx - 0x2000000) / (n+1))
+      if curidx < 1 then return nil end -- bad address
+  
+      local addr, addr_sc = curidx + 0x2000000, n + 1
+      while true do
+        local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, addr, 'container_count')
+        if not ccok then return nil end -- not a container
+        ret[#ret+1] = curidx
+        n = tonumber(cc)
+        if remain <= n then if remain > 0 then ret[#ret+1] = remain end return ret end
+        curidx = remain % (n+1)
+        remain = math.floor(remain / (n+1))
+        if curidx < 1 then return nil end -- bad address
+        addr = addr + addr_sc * curidx
+        addr_sc = addr_sc * (n+1)
+      end
+    end
+    return { fxid+1 }
+end
 
+function fx_map_parameter(tr, fxidx, parmidx) -- maps a parameter to the top level parent, returns { fxidx, parmidx }
+    local path = get_container_path_from_fx_id(tr, fxidx)
+    if not path then return nil end
+    while #path > 1 do
+      fxidx = path[#path]
+      table.remove(path)
+      local cidx = get_fx_id_from_container_path(tr,table.unpack(path))
+      if cidx == nil then return nil end
+      local i, found = 0, nil
+      while true do
+        local rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_index",i))
+        if not rok then break end
+        if tonumber(r) == fxidx - 1 then
+          rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_parm",i))
+          if not rok then break end
+          if tonumber(r) == parmidx then found = true parmidx = i break end
+        end
+        i = i + 1
+      end
+      if not found then
+        -- add a new mapping
+        local rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,"container_map.add")
+        if not rok then return nil end
+        r = tonumber(r)
+        reaper.TrackFX_SetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_index",r),tostring(fxidx - 1))
+        reaper.TrackFX_SetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_parm",r),tostring(parmidx))
+        parmidx = r
+      end
+    end
+    return fxidx, parmidx
+end
 
 --------------==  Space between FXs--------------------
 function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth, FX_Idx_in_Container)
