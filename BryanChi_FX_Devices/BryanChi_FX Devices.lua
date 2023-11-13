@@ -150,7 +150,7 @@ function ThirdPartyDeps()
       end
       -- ReaDrum Machine
       if reaper.file_exists(readrum_machine) then
-      dofile(readrum_machine)
+        local found_readrum_machine = true
       else
       reaper.ShowMessageBox("ReaDrum Machine is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
       reaper.ReaPack_BrowsePackages('readrum machine')
