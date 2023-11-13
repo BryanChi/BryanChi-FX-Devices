@@ -199,8 +199,8 @@ local function FindNoteFilter(pad_num)
     for f = 1, padfx_idx do      
       local find_filter = get_fx_id_from_container_path(track, parent_id, pad_num, f)
       retval, buf = r.TrackFX_GetNamedConfigParm(track, find_filter, 'fx_ident')
-      buf = buf:gsub("Suzuki Scripts\\", "")
-      if buf == "RDM_midi_note_filter" then
+      buf = buf:gsub("Suzuki Scripts\\ReaDrum Machine\\JSFX\\", "")
+      if buf == "RDM_midi_note_filter.jsfx" then
       fi = f
       break
       end
