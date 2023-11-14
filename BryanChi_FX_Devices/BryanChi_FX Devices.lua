@@ -2,7 +2,7 @@
 -- @author Bryan Chi
 -- @version 1.0beta10.10.6
 -- @changelog
---  - layout editor - fix value affect for colors not working
+--  - layout editor - fix Fix image path disappearing when saving layouts
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -59,11 +59,12 @@
 --   src/LFO Shapes/Square.ini
 --   src/LFO Shapes/Sine.ini
 --   src/LFO Shapes/Saw.ini
+--   src/FX Layout Plugin Scripts/Container.lua 
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
---   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/FX Layout Plugin Scripts/ReaComp.lua
---   src/FX Layout Plugin Scripts/Container.lua  
+--   src/FX Layout Plugin Scripts/ReaDrum Machine.lua  
+--   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
 --   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
 --   src/Functions/EQ functions.lua
@@ -73,7 +74,8 @@
 --   src/Functions/Modulation.lua
 --   src/Functions/Theme Editor Functions.lua
 --   src/Functions/Filesystem_utils.lua
---   src/Constants.lua
+--   src/Constants.luac
+--   src/FXChains/*.RfxChain
 
 -- @about
 --   Please check the forum post for info:
@@ -86,6 +88,7 @@ package.path = CurrentDirectory .. "?.lua;"
 
 function ThirdPartyDeps()
     local ultraschall_path = reaper.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
+    local readrum_machine = reaper.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
 
     local version = tonumber (string.sub( reaper.GetAppVersion() ,  0, 4))
     --reaper.ShowConsoleMsg((version))
@@ -110,6 +113,7 @@ function ThirdPartyDeps()
     local repos = {
       {name = "Sexan_Scripts", url = 'https://github.com/GoranKovac/ReaScripts/raw/master/index.xml'},
       {name = "Ultraschall-API", url = 'https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/raw/master/ultraschall_api_index.xml'},
+      {name = "Suzuki Scripts", url = 'https://github.com/Suzuki-Re/Suzuki-Scripts/raw/master/index.xml'},
     }
     
     for i = 1, #repos do
@@ -143,6 +147,14 @@ function ThirdPartyDeps()
          reaper.ShowMessageBox("Sexan FX BROWSER is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
          reaper.ReaPack_BrowsePackages(fx_browser_reapack)
          return 'error Sexan FX BROWSER'
+      end
+      -- ReaDrum Machine
+      if reaper.file_exists(readrum_machine) then
+        local found_readrum_machine = true
+      else
+      reaper.ShowMessageBox("ReaDrum Machine is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
+      reaper.ReaPack_BrowsePackages('readrum machine')
+      return 'error Suzuki ReaDrum Machine'
       end
     end
 end
@@ -842,6 +854,7 @@ end
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
 script_folder       = script_folder .. '/src'
 FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
+FontAwesome_small         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 10)
 
 
 NumOfTotalTracks = r.CountTracks(0)
@@ -956,6 +969,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             r.ImGui_Attach(ctx, _G['Font_Andale_Mono_' .. i])
         end
         r.ImGui_Attach(ctx, FontAwesome)
+        r.ImGui_Attach(ctx, FontAwesome_small)
         for i, v in pairs( Img) do 
             r.ImGui_Attach(ctx, v)
         end
