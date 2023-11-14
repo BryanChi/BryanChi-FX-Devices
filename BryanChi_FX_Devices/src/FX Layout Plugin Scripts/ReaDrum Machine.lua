@@ -174,6 +174,7 @@ end
 
 -------------
 
+
 local function getNoteName(notenum) -- Thanks Fabian https://forum.cockos.com/showpost.php?p=2521073&postcount=5
   local notes = { "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" }
   local octave = math.floor(notenum / 12) - 1
@@ -198,12 +199,12 @@ local function FindNoteFilter(pad_num)
   if padfx_idx ~= 0 then
     for f = 1, padfx_idx do      
       local find_filter = get_fx_id_from_container_path(track, parent_id, pad_num, f)
-      retval, buf = r.TrackFX_GetNamedConfigParm(track, find_filter, 'fx_ident')
-      buf = buf:gsub("Suzuki Scripts\\ReaDrum Machine\\JSFX\\", "")
-      if buf == "RDM_midi_note_filter.jsfx" then
-      fi = f
-      break
-      end
+      retval, buf = r.TrackFX_GetNamedConfigParm(track, find_filter, 'fx_name')
+      --buf = buf:gsub("Suzuki Scripts\\ReaDrum Machine\\JSFX\\", "")
+      if buf:find('RDM MIDI Note Filter')then
+        fi = f
+        break
+        end
     end
   end
   return fi

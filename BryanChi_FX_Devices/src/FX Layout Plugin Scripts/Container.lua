@@ -246,13 +246,11 @@ else
         else       -- if not collapsed
             --FX[FxGUID].BgClr = 0xff22ff44
             local function Render_Normal()
-                local WinW, diff, Cur_X_ofs
+                local  diff, Cur_X_ofs
                 if i == 1 then 
                     SL(nil,0)
-                    local SpcW = AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
+                     AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
                     SL(nil,0)
-                    WinW = SpcW 
-
                 end
 
             
@@ -265,7 +263,10 @@ else
                 local Hv = createFXWindow(FX_Id)
                 SL(nil,0)
                 
-                if v.scale  then  FX[GUID].parent =  v.addr_fxid - v.scale * i   end 
+                if v.scale and GUID  then 
+                    FX[GUID] = FX[GUID] or {}   
+                    FX[GUID].parent =  v.addr_fxid - v.scale * i   
+                end 
             
                 local w = r.ImGui_GetItemRectSize(ctx)
                 local TB = Upcoming_Container or TREE[Root_ID+1].children
@@ -275,15 +276,9 @@ else
             
                 LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
-                FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + (SpcW or 0) +( LastSpc or 0)
-
-
-                
-
+                FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w +( LastSpc or 0)
                 
                 if Hover then  DisableScroll = false  end 
-               -- CollapseIfTab(FxGUID, FX_Idx)
-
             end
             local W= Render_Normal()
 
