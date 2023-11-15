@@ -329,7 +329,7 @@ else
     if not FX[FxGUID].Collapse then 
         local WDL = r.ImGui_GetWindowDrawList(ctx)
         --r.ImGui_DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, Pad, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, rounding, 4)
+        HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, rounding, 4)
     end 
 
 

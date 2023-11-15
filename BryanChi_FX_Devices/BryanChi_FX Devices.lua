@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.10.6
+-- @version 1.0beta10.11
 -- @changelog
---  - layout editor - fix Fix image path disappearing when saving layouts
+--  - [New!] - Suzuki's ReaDrum Machine can now be used inside FX Devices. Huge thanks to Suzuki for his generous contribution.
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
