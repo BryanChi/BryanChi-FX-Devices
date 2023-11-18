@@ -1746,15 +1746,18 @@ function DndAddFX_SRC(fx)
 end
 
 function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
-    if not DND_ADD_FX then return end
+
+    --if not DND_ADD_FX then return  end
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
     if r.ImGui_BeginDragDropTarget(ctx) then
         local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-        r.ImGui_EndDragDropTarget(ctx)
+        
+        
         if dropped then
-            local FX_Idx = FX_Idx
+            local FX_Idx = Dest
             if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
-                r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
+            
+            r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
             local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
 
@@ -1762,7 +1765,7 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
             if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
                 DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
             end
-            Dvdr.Clr[ClrLbl], Dvdr.Width[TblIdxForSpace] = nil, 0
+            Dvdr.Clr[ClrLbl or ''], Dvdr.Width[TblIdxForSpace or ''] = nil, 0
             if SpcIsInPre then
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
                     table.insert(Trk[TrkID].PreFX, FxID)
@@ -1782,10 +1785,12 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
                 DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
             FX_Idx_OpenedPopup = nil
+
         end
+
     end
     r.ImGui_PopStyleColor(ctx)
-  end
+end
 
 function AddFX_Menu(FX_Idx)
     local function DrawFxChains(tbl, path)
@@ -4818,6 +4823,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 ----------- Add FX ---------------
                 if Payload_Type == 'DND ADD FX' then
                     DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
+                    msg('ansjdk')
                 end
 
                 
@@ -4896,6 +4902,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         end
 
         if r.ImGui_BeginDragDropTarget(ctx) then
+
             if Payload_Type == 'FX_Drag' then
 
 
@@ -4927,7 +4934,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     r.ImGui_EndDragDropTarget(ctx)
                 else
                     HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
-
 
                     Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
                     Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
@@ -5023,16 +5029,62 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     end
                 end
             elseif Payload_Type == 'DND ADD FX' then
-                DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl)     -- normal
+
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
+
+                local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
+                HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
+
+                if dropped then
+                    local FX_Idx = FX_Idx
+                    if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
+                    
+                    r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
+                    local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+                    local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+        
+                        --if in layer
+                    if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
+                        DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
+                    end
+                    Dvdr.Clr[ClrLbl], Dvdr.Width[TblIdxForSpace] = nil, 0
+                    if SpcIsInPre then
+                        if SpaceIsBeforeRackMixer == 'End of PreFX' then
+                            table.insert(Trk[TrkID].PreFX, FxID)
+                        else
+                        table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
+                        end
+                        for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
+                            true) end
+                    elseif SpcInPost then
+                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
+                        table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
+                        -- InsertToPost_Src = FX_Idx + offset+2
+                        for i = 1, #Trk[TrkID].PostFX + 1, 1 do
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                        end
+                    elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
+                        DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
+                    end
+                    FX_Idx_OpenedPopup = nil
+                    
+                end
+                r.ImGui_PopStyleColor(ctx)
+
                 r.ImGui_EndDragDropTarget(ctx)
             end
 
             
         else
+            
             Dvdr.Width[TblIdxForSpace] = 0
             Dvdr.Clr[ClrLbl] = 0x131313ff
             r.ImGui_SameLine(ctx, nil, 0)
         end
+
+
+        
+        
         r.ImGui_SameLine(ctx, nil, 0)
     end
 

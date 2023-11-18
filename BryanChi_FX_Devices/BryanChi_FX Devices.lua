@@ -1,8 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.11
+-- @version 1.0beta10.12
 -- @changelog
---  - [New!] - Suzuki's ReaDrum Machine can now be used inside FX Devices. Huge thanks to Suzuki for his generous contribution.
+--  - Turned ReaDrum Machine into modules.
+--  - Added function DndAddFX_SRC and DndAddFXfromBrowser_TARGET to fix Drag/Drop FX bugs.
+--  - Fix dropping fx from FX Browser
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -183,7 +185,7 @@ PluginScript = {} ---@class PluginScript
 os_separator = package.config:sub(1, 1)
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = '1.0beta10.11'
+VersionNumber = '1.0beta10.12'
 FX_Add_Del_WaitTime = 2
 
  FX_LIST, CAT = ReadFXFile()
