@@ -140,7 +140,7 @@ local function DndAddFXtoContainer_TARGET()
     r.ImGui_PopStyleColor(ctx)
 end
 
-local function DndMoveFXtoContainer_TRGET()
+local function DndMoveFXtoContainer_TARGET()
     if r.ImGui_BeginDragDropTarget(ctx) then
         local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
         r.ImGui_EndDragDropTarget(ctx)
@@ -257,7 +257,7 @@ if tonumber( FX_Count) == 0 then
 
     --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
-    DndMoveFXtoContainer_TRGET()
+    DndMoveFXtoContainer_TARGET()
     DndAddFXtoContainer_TARGET()
 else
     local CollapseXPos, CollapseYPos  = r.ImGui_GetCursorPos(ctx)
