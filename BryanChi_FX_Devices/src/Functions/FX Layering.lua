@@ -74,17 +74,16 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
 
     if Lyr.FX_Ins[FXGUID_RackMixer] == nil then Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
     local guid
-    if Payload_Type == 'AddFX_Sexan' then
+    if Payload_Type == 'DND ADD FX' then
         guid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
         FX[guid] = FX[guid] or {}
     else
         guid = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
     end
 
-    if FX[FXGUID[DragFX_ID]].InWhichBand then
-        MoveFX_Out_Of_BS()
-    end
-
+    --if FX[FXGUID[DragFX_ID]].InWhichBand then -- cause of error
+    --    MoveFX_Out_Of_BS()
+    --end
 
     if FX.InLyr[guid] ~= FXGUID_RackMixer then
         Lyr.FX_Ins[FXGUID_RackMixer] = Lyr.FX_Ins[FXGUID_RackMixer] + 1

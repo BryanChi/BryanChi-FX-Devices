@@ -74,17 +74,16 @@ end
 
 
 local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
-    if  (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan') then 
-        
+    if  (Payload_Type == 'FX_Drag' or Payload_Type == 'DND ADD FX') then 
         
         local W, H = 130, 20
         local L,T = r.ImGui_GetCursorScreenPos(ctx)
         local L = Xpos
         --if FX_Id ~= FX[FxGUID].LastSpc then  L = L-135  end 
 
-        if r.ImGui_IsMouseHoveringRect(ctx,L , T-H/2, L+W, T+H/2 )  then 
-            r.ImGui_DrawList_AddLine(Glob.FDL, L, T, L+W , T  ,Accent_Clr, 3)
-            if r.ImGui_IsMouseReleased(ctx,0) then 
+        if r.ImGui_IsMouseHoveringRect(ctx, L, T-H/2, L+W, T+H/2 )  then 
+            r.ImGui_DrawList_AddLine(Glob.FDL, L, T, L+W , T, Accent_Clr, 3)
+            if r.ImGui_IsMouseReleased(ctx, 0) then 
                 --msg(FX[GUID].parent .. '   id = '..FX_Idx)
                 local Drag_GUID = r.TrackFX_GetFXGUID(LT_Track, Payload)
                 local ofs  = 0 
@@ -101,6 +100,82 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
         end
         --r.ImGui_DrawList_AddRect(WDL, L , T-H/2, L+W, T+H/(Last or 2), 0xff77ffff)
     end 
+end
+
+local function DndAddFXtoContainer_TARGET()
+    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
+    if r.ImGui_BeginDragDropTarget(ctx) then
+        local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
+        r.ImGui_EndDragDropTarget(ctx)
+        if dropped and Mods == 0  then
+            local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
+
+            if FxGUID ~= Root_FxGuid then 
+                --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
+                local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
+                
+                local function Get_Fx_Ct (TB, base_FX_Ct )
+                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
+
+                    if not C then -- if container has no children
+                        Final_FX_Ct = base_FX_Ct
+                        
+                    else
+                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
+                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
+                    end
+
+                    return Final_FX_Ct
+                end
+
+                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
+
+                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
+                
+                FX_Id =   Empty_Cont_Fx_Id
+            end
+            r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Id)
+        end
+    end
+    r.ImGui_PopStyleColor(ctx)
+end
+
+local function DndMoveFXtoContainer_TRGET()
+    if r.ImGui_BeginDragDropTarget(ctx) then
+        local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+        r.ImGui_EndDragDropTarget(ctx)
+        Highlight_Itm(WDL, 0xffffff33)
+        if rv and Mods == 0 then 
+            local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
+
+            if FxGUID ~= Root_FxGuid then 
+                --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
+                local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
+                
+                local function Get_Fx_Ct (TB, base_FX_Ct )
+                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
+
+                    if not C then -- if container has no children
+                        Final_FX_Ct = base_FX_Ct
+                        
+                    else
+                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
+                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
+                    end
+
+                    return Final_FX_Ct
+                end
+
+                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
+
+                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
+                
+                FX_Id =   Empty_Cont_Fx_Id
+
+            end
+            r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, FX_Id, true )
+        end
+    end    
 end
 
 local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUID,TB)
@@ -180,51 +255,10 @@ if tonumber( FX_Count) == 0 then
     r.ImGui_SetCursorScreenPos(ctx, X-50 , Y)
     r.ImGui_InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
 
-    
-
     --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
-
-
-    if r.ImGui_BeginDragDropTarget(ctx)then 
-        local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-        Highlight_Itm(WDL, 0xffffff33)
-
-
-        if rv and Mods == 0 then 
-            local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
-
-            if FxGUID ~= Root_FxGuid then 
-                --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
-                local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
-                
-                local function Get_Fx_Ct (TB, base_FX_Ct )
-                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
-
-                    if not C then -- if container has no children
-                        Final_FX_Ct = base_FX_Ct
-                        
-                    else
-                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
-                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
-                    end
-
-                    return Final_FX_Ct
-                end
-
-                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
-
-                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
-                
-                FX_Id =   Empty_Cont_Fx_Id
-
-            end
-
-            r.TrackFX_CopyToTrack(LT_Track,DragFX_ID, LT_Track, FX_Id, true )
-            r.ImGui_EndDragDropTarget(ctx)
-        end
-    end
-
+    DndMoveFXtoContainer_TRGET()
+    DndAddFXtoContainer_TARGET()
 else
     local CollapseXPos, CollapseYPos  = r.ImGui_GetCursorPos(ctx)
      CollapseXPos_screen = r.ImGui_GetCursorScreenPos(ctx)

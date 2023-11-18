@@ -80,7 +80,9 @@ end
 local tr = reaper.GetSelectedTrack(0,0)
 TREE = BuildFXTree(LT_Track or tr)
 
-
+function EndUndoBlock(str)
+    r.Undo_EndBlock("ReaDrum Machine: " .. str, -1)
+  end
 
 function Curve_3pt_Bezier(startX,startY,controlX,controlY,endX,endY)
     local X , Y = {}, {}
@@ -1735,6 +1737,55 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
 end
 
+function DndAddFX_SRC(fx)
+    if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_AcceptBeforeDelivery()) then
+      r.ImGui_SetDragDropPayload(ctx, 'DND ADD FX', fx)
+      r.ImGui_Text(ctx, fx)
+      r.ImGui_EndDragDropSource(ctx)
+    end
+end
+
+function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
+    if not DND_ADD_FX then return end
+    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
+    if r.ImGui_BeginDragDropTarget(ctx) then
+        local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
+        r.ImGui_EndDragDropTarget(ctx)
+        if dropped then
+            local FX_Idx = FX_Idx
+            if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
+                r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
+            local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+            local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+
+                --if in layer
+            if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
+                DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
+            end
+            Dvdr.Clr[ClrLbl], Dvdr.Width[TblIdxForSpace] = nil, 0
+            if SpcIsInPre then
+                if SpaceIsBeforeRackMixer == 'End of PreFX' then
+                    table.insert(Trk[TrkID].PreFX, FxID)
+                else
+                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
+                end
+                for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
+                    true) end
+            elseif SpcInPost then
+                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
+                table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
+                -- InsertToPost_Src = FX_Idx + offset+2
+                for i = 1, #Trk[TrkID].PostFX + 1, 1 do
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+                end
+            elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
+                DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
+            end
+            FX_Idx_OpenedPopup = nil
+        end
+    end
+    r.ImGui_PopStyleColor(ctx)
+  end
 
 function AddFX_Menu(FX_Idx)
     local function DrawFxChains(tbl, path)
@@ -1751,9 +1802,10 @@ function AddFX_Menu(FX_Idx)
                 if r.ImGui_Selectable(ctx, tbl[i]) then
                     if TRACK then
                         r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i], extension }), false,
-                            -1000 - r.TrackFX_GetCount(TRACK))
+                            -1000 - FX_Idx)
                     end
                 end
+                DndAddFX_SRC(table.concat({ path, os_separator, tbl[i], extension }))
             end
         end
     end
@@ -1818,12 +1870,6 @@ function AddFX_Menu(FX_Idx)
                             r.ImGui_EndMenu(ctx)
                         end
                     end
-                    if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
-                        r.TrackFX_AddByName(TRACK, "Video processor", false,-1000 - r.TrackFX_GetCount(TRACK))
-                        AddedFX=true
-                        LAST_USED_FX = "Video processor"
-                    end
-            
                 end
                 r.ImGui_EndMenu(ctx)
             end
@@ -1831,9 +1877,25 @@ function AddFX_Menu(FX_Idx)
         if r.ImGui_BeginMenu(ctx, "FXD INSTRUMENTS & EFFECTS") then
             if r.ImGui_Selectable(ctx, "ReaDrum Machine") then
                 local chain_src = "../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain"
+                local found = false
+                count = r.TrackFX_GetCount(TRACK) -- 1 based
+                for i = 0, count - 1 do
+                  local rv, rename = r.TrackFX_GetNamedConfigParm(TRACK, i, 'renamed_name') -- 0 based
+                  if rename == 'ReaDrum Machine' then
+                    found = true
+                    break
+                  end
+                end
+                if not found then
+                r.Undo_BeginBlock()
+                r.PreventUIRefresh(1)
                 r.TrackFX_AddByName(TRACK, chain_src, false, -1000 - FX_Idx)
                 AddedFX=true
+                r.PreventUIRefresh(-1)
+                EndUndoBlock("ADD DRUM MACHINE")
+                end
             end
+            DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
             r.ImGui_EndMenu(ctx)
         end
         TRACK = r.GetSelectedTrack(0, 0)
@@ -1842,12 +1904,20 @@ function AddFX_Menu(FX_Idx)
             AddedFX=true
             LAST_USED_FX = "Container"
         end
+        DndAddFX_SRC("Container")
+        if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
+            r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
+            AddedFX=true
+            LAST_USED_FX = "Video processor"
+        end
+        DndAddFX_SRC("Video processor")
         if LAST_USED_FX then
             if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
-                r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - r.TrackFX_GetCount(TRACK))
+                r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - FX_Idx)
                 AddedFX=true
             end
         end
+        DndAddFX_SRC(LAST_USED_FX)
         r.ImGui_SeparatorText(ctx, "UTILS")
         if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
             local FX_Idx = FX_Idx
@@ -1934,7 +2004,7 @@ function AddFX_Menu(FX_Idx)
             FX_Idx_OpenedPopup = nil
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
-
+        --DndAddFX_SRC("FXD Saike BandSplitter")
 
         Dvdr.Spc_Hover[TblIdxForSpace] = Dvdr_Hvr_W
         --Dvdr.Clr[ClrLbl] = 0x999999ff
@@ -1960,8 +2030,6 @@ end
 function createFXWindow(FX_Idx, Cur_X_Ofs)
     local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local HoverWindow
-
-
 
     if --[[ FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] and ]] FxGUID then
         FX[FxGUID] = FX[FxGUID] or {}
@@ -2097,9 +2165,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             if --[[Ctrl + R click]] r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
                 r.ImGui_OpenPopup(ctx, 'Morphing menu' .. FX_Idx)
             end
-
-
-
 
             local L, T = r.ImGui_GetItemRectMin(ctx)
             local R, B = r.ImGui_GetItemRectMax(ctx)
@@ -4751,8 +4816,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FxDroppingTo = nil
                 end
                 ----------- Add FX ---------------
-                if Payload_Type == 'AddFX_Sexan' then
-                    AddFX_Sexan(FX_Idx, ClrLbl)   -- fx layer
+                if Payload_Type == 'DND ADD FX' then
+                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
                 end
 
                 
@@ -4806,8 +4871,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FxDroppingTo = nil
                 end
                 -- Add from Sexan Add FX
-                if Payload_Type == 'AddFX_Sexan' then
-                    AddFX_Sexan(FX_Idx, ClrLbl)  -- band split
+                if Payload_Type == 'DND ADD FX' then
+                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl)  -- band split
                 end
 
                 r.ImGui_EndDragDropTarget(ctx)
@@ -4957,8 +5022,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         RepositionFXsInContainer(FX_Idx, Glob.Payload)
                     end
                 end
-            elseif Payload_Type == 'AddFX_Sexan' then
-                AddFX_Sexan(FX_Idx, ClrLbl)     -- normal
+            elseif Payload_Type == 'DND ADD FX' then
+                DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl)     -- normal
                 r.ImGui_EndDragDropTarget(ctx)
             end
 
