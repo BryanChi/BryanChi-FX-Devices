@@ -169,7 +169,6 @@ end
 
 
 r = reaper
---require("src.Helpers.Sexan_FX_Browser") -- NOT NEEDED ANYMORE 
 require("src.Functions.General Functions")
 require("src.Functions.EQ functions")
 require("src.Functions.Layout Editor functions")
@@ -179,26 +178,13 @@ require("src.Functions.Theme Editor Functions")
 require("src.Functions.Filesystem_utils")
 require("src.Constants")
 
-
-
-
---dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua") -- NOT NEEDED ANYMORE
-local os_separator = package.config:sub(1, 1)
-
 PluginScript = {} ---@class PluginScript
 
---dofile(r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
-local os_separator = package.config:sub(1, 1)
-
+os_separator = package.config:sub(1, 1)
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = '1.0beta10.10.6'
+VersionNumber = '1.0beta10.11'
 FX_Add_Del_WaitTime = 2
-
-
-
-
-
 
  FX_LIST, CAT = ReadFXFile()
 if not FX_LIST or not CAT then
@@ -766,7 +752,8 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                 if r.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
                     -- HIGHLIGHT DRAGGED FX
                     DRAG_FX = i
-                    AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
+                    DndAddFX_SRC(filtered_fx[i])
+                    --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
                 end
             end
 
@@ -3915,8 +3902,8 @@ function loop()
                 if Payload_Type == 'FX_Drag' then
                     dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                     r.ImGui_SameLine(ctx, nil, 0)
-                elseif Payload_Type == 'AddFX_Sexan' then
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan') --
+                elseif Payload_Type == 'DND ADD FX' then
+                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
                 end
             end
 
@@ -3955,8 +3942,8 @@ function loop()
                         end
                         RemoveFXfromBS()
                     end
-                elseif Payload_Type == 'AddFX_Sexan' then
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan') --
+                elseif Payload_Type == 'DND ADD FX' then
+                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
                     if dropped then
                         r.TrackFX_AddByName(LT_Track, payload, false, -1000)
                         local FxID = r.TrackFX_GetFXGUID(LT_Track, 0)
@@ -6412,8 +6399,8 @@ function loop()
                                                 DropToLyrID = LyrID
                                                 DroptoRack = FXGUID_RackMixer
                                             end
-                                            if Payload_Type == 'AddFX_Sexan' then
-                                                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan') --
+                                            if Payload_Type == 'DND ADD FX' then
+                                                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
                                                 if dropped then
                                                     r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx)
 
@@ -7325,7 +7312,7 @@ function loop()
                                                     DropFXintoBS(FXGUID[Pl], FxGUID, i, Pl, InsPos + 1)
                                                 end
                                             end
-                                        elseif Payload_Type == 'AddFX_Sexan' then
+                                        elseif Payload_Type == 'DND ADD FX' then
                                             r.ImGui_DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos,
                                                 0xffffff66)
 
@@ -8071,7 +8058,7 @@ function loop()
             MouseAtRightEdge = r.ImGui_IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.y,
                 VP.X + VP.w, VP.y + VP.h)
 
-            if (Payload_Type == 'FX_Drag' or Payload_Type == 'AddFX_Sexan' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
+            if (Payload_Type == 'FX_Drag' or Payload_Type == 'DND ADD FX' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, -5)
                 dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
@@ -8110,10 +8097,10 @@ function loop()
                 end
             end
 
-            if Payload_Type == 'AddFX_Sexan' then
+            if Payload_Type == 'DND ADD FX' then
                 local SpcIDinPost
                 if SpcInPost then SpcIDinPost = math.max(#Trk[TrkID].PostFX, 1) end
-                AddFX_Sexan(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)  -- post fx
+                DndAddFXfromBrowser_TARGET(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost) -- post fx
             end
 
             PostFX_Width = math.min(
@@ -8150,8 +8137,8 @@ function loop()
                             local IDinPre = tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
                             if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                         end
-                    elseif Payload_Type == 'AddFX_Sexan' then
-                        dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'AddFX_Sexan')
+                    elseif Payload_Type == 'DND ADD FX' then
+                        dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
                         HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
                         if dropped then
