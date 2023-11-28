@@ -1,6 +1,6 @@
 -- @noindex
--- author Suzuki
--- link https://forum.cockos.com/showthread.php?t=284566
+-- @author Suzuki
+-- @link https://forum.cockos.com/showthread.php?t=284566
 
 r = reaper
 Pad          = {}
@@ -313,7 +313,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), COLOR["bg"])
     r.ImGui_BeginGroup(ctx)
     
-    draw_list = r.ImGui_GetWindowDrawList(ctx)                  -- 4 x 4 left vertical bar drawing
+    draw_list = r.ImGui_GetWindowDrawList(ctx)                  -- 4 x 4 left vertical tabs drawing
     f_draw_list = r.ImGui_GetForegroundDrawList(ctx) 
     local SPLITTER = r.ImGui_CreateDrawListSplitter(f_draw_list)
     r.ImGui_DrawListSplitter_Split(SPLITTER, 2)                     -- NUMBER OF Z ORDER CHANNELS
