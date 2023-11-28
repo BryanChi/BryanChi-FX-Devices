@@ -1711,7 +1711,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
         ----==  Drag and drop----
         if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_AcceptNoDrawDefaultRect()) then
             DragFX_ID = FX_Idx
-            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track,FX_Idx)
+            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             r.ImGui_SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
             r.ImGui_EndDragDropSource(ctx)
 
@@ -2078,15 +2078,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             'P_EXT: FX Morph A' .. i .. FxGUID,
                             FX[FxGUID].MorphA[i], true)
                         if LinkCC then
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", FX[FxGUID].MorphB[i])   -- Scale
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
-                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", Prm_Val) -- Baseline                                                
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", FX[FxGUID].MorphB[i])   -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", Prm_Val) -- Baseline                                                
                         end
                     else
                         if DontStoreCurrentVal ~= 'Dont' then FX[FxGUID].MorphB[i] = Prm_Val end
@@ -2095,15 +2095,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 'P_EXT: FX Morph B' .. i ..
                                 FxGUID, FX[FxGUID].MorphB[i], true)
                             if LinkCC then
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Prm_Val - FX[FxGUID].MorphA[i])   -- Scale
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
-                                local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", FX[FxGUID].MorphA[i]) -- Baseline                                                    
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Prm_Val - FX[FxGUID].MorphA[i])   -- Scale
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", FX[FxGUID].MorphA[i]) -- Baseline                                                    
                             end
                         end
                     end
@@ -2254,15 +2254,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             if v ~= FX[FxGUID].MorphB[i] then
                                 local function LinkPrm()
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Scale)   -- Scale
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                                    local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", v) -- Baseline                                                           
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Scale)   -- Scale
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", v) -- Baseline                                                           
                                     FX[FxGUID][i] = FX[FxGUID][i] or {}
                                     r.GetSetMediaTrackInfo_String(LT_Track,
                                         'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true)
@@ -3787,7 +3787,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                 end
-
+    
                                 if ToDef.ID and ToDef.V then
                                     r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P,
                                         ToDef
@@ -3806,13 +3806,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             r.gmem_write(7, Prm.WhichCC) --tells jsfx to retrieve P value
                                             PM.TimeNow = r.time_precise()
                                             r.gmem_write(11000 + Prm.WhichCC, ToDef.V)
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.active", 1)   -- 1 active, 0 inactive
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.effect", -100) -- -100 enables midi_msg*
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.param", -1)   -- -1 not parameter link
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_msg", 176)   -- 176 is CC
-                                            local setcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_msg2", Prm.WhichCC) -- CC value                                                                
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.active", 1)   -- 1 active, 0 inactive
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.effect", -100) -- -100 enables midi_msg*
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.param", -1)   -- -1 not parameter link
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_msg", 176)   -- 176 is CC
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.midi_msg2", Prm.WhichCC) -- CC value                                                                
                                         end
                                     end
                                     Prm.V = ToDef.V
@@ -4096,21 +4096,36 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                 end ]]
                             end
-                            if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then                                                    
+                            if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then
+                                --IsPlink = true
+                                local draw_list = r.ImGui_GetForegroundDrawList(ctx)
+                                local mouse_pos = { r.ImGui_GetMousePos(ctx) }
+                                local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 0) }
+                                r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], 0xB62424FF, 4.0)  -- Draw a line between the button and the mouse cursor                                          
                                 local P_Num = Prm.Num
-                                lead_fxnumber = FX_Idx
-                                lead_paramnumber = P_Num                                                                                        
+                                lead_fxid = FX_Idx -- storing the original fx id
+                                fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
+                                lead_paramnumber = P_Num      
+                                local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container") 
+                                local rev = ret                       
+                                while rev do -- to get root parent container id
+                                root_container = fxidx
+                                rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+                                end     
+                                if ret then       -- new fx and parameter                   
+                                    local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
+                                    lead_fxid = root_container
+                                    lead_paramnumber = buf
+                                end                                                                                                    
                             end
                             if r.ImGui_IsItemClicked(ctx, 1) and Mods == Shift then
                                 local P_Num = Prm.Num
-                                local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
                                 local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus")
-                                if bf == "15" then
-                                    local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)
-                                    local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
-                                    local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
-                                    local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
-                                    value = 1
+                                if bf == "15" then -- reset FX Devices' modulation bus/chan                                  
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -1) 
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)
                                     if FX[FxGUID][Fx_P].ModAMT then
                                         for Mc = 1, 8, 1 do
                                             if FX[FxGUID][Fx_P].ModAMT[Mc] then
@@ -4118,21 +4133,47 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end
                                         end
                                     end                                                    
-                                elseif retval and buf == "1" then
-                                    value = 0
-                                    lead_fxnumber = -1
-                                    lead_paramnumber = -1
-                                else
-                                    value = 1
                                 end
-                                if lead_fxnumber ~= nil then                                                  
-                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
-                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", lead_fxnumber) 
-                                local par = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", lead_paramnumber) 
-                                local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
-                                    if retval and buf == "1" then
-                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
-                                        local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
+                                if lead_fxid ~= nil then   
+                                    follow_fxid = FX_Idx -- storing the original fx id
+                                    fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
+                                    follow_paramnumber = P_Num      
+                                    ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
+                                    local rev = ret                            
+                                    while rev do -- to get root parent container id
+                                    root_container = fxidx
+                                    rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+                                    end
+                                    if ret then  -- fx inside container  
+                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)                  
+                                        if retval then -- toggle off and remove map
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 0)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", -1) 
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", -1) 
+                                            local rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
+                                            while rv do -- removing map
+                                            _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
+                                            r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "param." .. buf .. ".container_map.delete")
+                                            rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
+                                            end
+                                        else  -- new fx and parameter             
+                                            local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 1)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", lead_fxid) 
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", lead_paramnumber) 
+                                        end
+                                    else -- not inside container
+                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
+                                        if retval and buf == "1" then -- toggle off
+                                            value = 0
+                                            lead_fxid = -1
+                                            lead_paramnumber = -1
+                                        else
+                                            value = 1
+                                        end
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active", value)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.effect", lead_fxid) 
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.param", lead_paramnumber) 
                                     end
                                 end  
                             end 
@@ -4141,13 +4182,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                             if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                                 if r.ImGui_Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
-                                    local path = get_container_path_from_fx_id(LT_Track, FX_Idx)
-                                        if path then
-                                            FX_Idx, FP.Num = fx_map_parameter(LT_Track, FX_Idx, FP.Num)
-                                        end
-                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false) -- Check if envelope is on
+                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
                                     if env == nil then  -- Envelope is off
-                                        local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true) -- true = Create envelope
+                                        local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, true) -- true = Create envelope
                                     else -- Envelope is on
                                         local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                         if string.find(EnvelopeStateChunk, "VIS 1") then -- VIS 1 = visible, VIS 0 = invisible
@@ -4164,9 +4201,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     r.UpdateArrange()
                                 end
                                 if r.ImGui_Selectable(ctx, 'Remove Envelope', false) then
-                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false) -- Check if envelope is on
+                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
                                     if env == nil then  -- Envelope is off
-                                        return
+                                        local nothing
                                     else -- Envelope is on
                                         local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                         if string.find(EnvelopeStateChunk, "ACT 1") then
@@ -4180,31 +4217,28 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     r.UpdateArrange()
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
-                                    local P_Num = Prm.Num
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
                                     if retval and buf == "1" then -- Toggle
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", 0)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active", 0)
                                     else
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.active", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.chan", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".acs.stereo", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.chan", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.stereo", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", 1)
                                     end  
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add LFO') then
-                                    local P_Num = Prm.Num
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active") 
                                     if retval and buf == "1" then
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", 0)  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active", 0)  
                                     else
-                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".lfo.active", 1)      
-                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1) 
+                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active", 1)      
+                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", 1) 
                                     end                                              
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add CC Link') then
-                                    local P_Num = Prm.Num
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active") 
-                                    local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.active") 
+                                    local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus") 
                                     if bf == "15" then
                                         value = 1
                                         local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- For 14 bit, 128 + CC# is plink.midi_msg2 value, e.g. 02/34 become 130 (128-159)
@@ -4286,24 +4320,23 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                     if retvals ~= nil then
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", value)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 176)  
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", retvals) 
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.active", value)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.effect", -100) 
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.param", -1)   
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus", 0)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_chan", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_msg", 176)  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_msg2", retvals) 
                                     end                                                      
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Open Modulation/Link Window') then
-                                    local P_Num = Prm.Num
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible") 
                                     if retval and buf == "1" then
                                         value = 0
                                     else
                                         value = 1
                                     end
-                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", value)                                                     
+                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", value)                                                     
                                 end
                                 r.ImGui_EndPopup(ctx)
                             end

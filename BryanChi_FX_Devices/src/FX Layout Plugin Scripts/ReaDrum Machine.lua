@@ -2,7 +2,6 @@
 -- author Suzuki
 -- link https://forum.cockos.com/showthread.php?t=284566
 
-
 r = reaper
 Pad          = {}
 
@@ -20,11 +19,11 @@ if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end
 
 ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
-
 ---------------------------------------------
 ---------Function----------------------------
 ---------------------------------------------
 local posx, posy = r.ImGui_GetCursorScreenPos(ctx)
+
 track = r.GetSelectedTrack2(0, 0, false)
 
 draw_list = r.ImGui_GetWindowDrawList(ctx)
@@ -35,33 +34,6 @@ dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/D
 dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/Drawing.lua")
 dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/General Functions.lua")
 dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/Pad Actions.lua")
-
-local function OpenFXInsidePad(a)
-  CountPadFX(Pad[a].Pad_Num) -- padfx_idx
-  for f = 1, padfx_idx do
-    DL = r.ImGui_GetBackgroundDrawList(ctx)
-    FX_Id = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f)
-    FX_Id_next = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f + 1)
-    local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-    SL(nil, 0)
-    AddSpaceBtwnFXs(FX_Id)
-    Xpos_Right, Ypos_Btm = r.ImGui_GetItemRectMax(ctx)
-    Xpos_Left, Ypos_Top = r.ImGui_GetItemRectMin(ctx)
-    r.ImGui_DrawList_AddLine(DL, Xpos_Left, Ypos_Top, Xpos_Right, Ypos_Top,
-    Clr.Dvdr.outline)
-    r.ImGui_DrawList_AddLine(DL, Xpos_Left, Ypos_Btm, Xpos_Right, Ypos_Btm,
-    Clr.Dvdr.outline)
-    r.ImGui_DrawList_AddLine(DL, Xpos_Right, Ypos_Top, Xpos_Right, Ypos_Btm,
-    Clr.Dvdr.outline, 14)
-    SL(nil, 0)
-    createFXWindow(FX_Id)
-    SL(nil, 0)
-    LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
-    local w = r.ImGui_GetItemRectSize(ctx)
-    FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + (LastSpc or 0)
-    if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
-  end
-end
 
 local function DndMoveFXtoPad_TARGET_SWAP(a) 
   r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
@@ -108,7 +80,7 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
   r.ImGui_PopStyleColor(ctx)
 end
 
-local function ButtonDrawlist(splitter, name, color)
+local function ButtonDrawlist(splitter, name, color, a)
   r.ImGui_DrawListSplitter_SetCurrentChannel(splitter, 0)
   color = r.ImGui_IsItemHovered(ctx) and IncreaseDecreaseBrightness(color, 30) or color
   local xs, ys = r.ImGui_GetItemRectMin(ctx)
@@ -138,9 +110,14 @@ local function ButtonDrawlist(splitter, name, color)
   local char_size_w,char_size_h = r.ImGui_CalcTextSize(ctx, "A")
   local font_color = CalculateFontColor(color)
 
-  local name = name:sub(1, 11)
+  local name = name:sub(1, 10)
   r.ImGui_DrawList_AddTextEx( draw_list, nil, font_size, xs, ys + char_size_h, r.ImGui_GetColorEx(ctx, font_color), name)
   r.ImGui_DrawList_AddText(draw_list, xs, ys, 0xffffffff, note_name)
+
+  if FX[FxGUID].OPEN_PAD == a then
+    if not Pad[a] then return end
+    Highlight_Itm(WDL, 0x256BB155, 0x256BB1ff)
+  end
 end
 
 local function DrawListButton(splitter, name, color, round_side, icon, hover, offset)
@@ -171,8 +148,29 @@ local function DrawListButton(splitter, name, color, round_side, icon, hover, of
   if icon then r.ImGui_PopFont(ctx) end
 end
 
+local function OpenFXInsidePad(a)
+  if not Pad[a] then return end 
+  CountPadFX(Pad[a].Pad_Num) -- padfx_idx
+  for f = 1, padfx_idx do
+    FX_Id = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f)
+    FX_Id_next = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f + 1)
+    local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
+    Spc = AddSpaceBtwnFXs(FX_Id)
+    r.ImGui_SameLine(ctx, nil, 0)
+    createFXWindow(FX_Id)
+    SL(nil, 0)
+    local w = r.ImGui_GetItemRectSize(ctx)
+    if f == tonumber(padfx_idx) then
+    LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
+    end 
+    FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + (Spc or 0)
+    if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
+  end
+end
+
 local function DrawPads(loopmin, loopmax)
   local SPLITTER = r.ImGui_CreateDrawListSplitter(draw_list)
+  local RETURN 
   r.ImGui_DrawListSplitter_Split(SPLITTER, 2)
   CheckDNDType()
 
@@ -193,10 +191,10 @@ local function DrawPads(loopmin, loopmax)
     end
     local y = 150 + math.floor((a - loopmin) / 4) * -50 -- start position + math.floor * - row offset
     local x = 5 + (a - 1) % 4 * 80
-
+    local FX_VISIBLE
     r.ImGui_SetCursorPos(ctx, x, y)
     local ret = r.ImGui_InvisibleButton(ctx, pad_name .. "##" .. a, 75, 30)
-    ButtonDrawlist(SPLITTER, pad_name, Pad[a] and COLOR["Container"] or COLOR["n"])
+    ButtonDrawlist(SPLITTER, pad_name, Pad[a] and COLOR["Container"] or COLOR["n"], a)
     DndAddFX_TARGET(a)
     DndAddSample_TARGET(a)
     -- DndAddMultipleSamples_TARGET(a)
@@ -205,21 +203,11 @@ local function DrawPads(loopmin, loopmax)
     PadMenu(a, note_name)
     if ret then 
       ClickPadActions(a)
-    elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] then 
-      if not OPEN_PAD then
-        FX_VISIBLE = true
-      end
-      if OPEN_PAD == a then
-        FX_VISIBLE = not FX_VISIBLE
-      else
-        if not FX_VISIBLE then
-          FX_VISIBLE = true
-        end
-      end
-      OPEN_PAD = a
-      if FX_VISIBLE then
-        OpenFXInsidePad(a)
-      end
+    elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] then
+      FX[FxGUID].OPEN_PAD = toggle2(FX[FxGUID].OPEN_PAD, a)
+    -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
+    --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
+    --   r.ShowConsoleMsg(table.unpack(value_raw))
     else
       DndMoveFX_SRC(a)
     end
@@ -277,14 +265,22 @@ local function DrawPads(loopmin, loopmax)
     else
       DrawListButton(SPLITTER, "M", COLOR["n"], nil, nil)
     end
+    if FX[FxGUID].OPEN_PAD == a then 
+      RETURN = a 
+    end 
   end
   r.ImGui_DrawListSplitter_Merge(SPLITTER)
+  if RETURN then return RETURN end 
 end
+
+--[[ function Draw_Enclose_OpenFXs()
+  local DL = r.ImGui_GetWindowDrawList(ctx)
+  r.ImGui_DrawList_AddRect(DL,  )
+end ]]
 
 ---------------------------------------------
 ---------Body (Drawing)----------------------
 ---------------------------------------------
-
 
 COLOR              = {
     ["n"]           = 0xff,
@@ -295,7 +291,6 @@ COLOR              = {
     ["bg"] = 0x141414ff
   }
   
-
 local s_window_x, s_window_y = r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding())
 local s_frame_x, s_frame_y = r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_FramePadding())
 
@@ -318,7 +313,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), COLOR["bg"])
     r.ImGui_BeginGroup(ctx)
     
-    draw_list = r.ImGui_GetWindowDrawList(ctx)                  -- 4 x 4 left veertical bar drawing
+    draw_list = r.ImGui_GetWindowDrawList(ctx)                  -- 4 x 4 left vertical bar drawing
     f_draw_list = r.ImGui_GetForegroundDrawList(ctx) 
     local SPLITTER = r.ImGui_CreateDrawListSplitter(f_draw_list)
     r.ImGui_DrawListSplitter_Split(SPLITTER, 2)                     -- NUMBER OF Z ORDER CHANNELS
@@ -329,11 +324,10 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     --end
     r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 0)       -- SET LOWER PRIORITY TO DRAW AFTER
     local x, y = r.ImGui_GetCursorPos(ctx)
-    --  r.ImGui_DrawList_AddRect(draw_list, wx+x-2, wy+y-2+33 * (i-1), wx+x+33, wy+y+33 * i, 0xFFFFFFFF)  -- white box when selected
      for ci = 0, 8 * (hy - 18), hy - 16.2 do
        for bi = 0, 15, 5 do
          for i = 0, 15, 5 do
-           r.ImGui_DrawList_AddRectFilled(f_draw_list, wx + x + i, wy + y + bi + ci, wx + x + 3 + i, wy + y + 3 + bi + ci,
+           r.ImGui_DrawList_AddRectFilled(f_draw_list, wx + x + i + 1, wy + y + bi + ci + 2, wx + x + 3 + i, wy + y + 5 + bi + ci,
             0x252525FF)
          end
       end
@@ -342,45 +336,56 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   
     if r.ImGui_BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100, false) then   -- vertical tab
       for i = 1, 8 do
-        r.ImGui_SetCursorPos(ctx, 0, (y) * (i / 1.3  - 0.8))
-        if r.ImGui_InvisibleButton(ctx, "B" .. i, 20, 20) then
-          if not LAST_MENU then
-            VUI_VISIBLE = true
-          end
-          if LAST_MENU == i then
-            VUI_VISIBLE = not VUI_VISIBLE
-          else
-            if not VUI_VISIBLE then
-              VUI_VISIBLE = true
-            end
-          end
-          LAST_MENU = i
+        r.ImGui_SetCursorPos(ctx, 0, (y) * (i / 1.3  - 0.75))
+        rv = r.ImGui_InvisibleButton(ctx, "B" .. i, 20, 20)
+        local xs, ys = r.ImGui_GetItemRectMin(ctx)
+        local xe, ye = r.ImGui_GetItemRectMax(ctx)
+        if rv then
+          FX[FxGUID].LAST_MENU = toggle2 (FX[FxGUID].LAST_MENU, i)
+        end
+        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
+        if r.ImGui_BeginDragDropTarget(ctx) then
+          r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
+          r.ImGui_AcceptDragDropPayload(ctx, 'FX_DRAG')
+          r.ImGui_AcceptDragDropPayload(ctx, 'DND MOVE FX')
+          r.ImGui_EndDragDropTarget(ctx)
+        end
+        r.ImGui_PopStyleColor(ctx)
+        if (DND_ADD_FX or DND_MOVE_FX or FX_DRAG) and r.ImGui_IsMouseHoveringRect(ctx, xs, ys, xe, ye) then
+          FX[FxGUID].LAST_MENU = i
+        end
+        HighlightHvredItem()
+        if FX[FxGUID].LAST_MENU == i then 
+          Highlight_Itm(WDL, 0x12345655, 0x184673ff)
         end
       end
       r.ImGui_EndChild(ctx)
     end
-    if VUI_VISIBLE then       -- Open pads manu
+    local openpad 
+    if FX[FxGUID].LAST_MENU then       -- Open pads manu
       r.ImGui_SetCursorPos(ctx, x + w_closed - 10, y - 7)
       if r.ImGui_BeginChild(ctx, "child_menu", w_open + 250, h + 88) then
-        if LAST_MENU == 1 then
-          DrawPads(113, 128)
-        elseif LAST_MENU == 2 then
-          DrawPads(97, 112)
-        elseif LAST_MENU == 3 then
-          DrawPads(81, 96)
-        elseif LAST_MENU == 4 then
-          DrawPads(65, 80)
-        elseif LAST_MENU == 5 then
-          DrawPads(49, 64)
-        elseif LAST_MENU == 6 then
-          DrawPads(33, 48)
-        elseif LAST_MENU == 7 then
-          DrawPads(17, 32)
-        elseif LAST_MENU == 8 then
-          DrawPads(1, 16)
-        end
+        local high = 128 - 16 * (FX[FxGUID].LAST_MENU - 1 )
+        local low = 128 - 16 * (FX[FxGUID].LAST_MENU) + 1 
+        openpad = DrawPads(low, high)
         r.ImGui_EndChild(ctx)
       end
+    end
+
+    if FX[FxGUID].OPEN_PAD == openpad and openpad then
+      
+      r.ImGui_SetCursorPos(ctx, 340 + 5,0)
+      local x1, y1 = r.ImGui_GetCursorScreenPos(ctx)
+
+      OpenFXInsidePad(FX[FxGUID].OPEN_PAD)
+
+      local x, y = r.ImGui_GetCursorScreenPos(ctx)
+
+      --[[ r.ImGui_DrawList_AddLine(WDL, x, y, x, y+220, 0x123456ff, 2 )
+      r.ImGui_DrawList_AddLine(WDL, x1-2, y, x1-2, y+220, 0x123456ff, 2 )
+      r.ImGui_DrawList_AddLine(WDL, x1, y, x, y, 0x123456ff, 2 )
+      r.ImGui_DrawList_AddLine(WDL, x1, y+220-1, x, y+220-1, 0x123456ff, 2 ) ]]
+      r.ImGui_DrawList_AddRect(f_draw_list, x1-2, y1, x, y + 220 - 1, 0x123456ff, nil, nil, 2) -- leftover remains when pad is moved while opening fx inside pad
     end
     r.ImGui_EndGroup(ctx)
     r.ImGui_PopStyleColor(ctx)
