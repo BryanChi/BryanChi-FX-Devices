@@ -238,7 +238,7 @@ SEQ_Default_Denom = 1
 
 ----------- Custom Colors-------------------
 CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
-    'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP'}
+    'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP', 'FX_Adder_LV2', 'Parameter_Link', 'Parameter_Link_Edge_DarkBG', 'Parameter_Link_Edge_LightBG'}
 CustomColorsDefault = {
     Window_BG = 0x000000ff,
     FX_Devices_Bg = 0x151515ff,
@@ -252,7 +252,11 @@ CustomColorsDefault = {
     FX_Adder_VST3 = 0xC3DC5CFF,
     FX_Adder_JS = 0x9348A9FF,
     FX_Adder_AU = 0x526D97FF,
-    FX_Adder_CLAP = 0xB62424FF
+    FX_Adder_CLAP = 0xB62424FF,
+    FX_Adder_LV2 = 0xFFA500FF,
+    Parameter_Link = 0x1E90FFFF,
+    Parameter_Link_Edge_DarkBG = 0x1E90FFFF,
+    Parameter_Link_Edge_LightBG = 0x191970FF
 }
 
 
@@ -737,6 +741,13 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     ShownName = fx:sub(6)
                     local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
                     MyText('CLAP', nil, clr)
+                    SL()
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                elseif filtered_fx[i]:find('LV2:') then
+                    local fx = filtered_fx[i]
+                    ShownName = fx:sub(5)
+                    local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
+                    MyText('LV2', nil, clr)
                     SL()
                     HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
                 end
@@ -1260,6 +1271,7 @@ end
 function loop()
     GetLT_FX_Num()
     GetLTParam()
+    CheckDNDType() -- Defined in Layout Editor functions
    
     if ChangeFont then
         r.ImGui_Attach(ctx, _G
