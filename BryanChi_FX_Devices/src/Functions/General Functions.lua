@@ -4097,11 +4097,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 end ]]
                             end
                             if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then
-                                -- IsPlink = true
-                                -- local draw_list = r.ImGui_GetForegroundDrawList(ctx)
-                                -- local mouse_pos = { r.ImGui_GetMousePos(ctx) }
-                                -- local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 0) }
-                                -- r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], 0xB62424FF, 4.0)  -- Draw a line between the button and the mouse cursor                                          
+                                local draw_list = r.ImGui_GetForegroundDrawList(ctx)
+                                local mouse_pos = { r.ImGui_GetMousePos(ctx) }
+                                local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 0) }
+                                r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], 0xB62424FF, 4.0)  -- Draw a line between the button and the mouse cursor                                          
                                 local P_Num = Prm.Num
                                 lead_fxid = FX_Idx -- storing the original fx id
                                 fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
