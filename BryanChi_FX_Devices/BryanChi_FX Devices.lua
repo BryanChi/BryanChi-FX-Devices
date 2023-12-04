@@ -60,7 +60,9 @@
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/Square.ini
 --   src/LFO Shapes/Sine.ini
---   src/LFO Shapes/Saw.ini
+--   src/LFO Shapes/Saw L.ini
+--   src/LFO Shapes/Saw R.ini
+--   src/LFO Shapes/Triangle.ini
 --   src/FX Layout Plugin Scripts/Container.lua 
 --   src/FX Layout Plugin Scripts/Pro Q 3.lua
 --   src/FX Layout Plugin Scripts/Pro C 2.lua
