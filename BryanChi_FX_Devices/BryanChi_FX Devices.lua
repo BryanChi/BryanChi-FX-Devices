@@ -11,6 +11,7 @@
 --  - Added some functions to Layout Editor functions. They enable users to alternate left and right drag/drop to adjust parameters and parameter linking. Right drag/dropping also shows bluish line and edge of destination item, which users can change in Style Editor, depending on the brightness of FX background color.
 --  - Added LV2 Color in FX Browser.
 --  - Added other basic LFO shapes, Triangle and Saw R.
+--  - Change 'Export Colors' button text into 'Save Color Settings' to make it easier to understand
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
