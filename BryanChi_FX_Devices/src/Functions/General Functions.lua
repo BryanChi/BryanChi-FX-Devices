@@ -526,6 +526,9 @@ function ToggleCollapseAll(FX_Idx)
     return BlinkFX
 end
 
+function toggle2(a,b)
+    if a == b then return nil  else return  b end 
+end
 ---@param str string
 ---@param DecimalPlaces number
 function RoundPrmV(str, DecimalPlaces)

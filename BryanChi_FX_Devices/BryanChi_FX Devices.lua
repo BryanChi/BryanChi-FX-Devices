@@ -1,10 +1,16 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta10.12
+-- @version 1.0beta11
 -- @changelog
---  - Turned ReaDrum Machine into modules.
---  - Added function DndAddFX_SRC and DndAddFXfromBrowser_TARGET to fix Drag/Drop FX bugs.
---  - Fix dropping fx from FX Browser
+--  - We have another update thanks to Suzuki!
+--  - Allow showing FXs inside of ReaDrum Machine by right clicking the drum pad.
+--  - Added support for parameter link of FX in container
+--  - Added LastSpc button for ReaDrum Machine script
+--  - Added function to flip through vertical tabs while drag/dropping FX for ReaDrum Machine
+--  - Added OpenFXInsidePad function and highlight with the help of BryanChi, thank you
+--  - Added some functions to Layout Editor functions. They enable users to alternate left and right drag/drop to adjust parameters and parameter linking. Right drag/dropping also shows bluish line and edge of destination item, which users can change in Style Editor, depending on the brightness of FX background color.
+--  - Added LV2 Color in FX Browser.
+--  - Added other basic LFO shapes, Triangle and Saw R.
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
