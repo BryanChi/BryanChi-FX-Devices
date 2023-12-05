@@ -294,7 +294,7 @@ function ShowStyleEditor()
                 function(val) if type(val) == 'table' then return ('%g, %g'):format(table.unpack(val)) else return ('%g'):format(val) end end)
             end
             r.ImGui_SameLine(ctx) ]]
-        if r.ImGui_Button(ctx, 'Export Colors') then
+        if r.ImGui_Button(ctx, 'Save Color Settings') then
             -- for each enum
             local file = CallFile('w', 'ThemeColors.ini')
 
