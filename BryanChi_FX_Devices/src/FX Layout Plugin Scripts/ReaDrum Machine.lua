@@ -25,6 +25,10 @@ ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX
 local posx, posy = r.ImGui_GetCursorScreenPos(ctx)
 
 track = r.GetSelectedTrack2(0, 0, false)
+if track then
+  trackidx = r.CSurf_TrackToID(track, false)
+  track_guid = r.GetTrackGUID(track)
+end
 
 draw_list = r.ImGui_GetWindowDrawList(ctx)
 
@@ -92,17 +96,17 @@ local function ButtonDrawlist(splitter, name, color, a)
   end
   if DND_MOVE_FX and r.ImGui_IsMouseHoveringRect(ctx,xs,ys,xe,ye) then
     local x_offset = 2
-    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, 0xFF0000FF, 2,
+    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, (RDM_DnD_Move or CustomColorsDefault.RDM_DnD_Move), 2,
         nil, 2)
   end
   if DND_ADD_FX and r.ImGui_IsMouseHoveringRect(ctx,xs,ys,xe,ye) then
     local x_offset = 2
-    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, COLOR["dnd"], 2,
+    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, (RDM_DnDFX or CustomColorsDefault.RDM_DnDFX), 2,
         nil, 2)
   end
   if FX_DRAG and r.ImGui_IsMouseHoveringRect(ctx,xs,ys,xe,ye) then
     local x_offset = 2
-    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, COLOR["dnd"], 2,
+    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, (RDM_DnDFX or CustomColorsDefault.RDM_DnDFX), 2,
         nil, 2)
   end
 
@@ -112,11 +116,11 @@ local function ButtonDrawlist(splitter, name, color, a)
 
   local name = name:sub(1, 10)
   r.ImGui_DrawList_AddTextEx( draw_list, nil, font_size, xs, ys + char_size_h, r.ImGui_GetColorEx(ctx, font_color), name)
-  r.ImGui_DrawList_AddText(draw_list, xs, ys, 0xffffffff, note_name)
+  r.ImGui_DrawList_AddText(draw_list, xs, ys, r.ImGui_GetColorEx(ctx, font_color), note_name)
 
   if FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
-    Highlight_Itm(WDL, 0x256BB155, 0x256BB1ff)
+    Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
   end
 end
 
@@ -194,7 +198,7 @@ local function DrawPads(loopmin, loopmax)
     local FX_VISIBLE
     r.ImGui_SetCursorPos(ctx, x, y)
     local ret = r.ImGui_InvisibleButton(ctx, pad_name .. "##" .. a, 75, 30)
-    ButtonDrawlist(SPLITTER, pad_name, Pad[a] and COLOR["Container"] or COLOR["n"], a)
+    ButtonDrawlist(SPLITTER, pad_name, Pad[a] and (RDM_PadOn or CustomColorsDefault.RDM_PadOn) or (RDM_PadOff or CustomColorsDefault.RDM_PadOff), a)
     DndAddFX_TARGET(a)
     DndAddSample_TARGET(a)
     -- DndAddMultipleSamples_TARGET(a)
@@ -203,7 +207,7 @@ local function DrawPads(loopmin, loopmax)
     PadMenu(a, note_name)
     if ret then 
       ClickPadActions(a)
-    elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] then
+    elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
       FX[FxGUID].OPEN_PAD = toggle2(FX[FxGUID].OPEN_PAD, a)
     -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
     --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
@@ -215,7 +219,7 @@ local function DrawPads(loopmin, loopmax)
     r.ImGui_SetCursorPos(ctx, x, y + 30)
     r.ImGui_InvisibleButton(ctx, "▶##play" .. a, 25, 15)
     SendMidiNote(notenum)
-    DrawListButton(SPLITTER,"-", COLOR["n"], nil, true)
+    DrawListButton(SPLITTER, "-", (RDM_Play or CustomColorsDefault.RDM_Play), nil, true)
 
     r.ImGui_SetCursorPos(ctx, x + 25, y + 30)
     if r.ImGui_InvisibleButton(ctx, "S##solo" .. a, 25, 15) then
@@ -245,7 +249,7 @@ local function DrawPads(loopmin, loopmax)
     --  local ok = r.TrackFX_GetEnabled(track, Pad[a].Pad_ID)
     --  DrawListButton("S", ok and 0xff or 0xf1c524ff, nil, nil)
     --else
-    DrawListButton(SPLITTER, "S", COLOR["n"], nil, nil)
+    DrawListButton(SPLITTER, "S", (RDM_Solo or CustomColorsDefault.RDM_Solo), nil, nil)
     --end
 
     r.ImGui_SetCursorPos(ctx, x + 50, y + 30)
@@ -261,9 +265,9 @@ local function DrawPads(loopmin, loopmax)
     end
     if Pad[a] then
       mute_color = r.TrackFX_GetEnabled(track, Pad[a].Pad_ID)
-      DrawListButton(SPLITTER, "M", mute_color == true and COLOR["n"] or 0xff2222ff, nil, nil)
+      DrawListButton(SPLITTER, "M", mute_color == true and (RDM_Mute or CustomColorsDefault.RDM_Mute) or 0xff2222ff, nil, nil)
     else
-      DrawListButton(SPLITTER, "M", COLOR["n"], nil, nil)
+      DrawListButton(SPLITTER, "M", (RDM_Mute or CustomColorsDefault.RDM_Mute), nil, nil)
     end
     if FX[FxGUID].OPEN_PAD == a then 
       RETURN = a 
@@ -281,15 +285,6 @@ end ]]
 ---------------------------------------------
 ---------Body (Drawing)----------------------
 ---------------------------------------------
-
-COLOR              = {
-    ["n"]           = 0xff,
-    ["Container"]   = 0x123456FF,
-    ["dnd"]         = 0x00b4d8ff,
-    ["dnd_replace"] = 0xdc5454ff,
-    ["dnd_swap"]    = 0xcd6dc6ff,
-    ["bg"] = 0x141414ff
-  }
   
 local s_window_x, s_window_y = r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding())
 local s_frame_x, s_frame_y = r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_FramePadding())
@@ -310,7 +305,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     local hh = h + 100
     local hy = hh / 8
   
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), COLOR["bg"])
+    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), (RDM_BG or CustomColorsDefault.RDM_BG))
     r.ImGui_BeginGroup(ctx)
     
     draw_list = r.ImGui_GetWindowDrawList(ctx)                  -- 4 x 4 left vertical tab drawing
@@ -324,19 +319,19 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     --end
     r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 0)       -- SET LOWER PRIORITY TO DRAW AFTER
     local x, y = r.ImGui_GetCursorPos(ctx)
-     for ci = 0, 8 * (hy - 18), hy - 16.2 do
+     for ci = 0, 8 * (hy - 18), hy - 15.5 do
        for bi = 0, 15, 5 do
          for i = 0, 15, 5 do
-           r.ImGui_DrawList_AddRectFilled(f_draw_list, wx + x + i + 1, wy + y + bi + ci + 2, wx + x + 3 + i, wy + y + 5 + bi + ci,
-            0x252525FF)
+           r.ImGui_DrawList_AddRectFilled(f_draw_list, wx + x + i + 1, wy + y + bi + ci - 5, wx + x + 4 + i, wy + y - 1 + bi + ci,
+           (RDM_VTab or CustomColorsDefault.RDM_VTab))
          end
       end
      end
-    r.ImGui_DrawListSplitter_Merge(SPLITTER)       -- MERGE EVERYTHING FOR RENDER
-  
+
+    r.ImGui_SetCursorPos(ctx, x, y - 7)
     if r.ImGui_BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100, false) then   -- vertical tab
       for i = 1, 8 do
-        r.ImGui_SetCursorPos(ctx, 0, (y) * (i / 1.3  - 0.75))
+        r.ImGui_SetCursorPos(ctx, 0, (y) * (i / 1.3  - 0.75) + 0.75 * (i - 1))
         rv = r.ImGui_InvisibleButton(ctx, "B" .. i, 20, 20)
         local xs, ys = r.ImGui_GetItemRectMin(ctx)
         local xe, ye = r.ImGui_GetItemRectMax(ctx)
@@ -356,7 +351,8 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         end
         HighlightHvredItem()
         if FX[FxGUID].LAST_MENU == i then 
-          Highlight_Itm(WDL, 0x12345655, 0x184673ff)
+          r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
+          Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
         end
       end
       r.ImGui_EndChild(ctx)
@@ -371,7 +367,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_EndChild(ctx)
       end
     end
-
+    r.ImGui_DrawListSplitter_Merge(SPLITTER)  -- MERGE EVERYTHING FOR RENDER
     if FX[FxGUID].OPEN_PAD == openpad and openpad then
       
       r.ImGui_SetCursorPos(ctx, 340 + 5,0)
