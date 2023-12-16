@@ -346,7 +346,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
           r.ImGui_EndDragDropTarget(ctx)
         end
         r.ImGui_PopStyleColor(ctx)
-        if (DND_ADD_FX or DND_MOVE_FX or FX_DRAG) and r.ImGui_IsMouseHoveringRect(ctx, xs, ys, xe, ye) then
+        if (DND_ADD_FX or DND_MOVE_FX or FX_DRAG or r.ImGui_IsMouseDragging(ctx, 0)) and r.ImGui_IsMouseHoveringRect(ctx, xs, ys, xe, ye) then
           FX[FxGUID].LAST_MENU = i
         end
         HighlightHvredItem()
