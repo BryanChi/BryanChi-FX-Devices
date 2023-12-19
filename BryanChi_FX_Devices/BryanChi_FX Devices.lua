@@ -1,17 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta11
+-- @version 1.0beta11.1
 -- @changelog
---  - We have another update thanks to Suzuki!
---  - Allow showing FXs inside of ReaDrum Machine by right clicking the drum pad.
---  - Added support for parameter link of FX in container
---  - Added LastSpc button for ReaDrum Machine script
---  - Added function to flip through vertical tabs while drag/dropping FX for ReaDrum Machine
---  - Added OpenFXInsidePad function and highlight with the help of BryanChi, thank you
---  - Added some functions to Layout Editor functions. They enable users to alternate left and right drag/drop to adjust parameters and parameter linking. Right drag/dropping also shows bluish line and edge of destination item, which users can change in Style Editor, depending on the brightness of FX background color.
---  - Added LV2 Color in FX Browser.
---  - Added other basic LFO shapes, Triangle and Saw R.
---  - Change 'Export Colors' button text into 'Save Color Settings' to make it easier to understand
+--  - +Added custom color tweak for RDM by user's request
+--  - Fixed opening Pad when Ctrl+right clicking pad (opening menu)
+--  - Fixed PLink bug when RDM is inserted
+--  - Made the vertical tab scrollable by left dragging it
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -250,7 +244,10 @@ SEQ_Default_Denom = 1
 ----------- Custom Colors-------------------
 CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
     'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP',
-    'FX_Adder_LV2', 'Parameter_Link', 'Parameter_Link_Edge_DarkBG', 'Parameter_Link_Edge_LightBG' }
+    'FX_Adder_LV2',
+    'PLink', 'PLink_Edge_DarkBG', 'PLink_Edge_LightBG',
+    'RDM_BG', 'RDM_VTab', 'RDM_VTab_Highlight', 'RDM_VTab_Highlight_Edge', 'RDM_PadOff', 'RDM_PadOn', 'RDM_Pad_Highlight',
+    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move' }
 CustomColorsDefault = {
     Window_BG = 0x000000ff,
     FX_Devices_Bg = 0x151515ff,
@@ -266,9 +263,21 @@ CustomColorsDefault = {
     FX_Adder_AU = 0x526D97FF,
     FX_Adder_CLAP = 0xB62424FF,
     FX_Adder_LV2 = 0xFFA500FF,
-    Parameter_Link = 0x1E90FFFF,
-    Parameter_Link_Edge_DarkBG = 0x1E90FFFF,
-    Parameter_Link_Edge_LightBG = 0x191970FF
+    PLink = 0x1E90FFFF,
+    PLink_Edge_DarkBG = 0x1E90FFFF,
+    PLink_Edge_LightBG = 0x191970FF,
+    RDM_BG = 0x141414ff,
+    RDM_VTab = 0x252525FF,
+    RDM_VTab_Highlight = 0x12345655,
+    RDM_VTab_Highlight_Edge = 0x184673ff,
+    RDM_PadOff = 0xff,
+    RDM_PadOn = 0x123456FF,
+    RDM_Pad_Highlight = 0x256BB155,
+    RDM_Play = 0xff,
+    RDM_Solo = 0xff,
+    RDM_Mute = 0xff,
+    RDM_DnDFX = 0x00b4d8ff,
+    RDM_DnD_Move = 0xFF0000FF
 }
 
 
@@ -438,8 +447,7 @@ BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter',
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
-    'FXD Split to 32 Channels', 'JS: RDM MIDI Note Filter',
-    -- 'JS: RDM MIDI Note Filter [Suzuki Scripts/ReaDrum Machine/JSFX/RDM_midi_note_filter.jsfx]'
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Note Filter'
 }
 UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
@@ -1288,7 +1296,7 @@ end
 function loop()
     GetLT_FX_Num()
     GetLTParam()
-    CheckDNDType() -- Defined in Layout Editor functions
+    CheckDnDType() -- Defined in Layout Editor functions
 
     if ChangeFont then
         r.ImGui_Attach(ctx, _G
@@ -1493,7 +1501,7 @@ function loop()
                     end
                 end
 
-                for i, v in ipairs(MovFX.FromPos) do
+                for i, v in ipairs(MovFX.FromPos) do -- move FX
                     r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
                 end
                 r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)

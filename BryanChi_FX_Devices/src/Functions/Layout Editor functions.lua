@@ -8,7 +8,7 @@ local function GetPayload()
     end
   end
   
-function CheckDNDType()
+function CheckDnDType()
     local dnd_type = GetPayload()
     DND_ADD_FX = dnd_type == "DND ADD FX"
     DND_MOVE_FX = dnd_type == "DND MOVE FX"
@@ -42,7 +42,7 @@ function CalculateColor(color)
     local red = (color >> 24) & 0xFF
   
     local luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255
-    return luminance > 0.5 and (Parameter_Link_Edge_LightBG or CustomColorsDefault.Parameter_Link_Edge_LightBG) or (Parameter_Link_Edge_DarkBG or CustomColorsDefault.Parameter_Link_Edge_DarkBG)
+    return luminance > 0.5 and (PLink_Edge_LightBG or CustomColorsDefault.PLink_Edge_LightBG) or (PLink_Edge_DarkBG or CustomColorsDefault.PLink_Edge_DarkBG)
 end
 
 function ButtonDraw(splitter, color, center, radius_outer) -- for drawing to clarify which destination (target) DND goes to
@@ -81,7 +81,7 @@ local function DnD_PLink_SOURCE(FX_Idx, P_Num)
         local draw_list = r.ImGui_GetForegroundDrawList(ctx)
         local mouse_pos = { r.ImGui_GetMousePos(ctx) }
         local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 1) }
-        r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], Parameter_Link or CustomColorsDefault.Parameter_Link, 4.0)  -- Draw a line between the button and the mouse cursor                                             
+        r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], PLink or CustomColorsDefault.PLink, 4.0)  -- Draw a line between the button and the mouse cursor                                             
         lead_fxid = FX_Idx -- storing the original fx id
         fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
         lead_paramnumber = P_Num      
