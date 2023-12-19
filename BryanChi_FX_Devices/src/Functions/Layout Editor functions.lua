@@ -1,5 +1,7 @@
 -- @noindex
 r = reaper
+local customcolors = require("src.helpers.custom_colors")
+local CustomColorsDefault = customcolors.CustomColorsDefault
 
 local function GetPayload()
     local retval, dndtype, payload = r.ImGui_GetDragDropPayload(ctx)

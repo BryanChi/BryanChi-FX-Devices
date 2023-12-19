@@ -1,4 +1,7 @@
 r = reaper
+local customcolors = require("src.helpers.custom_colors")
+local CustomColors = customcolors.CustomColors
+local CustomColorsDefault = customcolors.CustomColorsDefault
 demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
