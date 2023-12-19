@@ -1,4 +1,4 @@
-fxModels = {}
+local fxModels = {}
 
 -- FXs listed here will not have a fx window in the script UI
 fxModels.BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',

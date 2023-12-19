@@ -242,7 +242,7 @@ SEQ_Default_Denom = 1
 
 
 ----------- Custom Colors-------------------
-customcolors = require("src.helpers.custom_colors")
+local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 
 
@@ -407,7 +407,7 @@ MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8 }
 
 r.gmem_attach('gmemForSpectrum')
 
-fxModels = require("src.helpers.fxModels")
+local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local UtilityFXs = fxModels.UtilityFXs -- this variable is unused, should we get rid of it?
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs

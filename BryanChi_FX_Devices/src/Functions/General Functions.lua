@@ -5,7 +5,7 @@ r = reaper
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local BlendColors = customcolors.BlendColors
-fxModels = require("src.helpers.fxModels")
+local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 
