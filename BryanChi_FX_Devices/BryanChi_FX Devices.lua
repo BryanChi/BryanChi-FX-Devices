@@ -1,17 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta11
+-- @version 1.0beta11.1
 -- @changelog
---  - We have another update thanks to Suzuki!
---  - Allow showing FXs inside of ReaDrum Machine by right clicking the drum pad.
---  - Added support for parameter link of FX in container
---  - Added LastSpc button for ReaDrum Machine script
---  - Added function to flip through vertical tabs while drag/dropping FX for ReaDrum Machine
---  - Added OpenFXInsidePad function and highlight with the help of BryanChi, thank you
---  - Added some functions to Layout Editor functions. They enable users to alternate left and right drag/drop to adjust parameters and parameter linking. Right drag/dropping also shows bluish line and edge of destination item, which users can change in Style Editor, depending on the brightness of FX background color.
---  - Added LV2 Color in FX Browser.
---  - Added other basic LFO shapes, Triangle and Saw R.
---  - Change 'Export Colors' button text into 'Save Color Settings' to make it easier to understand
+--  - +Added custom color tweak for RDM by user's request
+--  - Fixed opening Pad when Ctrl+right clicking pad (opening menu)
+--  - Fixed PLink bug when RDM is inserted
+--  - Made the vertical tab scrollable by left dragging it
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
