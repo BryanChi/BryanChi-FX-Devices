@@ -7,35 +7,8 @@
 --  - Fixed PLink bug when RDM is inserted
 --  - Made the vertical tab scrollable by left dragging it
 -- @provides
---   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
---   [effect] FXD JSFXs/FXD Band Joiner.jsfx
---   [effect] FXD JSFXs/FXD Gain Reduction Scope.jsfx
---   [effect] FXD JSFXs/FXD Macros.jsfx
---   [effect] FXD JSFXs/FXD ReSpectrum.jsfx
---   [effect] FXD JSFXs/FXD Saike BandSplitter.jsfx
---   [effect] FXD JSFXs/FXD Split to 32 Channels.jsfx
---   [effect] FXD JSFXs/FXD Split To 4 Channels.jsfx
---   [effect] FXD JSFXs/cookdsp.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/analysis.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/buffer.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/delay.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/dynamics.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/effects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/fftobjects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/filters.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/granulator.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/list.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/memalloc.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/midi.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/mmath.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/oscil.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/pobjects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/pvocobjects.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/random.jsfx-inc
---   [effect] FXD JSFXs/cookdsp/scaling.jsfx-inc
---   [effect] FXD JSFXs/firhalfband.jsfx-inc
---   [effect] FXD JSFXs/spectrum.jsfx-inc
---   [effect] FXD JSFXs/svf_filter.jsfx-inc
+--   [effect] FXD JSFXs/*.jsfx
+--   [effect] FXD JSFXs/*.jsfx-inc
 --   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
@@ -59,32 +32,17 @@
 --   src/Images/Knobs/FancyBlueKnob.png
 --   src/Images/Knobs/FancyLightGreenKnob.png
 --   src/Images/Switches/FancyGreenCheck_2.png
---   src/LFO Shapes/Square.ini
---   src/LFO Shapes/Sine.ini
---   src/LFO Shapes/Saw L.ini
---   src/LFO Shapes/Saw R.ini
---   src/LFO Shapes/Triangle.ini
---   src/FX Layout Plugin Scripts/Container.lua
---   src/FX Layout Plugin Scripts/Pro Q 3.lua
---   src/FX Layout Plugin Scripts/Pro C 2.lua
---   src/FX Layout Plugin Scripts/ReaComp.lua
---   src/FX Layout Plugin Scripts/ReaDrum Machine.lua
---   src/FX Layout Plugin Scripts/Volume Pan Smoother.lua
+--   src/LFO Shapes/*.ini
+--   src/FX Layout Plugin Scripts/*.lua
 --   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
---   src/Functions/EQ functions.lua
---   src/Functions/General Functions.lua
---   src/Functions/FX Layering.lua
---   src/Functions/Layout Editor functions.lua
---   src/Functions/Modulation.lua
---   src/Functions/Theme Editor Functions.lua
---   src/Functions/Filesystem_utils.lua
+--   src/Functions/*.lua
 --   src/Constants.lua
 --   src/FXChains/ReaDrum Machine.RfxChain
-
 -- @about
 --   Please check the forum post for info:
---   https://forum.cockos.com/showthread.php?t=263622-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+--   https://forum.cockos.com/showthread.php?t=263622
+-- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
 
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
