@@ -1,0 +1,15 @@
+{
+    "runtime.version": "Lua 5.4",
+    "diagnostics.globals": [
+        "reaper",
+        "ultraschall"
+    ],
+    "workspace": {
+        "library": [
+            "../../../UserPlugins/ultraschall_api.lua",
+            "../../Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua",
+            "../../Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua",
+            "../../Suzuki Scripts/ReaDrum Machine"
+        ]
+    }
+}

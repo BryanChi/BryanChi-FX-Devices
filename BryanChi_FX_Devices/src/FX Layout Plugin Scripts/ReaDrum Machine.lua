@@ -11,6 +11,8 @@
 
 r = reaper
 Pad          = {}
+local customcolors = require("src.helpers.custom_colors")
+local CustomColorsDefault = customcolors.CustomColorsDefault
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
