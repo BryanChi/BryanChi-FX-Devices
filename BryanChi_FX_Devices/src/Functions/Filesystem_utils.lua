@@ -1,10 +1,12 @@
 -- @noindex
 r = reaper
 
+local fs_utils = {}
+
 ---@param old_path string
 ---@param new_path string
 ---@return boolean
-function CopyFile(old_path, new_path)
+fs_utils.CopyFile = function (old_path, new_path)
   local old_file = io.open(old_path, "rb")
   local new_file = io.open(new_path, "wb")
   local old_file_sz, new_file_sz = 0, 0
@@ -29,7 +31,7 @@ end
 ---@param subfolder string
 ---@return string | nil
 ---@return string | nil
-function CopyImageFile(filename, subfolder)
+fs_utils.CopyImageFile = function (filename, subfolder)
   if filename then
     local UserOS = r.GetOS()
     local slash = '%\\'
@@ -46,7 +48,7 @@ function CopyImageFile(filename, subfolder)
     if FindExactStringInTable(Files, NewFileName) then
       return NewFileName, relativePath
     else
-      CopyFile(filename, NewFileName)
+      fs_utils.CopyFile(filename, NewFileName)
       return NewFileName, relativePath
     end
   end
@@ -54,7 +56,7 @@ end
 
 ---@param fp string file path
 ---@return string
-function GetFileContext(fp)
+fs_utils.GetFileContext = function (fp)
   local str = "\n"
   -- RETURN ANY STRING JUST FOR SCRIPT NOT TO CRASH IF PATH DOES NOT EXIST
   if not fp then return str end
@@ -65,3 +67,5 @@ function GetFileContext(fp)
   end
   return str
 end
+
+return fs_utils

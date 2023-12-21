@@ -90,6 +90,7 @@
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 local ThirdPartyDeps = require("src.helpers.thirdPartyDeps")
+local fs_utils = require("src.Functions.Filesystem_utils")
 
 if ThirdPartyDeps() then return end
 
@@ -4541,11 +4542,11 @@ function loop()
                                                     end
 
                                                     local NewFileName = r.GetResourcePath() .. 'src/Images/' ..  SubFolder .. filename:sub(index)
-                                                    CopyFile(filename, NewFileName) ]]
+                                                    fs_utils.CopyFile(filename, NewFileName) ]]
                                                     if FrstSelItm.Type == 'Knob' then
-                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
+                                                        AbsPath, FrstSelItm.ImagePath = fs_utils.CopyImageFile(filename, 'Knobs')
                                                     elseif FrstSelItm.Type == 'Switch' then
-                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename,
+                                                        AbsPath, FrstSelItm.ImagePath = fs_utils.CopyImageFile(filename,
                                                             'Switches')
                                                     end
                                                     ToAllSelItm('Image', r.ImGui_CreateImage(AbsPath))
@@ -5103,7 +5104,7 @@ function loop()
                                                                     i)
 
 
-                                                                path, D.FilePath = CopyImageFile(filename,
+                                                                path, D.FilePath = fs_utils.CopyImageFile(filename,
                                                                     'Attached Drawings')
 
 

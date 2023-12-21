@@ -10,7 +10,7 @@ local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 local pluginHelpers = require("src.helpers.plugin_helpers")
 local images_fonts = require("src.helpers.images_fonts")
-
+local fs_utils = require("src.Functions.Filesystem_utils")
 ---General functions list
 
 ---@param str string
@@ -1828,7 +1828,7 @@ function AddFX_Menu(FX_Idx)
     local function LoadTemplate(template, replace)
         local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
         if replace then
-            local chunk = GetFileContext(track_template_path)
+            local chunk = fs_utils.GetFileContext(track_template_path)
             r.SetTrackStateChunk( TRACK, chunk, true )
         else
             r.Main_openProject( track_template_path )
