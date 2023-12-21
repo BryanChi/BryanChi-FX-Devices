@@ -13,6 +13,7 @@ r = reaper
 Pad          = {}
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
+local images_fonts = require("src.helpers.images_fonts")
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -150,7 +151,7 @@ local function DrawListButton(splitter, name, color, round_side, icon, hover, of
     r.ImGui_DrawList_AddRect(f_draw_list, xs - 2, ys - 2, xe + 2, ye + 2, 0x22FF44FF, 3, nil, 2)
   end
 
-  if icon then r.ImGui_PushFont(ctx, FontAwesome_small) end
+  if icon then r.ImGui_PushFont(ctx, images_fonts.FontAwesome_small) end
 
   local label_size = r.ImGui_CalcTextSize(ctx, name)
   local FONT_SIZE = r.ImGui_GetFontSize(ctx)

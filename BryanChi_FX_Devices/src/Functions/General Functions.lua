@@ -9,6 +9,7 @@ local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 local pluginHelpers = require("src.helpers.plugin_helpers")
+local images_fonts = require("src.helpers.images_fonts")
 
 ---General functions list
 
@@ -1249,7 +1250,7 @@ end
 ---@param Identifier? string
 ---@return boolean|nil
 function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
-    r.ImGui_PushFont(ctx, FontAwesome)
+    r.ImGui_PushFont(ctx, images_fonts.FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
     end
     local FillClr

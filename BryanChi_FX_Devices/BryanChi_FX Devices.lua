@@ -464,57 +464,7 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 
-
-
-
-local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-script_folder       = script_folder .. '/src'
-FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
-FontAwesome_small   = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 10)
-
-function attachImagesAndFonts()
-    Img = {
-        Trash  = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
-        Pin    = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/pin.png'),
-        Pinned = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/pinned.png'),
-        Copy   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/copy.png'),
-        Paste  = r.ImGui_CreateImage(CurrentDirectory .. 'src/Images/paste.png'),
-        Save   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/save.png'),
-        Sine   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/sinewave.png'),
-    }
-    for i = 6, 64, 1 do
-        _G['Font_Andale_Mono_' .. i] = r.ImGui_CreateFont('andale mono', i)
-    end
-
-    Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold()) -- TODO move to constants
-    r.ImGui_Attach(ctx, Font_Andale_Mono_20_B)
-    for i = 6, 64, 1 do
-        r.ImGui_Attach(ctx, _G['Font_Andale_Mono_' .. i])
-    end
-    r.ImGui_Attach(ctx, FontAwesome)
-    r.ImGui_Attach(ctx, FontAwesome_small)
-    for i, v in pairs(Img) do
-        r.ImGui_Attach(ctx, v)
-    end
-
-
-
-
-    for i = 6, 64, 1 do
-        _G['Arial_' .. i] = r.ImGui_CreateFont('Arial', i)
-        r.ImGui_Attach(ctx, _G['Arial_' .. i])
-    end
-
-    Arial = r.ImGui_CreateFont('Arial', 12) -- TODO move to constants
-end
-
-function TrashIcon(size, lbl, ClrBG, ClrTint)
-    local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint) -- TODO weird but I can’t find anything in the official docs or the reaImGui repo about this function
-    if r.ImGui_IsItemHovered(ctx) then
-        TintClr = 0xCE1A28ff
-        return rv, TintClr
-    end
-end
+local images_fonts = require("src.helpers.images_fonts")
 
 NumOfTotalTracks = r.CountTracks(0)
 -- Repeat for every track, at the beginning of script
@@ -868,7 +818,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     end
 end
 
-attachImagesAndFonts()
+images_fonts.attachImagesAndFonts()
 
 ---------------------------------------------------------------
 -----------Retrieve Keyboard Shortcut Settings ----------------
@@ -2882,7 +2832,7 @@ function loop()
                                             if r.ImGui_IsMouseHoveringRect(ctx, L, T, L + 200, T + 10) then
                                                 SL(W - 8)
 
-                                                if TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
+                                                if images_fonts.TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
                                                     r.ImGui_OpenPopup(ctx, 'Delete shape prompt' .. i)
                                                     r.ImGui_SetNextWindowPos(ctx, L, T)
                                                 end
@@ -4551,7 +4501,7 @@ function loop()
 
                                     DragDropPics = DragDropPics or {}
 
-                                    local rv, ImgTrashTint = TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
+                                    local rv, ImgTrashTint = images_fonts.TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
                                     if rv then
                                         ToAllSelItm('Style', nil)
                                         ToAllSelItm('ImagePath', nil)
@@ -5128,7 +5078,7 @@ function loop()
                                                 if D.Type == 'Image' or D.Type == 'Knob Image' then
                                                     if r.ImGui_BeginChildFrame(ctx, '##drop_files', -R_ofs, 25) then
                                                         if D.Image then
-                                                            if TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
+                                                            if images_fonts.TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
                                                                 D.Image, D.FilePath = nil
                                                             end
                                                             SL()
