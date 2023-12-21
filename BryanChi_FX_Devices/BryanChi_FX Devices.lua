@@ -467,21 +467,6 @@ ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
 
-
------ Get plugin scripts path -------
-pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
----List of Plugin Scripts for FXD
-PluginScripts = scandir(pluginScriptPath)
-for i, v in ipairs(PluginScripts) do
-    if not v:find('.lua') then
-        PluginScripts[i] = nil
-    else
-        PluginScripts[i] = v:sub(0, v:find('.lua') - 1)
-    end
-end
-
-
-
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
 script_folder       = script_folder .. '/src'
 FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)

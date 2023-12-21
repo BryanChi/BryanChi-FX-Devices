@@ -8,6 +8,7 @@ local BlendColors = customcolors.BlendColors
 local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
+local pluginHelpers = require("src.helpers.plugin_helpers")
 
 ---General functions list
 
@@ -3512,7 +3513,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
 
-                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx]) then
+                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(pluginHelpers.PluginScripts, FX.Win_Name_S[FX_Idx]) then
                     SyncWetValues()
 
                     if FX[FxGUID].Collapse ~= true then
@@ -3536,7 +3537,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local function Decide_If_Create_Regular_Layout()
                     if not FX[FxGUID].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
                         local FX_has_Plugin
-                        for i, v in pairs(PluginScripts) do
+                        for i, v in pairs(pluginHelpers.PluginScripts) do
                             if FX_Name:find(v) then
                                 FX_has_Plugin = true  
                             end
@@ -4387,7 +4388,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                for i, v in pairs(PluginScripts) do
+                for i, v in pairs(pluginHelpers.PluginScripts) do
                     local FX_Name = FX_Name
 
 
