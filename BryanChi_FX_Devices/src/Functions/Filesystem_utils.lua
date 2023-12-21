@@ -44,7 +44,7 @@ fs_utils.CopyImageFile = function (filename, subfolder)
         '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER .. filename:sub(index)
     local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' ..
         SUBFOLDER .. filename:sub(index)
-    local Files = scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
+    local Files = fs_utils.scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
     if FindExactStringInTable(Files, NewFileName) then
       return NewFileName, relativePath
     else
@@ -67,5 +67,21 @@ fs_utils.GetFileContext = function (fp)
   end
   return str
 end
+
+---@param directory string path to directory
+---@return table
+function fs_utils.scandir(directory)
+    local Files = {}
+    for i = 0, 999, 1 do
+        local F = r.EnumerateFiles(directory, i)
+        
+        if F and F ~= '.DS_Store' then table.insert(Files, F) end
+
+        if not F then return Files end
+    end
+
+    --return F ---TODO should this be Files instead of F ?
+end
+
 
 return fs_utils

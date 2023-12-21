@@ -2906,7 +2906,7 @@ function loop()
 
 
 
-                                    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+                                    local F = fs_utils.scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
 
 
                                     for i, v in ipairs(F) do
@@ -4640,7 +4640,7 @@ function loop()
                                             SetStyle('Invisible', 'Invisible')
                                             local Dir = CurrentDirectory .. 'src/Images/Knobs'
                                             if r.ImGui_IsWindowAppearing(ctx) then
-                                                StyleWindowImgFiles = scandir(Dir)
+                                                StyleWindowImgFiles = fs_utils.scandir(Dir)
                                                 if StyleWindowImgFiles then
                                                     for i, v in ipairs(StyleWindowImgFiles) do
                                                         if v ~= '.DS_Store' then

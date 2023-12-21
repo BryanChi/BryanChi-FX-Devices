@@ -1544,21 +1544,6 @@ end
 
 
 
----@param directory string path to directory
----@return table
-function scandir(directory)
-    local Files = {}
-    for i = 0, 999, 1 do
-        local F = r.EnumerateFiles(directory, i)
-        
-        if F and F ~= '.DS_Store' then table.insert(Files, F) end
-
-        if not F then return Files end
-    end
-
-    --return F ---TODO should this be Files instead of F ?
-end
-
 ---@param ShowAlreadyAddedPrm boolean
 ---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
