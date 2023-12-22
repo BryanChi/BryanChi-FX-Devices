@@ -970,7 +970,7 @@ function loop()
 
 
             function DeleteAllParamOfFX(FXGUID, TrkID)
-                for p, v in pairs(Trk.Prm.FXGUID) do
+                for p, _ in pairs(Trk.Prm.FXGUID) do
                     if Trk.Prm.FXGUID[p] == FXGUID and FXGUID ~= nil then
                         Trk.Prm.Inst[TrkID] = Trk.Prm.Inst[TrkID] - 1
                         Prm.Num[p] = nil
@@ -992,7 +992,7 @@ function loop()
 
                 local F = FX[LT_FXGUID] or {}; local RptPrmFound
                 if LT_FXGUID and type(F) == 'table' then
-                    for i, v in ipairs(F) do
+                    for i, _ in ipairs(F) do
                         F[i] = F[i] or {}
                         if F[i].Num == LT_ParamNum then
                             RptPrmFound = true
@@ -1694,7 +1694,7 @@ function loop()
                     local HdrPosL, HdrPosT = r.ImGui_GetCursorScreenPos(ctx)
                     function DrawShape(Node, L, W, H, T, Clr)
                         if Node then
-                            for i, v in ipairs(Node) do
+                            for i, _ in ipairs(Node) do
                                 local W, H = W or w, H or h
 
 
@@ -1712,7 +1712,7 @@ function loop()
 
                                 local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
 
-                                for i, v in ipairs(PtsX) do
+                                for i, _ in ipairs(PtsX) do
                                     if i > 1 and PtsX[i] <= L + W then -- >1 because you need two points to draw a line
                                         r.ImGui_DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i],
                                             Clr or EightColors.LFO[Macro])
@@ -2196,7 +2196,7 @@ function loop()
 
                                 local N = i
                                 local CurrentPlayPos
-                                for i, v in ipairs(PtsX) do
+                                for i, _ in ipairs(PtsX) do
                                     if i > 1 then -- >1 because you need two points to draw a line
                                         local n = math.min(i + 1, #PtsX)
 
@@ -2380,7 +2380,7 @@ function loop()
                             if r.ImGui_IsItemEdited(ctx) then
                                 local Change = Mc.LFO_leng - LengthBefore
 
-                                for i, v in ipairs(Node) do
+                                for i, _ in ipairs(Node) do
                                     Node[i].x = Node[i].x / ((LengthBefore + Change) / LengthBefore)
                                     if Node[i].ctrlX then
                                         Node[i].ctrlX = Node[i].ctrlX / ((LengthBefore + Change) / LengthBefore)
@@ -3376,14 +3376,14 @@ function loop()
                                         CopyPrm = {}
                                         CopyPrm = I
 
-                                        for _, v in pairs(LE.Sel_Items) do
+                                        for _, _ in pairs(LE.Sel_Items) do
 
                                         end
                                     end
 
                                     SL()
                                     if r.ImGui_Button(ctx, 'Paste Properties') then
-                                        for _, v in pairs(LE.Sel_Items) do
+                                        for _, _ in pairs(LE.Sel_Items) do
                                             I.Type        = CopyPrm.Type
                                             I.Sldr_W      = CopyPrm.Sldr_W
                                             I.Style       = CopyPrm.Style
@@ -3689,7 +3689,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosX then
-                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
+                                                for _, _ in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
                                             end
                                             r.ImGui_Text(ctx, 'Y:')
                                             SL()
@@ -3699,7 +3699,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosY then
-                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
+                                                for _, _ in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
                                             end
                                         end
                                     end
@@ -3713,7 +3713,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosX then
-                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
+                                                for _, _ in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
                                             end
                                             r.ImGui_Text(ctx, 'Y:')
                                             SL()
@@ -3723,7 +3723,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosY then
-                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
+                                                for _, _ in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
                                             end
                                         end
                                     end
@@ -3900,7 +3900,7 @@ function loop()
                                             '##EditBaseV' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FX[FxGUID][LE.Sel_Items[1]].SwitchBaseV or 0, 0.05, 0, 1, '%.2f')
                                         if Drag then
-                                            for _, v in pairs(LE.Sel_Items) do
+                                            for _, _ in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][LE.Sel_Items[1]].SwitchBaseV = Bv
                                             end
                                         end
@@ -3910,7 +3910,7 @@ function loop()
                                             '##EditTargV' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FX[FxGUID][LE.Sel_Items[1]].SwitchTargV or 1, 0.05, 0, 1, '%.2f')
                                         if Drag then
-                                            for _, v in pairs(LE.Sel_Items) do
+                                            for _, _ in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][LE.Sel_Items[1]].SwitchTargV =
                                                     Tv
                                             end
@@ -4295,7 +4295,7 @@ function loop()
                                                 end
                                             end
 
-                                            for i, v in pairs(StyleWinImg) do
+                                            for i, _ in pairs(StyleWinImg) do
                                                 local Dir = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Knobs/'
                                                 SetStyle(StyleWinImgName[i], 'Custom Image', StyleWinImg[i],
                                                     Dir .. StyleWinImgName[i])
@@ -4438,7 +4438,7 @@ function loop()
                                                     FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v][ConditionPrm_V] or {}
                                                 end
                                             elseif Mods == Alt then
-                                                for i, v in pairs(FX[FxGUID][P][ConditionPrm_V]) do
+                                                for i, _ in pairs(FX[FxGUID][P][ConditionPrm_V]) do
                                                     FX[FxGUID][P][ConditionPrm_V][i] = nil
                                                 end
                                                 FX[FxGUID][P][ConditionPrm] = nil
@@ -4457,7 +4457,7 @@ function loop()
                                         if FrstSelItm[ShowCondition] or FX[FxGUID][P][ConditionPrm] then
                                             SL()
                                             if not FX[FxGUID][P][ConditionPrm_PID] then
-                                                for i, v in ipairs(FX[FxGUID]) do
+                                                for i, _ in ipairs(FX[FxGUID]) do
                                                     if FX[FxGUID][i].Num == FrstSelItm[ConditionPrm] then
                                                         FrstSelItm[ConditionPrm_PID] = i
                                                     end
@@ -4468,7 +4468,7 @@ function loop()
                                             if r.ImGui_Button(ctx, 'Parameter:##' .. ConditionPrm) then
                                                 FX[FxGUID][P].ConditionPrm = LT_ParamNum
                                                 local found
-                                                for i, v in ipairs(FX[FxGUID]) do
+                                                for i, _ in ipairs(FX[FxGUID]) do
                                                     if FX[FxGUID][i].Num == LT_ParamNum then
                                                         FrstSelItm[ConditionPrm_PID] = i
                                                         found = true
@@ -6728,7 +6728,7 @@ function loop()
                                                 end
                                             elseif not IsLBtnHeld and Mods == Apl then
                                                 local Ofs = 0
-                                                for I, v in ipairs(DraggingFXs) do
+                                                for I, _ in ipairs(DraggingFXs) do
                                                     local offset
                                                     local srcFX = DraggingFXs_Idx[I] + Ofs
                                                     local TrgFX = srcFX + #DraggingFXs
@@ -7203,7 +7203,7 @@ function loop()
                         for FX_Idx = 0, Sel_Track_FX_Count, 1 do
                             local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
                             if FxGUID then
-                                for P, v in ipairs(FX[FxGUID]) do
+                                for P, _ in ipairs(FX[FxGUID]) do
                                     local FP = FX[FxGUID][P]
                                     FP.ModAMT = FP.ModAMT or {}
                                     FP.ModBipolar = FP.ModBipolar or {}
@@ -7526,7 +7526,7 @@ function loop()
         for T = 0, NumOfTotalTracks - 1, 1 do
             local track = r.GetTrack(0, T)
             local TrkID = r.GetTrackGUID(track)
-            for i, v in ipairs(MacroNums) do
+            for i, _ in ipairs(MacroNums) do
                 if Trk[TrkID].Mod[i].Val ~= nil then
                     r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID, Trk[TrkID].Mod[i].Val)
                 end
