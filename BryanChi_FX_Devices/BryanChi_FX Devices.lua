@@ -95,7 +95,7 @@ local fs_utils = require("src.Functions.Filesystem_utils")
 if ThirdPartyDeps() then return end
 
 function msg(...)
-    for i, v in ipairs({ ... }) do
+    for _, v in ipairs({ ... }) do
         r.ShowConsoleMsg(tostring(v) .. "\n")
     end
 end
@@ -922,16 +922,16 @@ function loop()
                 if #LE.Sel_Items > 1 then
                     SL()
                     if r.ImGui_Button(ctx, 'Align Y-Axis') then
-                        for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosX = FX[FxGUID][LE.Sel_Items[1]].PosX end
+                        for _, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosX = FX[FxGUID][LE.Sel_Items[1]].PosX end
                     elseif r.ImGui_Button(ctx, 'Align X-Axis') then
-                        for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosY = FX[FxGUID][LE.Sel_Items[1]].PosY end
+                        for _, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosY = FX[FxGUID][LE.Sel_Items[1]].PosY end
                     end
                 end
                 if #LE.Sel_Items > 2 then
                     if r.ImGui_Button(ctx, 'Equalize X Spacing') then
                         local Spc, max, min
                         local tab = {}
-                        for i, v in ipairs(LE.Sel_Items) do
+                        for _, v in ipairs(LE.Sel_Items) do
                             table.insert(tab, FX[FxGUID][v].PosX)
                         end
 
@@ -944,7 +944,7 @@ function loop()
                     elseif r.ImGui_Button(ctx, 'Equalize Y Spacing') then
                         local Spc, max, min
                         local tab = {}
-                        for i, v in ipairs(LE.Sel_Items) do
+                        for _, v in ipairs(LE.Sel_Items) do
                             table.insert(tab, FX[FxGUID][v].PosY)
                         end
                         max = math.max(table.unpack(tab))
@@ -2552,7 +2552,7 @@ function loop()
                                     local F = fs_utils.scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
 
 
-                                    for i, v in ipairs(F) do
+                                    for _, v in ipairs(F) do
                                         local Shape = Get_LFO_Shape_From_File(v)
                                         if Shape then
                                             Shape.Name = tostring(v):sub(0, -5)
@@ -3376,14 +3376,14 @@ function loop()
                                         CopyPrm = {}
                                         CopyPrm = I
 
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
 
                                         end
                                     end
 
                                     SL()
                                     if r.ImGui_Button(ctx, 'Paste Properties') then
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
                                             I.Type        = CopyPrm.Type
                                             I.Sldr_W      = CopyPrm.Sldr_W
                                             I.Style       = CopyPrm.Style
@@ -3689,7 +3689,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosX then
-                                                for i, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
+                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
                                             end
                                             r.ImGui_Text(ctx, 'Y:')
                                             SL()
@@ -3699,7 +3699,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosY then
-                                                for i, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
+                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
                                             end
                                         end
                                     end
@@ -3713,7 +3713,7 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosX then
-                                                for i, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
+                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
                                             end
                                             r.ImGui_Text(ctx, 'Y:')
                                             SL()
@@ -3723,14 +3723,14 @@ function loop()
                                                 0.25, nil, nil, '%.2f')
                                             SL()
                                             if EditPosY then
-                                                for i, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
+                                                for _, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
                                             end
                                         end
                                     end
                                     local function AddOption(Name, TargetVar, TypeCondition)
                                         if FrstSelItm.Type == TypeCondition or not TypeCondition then
                                             if r.ImGui_Selectable(ctx, Name, false) then
-                                                for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v][TargetVar] = Name end
+                                                for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v][TargetVar] = Name end
                                             end
                                         end
                                     end
@@ -3750,7 +3750,7 @@ function loop()
                                     r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                     if r.ImGui_BeginCombo(ctx, '##', PrmTypeLbl, r.ImGui_ComboFlags_NoArrowButton()) then
                                         local function SetItemType(Type)
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].Sldr_W = nil
                                                 FX[FxGUID][v].Type = Type
                                             end
@@ -3811,7 +3811,7 @@ function loop()
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
                                     if DragLbl_Clr_Edited then
-                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Clr = Lbl_V_Clr end
+                                        for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Clr = Lbl_V_Clr end
                                     end
 
 
@@ -3846,7 +3846,7 @@ function loop()
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
                                     if DragV_Clr_edited then
-                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = Drag_V_Clr end
+                                        for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = Drag_V_Clr end
                                     end
 
                                     if FrstSelItm.Type == 'Drag' then
@@ -3855,11 +3855,11 @@ function loop()
                                         r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                         if r.ImGui_BeginCombo(ctx, '## Drag Dir' .. LE.Sel_Items[1], FrstSelItm.DragDir or '', r.ImGui_ComboFlags_NoArrowButton()) then
                                             if r.ImGui_Selectable(ctx, 'Right', false) then
-                                                for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Right' end
+                                                for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Right' end
                                             elseif r.ImGui_Selectable(ctx, 'Left-Right', false) then
-                                                for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left-Right' end
+                                                for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left-Right' end
                                             elseif r.ImGui_Selectable(ctx, 'Left', false) then
-                                                for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left' end
+                                                for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].DragDir = 'Left' end
                                             end
                                             r.ImGui_EndCombo(ctx)
                                         end
@@ -3884,9 +3884,9 @@ function loop()
                                         EdM, Mt = r.ImGui_Checkbox(ctx, 'Momentary##' .. FxGUID .. LE.Sel_Items[1],
                                             Momentary)
                                         if EdT then
-                                            for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].SwitchType = 'Toggle' end
+                                            for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].SwitchType = 'Toggle' end
                                         elseif EdM then
-                                            for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].SwitchType = 'Momentary' end
+                                            for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].SwitchType = 'Momentary' end
                                         end
                                     end
 
@@ -3900,7 +3900,7 @@ function loop()
                                             '##EditBaseV' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FX[FxGUID][LE.Sel_Items[1]].SwitchBaseV or 0, 0.05, 0, 1, '%.2f')
                                         if Drag then
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][LE.Sel_Items[1]].SwitchBaseV = Bv
                                             end
                                         end
@@ -3910,7 +3910,7 @@ function loop()
                                             '##EditTargV' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FX[FxGUID][LE.Sel_Items[1]].SwitchTargV or 1, 0.05, 0, 1, '%.2f')
                                         if Drag then
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][LE.Sel_Items[1]].SwitchTargV =
                                                     Tv
                                             end
@@ -3942,7 +3942,7 @@ function loop()
                                             ChangeFont_Size = sz
                                         end
 
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
                                             FX[FxGUID][v].FontSize = ft
                                         end
                                     end
@@ -3967,7 +3967,7 @@ function loop()
                                             ChangeFont_Size = sz
                                             ChangeFont_Font = 'Arial'
                                         end
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
                                             FX[FxGUID][v].V_FontSize = ft
                                         end
                                     end
@@ -4015,7 +4015,7 @@ function loop()
                                         '%.1f')
 
                                     if r.ImGui_IsItemEdited(ctx) then
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
                                             FX[FxGUID][v].Sldr_W = W
                                         end
                                     end
@@ -4036,7 +4036,7 @@ function loop()
                                             FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or 3, LE.GridSize / 4,
                                             -5, max or 40, '%.1f')
                                         if r.ImGui_IsItemEdited(ctx) then
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].Height = W
                                             end
                                         end
@@ -4061,7 +4061,7 @@ function loop()
                                             '##EditValueDecimals' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FrstSelItm.V_Round or rd, 1)
                                         if Edit then
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].V_Round = math.max(
                                                     rd, 0)
                                             end
@@ -4080,7 +4080,7 @@ function loop()
                                         '##Value to Note Length' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                         FrstSelItm.ValToNoteL or nil)
                                     if Edit then
-                                        for i, v in pairs(LE.Sel_Items) do
+                                        for _, v in pairs(LE.Sel_Items) do
                                             if not FX[FxGUID][v].ValToNoteL then
                                                 FX[FxGUID][v].ValToNoteL = true
                                             else
@@ -4124,7 +4124,7 @@ function loop()
                                     end
 
                                     function ToAllSelItm(x, y)
-                                        for i, v in ipairs(LE.Sel_Items) do
+                                        for _, v in ipairs(LE.Sel_Items) do
                                             FX[FxGUID][v][x] = y
                                         end
                                     end
@@ -4232,7 +4232,7 @@ function loop()
                                         r.ImGui_BeginDisabled(ctx)
 
                                         local function setItmStyle(Style, img, ImgPath)
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].Style = Style;
                                                 if img then
                                                     FX[FxGUID][v].Image = img
@@ -4330,14 +4330,14 @@ function loop()
                                         FxGUID .. LE.Sel_Items[1], PosX or FrstSelItm.PosX, LE.GridSize, 0, Win_W - 10,
                                         '%.0f')
                                     if EditPosX then
-                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].PosX = PosX end
+                                        for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].PosX = PosX end
                                     end
                                     SL()
                                     r.ImGui_Text(ctx, 'Pos-Y: '); r.ImGui_SameLine(ctx)
                                     r.ImGui_SetNextItemWidth(ctx, 80)
                                     local EditPosY, PosY = r.ImGui_DragDouble(ctx, ' ##EditPosY' ..
                                         FxGUID .. LE.Sel_Items[1], PosY or FrstSelItm.PosY, LE.GridSize, 20, 210, '%.0f')
-                                    if EditPosY then for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].PosY = PosY end end
+                                    if EditPosY then for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].PosY = PosY end end
 
                                     ---Color -----
 
@@ -4351,7 +4351,7 @@ function loop()
                                         HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect')
                                     end
                                     if ClrEdited then
-                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].BgClr = PrmBgClr end
+                                        for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].BgClr = PrmBgClr end
                                     end
 
 
@@ -4368,7 +4368,7 @@ function loop()
                                                 'GetItemRect')
                                         end
                                         if GrbClrEdited then
-                                            for i, v in pairs(LE.Sel_Items) do
+                                            for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].GrbClr = GrbClr
                                             end
                                         end
@@ -4383,7 +4383,7 @@ function loop()
                                             '##EditValueFontSize' .. FxGUID .. (LE.Sel_Items[1] or ''),
                                             FX[FxGUID][LE.Sel_Items[1] or ''].Value_Thick or 2, 0.1, 0.5, 8, '%.1f')
                                         if TD then
-                                            for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Value_Thick = Thick end
+                                            for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Value_Thick = Thick end
                                         end
                                     end
 
@@ -4399,7 +4399,7 @@ function loop()
                                             r.ImGui_ColorEditFlags_NoInputs()|    r
                                             .ImGui_ColorEditFlags_AlphaPreviewHalf()|r.ImGui_ColorEditFlags_AlphaBar())
                                         if DragLbl_Clr_Edited then
-                                            for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = V_Clr end
+                                            for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = V_Clr end
                                         end
                                     elseif FrstSelItm.Type == 'Switch' then
                                         SL()
@@ -4411,7 +4411,7 @@ function loop()
                                             r.ImGui_ColorEditFlags_NoInputs()| r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                             r.ImGui_ColorEditFlags_AlphaBar())
                                         if DragLbl_Clr_Edited then
-                                            for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Switch_On_Clr = V_Clr end
+                                            for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Switch_On_Clr = V_Clr end
                                         end
                                     end
 
@@ -4433,7 +4433,7 @@ function loop()
                                                              ConditionPrm_V_Norm, BtnTitle, ShowCondition)
                                         if r.ImGui_Button(ctx, BtnTitle) then
                                             if Mods == 0 then
-                                                for i, v in pairs(LE.Sel_Items) do
+                                                for _, v in pairs(LE.Sel_Items) do
                                                     if not FX[FxGUID][v][ShowCondition] then FX[FxGUID][v][ShowCondition] = true else FX[FxGUID][v][ShowCondition] = nil end
                                                     FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v][ConditionPrm_V] or {}
                                                 end
@@ -4535,7 +4535,7 @@ function loop()
                                                     FX[FxGUID][P][ConditionPrm_V][1] or 'Unassigned', nil, 'No Lbl')
 
                                                 if Value_Selected then
-                                                    for i, v in pairs(LE.Sel_Items) do
+                                                    for _, v in pairs(LE.Sel_Items) do
                                                         FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v][ConditionPrm_V] or
                                                             {}
                                                         FX[FxGUID][v][ConditionPrm_V_Norm] = FX[FxGUID][v]
@@ -4565,7 +4565,7 @@ function loop()
                                                                     FX[FxGUID][PID].ManualValues,
                                                                     v, nil, 'No Lbl')
                                                                 if Value_Selected then
-                                                                    for I, v in pairs(LE.Sel_Items) do
+                                                                    for _, v in pairs(LE.Sel_Items) do
                                                                         FX[FxGUID][v][ConditionPrm_V][i] = V_Formatted
                                                                         FX[FxGUID][v][ConditionPrm_V_Norm][i] = r
                                                                             .TrackFX_GetParamNormalized(LT_Track,
@@ -5069,7 +5069,7 @@ function loop()
                                     if not CloseLayEdit and r.ImGui_BeginChildFrame(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2, r.ImGui_WindowFlags_NoScrollbar()) then
                                         local NumOfPaletteClr = 9
 
-                                        for i, v in ipairs(FX[FxGUID]) do
+                                        for _, v in ipairs(FX[FxGUID]) do
                                             local function CheckClr(Clr)
                                                 if Clr and not r.ImGui_IsPopupOpen(ctx, '', r.ImGui_PopupFlags_AnyPopupId()) then
                                                     if not tablefind(ClrPallet, Clr) and ClrPallet then
@@ -5088,7 +5088,7 @@ function loop()
 
                                         if FX.Win_Name_S[FX_Idx] then
                                             if Draw[FX.Win_Name_S[FX_Idx]] then
-                                                for i, v in ipairs(Draw[FX.Win_Name_S[FX_Idx]].clr) do
+                                                for _, v in ipairs(Draw[FX.Win_Name_S[FX_Idx]].clr) do
                                                     local Clr = v
                                                     if Clr and not r.ImGui_IsPopupOpen(ctx, '', r.ImGui_PopupFlags_AnyPopupId()) then
                                                         if not tablefind(ClrPallet, Clr) and ClrPallet then
@@ -5121,7 +5121,7 @@ function loop()
                                         r.ImGui_EndChildFrame(ctx)
                                     end
                                     if NumOfColumns or 1 > 1 then
-                                        for i = 1, NumOfColumns, 1 do r.ImGui_SameLine(ctx, nil, 0) end
+                                        for _ = 1, NumOfColumns, 1 do r.ImGui_SameLine(ctx, nil, 0) end
                                     end
                                 end
 
@@ -5280,7 +5280,7 @@ function loop()
                                                 r.TrackFX_SetEnabled(LT_Track, i, true)
                                             end
 
-                                            for ii, v in pairs(FX[FxGUID].AldreadyBPdFXs) do
+                                            for _, v in pairs(FX[FxGUID].AldreadyBPdFXs) do
                                                 if v == FXGUID[i] then r.TrackFX_SetEnabled(LT_Track, i, false) end
                                             end
                                         end
@@ -5574,7 +5574,7 @@ function loop()
                                                     end
                                                 end
 
-                                                for i = 1, HowMany, 1 do
+                                                for _ = 1, HowMany, 1 do
                                                     if FX[FXGUID[L]].inWhichLyr == FX[FXGUID_RackMixer].LyrID[LyrID] and FX.InLyr[FXGUID[L]] == FXGUID_RackMixer then
                                                         r.TrackFX_Delete(LT_Track, L)
                                                     end
@@ -5990,7 +5990,7 @@ function loop()
                                     end
                                 end
 
-                                for i = 0, FX_Inst, 1 do
+                                for _ = 0, FX_Inst, 1 do
                                     r.TrackFX_Delete(LT_Track, Spltr)
                                 end
 
@@ -6249,7 +6249,7 @@ function loop()
 
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i - 1 + T, NxtBd_V) --adjust band Freq
                                             end
-                                            for I, v in ipairs(FX[FxGUID].FXsInBS) do
+                                            for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                                 if FX[v].InWhichBand >= i then
                                                     FX[v].InWhichBand = FX[v].InWhichBand - 1
 
@@ -6460,7 +6460,7 @@ function loop()
                                 local FXCountForBand = {}
                                 FX[FxGUID].FXCheckWait = (FX[FxGUID].FXCheckWait or 0) + 1
                                 if FX[FxGUID].FXCheckWait > 10 then
-                                    for i, v in ipairs(FX[FxGUID].FXsInBS) do
+                                    for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                         if not tablefind(FXGUID, v) then
                                             table.remove(FX[FxGUID].FXsInBS, tablefind(FX[FxGUID].FXsInBS, v))
                                         end
@@ -6468,7 +6468,7 @@ function loop()
                                     FX[FxGUID].FXCheckWait = 0
                                 end
 
-                                for i, v in ipairs(FX[FxGUID].FXsInBS) do
+                                for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                     if FX[v].InWhichBand == 0 then
                                         FXCountForBand[0] = (FXCountForBand[0] or 0) + 1
                                     elseif FX[v].InWhichBand == 1 then
@@ -6507,7 +6507,7 @@ function loop()
                                     if --[[Hovering over a band]] r.ImGui_IsMouseHoveringRect(ctx, WinL, Nxt_CrossPos, WinR, CrossPos) and not (HvrOnBand or HvrOnNxtBand) then
                                         local function Find_InsPos()
                                             local InsPos
-                                            for I, v in ipairs(FX[FxGUID].FXsInBS) do
+                                            for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                                 if FX[v].InWhichBand == i then InsPos = tablefind(FXGUID, v) end
                                             end
                                             Pl = Pl or InsPos
@@ -6691,7 +6691,7 @@ function loop()
                                             end
                                         elseif LBtn_MousdDownDuration > 0.06 and (Mods == 0 or Mods == Apl) and not DraggingFXs.SrcBand and FX[FxGUID].StartCount then
                                             --Drag FXs to different bands
-                                            for I, v in ipairs(FX[FxGUID].FXsInBS) do
+                                            for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                                 if FX[v].InWhichBand == i then
                                                     table.insert(DraggingFXs, v)
                                                     table.insert(DraggingFXs_Idx, tablefind(FXGUID, v))
@@ -6710,7 +6710,7 @@ function loop()
                                                 Nxt_CrossPos + 1, Nxt_CrossPos - CrossPos, WinR - WinL, 1, 1,
                                                 NoGetItemRect, NoForeground, NOrounding)
                                             if not IsLBtnHeld and Mods == 0 then -- if Dropped FXs
-                                                for I, v in ipairs(DraggingFXs) do
+                                                for _, v in ipairs(DraggingFXs) do
                                                     FX[v].InWhichBand = i
                                                     local Fx = tablefind(FXGUID, v)
                                                     r.GetSetMediaTrackInfo_String(LT_Track,
@@ -6831,7 +6831,7 @@ function loop()
                                             end
                                         end
                                         local DelFX = {}
-                                        for i, v in ipairs(FX[FxGUID].FXsInBS) do
+                                        for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                             if FX[v].InWhichBand == FX[FxGUID].PromptDeleteBand then
                                                 table.insert(DelFX, v)
                                                 --delete FXs
@@ -6953,7 +6953,7 @@ function loop()
 
 
                             for FX_ID = 0, Sel_Track_FX_Count, 1 do
-                                for i, v in ipairs(FX[FxGUID].FXsInBS) do
+                                for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                     local _, FxName = r.TrackFX_GetFXName(LT_Track, FX_ID)
 
                                     if FXGUID[FX_ID] == v and FX[FxGUID].Sel_Band == FX[v].InWhichBand then
@@ -7461,13 +7461,13 @@ function loop()
 
             -- When Add or Delete Fx.....if  add fx or delete fx
             if Sel_Track_FX_Count ~= CompareFXCount then
-                for i in ipairs(FX.Win_Name) do
+                for _ in ipairs(FX.Win_Name) do
 
                 end
                 if FX.Win_Name then
                     local rv, tab = FindStringInTable(FX.Win_Name, 'FX Devices Gain Reduction')
                     if tab then
-                        for i, v in ipairs(tab) do
+                        for _, v in ipairs(tab) do
                             r.gmem_attach('CompReductionScope')
                             r.gmem_write(2001, v - 1)
                         end
