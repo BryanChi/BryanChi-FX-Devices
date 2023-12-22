@@ -8,7 +8,9 @@ local BlendColors = customcolors.BlendColors
 local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
-
+local pluginHelpers = require("src.helpers.plugin_helpers")
+local images_fonts = require("src.helpers.images_fonts")
+local fs_utils = require("src.Functions.Filesystem_utils")
 ---General functions list
 
 ---@param str string
@@ -1248,7 +1250,7 @@ end
 ---@param Identifier? string
 ---@return boolean|nil
 function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
-    r.ImGui_PushFont(ctx, FontAwesome)
+    r.ImGui_PushFont(ctx, images_fonts.FontAwesome)
     if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
     end
     local FillClr
@@ -1542,21 +1544,6 @@ end
 
 
 
----@param directory string path to directory
----@return table
-function scandir(directory)
-    local Files = {}
-    for i = 0, 999, 1 do
-        local F = r.EnumerateFiles(directory, i)
-        
-        if F and F ~= '.DS_Store' then table.insert(Files, F) end
-
-        if not F then return Files end
-    end
-
-    --return F ---TODO should this be Files instead of F ?
-end
-
 ---@param ShowAlreadyAddedPrm boolean
 ---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
@@ -1826,7 +1813,7 @@ function AddFX_Menu(FX_Idx)
     local function LoadTemplate(template, replace)
         local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
         if replace then
-            local chunk = GetFileContext(track_template_path)
+            local chunk = fs_utils.GetFileContext(track_template_path)
             r.SetTrackStateChunk( TRACK, chunk, true )
         else
             r.Main_openProject( track_template_path )
@@ -3512,7 +3499,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
 
-                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx]) then
+                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(pluginHelpers.PluginScripts, FX.Win_Name_S[FX_Idx]) then
                     SyncWetValues()
 
                     if FX[FxGUID].Collapse ~= true then
@@ -3536,7 +3523,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local function Decide_If_Create_Regular_Layout()
                     if not FX[FxGUID].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
                         local FX_has_Plugin
-                        for i, v in pairs(PluginScripts) do
+                        for i, v in pairs(pluginHelpers.PluginScripts) do
                             if FX_Name:find(v) then
                                 FX_has_Plugin = true  
                             end
@@ -4387,7 +4374,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                for i, v in pairs(PluginScripts) do
+                for i, v in pairs(pluginHelpers.PluginScripts) do
                     local FX_Name = FX_Name
 
 

@@ -47,83 +47,8 @@
 ---@type string
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
-
-
-function ThirdPartyDeps()
-    local ultraschall_path = reaper.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
-    local readrum_machine = reaper.GetResourcePath() ..
-        "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
-
-    local version = tonumber(string.sub(reaper.GetAppVersion(), 0, 4))
-    --reaper.ShowConsoleMsg((version))
-
-    local fx_browser_path
-    local n, arch = reaper.GetAppVersion():match("(.+)/(.+)")
-    local fx_browser_v6_path
-
-    if n:match("^7%.") then
-        fx_browser = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
-        fx_browser_reapack = 'sexan fx browser parser v7'
-    else
-        fx_browser = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
-        fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
-        fx_browser_reapack = 'sexan fx browser parser v6'
-    end
-    --local fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
-    --local fx_browser_v7_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
-
-    local reapack_process
-    local repos = {
-        { name = "Sexan_Scripts",   url = 'https://github.com/GoranKovac/ReaScripts/raw/master/index.xml' },
-        { name = "Ultraschall-API", url = 'https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/raw/master/ultraschall_api_index.xml' },
-        { name = "Suzuki Scripts",  url = 'https://github.com/Suzuki-Re/Suzuki-Scripts/raw/master/index.xml' },
-    }
-
-    for i = 1, #repos do
-        local retinfo, url, enabled, autoInstall = reaper.ReaPack_GetRepositoryInfo(repos[i].name)
-        if not retinfo then
-            retval, error = reaper.ReaPack_AddSetRepository(repos[i].name, repos[i].url, true, 0)
-            reapack_process = true
-        end
-    end
-
-    -- ADD NEEDED REPOSITORIES
-    if reapack_process then
-        reaper.ShowMessageBox("Added Third-Party ReaPack Repositories", "ADDING REPACK REPOSITORIES", 0)
-        reaper.ReaPack_ProcessQueue(true)
-        reapack_process = nil
-    end
-
-    if not reapack_process then
-        -- ULTRASCHALL
-        if reaper.file_exists(ultraschall_path) then
-            dofile(ultraschall_path)
-        else
-            reaper.ShowMessageBox("Ultraschall API is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            reaper.ReaPack_BrowsePackages('ultraschall')
-            return 'error ultraschall'
-        end
-        -- FX BROWSER
-        if reaper.file_exists(fx_browser) then
-            dofile(fx_browser)
-        else
-            reaper.ShowMessageBox("Sexan FX BROWSER is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            reaper.ReaPack_BrowsePackages(fx_browser_reapack)
-            return 'error Sexan FX BROWSER'
-        end
-        -- ReaDrum Machine
-        if reaper.file_exists(readrum_machine) then
-            local found_readrum_machine = true
-        else
-            reaper.ShowMessageBox("ReaDrum Machine is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            reaper.ReaPack_BrowsePackages('readrum machine')
-            return 'error Suzuki ReaDrum Machine'
-        end
-    end
-end
+local ThirdPartyDeps = require("src.helpers.thirdPartyDeps")
+local fs_utils = require("src.Functions.Filesystem_utils")
 
 if ThirdPartyDeps() then return end
 
@@ -134,6 +59,7 @@ function msg(...)
 end
 
 r = reaper
+require("src.Components.FilterBox")
 require("src.Functions.General Functions")
 require("src.Functions.EQ functions")
 require("src.Functions.Layout Editor functions")
@@ -384,38 +310,6 @@ FXGUID = {}
 FirstLoop = true
 
 
-
-------- ==  Colors ----------
-
-Clr = {
-    SliderGrab = 0x309D89ff,
-    Dvdr = {
-        Active = 0x777777aa,
-        In_Layer = 0x131313ff,
-        outline = 0x444444ff
-    }
-
-}
-
-CLR_BtwnFXs_Btn_Hover = 0x77777744
-CLR_BtwnFXs_Btn_Active = 0x777777aa
-FX_Window_Clr_When_Dragging = 0x44444433
-FX_Window_Clr_Default = 0x262626ff
-Btns_Hover_DefaultColor = 0x2d3b3aff
-
-Btns_DefaultColor = 0x333333ff
-Btns_ClickedColor = 0x358f8fff
-BGColor_FXLayeringWindow = 0x262626ff
-
-Macro1Color = 0xff2121ff
-Macro2Color = 0xff5521ff
-Macro3Color = 0xff8921ff
-Macro4Color = 0xffd321ff
-Macro5Color = 0xf4ff21ff
-Macro6Color = 0xb9ff21ff
-Macro7Color = 0x6fff21ff
-Macro8Color = 0x21ff6bff
-
 EightColors = {
     LowMidSat = {},
     LowSat = {},
@@ -501,30 +395,7 @@ local LAST_USED_FX
 
 
 
--- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
----@param s string
-local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
 
----@param filter_text string
-local function Filter_actions(filter_text)
-    filter_text = Lead_Trim_ws(filter_text)
-    local t = {}
-    if filter_text == "" or not filter_text then return t end
-    for i = 1, #FX_LIST do
-        local action = FX_LIST[i]
-        local name = action:lower()
-        local found = true
-        for word in filter_text:gmatch("%S+") do
-            if not name:find(word:lower(), 1, true) then
-                found = false
-                break
-            end
-        end
-
-        if found then t[#t + 1] = action end
-    end
-    return t
-end
 
 local function SetMinMax(Input, Min, Max)
     if Input >= Max then
@@ -538,192 +409,7 @@ local function SetMinMax(Input, Min, Max)
 end
 
 
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
-    ---@type integer|nil, boolean|nil
-    local FX_Idx_For_AddFX, close
-    if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
-    local MAX_FX_SIZE = 250
-    local FxGUID = FXGUID[FX_Idx_For_AddFX or FX_Idx]
-    r.ImGui_SetNextItemWidth(ctx, 180)
-    _, ADDFX_FILTER = r.ImGui_InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER,
-        r.ImGui_InputTextFlags_AutoSelectAll())
 
-    if r.ImGui_IsWindowAppearing(ctx) then
-        local tb = FX_LIST
-        r.ImGui_SetKeyboardFocusHere(ctx, -1)
-    end
-
-    local filtered_fx = Filter_actions(ADDFX_FILTER)
-    --r.ImGui_SetNextWindowPos(ctx, r.ImGui_GetItemRectMin(ctx), ({ r.ImGui_GetItemRectMax(ctx) })[2])
-    local filter_h = #filtered_fx == 0 and 2 or (#filtered_fx > 40 and 20 * 17 or (17 * #filtered_fx))
-    local function InsertFX(Name)
-        local FX_Idx = FX_Idx
-        --- CLICK INSERT
-        if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
-
-        r.TrackFX_AddByName(LT_Track, Name, false, -1000 - FX_Idx)
-
-        -- if Inserted into Layer
-        local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
-        if FX.InLyr[FxGUID] == FXGUID_RackMixer and FX.InLyr[FxGUID] then
-            DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
-        end
-        if SpaceIsBeforeRackMixer == 'SpcInBS' then
-            DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
-        end
-        if SpcIsInPre then
-            local inspos = FX_Idx + 1
-            if SpaceIsBeforeRackMixer == 'End of PreFX' then
-                table.insert(Trk[TrkID].PreFX, FxID)
-            else
-                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
-            end
-            for i, v in pairs(Trk[TrkID].PreFX) do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                    true)
-            end
-        elseif SpcInPost then
-            if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-            table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
-            -- InsertToPost_Src = FX_Idx + offset+2
-            for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
-            end
-        end
-
-        ADDFX_FILTER = nil
-    end
-    if ADDFX_FILTER ~= '' and ADDFX_FILTER then
-        SL()
-        r.ImGui_SetNextWindowSize(ctx, MAX_FX_SIZE, filter_h + 20)
-        local x, y = r.ImGui_GetCursorScreenPos(ctx)
-
-        ParentWinPos_x, ParentWinPos_y = r.ImGui_GetWindowPos(ctx)
-        local VP_R = VP.X + VP.w
-        if x + MAX_FX_SIZE > VP_R then x = ParentWinPos_x - MAX_FX_SIZE end
-
-        r.ImGui_SetNextWindowPos(ctx, x, y - filter_h / 2)
-        if r.ImGui_BeginPopup(ctx, "##popupp", r.ImGui_WindowFlags_NoFocusOnAppearing() --[[ MAX_FX_SIZE, filter_h ]]) then
-            ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
-            for i = 1, #filtered_fx do
-                local ShownName
-                if filtered_fx[i]:find('VST:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
-                    local clr = FX_Adder_VST or
-                        CustomColorsDefault
-                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
-                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
-                    MyText('VST', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VST3:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6) .. '##vst3'
-                    local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('JS:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    MyText('JS', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('AU:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    MyText('AU', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('CLAP:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6)
-                    local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAP', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('LV2:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5)
-                    local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    MyText('LV2', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-
-                if r.ImGui_Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
-                    if filtered_fx[i] then
-                        InsertFX(filtered_fx[i])
-                        r.ImGui_CloseCurrentPopup(ctx)
-                        close = true
-                    end
-                end
-                if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-                -- DRAG AND DROP
-                if r.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
-                    -- HIGHLIGHT DRAGGED FX
-                    DRAG_FX = i
-                    DndAddFX_SRC(filtered_fx[i])
-                    --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
-                end
-            end
-
-            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) then
-                r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
-                LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
-                ADDFX_Sel_Entry = nil
-                r.ImGui_CloseCurrentPopup(ctx)
-                close = true
-
-                --FILTER = ''
-                --r.ImGui_CloseCurrentPopup(ctx)
-            elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_UpArrow()) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry - 1
-            elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_DownArrow()) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry + 1
-            end
-            --r.ImGui_EndChild(ctx)
-            r.ImGui_EndPopup(ctx)
-        end
-
-
-        r.ImGui_OpenPopup(ctx, "##popupp")
-        r.ImGui_NewLine(ctx)
-    end
-
-
-    if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then
-        r.ImGui_CloseCurrentPopup(ctx)
-        ADDFX_FILTER = nil
-    end
-    return close
-end
-
-local function DrawChildMenu(tbl, path, FX_Idx)
-    path = path or ""
-    for i = 1, #tbl do
-        if tbl[i].dir then
-            if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
-                DrawChildMenu(tbl[i], table.concat({ path, os_separator, tbl[i].dir }), FX_Idx)
-                r.ImGui_EndMenu(ctx)
-            end
-        end
-        if type(tbl[i]) ~= "table" then
-            if r.ImGui_Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let’s pass the third argument as false instead of nil
-                if TRACK then
-                    r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i] }), false,
-                        -1000 - FX_Idx)
-                end
-            end
-        end
-    end
-end
 
 ----------------------------End declare Initial Variables   ------------------------
 
@@ -735,428 +421,12 @@ GetLTParam()
 ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
 
+local images_fonts = require("src.helpers.images_fonts")
 
+require("src.helpers.init_load_states")
 
 
-
-
-
------ Get plugin scripts path -------
-pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
----List of Plugin Scripts for FXD
-PluginScripts = scandir(pluginScriptPath)
-for i, v in ipairs(PluginScripts) do
-    if not v:find('.lua') then
-        PluginScripts[i] = nil
-    else
-        PluginScripts[i] = v:sub(0, v:find('.lua') - 1)
-    end
-end
-
-
-
-local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-script_folder       = script_folder .. '/src'
-FontAwesome         = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 30)
-FontAwesome_small   = r.ImGui_CreateFont(script_folder .. '/IconFont1.ttf', 10)
-
-function attachImagesAndFonts()
-    Img = {
-        Trash  = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
-        Pin    = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/pin.png'),
-        Pinned = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/pinned.png'),
-        Copy   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/copy.png'),
-        Paste  = r.ImGui_CreateImage(CurrentDirectory .. 'src/Images/paste.png'),
-        Save   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/save.png'),
-        Sine   = r.ImGui_CreateImage(CurrentDirectory .. '/src/Images/sinewave.png'),
-    }
-    for i = 6, 64, 1 do
-        _G['Font_Andale_Mono_' .. i] = r.ImGui_CreateFont('andale mono', i)
-    end
-
-    Font_Andale_Mono_20_B = r.ImGui_CreateFont('andale mono', 20, r.ImGui_FontFlags_Bold()) -- TODO move to constants
-    r.ImGui_Attach(ctx, Font_Andale_Mono_20_B)
-    for i = 6, 64, 1 do
-        r.ImGui_Attach(ctx, _G['Font_Andale_Mono_' .. i])
-    end
-    r.ImGui_Attach(ctx, FontAwesome)
-    r.ImGui_Attach(ctx, FontAwesome_small)
-    for i, v in pairs(Img) do
-        r.ImGui_Attach(ctx, v)
-    end
-
-
-
-
-    for i = 6, 64, 1 do
-        _G['Arial_' .. i] = r.ImGui_CreateFont('Arial', i)
-        r.ImGui_Attach(ctx, _G['Arial_' .. i])
-    end
-
-    Arial = r.ImGui_CreateFont('Arial', 12) -- TODO move to constants
-end
-
-function TrashIcon(size, lbl, ClrBG, ClrTint)
-    local rv = r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint)     -- TODO weird but I can’t find anything in the official docs or the reaImGui repo about this function
-    if r.ImGui_IsItemHovered(ctx) then
-        TintClr = 0xCE1A28ff
-        return rv, TintClr
-    end
-end
-
-NumOfTotalTracks = r.CountTracks(0)
--- Repeat for every track, at the beginning of script
-for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
-    local Track = r.GetTrack(0, Track_Idx)
-    local TrkID = r.GetTrackGUID(Track)
-
-    Trk[TrkID] = Trk[TrkID] or {}
-    Trk[TrkID].Mod = {}
-    Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
-    Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-    local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
-    Trk[TrkID].AutoPrms = Trk[TrkID].AutoPrms or {}
-    for i = 1, (AutoPrmCount or 0) + 1, 1 do
-        Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
-    end
-
-
-    local function RC(str, type)
-        if type == 'str' then
-            return select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
-        else
-            return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
-        end
-    end
-    for i = 1, 8, 1 do -- for every modulator
-        Trk[TrkID].Mod[i] = {}
-        local m = Trk[TrkID].Mod[i]
-
-        m.ATK = RC('Macro ' .. i .. ' Atk')
-        m.REL = RC('Macro ' .. i .. ' Rel')
-        Trk[TrkID].SEQL[i] = RC('Macro ' .. i .. ' SEQ Length')
-        Trk[TrkID].SEQ_Dnom[i] = RC('Macro ' .. i .. ' SEQ Denominator')
-        m.Smooth = RC('Macro ' .. i .. ' Follower Speed')
-        m.Gain = RC('Macro ' .. i .. ' Follower Gain')
-
-        m.LFO_NodeCt = RC('Mod ' .. i .. 'Total Number of Nodes')
-        m.LFO_spd = RC('Mod ' .. i .. 'LFO Speed')
-        m.LFO_leng = RC('Mod ' .. i .. 'LFO Length')
-        m.LFO_Env_or_Loop = RC('Mod ' .. i .. 'LFO_Env_or_Loop')
-        m.Rel_Type = RC('Mod ' .. i .. 'LFO_Release_Type')
-        if m.Rel_Type == 0 then
-            m.Rel_Type = 'Latch'
-        elseif m.Rel_Type == 1 then
-            m.Rel_Type = 'Simple Release'
-        elseif m.Rel_Type == 2 then
-            m.Rel_Type = 'Custom Release'
-        elseif m.Rel_Type == 3 then
-            m.Rel_Type = 'Custom Release - No Jump'
-        end
-
-        if m.LFO_Env_or_Loop == 1 then m.LFO_Env_or_Loop = 'Envelope' else m.LFO_Env_or_Loop = nil end
-
-
-
-        for N = 1, (m.LFO_NodeCt or 0), 1 do
-            m.Node = m.Node or {}
-            m.Node[N] = m.Node[N] or {}
-            m.Node[N].x = RC('Mod ' .. i .. 'Node ' .. N .. ' X')
-
-
-            m.Node[N].y       = RC('Mod ' .. i .. 'Node ' .. N .. ' Y')
-            m.Node[N].ctrlX   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl X')
-
-            m.Node[N].ctrlY   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl Y')
-            m.NodeNeedConvert = true
-        end
-        if RC('Mod ' .. i .. 'LFO_Rel_Node') then
-            local ID = RC('Mod ' .. i .. 'LFO_Rel_Node')
-            m.Node[ID] = m.Node[ID] or {}
-            m.Node[ID].Rel = true
-        end
-
-
-
-        Trk[TrkID].Mod[i].SEQ = Trk[TrkID].Mod[i].SEQ or {}
-        --Get Seq Steps
-        if Trk[TrkID].SEQL[i] then
-            for St = 1, Trk[TrkID].SEQL[i], 1 do
-                Trk[TrkID].Mod[i].SEQ[St] = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', '',
-                        false)))
-            end
-        end
-    end
-
-
-
-    local FXCount = r.TrackFX_GetCount(Track)
-    Trk[TrkID] = Trk[TrkID] or {}
-    Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
-    Trk[TrkID].PostFX = Trk[TrkID].PostFX or {}
-
-
-
-
-
-
-    RetrieveFXsSavedLayout(FXCount)
-
-    Trk[TrkID].ModPrmInst = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ModPrmInst', '', false)))
-    for CC = 1, Trk[TrkID].ModPrmInst or 0, 1 do
-        _, Trk.Prm.WhichMcros[CC .. TrkID] = r.GetSetMediaTrackInfo_String(Track,
-            'P_EXT: CC Linked to which Modulation' .. CC, '', false)
-    end
-
-    _, PM.DIY_TrkID[TrkID] = r.GetProjExtState(0, 'FX Devices', 'Track GUID Number for jsfx' .. TrkID)
-    PM.DIY_TrkID[TrkID] = tonumber(PM.DIY_TrkID[TrkID])
-
-    _, Trk.Prm.Inst[TrkID] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Trk Prm Count', '', false)
-    Trk.Prm.Inst[TrkID] = tonumber(Trk.Prm.Inst[TrkID])
-
-    i = 1
-    ---retrieve Pre-FX mappings?
-    ---store in CurTrk.PreFX
-    while i do
-        local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PreFX ' .. i, '', false)
-        if rv then
-            Trk[TrkID].PreFX[i] = str; i = i + 1
-        else
-            i = nil
-        end
-    end
-
-    i = 1
-    ---retrieve Post-FX mappings?
-    ---store in CurTrk.PostFX
-    while i do
-        local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PostFX ' .. i, '', false)
-        if rv then
-            Trk[TrkID].PostFX[i] = str; i = i + 1
-        else
-            i = nil
-        end
-    end
-
-
-
-    if Trk[TrkID].PreFX == {} then Trk[TrkID].PreFX = nil end
-    for P = 1, Trk.Prm.Inst[TrkID] or 0, 1 do
-        _, Trk.Prm.Num[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'Track' .. TrkID .. ' P =' .. P)
-        _, Trk.Prm.WhichMcros[P .. TrkID] = r.GetProjExtState(0, 'FX Devices',
-            'Prm' .. P .. 'Has Which Macro Assigned, TrkID =' .. TrkID)
-        if Trk.Prm.WhichMcros[P .. TrkID] == '' then Trk.Prm.WhichMcros[P .. TrkID] = nil end
-
-        Trk.Prm.Num[P .. TrkID] = tonumber(Trk.Prm.Num[P .. TrkID])
-
-        for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-            local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-            _, Trk.Prm.FXGUID[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'P_Trk :' .. P .. 'Trk-' .. TrkID)
-        end
-    end
-
-
-
-
-    for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-        local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-        local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-
-
-
-
-        local _, DefaultSldr_W = r.GetProjExtState(0, 'FX Devices', 'Default Slider Width for FX:' .. FxGUID)
-        if DefaultSldr_W ~= '' then FX.Def_Sldr_W[FxGUID] = DefaultSldr_W end
-        local _, Def_Type = r.GetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID)
-        if Def_Type ~= '' then FX.Def_Type[FxGUID] = Def_Type end
-
-        if FxGUID ~= nil then
-            GetProjExt_FxNameNum(FxGUID)
-
-            _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' ..
-                FxGUID .. 'in layer')
-            --FX.InLyr[FxGUID] = StringToBool[FX.InLyr[FxGUID]]
-            _, FX.LyrNum[FxGUID]         = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
-            _, FX[FxGUID].inWhichLyr     = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
-            _, FX[FxGUID].ContainerTitle = r.GetProjExtState(0, 'FX Devices - ',
-                'FX' .. FxGUID .. 'FX Layer Container Title ')
-            if FX[FxGUID].ContainerTitle == '' then FX[FxGUID].ContainerTitle = nil end
-
-            FX[FxGUID].inWhichLyr = tonumber(FX[FxGUID].inWhichLyr)
-            FX.LyrNum[FxGUID] = tonumber(FX.LyrNum[FxGUID])
-            _, Lyr.SplitrAttachTo[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'SplitrAttachTo' .. FxGUID)
-            _, Prm.InstAdded[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added')
-            if Prm.InstAdded[FxGUID] == 'true' then Prm.InstAdded[FxGUID] = true end
-
-            if FX.InLyr[FxGUID] == "" then FX.InLyr[FxGUID] = nil end
-            FX[FxGUID].Morph_ID = tonumber(select(2,
-                r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID, '', false)))
-            _, FX[FxGUID].Unlink = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', '',
-                false)
-            if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
-
-            if FX[FxGUID].Morph_ID then
-                Trk[TrkID].Morph_ID = Trk[TrkID].Morph_ID or {}
-                Trk[TrkID].Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
-            end
-
-            local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
-            if rv then FX[FxGUID].ProC_ID = tonumber(ProC_ID) end
-
-            if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
-
-            for Fx_P = 1, #FX[FxGUID] or 0, 1 do
-                FX[FxGUID][Fx_P].V = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..
-                        Fx_P .. 'Value before modulation', '', false)))
-
-
-                local ParamX_Value = 'Param' ..
-                    tostring(FX[FxGUID][Fx_P].Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
-                ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
-                _G[ParamX_Value] = ParamValue_At_Script_Start
-                _, FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = r.GetProjExtState(0, 'FX Devices',
-                    'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'to Trk Prm')
-                FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = tonumber(FX.Prm.ToTrkPrm[FxGUID .. Fx_P])
-
-                local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
-
-                _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
-                FX[FxGUID][Fx_P].WhichCC = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..
-                        (FX[FxGUID][Fx_P].Num or 0), '', false)))
-                _, FX[FxGUID][Fx_P].WhichMODs = r.GetSetMediaTrackInfo_String(Track,
-                    'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '', false)
-                if FX[FxGUID][Fx_P].WhichMODs == '' then FX[FxGUID][Fx_P].WhichMODs = nil end
-                FX[FxGUID][Fx_P].ModAMT = {}
-
-
-                local CC = FX[FxGUID][Fx_P].WhichCC
-                local HasModAmt
-                for m, v in ipairs(MacroNums) do
-                    local FP = FX[FxGUID][Fx_P]
-                    FX[FxGUID][Fx_P].ModAMT[m] = tonumber(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..
-                            Fx_P .. 'Macro' .. m .. 'Mod Amt', '', false)))
-                    if FX[FxGUID][Fx_P].ModAMT[m] then HasModAmt = true end
-
-
-
-                    Trk[TrkID].Mod = Trk[TrkID].Mod or {}
-                    Trk[TrkID].Mod[m] = Trk[TrkID].Mod[m] or {}
-                    Trk[TrkID].Mod[m].Val = tonumber(select(2,
-                        r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
-
-                    FP.ModBypass = RemoveEmptyStr(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '',
-                            false)))
-
-                    FP.ModBipolar = FP.ModBipolar or {}
-                    FP.ModBipolar[m] = StringToBool
-                        [select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
-
-                    if Prm.McroModAmt[IdM] ~= nil then
-                        local width = FX[FxGUID].Width or DefaultWidth or 270
-                        Prm.McroModAmt_Norm[IdM] = Prm.McroModAmt --[[ [IdM]/(width*0.65) ]]
-                    end
-                end
-
-
-                if not HasModAmt then FX[FxGUID][Fx_P].ModAMT = nil end
-            end
-
-            FX[FxGUID] = FX[FxGUID] or {}
-            if r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. '1' .. FxGUID, '', false) then
-                FX[FxGUID].MorphA = FX[FxGUID].MorphA or {}
-                FX[FxGUID].MorphB = FX[FxGUID].MorphB or {}
-                FX[FxGUID].PrmList = {}
-                local PrmCount = r.TrackFX_GetNumParams(Track, FX_Idx)
-
-                RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
-
-                for i = 0, PrmCount - 4, 1 do
-                    _, FX[FxGUID].MorphA[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. i .. FxGUID, '',
-                        false)
-                    FX[FxGUID].MorphA[i] = tonumber(FX[FxGUID].MorphA[i])
-                    _, FX[FxGUID].MorphB[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. i .. FxGUID, '',
-                        false)
-                    FX[FxGUID].MorphB[i] = tonumber(FX[FxGUID].MorphB[i])
-                end
-
-                _, FX[FxGUID].MorphA_Name = r.GetSetMediaTrackInfo_String(Track,
-                    'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', '', false)
-                if FX[FxGUID].MorphA_Name == '' then FX[FxGUID].MorphA_Name = nil end
-                _, FX[FxGUID].MorphB_Name = r.GetSetMediaTrackInfo_String(Track,
-                    'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', '', false)
-                if FX[FxGUID].MorphB_Name == '' then FX[FxGUID].MorphB_Name = nil end
-            end
-        end
-
-        _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-        if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
-            local FXGUIDofRackMixer = r.TrackFX_GetFXGUID(Track, FX_Idx)
-            FX[FXGUIDofRackMixer].LyrID = FX[FXGUIDofRackMixer].LyrID or {}
-            FX[FXGUIDofRackMixer].LyrTitle = FX[FXGUIDofRackMixer].LyrTitle or {}
-            FX[FXGUIDofRackMixer].ActiveLyrCount = 0
-
-            for i = 1, 8, 1 do
-                _, FX[FXGUIDofRackMixer].LyrID[i] = r.GetProjExtState(0, 'FX Devices',
-                    'FX' .. FXGUIDofRackMixer .. 'Layer ID ' .. i)
-                _, FX[FXGUIDofRackMixer].LyrTitle[i] = r.GetProjExtState(0, 'FX Devices - ',
-                    'FX' .. FXGUIDofRackMixer .. 'Layer Title ' .. i)
-                if FX[FXGUIDofRackMixer].LyrTitle[i] == '' then FX[FXGUIDofRackMixer].LyrTitle[i] = nil end
-                FX[FXGUIDofRackMixer].LyrID[i] = tonumber(FX[FXGUIDofRackMixer].LyrID[i])
-                if FX[FXGUIDofRackMixer].LyrID[i] ~= -1 and FX[FXGUIDofRackMixer].LyrID[i] then
-                    FX[FXGUIDofRackMixer].ActiveLyrCount =
-                        FX[FXGUIDofRackMixer].ActiveLyrCount + 1
-                end
-            end
-
-
-            _, Lyr.FX_Ins[FXGUIDofRackMixer] = r.GetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FxGUID)
-            if Lyr.FX_Ins[FXGUIDofRackMixer] == "" then Lyr.FX_Ins[FXGUIDofRackMixer] = nil end
-            Lyr.FX_Ins[FXGUIDofRackMixer] = tonumber(Lyr.FX_Ins[FXGUIDofRackMixer])
-        elseif FX_Name:find('FXD Saike BandSplitter') then
-            FX[FxGUID].BandSplitID = tonumber(select(2,
-                r.GetSetMediaTrackInfo_String(Track, 'P_EXT: BandSplitterID' .. FxGUID, '', false)))
-            _, FX[FxGUID].AttachToJoiner = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Splitter\'s Joiner FxID ' ..
-                FxGUID, '', false)
-
-            for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-                --Restore Band Split
-                local FxID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-                if select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which BS' .. FxID, '', false)) == FxGUID then
-                    --local _, Guid_FX_In_BS = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX is in which BS'..FxID, '', false  )
-                    FX[FxID] = FX[FxID] or {}
-                    FX[FxID].InWhichBand = tonumber(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which Band' .. FxID, '', false)))
-
-                    FX[FxGUID].FXsInBS = FX[FxGUID].FXsInBS or {}
-                    table.insert(FX[FxGUID].FXsInBS, FxID)
-                end
-            end
-        end
-
-
-
-        if Track == LT_Track and string.find(FX_Name, 'Pro%-Q 3') ~= nil then
-            _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
-            ProQ3['scaleLabel' .. ' ID' .. FxGUID] = ProQ3.DspRange[FX_Idx]
-            ProQ3['scale' .. ' ID' .. FxGUID] = syncProQ_DispRange(ProQ3.DspRange[FX_Idx])
-        end
-    end
-
-    for m = 1, 8, 1 do
-        _, Trk[TrkID].Mod[m].Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro' .. m .. 's Name' .. TrkID, '',
-            false)
-        if Trk[TrkID].Mod[m].Name == '' then Trk[TrkID].Mod[m].Name = nil end
-        _, Trk[TrkID].Mod[m].Type = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Mod' .. m .. 'Type', '', false)
-        if Trk[TrkID].Mod[m].Type == '' then Trk[TrkID].Mod[m].Type = nil end
-    end
-end
-
-attachImagesAndFonts()
+images_fonts.attachImagesAndFonts()
 
 ---------------------------------------------------------------
 -----------Retrieve Keyboard Shortcut Settings ----------------
@@ -3170,7 +2440,7 @@ function loop()
                                             if r.ImGui_IsMouseHoveringRect(ctx, L, T, L + 200, T + 10) then
                                                 SL(W - 8)
 
-                                                if TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
+                                                if images_fonts.TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
                                                     r.ImGui_OpenPopup(ctx, 'Delete shape prompt' .. i)
                                                     r.ImGui_SetNextWindowPos(ctx, L, T)
                                                 end
@@ -3243,7 +2513,7 @@ function loop()
 
 
 
-                                    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+                                    local F = fs_utils.scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
 
 
                                     for i, v in ipairs(F) do
@@ -4839,7 +4109,7 @@ function loop()
 
                                     DragDropPics = DragDropPics or {}
 
-                                    local rv, ImgTrashTint = TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
+                                    local rv, ImgTrashTint = images_fonts.TrashIcon(16, 'Clear', ClrBG, ImgTrashTint)
                                     if rv then
                                         ToAllSelItm('Style', nil)
                                         ToAllSelItm('ImagePath', nil)
@@ -4879,11 +4149,11 @@ function loop()
                                                     end
 
                                                     local NewFileName = r.GetResourcePath() .. 'src/Images/' ..  SubFolder .. filename:sub(index)
-                                                    CopyFile(filename, NewFileName) ]]
+                                                    fs_utils.CopyFile(filename, NewFileName) ]]
                                                     if FrstSelItm.Type == 'Knob' then
-                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename, 'Knobs')
+                                                        AbsPath, FrstSelItm.ImagePath = fs_utils.CopyImageFile(filename, 'Knobs')
                                                     elseif FrstSelItm.Type == 'Switch' then
-                                                        AbsPath, FrstSelItm.ImagePath = CopyImageFile(filename,
+                                                        AbsPath, FrstSelItm.ImagePath = fs_utils.CopyImageFile(filename,
                                                             'Switches')
                                                     end
                                                     ToAllSelItm('Image', r.ImGui_CreateImage(AbsPath))
@@ -4977,7 +4247,7 @@ function loop()
                                             SetStyle('Invisible', 'Invisible')
                                             local Dir = CurrentDirectory .. 'src/Images/Knobs'
                                             if r.ImGui_IsWindowAppearing(ctx) then
-                                                StyleWindowImgFiles = scandir(Dir)
+                                                StyleWindowImgFiles = fs_utils.scandir(Dir)
                                                 if StyleWindowImgFiles then
                                                     for i, v in ipairs(StyleWindowImgFiles) do
                                                         if v ~= '.DS_Store' then
@@ -5416,7 +4686,7 @@ function loop()
                                                 if D.Type == 'Image' or D.Type == 'Knob Image' then
                                                     if r.ImGui_BeginChildFrame(ctx, '##drop_files', -R_ofs, 25) then
                                                         if D.Image then
-                                                            if TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
+                                                            if images_fonts.TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
                                                                 D.Image, D.FilePath = nil
                                                             end
                                                             SL()
@@ -5441,7 +4711,7 @@ function loop()
                                                                     i)
 
 
-                                                                path, D.FilePath = CopyImageFile(filename,
+                                                                path, D.FilePath = fs_utils.CopyImageFile(filename,
                                                                     'Attached Drawings')
 
 
