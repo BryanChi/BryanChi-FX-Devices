@@ -1743,12 +1743,6 @@ function loop()
                         r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
                         if r.ImGui_Begin(ctx, 'LFO Shape Edit Window' .. Macro, true, r.ImGui_WindowFlags_NoDecoration() + r.ImGui_WindowFlags_AlwaysAutoResize()) then
                             local Node = Trk[TrkID].Mod[i].Node
-                            local function ConverCtrlNodeY(lastY, Y)
-                                local Range = (math.max(lastY, Y) - math.min(lastY, Y))
-                                local NormV = (math.min(lastY, Y) + Range - Y) / Range
-                                local Bipolar = -1 + (NormV) * 2
-                                return NormV
-                            end
 
 
 
@@ -4684,24 +4678,6 @@ function loop()
 
 
                                             if rv then
-                                                local function AddProp(ShownName, Name, width, sl, defaultV, stepSize,
-                                                                       min, max, format)
-                                                    if ShownName then
-                                                        r.ImGui_Text(ctx, ShownName)
-                                                        SL()
-                                                    end
-                                                    if width then r.ImGui_SetNextItemWidth(ctx, width) end
-                                                    local FORMAT = format
-                                                    if not D[Name] and not defaultV then FORMAT = '' end
-
-                                                    local rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. LBL,
-                                                        D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
-                                                        max or W - 10, FORMAT)
-
-                                                    if rv then D[Name] = V end
-                                                    if sl then SL() end
-                                                    return r.ImGui_IsItemActive(ctx)
-                                                end
 
                                                 local BL_Width = { 'Knob Pointer', 'Knob Range', 'Gain Reduction Text' }
                                                 local BL_Height = { 'Knob Pointer', 'Knob Range', 'Circle',
@@ -4865,15 +4841,6 @@ function loop()
                                                         return r.ImGui_IsItemActive(ctx)
                                                     end
 
-                                                    local function AddRatio(Name)
-                                                        r.ImGui_TableSetColumnIndex(ctx, 3)
-                                                        r.ImGui_PushItemWidth(ctx, -FLT_MIN)
-                                                        local v = (D[Name] or 1) / (FrstSelItm.Sldr_W or 160)
-                                                        local rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. ' ratio', v,
-                                                            0.001, 0, 100, '%.2f')
-                                                        r.ImGui_TableNextRow(ctx)
-                                                        if rv then return rv, V * (FrstSelItm.Sldr_W or 160) end
-                                                    end
 
                                                     r.ImGui_TableSetupColumn(ctx, '##')
                                                     r.ImGui_TableSetupColumn(ctx, 'Values')
@@ -6224,9 +6191,6 @@ function loop()
                             --r.gmem_write(3,0)--[[tells if user R-Click ON a band]]
 
 
-                            local function f_trafo(freq)
-                                return math.exp((1 - freq) * math.log(20 / 22050))
-                            end
                             FX[FxGUID].Cross = FX[FxGUID].Cross or {}
                             local Cuts = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 0)
                             FX[FxGUID].Cross.Cuts = Cuts
