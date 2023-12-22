@@ -11,9 +11,11 @@
 
 r = reaper
 Pad          = {}
+
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local images_fonts = require("src.helpers.images_fonts")
+
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -56,15 +58,16 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
     r.ImGui_EndDragDropTarget(ctx)
     r.Undo_BeginBlock()
     r.PreventUIRefresh(1)
-    GetDrumMachineIdx()
+    GetDrumMachineIdx(track)
     if FX_Drag and Mods == 0 then
         if Pad[a] then   -- add fx to target
           local dst_pad = Pad[a].Pad_ID
           local dst_num = Pad[a].Pad_Num
           -- dst_guid = Pad[a].Pad_GUID
           local dstfx_idx = CountPadFX(dst_num)
-          dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-          local dst_last = get_fx_id_from_container_path(track, parent_id, dst_num, dstfx_idx)
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local dst_id = ConvertPathToNestedPath(parent_id, dst_num)
+          local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
           EndUndoBlock("ADD FX TO PAD")
@@ -72,8 +75,8 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           CountPads()
           AddPad(note_name, a) -- dst
           AddNoteFilter(notenum, pad_num)
-          local previous_pad_id = get_fx_id_from_container_path(track, parent_id, pad_num - 1)
-          local next_pad_id = get_fx_id_from_container_path(track, parent_id, pad_num + 1)
+          local previous_pad_id = ConvertPathToNestedPath(parent_id, pad_num - 1)
+          local next_pad_id = ConvertPathToNestedPath(parent_id, pad_num + 1)
           Pad[a] = { -- dst
             Previous_Pad_ID = previous_pad_id,
             Pad_ID = pad_id,
@@ -83,8 +86,9 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
             Note_Num = notenum
           }
           local dstfx_idx = CountPadFX(pad_num) 
-          dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-          local dst_last = get_fx_id_from_container_path(track, parent_id, pad_num, dstfx_idx)
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local pad_id = ConvertPathToNestedPath(parent_id, pad_num)
+          local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
           EndUndoBlock("MOVE FX TO PAD")
@@ -166,8 +170,9 @@ local function OpenFXInsidePad(a)
   if not Pad[a] then return end 
   CountPadFX(Pad[a].Pad_Num) -- padfx_idx
   for f = 1, padfx_idx do
-    FX_Id = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f)
-    FX_Id_next = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f + 1)
+    local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. Pad[a].Pad_Num - 1) -- 0 based
+    local FX_Id = ConvertPathToNestedPath(pad_id, f)
+    local FX_Id_next = ConvertPathToNestedPath(pad_id, f + 1)
     local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
     Spc = AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
@@ -243,12 +248,12 @@ local function DrawPads(loopmin, loopmax)
         local retval2 = r.TrackFX_GetEnabled(track, Pad[a].Next_Pad_ID)
         if retval1 == false and retval2 == false then -- unsolo
           for i = 1, pads_idx do
-            local pad_id = get_fx_id_from_container_path(track, parent_id, i)
+            local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
             r.TrackFX_SetEnabled(track, pad_id, true)
           end
         else -- solo
           for i = 1, pads_idx do
-            local pad_id = get_fx_id_from_container_path(track, parent_id, i)
+            local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
             r.TrackFX_SetEnabled(track, pad_id, false)
           end
           r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, true)
