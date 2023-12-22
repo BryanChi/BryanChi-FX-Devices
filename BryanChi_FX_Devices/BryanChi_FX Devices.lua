@@ -336,7 +336,6 @@ r.gmem_attach('gmemForSpectrum')
 local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local UtilityFXs = fxModels.UtilityFXs -- this variable is unused, should we get rid of it?
-local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 
 
 
@@ -382,7 +381,6 @@ end
 
 
 
-local HSV_Change = customcolors.HSV_Change
 
 
 -----end of colors--------
@@ -432,7 +430,6 @@ Array = {}
 
 
 
-local LAST_USED_FX
 
 
 
@@ -574,7 +571,6 @@ function loop()
 
 
                     local rev = v:reverse()
-                    local lastPlus = rev:find('+')
                     local Ltr = rev:sub(1, rev:find('+') - 2)
                     local AftrLastPlus = Ltr:reverse()
 
@@ -592,7 +588,6 @@ function loop()
 
 
         if LT_Track == nil then
-            local Viewport = r.ImGui_GetWindowViewport(ctx)
 
             r.ImGui_DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2, 0xffffffff,
                 'Select a track to start')
@@ -1163,7 +1158,6 @@ function loop()
                     local L, T = r.ImGui_GetItemRectMin(ctx)
                     local W, H = r.ImGui_GetItemRectSize(ctx)
                     local R, B = L + W, T + H
-                    local Atk = Mc.atk
                     if at then
                         Mc.atk = 0.000001 ^ (1 - Mc.ATK)
                         r.gmem_write(4, 2)                      -- tells jsfx user is adjusting atk
@@ -1213,7 +1207,6 @@ function loop()
                     local L, T = r.ImGui_GetItemRectMin(ctx)
                     local W, H = r.ImGui_GetItemRectSize(ctx)
                     local R, B = L + W, T + H
-                    local Rel = Mc.rel or 0.001
                     --r.ImGui_DrawList_AddLine(Glob.FDL, L ,T,L+W*Rel,T, 0xffffffff)
                     r.ImGui_DrawList_AddLine(WDL, L, T, L + W * Mc.REL, B, 0xffffffff)
                     if AssigningMacro == i then
@@ -1690,7 +1683,6 @@ function loop()
                     end
 
                     WhenRightClickOnModulators(Macro)
-                    local G = 1 -- Gap between Drawing Coord values retrieved from jsfx
                     local HdrPosL, HdrPosT = r.ImGui_GetCursorScreenPos(ctx)
                     function DrawShape(Node, L, W, H, T, Clr)
                         if Node then
@@ -1700,7 +1692,6 @@ function loop()
 
                                 local N = Node
                                 local L = L or HdrPosL
-                                local h = LFO.DummyH
                                 local lastX = N[math.max(i - 1, 1)].x * W + L
                                 local lastY = T + H - (-N[math.max(i - 1, 1)].y + 1) * H
 
@@ -2170,8 +2161,6 @@ function loop()
                                     local CtrlY = B -
                                         (-(Node[i].ctrlY or (Node[last].y + Node[i].y) / 2) + 1) * LFO.DummyH *
                                         Mc.LFO_Gain
-                                    local PtsX = {}
-                                    local PtsY = {}
                                     local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
 
                                     for i = 1, #PtsX, 2 do
@@ -2194,7 +2183,6 @@ function loop()
 
 
 
-                                local N = i
                                 local CurrentPlayPos
                                 for i, _ in ipairs(PtsX) do
                                     if i > 1 then -- >1 because you need two points to draw a line
@@ -2321,7 +2309,6 @@ function loop()
                                 local Pad_L = 5
                                 for i = 0, division, 1 do
                                     local W = (X_range / division)
-                                    local R = HdrPosL + X_range
                                     local X = Pad_L + HdrPosL + W * i
                                     r.ImGui_DrawList_AddLine(WDL, X, Win_T, X, Win_B, 0xffffff55, 2)
                                 end
@@ -3271,7 +3258,6 @@ function loop()
                     end
 
                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-                    local SpcW
                     if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
                         if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
                             and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
@@ -3283,10 +3269,8 @@ function loop()
                                 local Nm = FX.Win_Name[0]
                                 if Nm == 'JS: FXD Macros' or FindStringInTable(BlackListFXs, Nm) then Idx = 0 end
                             end
-                            local CurX = r.ImGui_GetCursorPosX(ctx)
 
 
-                            local SpcW = AddSpaceBtwnFXs(Idx)
                         elseif FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID[FX_Idx] and FXGUID[FX_Idx] then
                             AddSpaceBtwnFXs(FX_Idx, true)
                         elseif FX_Idx == RepeatTimeForWindows then
@@ -3449,7 +3433,6 @@ function loop()
                                 r.ImGui_Separator(ctx)
 
 
-                                local ColorPaletteTop = r.ImGui_GetCursorPosY
 
 
 
@@ -3465,7 +3448,6 @@ function loop()
                                         r.ImGui_Text(ctx, 'Type:')
                                         r.ImGui_SameLine(ctx)
                                         r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x99999933)
-                                        local D = Draw[FX.Win_Name_S[FX_Idx]]
                                         FX[FxGUID].Draw = FX[FxGUID].Draw or {}
                                         local D = FX[FxGUID].Draw
                                         local FullWidth = -50
@@ -3647,9 +3629,7 @@ function loop()
                                     elseif LE.Sel_Items[2] then
                                         local Diff_Types_Found, Diff_Width_Found, Diff_Clr_Found, Diff_GrbClr_Found
                                         for i, v in pairs(LE.Sel_Items) do
-                                            local lastV
                                             if i > 1 then
-                                                local frst = LE.Sel_Items[1]; local other = LE.Sel_Items[i];
                                                 if FX[FxGUID][1].Type ~= FX[FxGUID][v].Type then Diff_Types_Found = true end
                                                 --if FX[FxGUID][frst].Sldr_W ~= FX[FxGUID][v].Sldr_W then  Diff_Width_Found = true    end
                                                 --if FX[FxGUID][frst].BgClr  ~= FX[FxGUID][v].BgClr  then Diff_Clr_Found = true       end
@@ -4004,7 +3984,6 @@ function loop()
                                         MaxW = 60
                                         MinW = 7
                                     end
-                                    local DragSpeed = 5
 
                                     SL()
 
@@ -4112,7 +4091,6 @@ function loop()
                                                     '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i,
                                                     FX[FxGUID][Itm].ManualValuesFormat[i])
                                                 SL()
-                                                local LH = r.ImGui_GetTextLineHeight(ctx)
                                                 if IconBtn(20, 20, 'T', BgClr, 'center', '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i) then
                                                     table.remove(FX[FxGUID][Itm].ManualValuesFormat, i)
                                                     table.remove(FX[FxGUID][Itm].ManualValues, i)
@@ -4525,7 +4503,6 @@ function loop()
 
                                                 r.ImGui_SameLine(ctx)
                                                 local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
-                                                local CP = FX[FxGUID][P][ConditionPrm]
                                                 --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
                                                 Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx,
                                                     'ConditionPrm' .. FP.ConditionPrm .. (PrmName or '') .. '1## CP',
@@ -4646,7 +4623,6 @@ function loop()
 
                                             local D = FrstSelItm.Draw[i]
                                             local LBL = FxGUID .. LE.Sel_Items[1] .. i
-                                            local H = Glob.Height
                                             local W = Win_W
                                             if r.ImGui_BeginCombo(ctx, '## Combo type' .. LBL, D.Type or '', r.ImGui_ComboFlags_NoArrowButton()) then
                                                 local function AddOption(str)
@@ -4691,10 +4667,8 @@ function loop()
                                                 local Radius = { 'Knob Circle', 'Knob Image' }
                                                 local BL_Repeat = { 'Knob Range', 'Knob Circle', 'Knob Image',
                                                     'Knob Pointer', 'Gain Reduction Text' }
-                                                local GR_Text = { 'Gain Reduction Text' }
 
 
-                                                local X_Gap_Shown_Name = 'X Gap:'
 
                                                 local DefW, DefH
 
@@ -4853,7 +4827,6 @@ function loop()
 
                                                     r.ImGui_TableHeadersRow(ctx)
 
-                                                    local Sz = FrstSelItm.Sldr_W or 160
 
                                                     r.ImGui_TableNextRow(ctx)
 
@@ -5067,7 +5040,6 @@ function loop()
 
                                 for Pal = 1, NumOfColumns or 1, 1 do
                                     if not CloseLayEdit and r.ImGui_BeginChildFrame(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2, r.ImGui_WindowFlags_NoScrollbar()) then
-                                        local NumOfPaletteClr = 9
 
                                         for _, v in ipairs(FX[FxGUID]) do
                                             local function CheckClr(Clr)
@@ -5365,7 +5337,6 @@ function loop()
                                 r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), 0)
                                 --r.ImGui_PushStyleColor(ctx,r.ImGui_Col_FrameBgActive(), 0x99999999)
                                 local StyleVarPop = 1
-                                local StyleClrPop = 1
 
 
                                 local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -5457,7 +5428,6 @@ function loop()
                                             --[[ r.ImGui_PopStyleColor(ctx)  r.ImGui_PopStyleVar(ctx) ]]
 
                                             local L, T = r.ImGui_GetItemRectMin(ctx); B = T + BtnSizeManual
-                                            BtnSize = B - T
                                             r.ImGui_SameLine(ctx, nil, 10)
                                             r.ImGui_SetCursorPosY(ctx, CurY)
 
@@ -5635,7 +5605,6 @@ function loop()
                                             r.ImGui_EndDragDropTarget(ctx)
                                         end
 
-                                        local Label = '##Pan' .. LyrID .. FxGUID
 
                                         local P_Num = 1 + (5 * (LyrID - 1) + 1)
                                         local Fx_P_Knob = LyrID * 2
@@ -5787,7 +5756,6 @@ function loop()
                         else -- if collapsed
                             if r.ImGui_BeginChildFrame(ctx, '##FX Layer at' .. FX_Idx .. 'OnTrack ' .. TrkID, 27, 220, r.ImGui_WindowFlags_NoScrollbar()) then
                                 L, T = r.ImGui_GetItemRectMin(ctx)
-                                local DL = r.ImGui_GetWindowDrawList(ctx)
                                 local title = (FX[FxGUID].ContainerTitle or 'FX Layering'):gsub("(.)", "%1\n")
 
                                 WindowBtnVertical = r.ImGui_Button(ctx, title .. '##Vertical', 25, 220) -- create window name button
@@ -6205,11 +6173,9 @@ function loop()
                                 r.ImGui_DrawList_AddRect(WDL, L, T + 2, L + 25, T + 218, 0x99999977)
                             else
                                 for i = 1, Cuts * 4, 1 do ----------[Repeat for Bands]----------
-                                    local TxtClr = getClr(r.ImGui_Col_Text())
                                     FX[FxGUID].Cross[i] = FX[FxGUID].Cross[i] or {}
                                     local X = FX[FxGUID].Cross[i]
                                     -- r.gmem_attach('FXD_BandSplit')
-                                    local WDL = r.ImGui_GetWindowDrawList(ctx)
                                     local BsID = BsID or 0
 
                                     X.Val = r.gmem_read(BsID + i)
@@ -6314,7 +6280,6 @@ function loop()
                                                 else
                                                     B = Sel_Cross[1]
                                                 end
-                                                local LowestV = 0.02
                                                 --r.gmem_write(100, B)
                                                 --r.gmem_write(101, -DragDeltaY*10)
                                                 --if B==1 and B==i then  -- if B ==1
@@ -6526,7 +6491,6 @@ function loop()
                                                 r.ImGui_DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos,
                                                     0xffffff66)
                                                 if r.ImGui_IsMouseReleased(ctx, 0) then
-                                                    local DropDest = FX_Idx
                                                     local InsPos = Find_InsPos()
                                                     DropFXintoBS(FXGUID[Pl], FxGUID, i, Pl, InsPos + 1)
                                                 end
@@ -7113,7 +7077,6 @@ function loop()
                     end --  for if FX_Name ~='JS: FXD (Mix)RackMixer'
                     r.ImGui_SameLine(ctx, nil, 0)
 
-                    local CurX = r.ImGui_GetCursorPosX(ctx)
 
 
 
@@ -7394,7 +7357,6 @@ function loop()
                             local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
                                 tablefind(FXGUID, V)
 
-                            local Spc
                             if FX_Idx == 1 and I then AddSpaceBtwnFXs(I - 1, 'SpcInPost', nil, nil, 1) end
                             if I then
                                 createFXWindow(I)
