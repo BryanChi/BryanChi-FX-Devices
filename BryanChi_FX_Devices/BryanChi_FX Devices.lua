@@ -2334,7 +2334,7 @@ function loop()
                             r.ImGui_Text(ctx, 'Speed:')
                             SL()
                             r.ImGui_SetNextItemWidth(ctx, 50)
-                            local rv, V = r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
+                            local _, V = r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
                             if r.ImGui_IsItemActive(ctx) then
                                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
                                 tweaking = Macro
@@ -2371,7 +2371,7 @@ function loop()
                             SL()
                             r.ImGui_SetNextItemWidth(ctx, 80)
                             local LengthBefore = Mc.LFO_leng
-                            rv, Mc.LFO_leng = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length',
+                            _, Mc.LFO_leng = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length',
                                 Mc.LFO_leng or LFO.Def.Len, 1, 8)
                             if r.ImGui_IsItemActive(ctx) then
                                 tweaking = Macro
@@ -2401,7 +2401,7 @@ function loop()
                             local AutoPrmIdx = tablefind(Trk[TrkID].AutoPrms, 'Mod' .. Macro .. 'LFO Gain')
 
 
-                            rv, Mc.LFO_Gain = r.ImGui_DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain',
+                            _, Mc.LFO_Gain = r.ImGui_DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain',
                                 Mc.LFO_Gain or 1, 0.01, 0, 1, ShownV .. '%%')
                             if r.ImGui_IsItemActive(ctx) then
                                 tweaking = Macro
@@ -2872,7 +2872,7 @@ function loop()
 
                             r.ImGui_SetNextItemWidth(ctx, LFO.Def.DummyW)
                             r.ImGui_SetKeyboardFocusHere(ctx)
-                            local rv, buf = r.ImGui_InputText(ctx, buf or '##Name', buf)
+                            local _, buf = r.ImGui_InputText(ctx, buf or '##Name', buf)
                             r.ImGui_Button(ctx, 'Enter')
                             if r.ImGui_IsItemClicked(ctx) or (r.ImGui_IsItemFocused(ctx) and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0) then
                                 local LFO_Name = buf
@@ -2992,7 +2992,7 @@ function loop()
                         if env == nil then                                        -- Envelope is off
                             local env = r.GetFXEnvelope(LT_Track, 0, i - 1, true) -- true = Create envelope
                         else                                                      -- Envelope is on
-                            local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
+                            local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                             if string.find(EnvelopeStateChunk, "VIS 1") then      -- VIS 1 = visible, VIS 0 = invisible
                                 EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
                                 r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
@@ -3317,7 +3317,7 @@ function loop()
 
                         if not tablefind(Trk[TrkID].PostFX, FxGUID) and not FX[FxGUID].InWhichBand then
                             createFXWindow(FX_Idx)
-                            local rv, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, FX_Idx)
+                            local _, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, FX_Idx)
                         end
                         if FX.LayEdit == FXGUID[FX_Idx] then
                             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_HeaderHovered(), 0xffffff00)
@@ -4725,7 +4725,7 @@ function loop()
                                                         local rv, count = r.ImGui_AcceptDragDropPayloadFiles(ctx)
                                                         if rv then
                                                             for i = 0, count - 1 do
-                                                                local rv, filename = r.ImGui_GetDragDropPayloadFile(ctx,
+                                                                local _, filename = r.ImGui_GetDragDropPayloadFile(ctx,
                                                                     i)
 
 
@@ -5522,7 +5522,7 @@ function loop()
                                                 end
                                             elseif r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                                 FX[FxGUID][Fx_P].V = 0.5
-                                                local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num,
+                                                local _ = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num,
                                                     0.5)
                                             elseif r.ImGui_IsItemClicked(ctx) and Mods == Ctrl and not FXLayerRenaming then
                                                 Lyr.Rename[LyrID .. FxGUID] = true
@@ -5651,7 +5651,7 @@ function loop()
 
                                         if LBtnDC and r.ImGui_IsItemClicked(ctx, 0) then
                                             FX[FxGUID][Fx_P_Knob].V = 0.5
-                                            local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0.5)
+                                            local _ = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0.5)
                                         end
 
                                         r.ImGui_SetCursorPosY(ctx, CurY)
@@ -6537,7 +6537,7 @@ function loop()
 
                                             if r.ImGui_IsMouseReleased(ctx, 0) then
                                                 local InsPos = Find_InsPos()
-                                                local rv, type, payload, is_preview, is_delivery = r
+                                                local _, type, payload, is_preview, is_delivery = r
                                                     .ImGui_GetDragDropPayload(ctx)
                                                 r.TrackFX_AddByName(LT_Track, payload, false, -1000 - InsPos - 1)
                                                 local FXid = r.TrackFX_GetFXGUID(LT_Track, InsPos + 1)
@@ -7465,7 +7465,7 @@ function loop()
 
                 end
                 if FX.Win_Name then
-                    local rv, tab = FindStringInTable(FX.Win_Name, 'FX Devices Gain Reduction')
+                    local _, tab = FindStringInTable(FX.Win_Name, 'FX Devices Gain Reduction')
                     if tab then
                         for _, v in ipairs(tab) do
                             r.gmem_attach('CompReductionScope')
