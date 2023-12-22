@@ -1290,7 +1290,7 @@ function loop()
                     r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - StepSEQ_H - 100)
                     if Mc.AdjustingSteps and not r.ImGui_IsMouseDown(ctx, 0) then Mc.AdjustingSteps = nil end
 
-                    function open_SEQ_Win(Track, i)
+                    function open_SEQ_Win(i)
                         if not HoveringSmoothness then
                             if r.ImGui_Begin(ctx, 'SEQ Window' .. i, true, r.ImGui_WindowFlags_NoResize() + r.ImGui_WindowFlags_NoDocking() + r.ImGui_WindowFlags_NoCollapse() + r.ImGui_WindowFlags_NoTitleBar() + r.ImGui_WindowFlags_AlwaysAutoResize()) then
                                 local WDL = r.ImGui_GetWindowDrawList(ctx)
@@ -1484,14 +1484,14 @@ function loop()
                     end
 
                     if (WhichMacroIsHovered == Macro and HoverOnAnyStep) or SmallSEQActive or Mc.AdjustingSteps then
-                        open_SEQ_Win(Track, Macro)
+                        open_SEQ_Win(Macro)
                         notHoverSEQ_Time = 0
                     end
 
                     if WhichMacroIsHovered == i and not HoverOnAnyStep and not SmallSEQActive and not Mc.AdjustingSteps then
                         notHoverSEQ_Time = math.min((notHoverSEQ_Time or 0), 11) + 1
                         if notHoverSEQ_Time < 10 then
-                            open_SEQ_Win(Track, i)
+                            open_SEQ_Win(i)
                         else
                             WhichMacroIsHovered = nil
                             notHoverSEQ_Time = 0
@@ -1509,7 +1509,7 @@ function loop()
 
 
 
-                    function openFollowerWin(Track, i)
+                    function opnFollowerWin(i)
                         local HoveringSmoothness
 
                         local HdrPosL, _ = r.ImGui_GetCursorScreenPos(ctx)
@@ -1571,16 +1571,16 @@ function loop()
                     end
 
                     if HoveringSmoothness == i then
-                        HoveringSmoothness = openFollowerWin(Track, i)
+                        HoveringSmoothness = opnFollowerWin(i)
                     end
 
                     if FolMacroHover == i and not HoveringSmoothness then
                         local timeout = 20
                         notHoverFOL_Time = math.min((notHoverFOL_Time or 0), timeout + 1) + 1
                         if notHoverFOL_Time < timeout then
-                            HoveringSmoothness = openFollowerWin(Track, i)
+                            HoveringSmoothness = opnFollowerWin(i)
                         else
-                            HoveringSmoothness = openFollowerWin(Track, i)
+                            HoveringSmoothness = opnFollowerWin(i)
                             FolMacroHover = nil
                             notHoverFOL_Time = 0
                         end
