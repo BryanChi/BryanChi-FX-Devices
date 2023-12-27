@@ -204,7 +204,7 @@ Trk = {
 }
 
 ------------------Divider---------------
-Dvdr = { Width = {}, Clr = {}, Spc_Hover = {}, RestoreNormWidthWait = 0, RestoreNormWidthWait = {}, JustDrop = {}, }
+Dvdr = { Width = {}, Clr = {}, Spc_Hover = {}, RestoreNormWidthWait = {}, JustDrop = {}, }
 
 -----------------FX State-----------------
 FX = {
