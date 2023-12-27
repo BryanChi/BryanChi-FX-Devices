@@ -3297,10 +3297,6 @@ function Loop()
                                     if r.ImGui_Button(ctx, 'Copy Properties') then
                                         CopyPrm = {}
                                         CopyPrm = I
-
-                                        for _, _ in pairs(LE.Sel_Items) do
-
-                                        end
                                     end
 
                                     SL()
@@ -3451,10 +3447,6 @@ function Loop()
                                                         r.ImGui_Text(ctx, 'Drag and drop files here...')
                                                     else
                                                         r.ImGui_Text(ctx, D[It].FilePath)
-
-                                                        if r.ImGui_SmallButton(ctx, 'Clear') then
-
-                                                        end
                                                     end
                                                     if D[It].FilePath then
                                                         r.ImGui_Bullet(ctx)
@@ -4160,10 +4152,6 @@ function Loop()
                                                 r.ImGui_CloseCurrentPopup(ctx)
                                             end
                                         end
-                                        if FrstSelItm.Type == 'Slider' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Slider') then -- if all selected itms are Sliders
-                                            --AddSlider(ctx, '##'..FrstSelItm.Name , 'Default', 0, 0, 1, v,FX_Idx, FrstSelItm.Num ,Style, FrstSelItm.Sldr_W or FX.Def_Sldr_W[FxGUID]  ,0, Disable, Vertical, GrabSize,     FrstSelItm.Lbl, 8)
-                                            --AddSlider(ctx, '##'..FrstSelItm.Name , 'Default', 0, 0, 1, v,FX_Idx, FrstSelItm.Num ,Style, FrstSelItm.Sldr_W or FX.Def_Sldr_W[FxGUID]  ,0, Disable, Vertical, GrabSize, FrstSelItm.Lbl, 8)
-                                        end
                                         StyleWinFilter = r.ImGui_CreateTextFilter(FilterText)
                                         if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then -- if all selected itms are knobs
                                             StyleWinImg = StyleWinImg or {}
@@ -4736,9 +4724,6 @@ function Loop()
                                                                 'Affected by Gain Reduction', D.check)
                                                             if Check then
                                                                 if D[Name .. '_GR'] then D[Name .. '_GR'] = nil else D[Name .. '_GR'] = 0 end
-                                                            end
-                                                            if D.VA_by_GR then
-
                                                             end
                                                             if not rv then r.ImGui_EndDisabled(ctx) end
                                                             r.ImGui_EndPopup(ctx)
@@ -5733,8 +5718,6 @@ function Loop()
                                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx_InLayer)
 
                                     if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID[FX_Idx] then --if fx is in rack mixer
-                                        if FindStringInTable(BlackListFXs, FX.Win_Name[FX_Idx_InLayer]) then end
-
                                         if Lyr.Selected[FXGUID_RackMixer] == nil then Lyr.Selected[FXGUID_RackMixer] = 1 end
                                         if FX[FXGUID[FX_Idx_InLayer]].inWhichLyr == FX[FXGUID_RackMixer].LyrID[LyrID] and LyrID == Lyr.Selected[FXGUID_RackMixer] and not FindStringInTable(BlackListFXs, FX.Win_Name[FX_Idx_InLayer]) then
                                             r.ImGui_SameLine(ctx, nil, 0)
@@ -6177,17 +6160,9 @@ function Loop()
                                     BD3 = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 3)
                                     BD4 = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 4)
 
-                                    if --[[Mouse is between bands]] r.ImGui_IsMouseHoveringRect(ctx, WinL, X.Pos, WinR, NxtCrossPos) then
-                                        if Payload_Type == 'FX_Drag' then
-
-                                        end
-                                    end
 
 
 
-                                    if r.ImGui_IsMouseHoveringRect(ctx, WinL, WinT, WinR, WinT + H) and IsRBtnClicked then
-
-                                    end
 
                                     if Sel_Cross[1] == i and Sel_Cross.FxID == FxGUID then
                                         if IsLBtnHeld then
@@ -6337,11 +6312,6 @@ function Loop()
 
                                     --- account for fxs with analyzers
                                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, Pl)
-                                    if FX_Name:find('Pro%-C 2') then
-                                        --Set_In_Out(Pl+1, Band+1, 2,3)
-                                        --r.TrackFX_SetPinMappings(LT_Track, Pl+1, 0, 2, 2^((Band+1)*2-2)*2, 0) -- inputs 3
-                                        --[[ r.TrackFX_SetPinMappings(LT_Track, Pl+1, 0, 3, 2^((Band+1)*2-2)*2, 0) -- inputs 4 ]]
-                                    end
 
                                     local IDinPost = tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
                                     if IDinPost then MoveFX_Out_Of_Post(IDinPost) end
@@ -6719,10 +6689,6 @@ function Loop()
                                     r.ImGui_Text(ctx, 'Delete the FXs in band ' .. FX[FxGUID].PromptDeleteBand .. '?')
                                     if r.ImGui_Button(ctx, '(y) Yes') or r.ImGui_IsKeyPressed(ctx, 89) then
                                         r.Undo_BeginBlock()
-                                        for i = 0, Sel_Track_FX_Count, 1 do
-                                            if tablefind(FX[FxGUID].FXsInBS, FXGUID[i]) then
-                                            end
-                                        end
                                         local DelFX = {}
                                         for _, v in ipairs(FX[FxGUID].FXsInBS) do
                                             if FX[v].InWhichBand == FX[FxGUID].PromptDeleteBand then
@@ -7042,8 +7008,6 @@ function Loop()
                 for i = 0, #FXGUID do
                     local FXid = r.TrackFX_GetFXGUID(LT_Track, i)
 
-                    if FXid ~= FXGUID[i] then
-                    end
                     --Detects if any FX is deleted
                     if FXid == nil then
                         --Deleted_FXGUID = FXGUID[i]
@@ -7351,9 +7315,6 @@ function Loop()
 
             -- When Add or Delete Fx.....if  add fx or delete fx
             if Sel_Track_FX_Count ~= CompareFXCount then
-                for _ in ipairs(FX.Win_Name) do
-
-                end
                 if FX.Win_Name then
                     local _, tab = FindStringInTable(FX.Win_Name, 'FX Devices Gain Reduction')
                     if tab then
