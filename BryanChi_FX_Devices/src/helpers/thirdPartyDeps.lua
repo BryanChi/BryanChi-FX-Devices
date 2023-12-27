@@ -31,7 +31,7 @@ local function ThirdPartyDeps()
     for i = 1, #repos do
         local retinfo, url, enabled, autoInstall = reaper.ReaPack_GetRepositoryInfo(repos[i].name)
         if not retinfo then
-            retval, error = reaper.ReaPack_AddSetRepository(repos[i].name, repos[i].url, true, 0)
+            Retval, error = reaper.ReaPack_AddSetRepository(repos[i].name, repos[i].url, true, 0)
             reapack_process = true
         end
     end

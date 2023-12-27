@@ -11,9 +11,9 @@ ultraschall = ultraschall
 ---@param parmidx integer
 ---@param AliasName string
 function SetPrmAlias(TrkNum, fxid, parmidx, AliasName)
-    retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrkNum)
+    Retval, TrackStateChunk = ultraschall.GetTrackStateChunk_Tracknumber(TrkNum)
     FXStateChunk = ultraschall.GetFXStateChunk(TrackStateChunk)
-    retval, alteredFXStateChunk = ultraschall.AddParmAlias_FXStateChunk(FXStateChunk, fxid, parmidx, AliasName) --rv, alteredFXStateChunk = u.AddParmAlias_FXStateChunk( FXStateChunk, fxid, parmalias)
+    Retval, alteredFXStateChunk = ultraschall.AddParmAlias_FXStateChunk(FXStateChunk, fxid, parmidx, AliasName) --rv, alteredFXStateChunk = u.AddParmAlias_FXStateChunk( FXStateChunk, fxid, parmalias)
 
     _, TrackStateChunk = ultraschall.SetFXStateChunk(TrackStateChunk, alteredFXStateChunk)
     _ = ultraschall.SetTrackStateChunk_Tracknumber(TrkNum, TrackStateChunk)
@@ -260,7 +260,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
                 SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
-        local RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        local RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, X, y, 1); local MouseDrag
         if Vertical == 'Vert' or Type == 'knob' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
 

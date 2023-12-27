@@ -19,7 +19,7 @@ end
 function demo.PopStyle()
     if app.style_editor and app.style_editor.push_count > 0 then
         app.style_editor.push_count = app.style_editor.push_count - 1
-        r.ImGui_PopStyleColor(ctx, #cache['Col'])
+        r.ImGui_PopStyleColor(ctx, #Cache['Col'])
         --r.ImGui_PopStyleVar(ctx, #cache['StyleVar'])
     elseif NeedtoPopStyle then
         for i in demo.EachEnum('Col') do
@@ -78,10 +78,10 @@ end
 ---@param enum string
 ---@return function
 function demo.EachEnum(enum)
-    local enum_cache = cache[enum]
+    local enum_cache = Cache[enum]
     if not enum_cache then
         enum_cache = {}
-        cache[enum] = enum_cache
+        Cache[enum] = enum_cache
 
         for func_name, func in pairs(reaper) do
             local enum_name = func_name:match(('^ImGui_%s_(.+)$'):format(enum))

@@ -504,7 +504,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             table.insert(AddFX.Pos, FX_Idx)
             table.insert(AddFX.Name, 'FXD Split to 4 channels')
             if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
-                rv = r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 4)
+                Rv = r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 4)
             end
         else
             r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)

@@ -70,7 +70,7 @@ if DispRangeBtnClicked then
     r.ImGui_SetNextWindowSize(ctx, W, H)
 end
 
-if focusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
+if FocusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
     _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
         331)
     ProQ3.DspRange[FX_Idx] = ProQ3.DspRange[FX_Idx]:gsub('dB', '')
@@ -1250,7 +1250,7 @@ if not FX[FxGUID].Collapse then
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProQ_ID ' .. FxGUID,
                     FX[FxGUID].ProQ_ID, true)
                 r.gmem_write(2, FX[FxGUID].ProQ_ID)
-                rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 -
+                Rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 -
                     FX_Idx)
             end
             FX[FxGUID].AddEQSpectrumWait = 0

@@ -52,7 +52,7 @@ local fs_utils = require("src.Functions.Filesystem_utils")
 
 if ThirdPartyDeps() then return end
 
-function msg(...)
+function Msg(...)
     for _, v in ipairs({ ... }) do
         r.ShowConsoleMsg(tostring(v) .. "\n")
     end
@@ -71,7 +71,7 @@ require("src.Constants")
 
 PluginScript = {} ---@class PluginScript
 
-os_separator = package.config:sub(1, 1)
+Os_separator = package.config:sub(1, 1)
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = '1.0beta10.12'
@@ -86,8 +86,8 @@ end
 VP = {} -- viewport info
 -- demo = {}
 app = {}
-enum_cache = {}
-cache = {}
+Enum_cache = {}
+Cache = {}
 Draw = {
     Rect = {},
     DrawMode = {},
@@ -157,7 +157,7 @@ Prm = {
 -----Param Modulations
 -----------------------------------------
 PM = { Ins = {}, FXGUID = {}, Corres_Glob_ID = {}, HasMod = {}, Final_V = {}, DIY_TrkID = {} }
-waitForGmem = 0
+WaitForGmem = 0
 
 
 -----------------------------------------
@@ -351,7 +351,7 @@ Array_Macro_Colors = {
 }
 
 
-x = 0.5
+X = 0.5
 
 Cont_Param_Add_Mode = false
 OffsetForMultipleMOD = 2
@@ -444,7 +444,7 @@ end
 
 ---------------------------- End For Before GUI ----------------------------
 
-function loop()
+function Loop()
     GetLT_FX_Num()
     GetLTParam()
     CheckDnDType() -- Defined in Layout Editor functions
@@ -644,7 +644,7 @@ function loop()
                 for i, v in ipairs(MovFX.FromPos) do
                     if NeedCopyFX then
                         --if v >= DropPos then offset = 1 else offset = 0 end
-                        MovFX.ToPos[i] = math.max(MovFX.ToPos[i] - (offset or 0), 0)
+                        MovFX.ToPos[i] = math.max(MovFX.ToPos[i] - (Offset or 0), 0)
                         r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, v, false)
                     end
                 end
@@ -1028,7 +1028,7 @@ function loop()
                         r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.bgWhenAsgnModAct[i])
                         PopColorTime = 2
                     end
-                    clrPop = 6
+                    ClrPop = 6
                     return PopColorTime
                 end
 
@@ -1092,7 +1092,7 @@ function loop()
 
 
 
-                    r.ImGui_PopStyleColor(ctx, clrPop)
+                    r.ImGui_PopStyleColor(ctx, ClrPop)
                 elseif Trk[TrkID].Mod[i].Type == 'env' then
                     if Mods == Shift then DragSpeed = 0.0001 else DragSpeed = 0.01 end
                     PopColorTime = PushClr(AssigningMacro)
@@ -1101,14 +1101,14 @@ function loop()
                     r.ImGui_SetNextItemWidth(ctx, 60)
                     local Mc = Trk[TrkID].Mod[i]
 
-                    at, Mc.ATK = r.ImGui_DragDouble(ctx, '## atk' .. i, Mc.ATK, DragSpeed, 0, 1, '',
+                    At, Mc.ATK = r.ImGui_DragDouble(ctx, '## atk' .. i, Mc.ATK, DragSpeed, 0, 1, '',
                         r.ImGui_SliderFlags_NoInput())
                     SL(nil, 0)
                     RCat = r.ImGui_IsItemClicked(ctx, 1)
                     local L, T = r.ImGui_GetItemRectMin(ctx)
                     local W, H = r.ImGui_GetItemRectSize(ctx)
                     local R, B = L + W, T + H
-                    if at then
+                    if At then
                         Mc.atk = 0.000001 ^ (1 - Mc.ATK)
                         r.gmem_write(4, 2)                      -- tells jsfx user is adjusting atk
                         r.gmem_write(9 + ((i - 1) * 2), Mc.atk) -- tells atk value
@@ -1137,10 +1137,10 @@ function loop()
 
                     r.ImGui_SetNextItemWidth(ctx, 60)
 
-                    re, Mc.REL  = r.ImGui_DragDouble(ctx, '## rel' .. i, Mc.REL, DragSpeed, 0.001, 1, '',
+                    Re, Mc.REL  = r.ImGui_DragDouble(ctx, '## rel' .. i, Mc.REL, DragSpeed, 0.001, 1, '',
                         r.ImGui_SliderFlags_NoInput())
                     local RCrel = r.ImGui_IsItemClicked(ctx, 1)
-                    if re then
+                    if Re then
                         --Mc.rel = 10^(rel or 0.001) /10
                         Mc.rel = 0.001 ^ (1 - Mc.REL)
                         r.gmem_write(4, 3)                       -- tells jsfx user is adjusting rel
@@ -1190,7 +1190,7 @@ function loop()
                             r.gmem_write(8 + i, 0)
                         end
                     end
-                    r.ImGui_PopStyleColor(ctx, clrPop)
+                    r.ImGui_PopStyleColor(ctx, ClrPop)
                 elseif Trk[TrkID].Mod[i].Type == 'Step' then
                     Macros_WDL = Macros_WDL or r.ImGui_GetWindowDrawList(ctx)
                     r.ImGui_TableSetColumnIndex(ctx, (i - 1) * 2) --r.ImGui_PushItemWidth( ctx, -FLT_MIN)
@@ -1290,7 +1290,7 @@ function loop()
                     r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - StepSEQ_H - 100)
                     if Mc.AdjustingSteps and not r.ImGui_IsMouseDown(ctx, 0) then Mc.AdjustingSteps = nil end
 
-                    function open_SEQ_Win(i)
+                    function Open_SEQ_Win(i)
                         if not HoveringSmoothness then
                             if r.ImGui_Begin(ctx, 'SEQ Window' .. i, true, r.ImGui_WindowFlags_NoResize() + r.ImGui_WindowFlags_NoDocking() + r.ImGui_WindowFlags_NoCollapse() + r.ImGui_WindowFlags_NoTitleBar() + r.ImGui_WindowFlags_AlwaysAutoResize()) then
                                 local WDL = r.ImGui_GetWindowDrawList(ctx)
@@ -1322,7 +1322,7 @@ function loop()
 
 
                                 Trk[TrkID].SEQL        = Trk[TrkID].SEQL or {}
-                                rv, Trk[TrkID].SEQL[i] = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',
+                                Rv, Trk[TrkID].SEQL[i] = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',
                                     Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 2, 64)
                                 if r.ImGui_IsItemActive(ctx) then writeSEQGmem() end
                                 SL()
@@ -1343,7 +1343,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 0.125 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
-                                        R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1352,7 +1352,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 0.25 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
-                                        R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1361,7 +1361,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 0.5 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
-                                        R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/4 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1370,7 +1370,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 1 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
-                                        B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/8 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1379,7 +1379,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 2 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
-                                        B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/16 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1388,7 +1388,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 4 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
-                                        B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 SL()
                                 if r.ImGui_Button(ctx, '1/32 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -1398,7 +1398,7 @@ function loop()
                                 SL()
                                 if Trk[TrkID].SEQ_Dnom[i] == 8 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
-                                        B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
                                 if r.ImGui_Button(ctx, '1/64 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                                     Trk[TrkID].SEQ_Dnom[i] = 16
@@ -1406,7 +1406,7 @@ function loop()
                                 end
                                 if Trk[TrkID].SEQ_Dnom[i] == 16 then
                                     HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
-                                        B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+                                        B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                                 end
 
 
@@ -1476,7 +1476,7 @@ function loop()
                                 local w, h = r.ImGui_GetWindowSize(ctx)
 
 
-                                if r.ImGui_IsMouseHoveringRect(ctx, x, y, x + w, y + h) then notHoverSEQ_Time = 0 end
+                                if r.ImGui_IsMouseHoveringRect(ctx, x, y, x + w, y + h) then NotHoverSEQ_Time = 0 end
 
                                 r.ImGui_End(ctx)
                             end
@@ -1484,17 +1484,17 @@ function loop()
                     end
 
                     if (WhichMacroIsHovered == Macro and HoverOnAnyStep) or SmallSEQActive or Mc.AdjustingSteps then
-                        open_SEQ_Win(Macro)
-                        notHoverSEQ_Time = 0
+                        Open_SEQ_Win(Macro)
+                        NotHoverSEQ_Time = 0
                     end
 
                     if WhichMacroIsHovered == i and not HoverOnAnyStep and not SmallSEQActive and not Mc.AdjustingSteps then
-                        notHoverSEQ_Time = math.min((notHoverSEQ_Time or 0), 11) + 1
-                        if notHoverSEQ_Time < 10 then
-                            open_SEQ_Win(i)
+                        NotHoverSEQ_Time = math.min((NotHoverSEQ_Time or 0), 11) + 1
+                        if NotHoverSEQ_Time < 10 then
+                            Open_SEQ_Win(i)
                         else
                             WhichMacroIsHovered = nil
-                            notHoverSEQ_Time = 0
+                            NotHoverSEQ_Time = 0
                         end
                     end
                 elseif Trk[TrkID].Mod[i].Type == 'Follower' then
@@ -1509,7 +1509,7 @@ function loop()
 
 
 
-                    function opnFollowerWin(i)
+                    function OpnFollowerWin(i)
                         local HoveringSmoothness
 
                         local HdrPosL, _ = r.ImGui_GetCursorScreenPos(ctx)
@@ -1521,7 +1521,7 @@ function loop()
                             SL()
                             local m = Trk[TrkID].Mod[i]
                             local CurX = r.ImGui_GetCursorPosX(ctx)
-                            retval, m.Smooth = r.ImGui_DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,
+                            Retval, m.Smooth = r.ImGui_DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,
                                 '%.1f')
 
 
@@ -1533,11 +1533,11 @@ function loop()
 
 
                             if r.ImGui_IsMouseHoveringRect(ctx, x, y, x + w, y + h) then
-                                notHoverFOL_Time = 0
+                                NotHoverFOL_Time = 0
                                 HoveringSmoothness = i
                             end
 
-                            if retval then
+                            if Retval then
                                 m.smooth = SetMinMax(0.1 ^ (1 - m.Smooth * 0.01), 0.1, 100)
                                 r.gmem_write(4, 10)       ---tells jsfx macro type = Follower, and user is adjusting smoothness
                                 r.gmem_write(5, i)        ---tells jsfx which macro
@@ -1551,7 +1551,7 @@ function loop()
                             r.ImGui_Text(ctx, 'Gain : ')
                             SL(CurX)
 
-                            rv, m.Gain = r.ImGui_DragDouble(ctx, '##Gain' .. i, m.Gain or 100, 1, 0, 400, '%.0f' .. '%%')
+                            Rv, m.Gain = r.ImGui_DragDouble(ctx, '##Gain' .. i, m.Gain or 100, 1, 0, 400, '%.0f' .. '%%')
                             if r.ImGui_IsItemActive(ctx) then
                                 r.gmem_write(4, 11) ---tells jsfx macro type = Follower, and user is adjusting gain
                                 r.gmem_write(5, i)
@@ -1571,18 +1571,18 @@ function loop()
                     end
 
                     if HoveringSmoothness == i then
-                        HoveringSmoothness = opnFollowerWin(i)
+                        HoveringSmoothness = OpnFollowerWin(i)
                     end
 
                     if FolMacroHover == i and not HoveringSmoothness then
                         local timeout = 20
-                        notHoverFOL_Time = math.min((notHoverFOL_Time or 0), timeout + 1) + 1
-                        if notHoverFOL_Time < timeout then
-                            HoveringSmoothness = opnFollowerWin(i)
+                        NotHoverFOL_Time = math.min((NotHoverFOL_Time or 0), timeout + 1) + 1
+                        if NotHoverFOL_Time < timeout then
+                            HoveringSmoothness = OpnFollowerWin(i)
                         else
-                            HoveringSmoothness = opnFollowerWin(i)
+                            HoveringSmoothness = OpnFollowerWin(i)
                             FolMacroHover = nil
-                            notHoverFOL_Time = 0
+                            NotHoverFOL_Time = 0
                         end
                     end
                 elseif Trk[TrkID].Mod[i].Type == 'LFO' then
@@ -1678,7 +1678,7 @@ function loop()
 
 
 
-                    function open_LFO_Win(Track, Macro)
+                    function Open_LFO_Win(Track, Macro)
                         local tweaking
                         -- r.ImGui_SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
                         r.ImGui_SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
@@ -1903,20 +1903,20 @@ function loop()
                                         end
                                     end
                                 end
-                                function findRelNode()
+                                function FindRelNode()
                                     for i, v in ipairs(Mc.Node) do
                                         if v.Rel == true then return i end
                                     end
                                 end
 
                                 if (Mc.Rel_Type or ''):find('Custom Release') then
-                                    if not findRelNode() then
+                                    if not FindRelNode() then
                                         Node[#Mc.Node].Rel = true
                                         ChangeLFO(20, #Mc.Node, nil, 'LFO_Rel_Node')
                                     end
 
                                     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
-                                        Mc.Node[findRelNode() or 1].Rel = nil
+                                        Mc.Node[FindRelNode() or 1].Rel = nil
                                         Mc.Node[ID].Rel = true
                                         ChangeLFO(20, ID, nil, 'LFO_Rel_Node')
                                     end
@@ -2177,7 +2177,7 @@ function loop()
                                         -- calculate how far X and last x
                                         local Ly, Lx
 
-                                        testTB = {}
+                                        TestTB = {}
 
                                         for i = 0, (PlayPosX - PtsX[pos]), (PlayPosX - PtsX[pos]) / 4 do
                                             local n = math.min(pos + 1, #PtsX)
@@ -2190,7 +2190,7 @@ function loop()
                                             Ly = y2
                                             Lx = x2
 
-                                            table.insert(testTB, (i / (PlayPosX - PtsX[pos])))
+                                            table.insert(TestTB, (i / (PlayPosX - PtsX[pos])))
                                         end
                                     end
                                 end
@@ -2459,11 +2459,11 @@ function loop()
                                 end
 
                                 if NeedSendAllGmemLater == Macro then
-                                    timer = (timer or 0) + 1
-                                    if timer == 2 then
+                                    Timer = (Timer or 0) + 1
+                                    if Timer == 2 then
                                         Send_All_Coord()
                                         NeedSendAllGmemLater = nil
-                                        timer = nil
+                                        Timer = nil
                                     end
                                 end
 
@@ -2730,7 +2730,7 @@ function loop()
                     local PinID = TrkID .. 'Macro = ' .. Macro
                     if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog == Macro or LFO.HoveringShapeWin == Macro then
                         LFO.notHvrTime = 0
-                        LFO.Tweaking = open_LFO_Win(Track, Macro)
+                        LFO.Tweaking = Open_LFO_Win(Track, Macro)
                         LFO.WinHovered = Macro
                     end
 
@@ -2739,7 +2739,7 @@ function loop()
                         LFO.notHvrTime = LFO.notHvrTime + 1
 
                         if LFO.notHvrTime > 0 and LFO.notHvrTime < 10 then
-                            open_LFO_Win(Track, Macro)
+                            Open_LFO_Win(Track, Macro)
                         else
                             LFO.notHvrTime = 0
                             LFO.WinHovered = nil
@@ -2989,12 +2989,12 @@ function loop()
             RepeatTimeForWindows = Sel_Track_FX_Count
 
             MaxX, MaxY = r.ImGui_GetContentRegionMax(ctx)
-            framepadding = r.ImGui_StyleVar_FramePadding()
+            Framepadding = r.ImGui_StyleVar_FramePadding()
             BorderSize = r.ImGui_StyleVar_FrameBorderSize()
             FrameRounding = r.ImGui_StyleVar_FrameRounding()
             BtnTxtAlign = r.ImGui_StyleVar_ButtonTextAlign()
 
-            r.ImGui_PushStyleVar(ctx, framepadding, 0, 3) --StyleVar#1 (Child Frame for all FX Devices)
+            r.ImGui_PushStyleVar(ctx, Framepadding, 0, 3) --StyleVar#1 (Child Frame for all FX Devices)
             --r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x121212ff)
 
 
@@ -3044,22 +3044,22 @@ function loop()
                 Cy_BeforeFXdevices + 220)
 
             if MouseAtLeftEdge and not Trk[TrkID].PreFX[1] and string.len(Payload_Type) > 1 then
-                rv = r.ImGui_Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
+                Rv = r.ImGui_Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
                 SL(nil, 0)
-                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
 
                 if Payload_Type == 'FX_Drag' then
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                    Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                     r.ImGui_SameLine(ctx, nil, 0)
                 elseif Payload_Type == 'DND ADD FX' then
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
+                    Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
                 end
             end
 
 
             if Trk[TrkID].PreFX[1] then
-                rv = r.ImGui_Button(ctx, (#Trk[TrkID].PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20,
+                Rv = r.ImGui_Button(ctx, (#Trk[TrkID].PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20,
                     220)
                 r.ImGui_SameLine(ctx, nil, 0)
                 if r.ImGui_IsItemClicked(ctx, 1) then
@@ -3069,11 +3069,11 @@ function loop()
 
             if r.ImGui_BeginDragDropTarget(ctx) then
                 if Payload_Type == 'FX_Drag' then
-                    rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                    Rv, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
-                    if rv then
+                    if Rv then
                         if not tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID]) then
                             table.insert(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #Trk[TrkID].PreFX,
@@ -3093,9 +3093,9 @@ function loop()
                         RemoveFXfromBS()
                     end
                 elseif Payload_Type == 'DND ADD FX' then
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
-                    if dropped then
-                        r.TrackFX_AddByName(LT_Track, payload, false, -1000)
+                    Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
+                    if Dropped then
+                        r.TrackFX_AddByName(LT_Track, Payload, false, -1000)
                         local FxID = r.TrackFX_GetFXGUID(LT_Track, 0)
                         table.insert(Trk[TrkID].PreFX, FxID)
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #Trk[TrkID].PreFX, FxID, true)
@@ -3135,19 +3135,19 @@ function loop()
 
 
 
-            if MacroPos ~= -1 or ReSpectrumPos == 0 then offset = 0 else offset = 1 end -- if no Macros is found
+            if MacroPos ~= -1 or ReSpectrumPos == 0 then Offset = 0 else Offset = 1 end -- if no Macros is found
 
 
             for i, v in pairs(Trk[TrkID].PreFX or {}) do
-                if FXGUID[i - offset] ~= v then
+                if FXGUID[i - Offset] ~= v then
                     if not AddFX.Name[1] then
                         table.insert(MovFX.FromPos, tablefind(FXGUID, v))
-                        table.insert(MovFX.ToPos, i - offset)
+                        table.insert(MovFX.ToPos, i - Offset)
                         table.insert(MovFX.Lbl, 'Move FX into Pre-Chain')
                     end
                 end
             end
-            offset = nil
+            Offset = nil
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), Window_BG or CustomColorsDefault.Window_BG)
 
             local spaceIfPreFX = 0
@@ -3177,13 +3177,13 @@ function loop()
                 r.ImGui_DrawList_AddLine(ViewPort_DL, 0, 0, 0, 0, Clr.Dvdr.outline) -- Needed for drawlist to be active
 
                 for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-                    retval, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx) --i used to be i-1
+                    Retval, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx) --i used to be i-1
                     FXGUID[FX_Idx] = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
 
                     local FxGUID = FXGUID[FX_Idx]
                     FX.Win_Name[FX_Idx] = FX_Name
-                    focusedFXState, trackNumOfFocusFX, _, FX_Index_FocusFX = r.GetFocusedFX2()
+                    FocusedFXState, trackNumOfFocusFX, _, FX_Index_FocusFX = r.GetFocusedFX2()
 
                     if FXGUID[FX_Idx] then
                         FX[FxGUID] = FX[FxGUID] or {}
@@ -3420,13 +3420,13 @@ function loop()
                                             r.ImGui_Text(ctx, 'Color :')
                                             r.ImGui_SameLine(ctx)
                                             if Draw.SelItm and D[It].clr then
-                                                clrpick, D[It].clr = r.ImGui_ColorEdit4(ctx, '##',
+                                                Clrpick, D[It].clr = r.ImGui_ColorEdit4(ctx, '##',
                                                     D[It].clr or 0xffffffff,
                                                     r.ImGui_ColorEditFlags_NoInputs()|
                                                     r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                                     r.ImGui_ColorEditFlags_AlphaBar())
                                             else
-                                                clrpick, Draw.clr = r.ImGui_ColorEdit4(ctx, '##', Draw.clr or 0xffffffff,
+                                                Clrpick, Draw.clr = r.ImGui_ColorEdit4(ctx, '##', Draw.clr or 0xffffffff,
                                                     r.ImGui_ColorEditFlags_NoInputs()|
                                                     r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                                     r.ImGui_ColorEditFlags_AlphaBar())
@@ -3479,7 +3479,7 @@ function loop()
                                                     r.ImGui_EndDragDropTarget(ctx)
                                                 end
 
-                                                rv, D[It].KeepImgRatio = r.ImGui_Checkbox(ctx, 'Keep Image Ratio',
+                                                Rv, D[It].KeepImgRatio = r.ImGui_Checkbox(ctx, 'Keep Image Ratio',
                                                     D[It].KeepImgRatio)
                                             end
 
@@ -3969,13 +3969,13 @@ function loop()
                                             local _, LastNum = FormatV:find('^.*()%d')
                                             local dcm = FormatV:find('%.')
                                             if dcm then
-                                                rd = LastNum - dcm
+                                                Rd = LastNum - dcm
                                             end
                                         end
 
                                         local Edit, rd = r.ImGui_InputInt(ctx,
                                             '##EditValueDecimals' .. FxGUID .. (LE.Sel_Items[1] or ''),
-                                            FrstSelItm.V_Round or rd, 1)
+                                            FrstSelItm.V_Round or Rd, 1)
                                         if Edit then
                                             for _, v in pairs(LE.Sel_Items) do
                                                 FX[FxGUID][v].V_Round = math.max(
@@ -4024,7 +4024,7 @@ function loop()
                                                 r.ImGui_Text(ctx, i .. ':' .. (round(V, 2) or 0))
                                                 SL()
                                                 --r.ImGui_SetNextItemWidth(ctx, -R_ofs)
-                                                rv, FX[FxGUID][Itm].ManualValuesFormat[i] = r.ImGui_InputText(ctx,
+                                                Rv, FX[FxGUID][Itm].ManualValuesFormat[i] = r.ImGui_InputText(ctx,
                                                     '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i,
                                                     FX[FxGUID][Itm].ManualValuesFormat[i])
                                                 SL()
@@ -4048,7 +4048,7 @@ function loop()
 
                                     --- Style ------
                                     r.ImGui_Text(ctx, 'Style: '); r.ImGui_SameLine(ctx)
-                                    w = r.ImGui_CalcTextSize(ctx, 'Style: ')
+                                    W = r.ImGui_CalcTextSize(ctx, 'Style: ')
                                     local stylename
                                     if FrstSelItm.Style == 'Pro C' then stylename = 'Minimalistic' end
                                     if r.ImGui_Button(ctx, (stylename or FrstSelItm.Style or 'Choose Style') .. '##' .. (LE.Sel_Items[1] or 'Style'), 130) then
@@ -4264,7 +4264,7 @@ function loop()
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
                                     if not FX[FxGUID][LE.Sel_Items[1]].BgClr or FX[FxGUID][LE.Sel_Items[1]] == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
-                                        HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect')
+                                        HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0, 'GetItemRect')
                                     end
                                     if ClrEdited then
                                         for _, v in pairs(LE.Sel_Items) do FX[FxGUID][v].BgClr = PrmBgClr end
@@ -4280,7 +4280,7 @@ function loop()
                                             .ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                             r.ImGui_ColorEditFlags_AlphaBar())
                                         if not FX[FxGUID][LE.Sel_Items[1]].GrbClr or FX[FxGUID][LE.Sel_Items[1]].GrbClr == r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrab()) then
-                                            HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 0, 0,
+                                            HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0,
                                                 'GetItemRect')
                                         end
                                         if GrbClrEdited then
@@ -4903,7 +4903,7 @@ function loop()
                                         r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
                                     if FX[FxGUID].BgClr == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
-                                        HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                                        HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                                     end
 
                                     r.ImGui_Text(ctx, 'FX Title Color:')
@@ -4965,8 +4965,8 @@ function loop()
                                 local PalletteW = 25
                                 local Pad = 10
                                 if not CloseLayEdit then
-                                    w, h = r.ImGui_GetWindowSize(ctx)
-                                    r.ImGui_SetCursorPos(ctx, w - PalletteW - Pad, PalletteW + Pad)
+                                    W, h = r.ImGui_GetWindowSize(ctx)
+                                    r.ImGui_SetCursorPos(ctx, W - PalletteW - Pad, PalletteW + Pad)
                                 end
 
 
@@ -5005,7 +5005,7 @@ function loop()
                                         end
 
                                         for i, v in ipairs(ClrPallet) do
-                                            clrpick, LblColor1 = r.ImGui_ColorEdit4(ctx, '##ClrPalette' .. Pal ..
+                                            Clrpick, LblColor1 = r.ImGui_ColorEdit4(ctx, '##ClrPalette' .. Pal ..
                                                 i .. FxGUID, v,
                                                 r.ImGui_ColorEditFlags_NoInputs()|
                                                 r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
@@ -5481,7 +5481,7 @@ function loop()
                                                 end
                                                 DeleteOneLayer(LyrID, FXGUID_RackMixer, FX_Idx_RackMixer, LT_Track)
 
-                                                diff = H - L + 1
+                                                Diff = H - L + 1
                                                 r.Undo_EndBlock('Delete Layer ' .. LyrID, 0)
                                             end
                                             r.ImGui_EndPopup(ctx)
@@ -5498,19 +5498,19 @@ function loop()
 
 
                                         if Lyr.Selected[FXGUID_RackMixer] == LyrID and Lyr.Rename[LyrID .. FxGUID] ~= true then
-                                            r.ImGui_DrawList_AddRect(drawlist, ProgBar_Pos_L, ProgBar_PosY_T,
+                                            r.ImGui_DrawList_AddRect(Drawlist, ProgBar_Pos_L, ProgBar_PosY_T,
                                                 FXLayerFrame_PosX_R, ProgBar_PosY_B, 0xffffffff)
                                         end
 
-                                        drawlistInFXLayering = r.ImGui_GetForegroundDrawList(ctx)
+                                        DrawlistInFXLayering = r.ImGui_GetForegroundDrawList(ctx)
 
 
                                         if r.ImGui_BeginDragDropTarget(ctx) then
-                                            dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag') --
+                                            Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag') --
 
-                                            if dropped and Mods == 0 then
+                                            if Dropped and Mods == 0 then
                                                 DropFXtoLayer(FX_Idx, LayerNum)
-                                            elseif dropped and Mods == Apl then
+                                            elseif Dropped and Mods == Apl then
                                                 DragFX_Src = DragFX_ID
                                                 if DragFX_ID > FX_Idx then
                                                     DragFX_Dest = FX_Idx - 1
@@ -5522,15 +5522,15 @@ function loop()
                                                 DroptoRack = FXGUID_RackMixer
                                             end
                                             if Payload_Type == 'DND ADD FX' then
-                                                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
-                                                if dropped then
-                                                    r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx)
+                                                Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX') --
+                                                if Dropped then
+                                                    r.TrackFX_AddByName(LT_Track, Payload, false, -1000 - FX_Idx)
 
                                                     DropFXtoLayer(FX_Idx, LyrID)
                                                 end
                                             end
 
-                                            HighlightSelectedItem(0x88888844, 0xffffffff, 0, L, T, R, B, h, w,
+                                            HighlightSelectedItem(0x88888844, 0xffffffff, 0, L, T, R, B, h, W,
                                                 H_OutlineSc, V_OutlineSc, 'GetItemRect')
                                             r.ImGui_EndDragDropTarget(ctx)
                                         end
@@ -5721,7 +5721,7 @@ function loop()
 
                         if not FX[FxGUID].Collapse then --Create FX windows inside rack
                             local Sel_LyrID
-                            drawlist = r.ImGui_GetBackgroundDrawList(ctx)
+                            Drawlist = r.ImGui_GetBackgroundDrawList(ctx)
 
 
                             Lyr.FrstFXPos[FXGUID_RackMixer] = nil
@@ -6011,7 +6011,7 @@ function loop()
                             FX.InLyr[FxGUID] = nil
                         end
 
-                        pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
+                        Pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
                     elseif FX_Name:find('FXD Saike BandSplitter') then
                         local Width, BtnWidth = 65, 25
                         local WinL, WinT, H, WinR
@@ -7070,7 +7070,7 @@ function loop()
                 --when user switch selected track...
                 if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                     Sendgmems = nil
-                    waitForGmem = 0
+                    WaitForGmem = 0
 
                     if Sendgmems == nil then
                         r.gmem_attach('ParamValues')
@@ -7165,20 +7165,20 @@ function loop()
                 end
             end
 
-            _, Payload_Type, Payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
+            _, Payload_Type, Payload, is_preview, Is_delivery = r.ImGui_GetDragDropPayload(ctx)
             Payload = tonumber(Payload)
             MouseAtRightEdge = r.ImGui_IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.y,
                 VP.X + VP.w, VP.y + VP.h)
 
             if (Payload_Type == 'FX_Drag' or Payload_Type == 'DND ADD FX' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, -5)
-                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                Rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
+                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain
-                    Drop, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                    Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Drop and not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
@@ -7205,7 +7205,7 @@ function loop()
 
                     r.ImGui_EndDragDropTarget(ctx)
                 else
-                    begindrop = false
+                    Begindrop = false
                 end
             end
 
@@ -7228,15 +7228,15 @@ function loop()
             if Trk[TrkID].PostFX[1] then
                 r.ImGui_SameLine(ctx, nil, 0)
                 Line_L, Line_T = r.ImGui_GetCursorScreenPos(ctx)
-                rv             = r.ImGui_Button(ctx,
+                Rv             = r.ImGui_Button(ctx,
                     (#Trk[TrkID].PostFX or '') .. '\n\n' .. 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
                 if r.ImGui_IsItemClicked(ctx, 1) then
                     if Trk[TrkID].PostFX_Hide then Trk[TrkID].PostFX_Hide = false else Trk[TrkID].PostFX_Hide = true end
                 end
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
                     if Payload_Type == 'FX_Drag' then
-                        Drop, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                        Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
 
                         if Drop and not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
@@ -7250,11 +7250,11 @@ function loop()
                             if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                         end
                     elseif Payload_Type == 'DND ADD FX' then
-                        dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                        Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
+                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
-                        if dropped then
-                            r.TrackFX_AddByName(LT_Track, payload, false, -1000 - Sel_Track_FX_Count)
+                        if Dropped then
+                            r.TrackFX_AddByName(LT_Track, Payload, false, -1000 - Sel_Track_FX_Count)
                             local FXid = r.TrackFX_GetFXGUID(LT_Track, Sel_Track_FX_Count)
                             table.insert(Trk[TrkID].PostFX, FXid)
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXid,
@@ -7279,7 +7279,7 @@ function loop()
 
                         Trk[TrkID].MakeSpcForPostFXchain = 0
 
-                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = 0 else offset = 1 end
+                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = 0 else Offset = 1 end
 
                         for FX_Idx, V in pairs(Trk[TrkID].PostFX) do
                             local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
@@ -7309,7 +7309,7 @@ function loop()
 
 
 
-                        offset = nil
+                        Offset = nil
 
 
                         if InsertToPost_Src then
@@ -7410,7 +7410,7 @@ function loop()
 
 
     if open then
-        r.defer(loop)
+        r.defer(Loop)
     else --on script close
         NumOfTotalTracks = r.GetNumTracks()
         for T = 0, NumOfTotalTracks - 1, 1 do
@@ -7424,7 +7424,7 @@ function loop()
         end
     end
     Track_Fetch_At_End = r.GetLastTouchedTrack()
-    waitForGmem = waitForGmem + 1
+    WaitForGmem = WaitForGmem + 1
 end --end for loop
 
-r.defer(loop)
+r.defer(Loop)

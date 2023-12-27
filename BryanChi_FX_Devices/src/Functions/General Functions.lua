@@ -174,17 +174,17 @@ end
 
 function GetLTParam()
     LT_Track = r.GetLastTouchedTrack()
-    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
+    Retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
     --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
 
     if LT_Track ~= nil then
-        retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
-        retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
+        Retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
+        Retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     end
 end
 
 function GetLT_FX_Num()
-    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
+    Retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
     LT_Track = r.GetLastTouchedTrack()
 end
 
@@ -426,11 +426,11 @@ end
 ---@param FxGUID string
 function GetProjExt_FxNameNum(FxGUID)
     local PrmCount
-    rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
+    Rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
     if PrmCount ~= '' then FX.Prm.Count[FxGUID] = tonumber(PrmCount) end
     FX[FxGUID] = FX[FxGUID] or {}
 
-    if rv ~= 0 then
+    if Rv ~= 0 then
         for P = 1, FX.Prm.Count[FxGUID], 1 do
             FX[FxGUID][P] = FX[FxGUID][P] or {}
             local FP = FX[FxGUID][P]
@@ -1344,7 +1344,7 @@ end
 ---@param PrmCount integer
 function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID, '', false)
-    rv, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    Rv, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local Nm = ChangeFX_Name(FX_Name)
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
@@ -1669,7 +1669,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
             --r.ImGui_DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
             BgClr = 0x00000088
         end
-        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, FX[FxGUID].Round --[[rounding]])
+        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, W, 1, 1, 'GetItemRect', WDL, FX[FxGUID].Round --[[rounding]])
 
 
        -- r.ImGui_SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
@@ -1713,7 +1713,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
             DragDroppingFX = true
             if IsAnyMouseDown == false then DragDroppingFX = false end
-            HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
+            HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
             Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FxGUID_DragFX)
         end
 
@@ -1771,8 +1771,8 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
                 for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
                     true) end
             elseif SpcInPost then
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-                table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
+                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
+                table.insert(Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
                 -- InsertToPost_Src = FX_Idx + offset+2
                 for i = 1, #Trk[TrkID].PostFX + 1, 1 do
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
@@ -1795,18 +1795,18 @@ function AddFX_Menu(FX_Idx)
         for i = 1, #tbl do
             if tbl[i].dir then
                 if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
-                    DrawFxChains(tbl[i], table.concat({ path, os_separator, tbl[i].dir }))
+                    DrawFxChains(tbl[i], table.concat({ path, Os_separator, tbl[i].dir }))
                     r.ImGui_EndMenu(ctx)
                 end
             end
             if type(tbl[i]) ~= "table" then
                 if r.ImGui_Selectable(ctx, tbl[i]) then
                     if TRACK then
-                        r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i], extension }), false,
+                        r.TrackFX_AddByName(TRACK, table.concat({ path, Os_separator, tbl[i], extension }), false,
                             -1000 - FX_Idx)
                     end
                 end
-                DndAddFX_SRC(table.concat({ path, os_separator, tbl[i], extension }))
+                DndAddFX_SRC(table.concat({ path, Os_separator, tbl[i], extension }))
             end
         end
     end
@@ -1825,14 +1825,14 @@ function AddFX_Menu(FX_Idx)
         for i = 1, #tbl do
             if tbl[i].dir then
                 if r.ImGui_BeginMenu(ctx, tbl[i].dir) then
-                    local cur_path = table.concat({ path, os_separator, tbl[i].dir })
+                    local cur_path = table.concat({ path, Os_separator, tbl[i].dir })
                     DrawTrackTemplates(tbl[i], cur_path)
                     r.ImGui_EndMenu(ctx)
                 end
             end
             if type(tbl[i]) ~= "table" then
                 if r.ImGui_Selectable(ctx, tbl[i]) then
-                    local template_str = table.concat({ path, os_separator, tbl[i], extension })
+                    local template_str = table.concat({ path, Os_separator, tbl[i], extension })
                     LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
                 end
             end
@@ -3213,7 +3213,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         getClr(r.ImGui_Col_TabUnfocused()))
                                     r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, 9)
 
-                                    rv, P[N].BL = r.ImGui_Checkbox(ctx, '##' .. N, P[N].BL)
+                                    Rv, P[N].BL = r.ImGui_Checkbox(ctx, '##' .. N, P[N].BL)
                                     if P[N].BL then r.ImGui_BeginDisabled(ctx) end
 
                                     r.ImGui_TableSetColumnIndex(ctx, 1)
@@ -3306,7 +3306,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end ]]
                                         end
                                         if BL_All --[[BL all filtered params ]] then if P.BL then P.BL = false else P.BL = true end end
-                                        rv, prm[i].BL = r.ImGui_Checkbox(ctx, '## BlackList' .. i,
+                                        Rv, prm[i].BL = r.ImGui_Checkbox(ctx, '## BlackList' .. i,
                                             prm[i].BL)
 
                                         r.ImGui_TableSetColumnIndex(ctx, 1)
@@ -3488,7 +3488,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     if Glob.SyncWetValues == true and id == Sel_Track_FX_Count - 1 then
                         Glob.SyncWetValues = false
                     end
-                    if LT_ParamNum == Wet.P_Num[id] and focusedFXState == 1 then
+                    if LT_ParamNum == Wet.P_Num[id] and FocusedFXState == 1 then
                         Wet.Get = r.TrackFX_GetParamNormalized(LT_Track, id,
                             Wet.P_Num[id])
                         Wet.Val[id] = Wet.Get
@@ -3507,8 +3507,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
 
                     if r.ImGui_BeginDragDropTarget(ctx) then
-                        rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                        if rv then
+                        Rv, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                        if Rv then
                         end
                         r.ImGui_EndDragDropTarget(ctx)
                     end
@@ -4724,10 +4724,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 FX_Idx = tonumber(FX_Idx)
                 DragFX_ID = tonumber(DragFX_ID)
 
-                if FX_Idx > DragFX_ID and FX_Idx < 0x2000000 then offset = 1 end
+                if FX_Idx > DragFX_ID and FX_Idx < 0x2000000 then Offset = 1 end
 
 
-                table.insert(MovFX.ToPos, AltDestLow or FX_Idx - (offset or 0))
+                table.insert(MovFX.ToPos, AltDestLow or FX_Idx - (Offset or 0))
                 table.insert(MovFX.FromPos, DragFX_ID)
             elseif FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc' or SpaceIsBeforeRackMixer == 'End of PreFX' then
                 local offset
@@ -4737,7 +4737,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 table.insert(MovFX.FromPos, DragFX_ID)
             else
                 
-                table.insert(MovFX.ToPos, FX_Idx - (offset or 0))
+                table.insert(MovFX.ToPos, FX_Idx - (Offset or 0))
                 table.insert(MovFX.FromPos, DragFX_ID)
             end
         end
@@ -4796,17 +4796,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     function MoveFXwith1PreFX(DragFX_ID, FX_Idx, Undo_Lbl)
         r.Undo_BeginBlock()
         if FX_Idx ~= RepeatTimeForWindows then
-            if payload > FX_Idx then
-                r.TrackFX_CopyToTrack(LT_Track, payload, LT_Track, FX_Idx, true)
-                r.TrackFX_CopyToTrack(LT_Track, payload, LT_Track, FX_Idx, true)
-            elseif FX_Idx > payload then
-                r.TrackFX_CopyToTrack(LT_Track, payload, LT_Track, FX_Idx - 1, true)
-                r.TrackFX_CopyToTrack(LT_Track, payload - 1, LT_Track, FX_Idx - 2, true)
+            if Payload > FX_Idx then
+                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
+            elseif FX_Idx > Payload then
+                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx - 1, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload - 1, LT_Track, FX_Idx - 2, true)
             end
         else
             if AddLastSpace == 'LastSpc' then
-                r.TrackFX_CopyToTrack(LT_Track, payload, LT_Track, FX_Idx, true)
-                r.TrackFX_CopyToTrack(LT_Track, payload - 1, LT_Track, FX_Idx - 2, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload, LT_Track, FX_Idx, true)
+                r.TrackFX_CopyToTrack(LT_Track, Payload - 1, LT_Track, FX_Idx - 2, true)
             end
         end
         r.Undo_EndBlock(Undo_Lbl, 0)
@@ -4823,7 +4823,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if r.ImGui_BeginDragDropTarget(ctx) then
                 FxDroppingTo = FX_Idx
                 ----- Drag Drop FX -------
-                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 if FxGUID == FxGUID_DragFX then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
@@ -4833,11 +4833,11 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 r.ImGui_SameLine(ctx, 100, 10)
 
 
-                if dropped and Mods == 0 then
+                if Dropped and Mods == 0 then
                     DropFXtoLayer(FX_Idx, LyrID)
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
-                elseif dropped and Mods == Apl then
+                elseif Dropped and Mods == Apl then
                     DragFX_Src = DragFX_ID
 
                     if DragFX_ID > FX_Idx then DragFX_Dest = FX_Idx - 1 else DragFX_Dest = FX_Idx end
@@ -4851,7 +4851,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 ----------- Add FX ---------------
                 if Payload_Type == 'DND ADD FX' then
                     DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
-                    msg('ansjdk')
+                    Msg('ansjdk')
                 end
 
                 
@@ -4869,7 +4869,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         else
             if r.ImGui_BeginDragDropTarget(ctx) then
                 FxDroppingTo = FX_Idx
-                dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 if FxGUID == FxGUID_DragFX then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
@@ -4881,7 +4881,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 local InsPos = math.min(FX_Idx - ContainerIdx + 1, #FX[FxGUID_Container].FXsInBS)
 
 
-                if dropped and Mods == 0 then
+                if Dropped and Mods == 0 then
                     local ContainerIdx = tablefind(FXGUID, FxGUID_Container)
                     local InsPos = SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FX[FxGUID_Container].FXsInBS)
 
@@ -4893,7 +4893,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FxDroppingTo = nil
 
                     MoveFX(Glob.Payload, FX_Idx + 1, true)
-                elseif dropped and Mods == Apl then
+                elseif Dropped and Mods == Apl then
                     DragFX_Src = DragFX_ID
 
                     if DragFX_ID > FX_Idx then DragFX_Dest = FX_Idx - 1 else DragFX_Dest = FX_Idx end
@@ -4952,9 +4952,9 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     if (DragFX_ID  == FX_Idx +1) or (DragFX_ID == FX_Idx-1)  then DontAllowDrop = true end
                 end  ]]
 
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = 0 else offset = 0 end
+                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then Offset = 0 else Offset = 0 end
 
-                if (DragFX_ID + offset == FX_Idx or DragFX_ID + offset == FX_Idx - 1) and SpaceIsBeforeRackMixer ~= true and FX.InLyr[FxGUID_DragFX] == nil and not SpcInPost and not allowDropNext
+                if (DragFX_ID + Offset == FX_Idx or DragFX_ID + Offset == FX_Idx - 1) and SpaceIsBeforeRackMixer ~= true and FX.InLyr[FxGUID_DragFX] == nil and not SpcInPost and not allowDropNext
                     or (Trk[TrkID].PreFX[#Trk[TrkID].PreFX] == FxGUID_DragFX and SpaceIsBeforeRackMixer == 'End of PreFX') or DontAllowDrop then
                     r.ImGui_SameLine(ctx, nil, 0)
 
@@ -4966,9 +4966,9 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
                     Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
 
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
+                    Dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
-                    if dropped and Mods == 0 then
+                    if Dropped and Mods == 0 then
                         payload = tonumber(payload)
                         r.TrackFX_SetPinMappings(LT_Track, DragFX_ID, 0, 0, 1, 0)
                         r.TrackFX_SetPinMappings(LT_Track, DragFX_ID, 0, 1, 2, 0)
@@ -5003,7 +5003,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FXGUID_To_Check_If_InLayer .. 'in layer', "")
                         FX.InLyr[FXGUID_To_Check_If_InLayer] = nil
                         Dvdr.JustDroppedFX = true
-                    elseif dropped and Mods == Apl then
+                    elseif Dropped and Mods == Apl then
                         local copypos = FX_Idx + 1
                         payload = tonumber(payload)
 
@@ -5035,10 +5035,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     Dvdr.Width[FX_Idx] = 0
                 else --if dragging to an adequate space
                     Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX Layer Repositioning')
+                    Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX Layer Repositioning')
                     Dvdr.Width[TblIdxForSpace] = 30
 
-                    if dropped then
+                    if Dropped then
                         RepositionFXsInContainer(FX_Idx)
                         --r.Undo_EndBlock('Undo for moving FX layer',0)
                     end
@@ -5050,9 +5050,9 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 if SpaceIsBeforeRackMixer == 'SpcInBS' or FX_Idx == Pl or Pl + (#FX[FXGUID[Pl]].FXsInBS or 0) + 2 == FX_Idx then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
-                    dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'BS_Drag')
+                    Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'BS_Drag')
                     Dvdr.Width[TblIdxForSpace] = 30
-                    if dropped then
+                    if Dropped then
                         RepositionFXsInContainer(FX_Idx, Glob.Payload)
                     end
                 end
@@ -5085,8 +5085,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         for i, v in pairs(Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
                             true) end
                     elseif SpcInPost then
-                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-                        table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
+                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
+                        table.insert(Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
                         -- InsertToPost_Src = FX_Idx + offset+2
                         for i = 1, #Trk[TrkID].PostFX + 1, 1 do
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
