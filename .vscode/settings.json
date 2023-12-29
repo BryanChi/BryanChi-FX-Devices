@@ -2,4 +2,8 @@
     "Lua.workspace.library": [
         "/Users/b/.vscode/extensions/antoinebalaine.reascript-docs-0.1.1/resources/reaper-types.lua"
     ]
+    "Lua.format.enable": true,
+    "[lua]": {
+        "editor.formatOnSave": true,
+    }
 }

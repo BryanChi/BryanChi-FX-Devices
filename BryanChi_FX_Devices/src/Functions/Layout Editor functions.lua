@@ -538,7 +538,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if r.ImGui_IsItemClicked(ctx) or r.ImGui_IsItemClicked(ctx, 1) then
                 if IsLBtnClicked or IsRBtnClicked then
                     FP.TweakingAB_Val = P_Num
-                    retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                    Retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
                 end
                 if not FP.TweakingAB_Val then
                     local offsetA, offsetB
@@ -700,7 +700,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local AlreadyAddPrm = false
 
-    if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
+    if LT_ParamNum == P_Num and FocusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
         local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
 
         p_value = LT_ParamValue
@@ -784,7 +784,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro then
         local M = AssigningMacro
 
-        RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, x, y, 1)
+        RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, X, y, 1)
 
         FP.ModAMT[M] = ((-RightBtnDragY / 100) or 0) + (FP.ModAMT[M] or 0)
 
@@ -1067,7 +1067,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         local AlreadyAddPrm = false
 
-        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
+        if LT_ParamNum == P_Num and FocusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
             local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
 
             FX[FxGUID][Fx_P].V = LT_ParamValue
@@ -1114,7 +1114,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 if r.ImGui_IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and not MorphingMenuOpen then
                     if IsLBtnClicked or IsRBtnClicked then
                         FP.TweakingAB_Val = P_Num
-                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                        Retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
                     end
                     if not FP.TweakingAB_Val then
                         local offsetA, offsetB
@@ -1591,7 +1591,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if not FP.Image then
         r.ImGui_Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FX[FxGUID][Fx_P].Sldr_W or TextW)
     else -- if there's an image
-        uvmin, uvmax, w, h = Calc_strip_uv(FP.Image, FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
+        uvmin, uvmax, W, h = Calc_strip_uv(FP.Image, FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
 
 
 
@@ -1627,7 +1627,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.V_Clr then r.ImGui_PopStyleColor(ctx) end
     --Sync Value if user tweak plugin's actual GUI.
 
-    if focusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FX[FxGUID][Fx_P].WhichCC then
+    if FocusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FX[FxGUID][Fx_P].WhichCC then
         FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     end
 
@@ -1808,7 +1808,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if r.ImGui_IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and not MorphingMenuOpen then
                     if IsLBtnClicked or IsRBtnClicked then
                         FP.TweakingAB_Val = P_Num
-                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                        Retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
                     end
                     if not FP.TweakingAB_Val then
                         local offsetA, offsetB
@@ -2004,7 +2004,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         local AlreadyAddPrm = false
 
-        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and FX[FxGUID][Fx_P].Name and not FP.WhichCC then
+        if LT_ParamNum == P_Num and FocusedFXState == 1 and LT_FXGUID == FxGUID and FX[FxGUID][Fx_P].Name and not FP.WhichCC then
             local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
 
             FX[FxGUID][Fx_P].V = LT_ParamValue

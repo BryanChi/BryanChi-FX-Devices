@@ -602,14 +602,14 @@ function magnitude(freq)
     ddr    = a;
 
     -- abs(m0_ + (Numerator / Denominator)
-    x      = m0 + ddr;
+    X      = m0 + ddr;
     y      = ddi;
-    s      = math.max(math.abs(x), math.abs(y));
-    x      = x / s;
+    s      = math.max(math.abs(X), math.abs(y));
+    X      = X / s;
     y      = y / s;
 
     -- Return magnitude
-    return s * math.sqrt(x * x + y * y);
+    return s * math.sqrt(X * X + y * y);
 end
 
 function zdf_magnitude(freq)

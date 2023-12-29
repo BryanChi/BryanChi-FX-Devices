@@ -69,8 +69,8 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     true)
             end
         elseif SpcInPost then
-            if reaper.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-            table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
+            if reaper.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
+            table.insert(Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
             -- InsertToPost_Src = FX_Idx + offset+2
             for i = 1, #Trk[TrkID].PostFX + 1, 1 do
                 reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
@@ -102,42 +102,42 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
                     MyText('VST', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('VST3:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6) .. '##vst3'
                     local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
                     MyText('VST3', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('JS:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
                     MyText('JS', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('AU:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
                     MyText('AU', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('CLAP:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6)
                     local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
                     MyText('CLAP', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('LV2:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5)
                     local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
                     MyText('LV2', nil, clr)
                     SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
 
                 if reaper.ImGui_Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
@@ -148,7 +148,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     end
                 end
                 if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
                 -- DRAG AND DROP
                 if reaper.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
