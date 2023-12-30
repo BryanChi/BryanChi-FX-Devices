@@ -4382,7 +4382,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                         PluginScript.FX_Idx = FX_Idx
                         PluginScript.Guid = FxGUID
-                        dofile(pluginScriptPath .. '/' .. v .. '.lua')
+                        dofile(pluginHelpers.pluginScriptPath .. '/' .. v .. '.lua')
                     end
                 end
                 --PluginScript.FX_Idx = FX_Idx
