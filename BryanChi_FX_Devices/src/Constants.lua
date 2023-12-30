@@ -128,3 +128,16 @@ Macro8Color = 0x21ff6bff
 
 
 FX_Add_Del_WaitTime = 2
+
+Default_FX_Width = 200
+
+GapBtwnPrmColumns = 10
+
+--Sequencer -----
+StepSEQ_W = 20
+StepSEQ_H = 100
+SEQ_Default_Num_of_Steps = 8
+SEQ_Default_Denom = 1
+
+Knob_DefaultFontSize = 10
+LBL_DefaultFontSize = 10

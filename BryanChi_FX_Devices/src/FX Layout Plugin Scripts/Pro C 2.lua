@@ -7,9 +7,9 @@ r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
-FX.TitleWidth[FxGUID]  = 60 
-FX[FxGUID].CustomTitle = 'Pro-C 2'
-FX[FxGUID].Width = 280
+FxdCtx.FX.TitleWidth[FxGUID]  = 60 
+FxdCtx.FX[FxGUID].CustomTitle = 'Pro-C 2'
+FxdCtx.FX[FxGUID].Width = 280
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
@@ -17,7 +17,7 @@ FX[FxGUID].Width = 280
 
 Rounding = 3
 r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
-if not FX[FXGUID[FX_Idx]].Collapse then
+if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     if not OverSampleValue then
         _, OverSampleValue = r
             .TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 40)
@@ -37,11 +37,11 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or '', Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
 
     r.ImGui_PopFont(ctx)
-    r.ImGui_SameLine(ctx, ProC.Width - 25)
+    r.ImGui_SameLine(ctx, FxdCtx.ProC.Width - 25)
 
     SyncWetValues()
-    Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
-        Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+        FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 end
 r.ImGui_PopStyleVar(ctx)
 
@@ -69,50 +69,50 @@ r.ImGui_PopStyleVar(ctx)
 
 
 
-if not FX[FXGUID[FX_Idx]].Collapse then
-    if Prm.InstAdded[PluginScript.Guid] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
+if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
+    if FxdCtx.Prm.InstAdded[PluginScript.Guid] ~= true and FxdCtx.FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
         --- number in green represents FX Prm Index
-        StoreNewParam(FXGUID[FX_Idx], 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
             1, FX_Idx)                       --1. Knee
-        StoreNewParam(FXGUID[FX_Idx], 'Range', 4, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Range', 4, FX_Idx, false, 'AddingFromExtState',
             2, FX_Idx)                       --2. Range
-        StoreNewParam(FXGUID[FX_Idx], 'Lookahead', 8, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Lookahead', 8, FX_Idx, false,
             'AddingFromExtState', 3, FX_Idx) --3. Lookahead
-        StoreNewParam(FXGUID[FX_Idx], 'Hold', 9, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Hold', 9, FX_Idx, false, 'AddingFromExtState',
             4, FX_Idx)                       --4. Hold
 
-        StoreNewParam(FXGUID[FX_Idx], 'Ratio', 2, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Ratio', 2, FX_Idx, false, 'AddingFromExtState',
             5, FX_Idx)                       --5. Ratio
-        StoreNewParam(FXGUID[FX_Idx], 'Attack', 5, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Attack', 5, FX_Idx, false,
             'AddingFromExtState', 6, FX_Idx) --6. Attack
-        StoreNewParam(FXGUID[FX_Idx], 'Release', 6, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Release', 6, FX_Idx, false,
             'AddingFromExtState', 7, FX_Idx) --7. release
 
-        StoreNewParam(FXGUID[FX_Idx], 'Gain', 10, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Gain', 10, FX_Idx, false, 'AddingFromExtState',
             8, FX_Idx)                        --8. Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Dry', 12, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Dry', 12, FX_Idx, false, 'AddingFromExtState',
             9, FX_Idx)                        --9. Dry Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Thresh', 1, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Thresh', 1, FX_Idx, false,
             'AddingFromExtState', 10, FX_Idx) -- 10. Thresh
 
-        StoreNewParam(FXGUID[FX_Idx], 'Mix', 34, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Mix', 34, FX_Idx, false, 'AddingFromExtState',
             11, FX_Idx)                       -- 11. Mix
-        StoreNewParam(FXGUID[FX_Idx], 'Input Gain', 35, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Input Gain', 35, FX_Idx, false,
             'AddingFromExtState', 12, FX_Idx) -- 12. Input Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Output Gain', 37, FX_Idx, false,
+        StoreNewParam(FxdCtx.FXGUID[FX_Idx], 'Output Gain', 37, FX_Idx, false,
             'AddingFromExtState', 13, FX_Idx) -- 13. Output Gain
 
 
 
-        Prm.InstAdded[FXGUID[FX_Idx]] = true
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. FXGUID[FX_Idx] .. 'Params Added',
+        FxdCtx.Prm.InstAdded[FxdCtx.FXGUID[FX_Idx]] = true
+        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxdCtx.FXGUID[FX_Idx] .. 'Params Added',
             'true')
     end
     function F_Tp(FX_P)
-        return FX.Prm.ToTrkPrm[FxGUID .. FX_P]
+        return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
     end
 
-    if FX[PluginScript.Guid][1].Num and FX[PluginScript.Guid][8] then
+    if FxdCtx.FX[PluginScript.Guid][1].Num and FxdCtx.FX[PluginScript.Guid][8] then
         r.ImGui_Indent(ctx, 20)
 
         Rounding = 3
@@ -197,13 +197,13 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         ---Gain Reduction Spectrum------
         for i = 1, 180, 1 do -- do once for each pixel
             local Clr = 0xFF8181cc
-            ProC.Pt.L.m[i] = r.gmem_read(i)
-            ProC.Pt.L.M[i] = r.gmem_read(i + 200 + 10000 * FX_Idx)
+            FxdCtx.ProC.Pt.L.m[i] = r.gmem_read(i)
+            FxdCtx.ProC.Pt.L.M[i] = r.gmem_read(i + 200 + 10000 * FX_Idx)
 
-            ProC.Pt.L.M[i + 1] = r.gmem_read(i + 201 + 10000 * FX_Idx)
-            local Min = ProC.Pt.L.m[i]
-            local Max = (ProC.Pt.L.M[i] - 347) / DspScale[Sel_Scale] + 50
-            local MaxNext = (ProC.Pt.L.M[i + 1] - 347) / DspScale[Sel_Scale] + 50
+            FxdCtx.ProC.Pt.L.M[i + 1] = r.gmem_read(i + 201 + 10000 * FX_Idx)
+            local Min = FxdCtx.ProC.Pt.L.m[i]
+            local Max = (FxdCtx.ProC.Pt.L.M[i] - 347) / DspScale[Sel_Scale] + 50
+            local MaxNext = (FxdCtx.ProC.Pt.L.M[i + 1] - 347) / DspScale[Sel_Scale] + 50
 
 
 
@@ -230,7 +230,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
                 0x88888810, nil)
             local AnyActive = r.ImGui_IsAnyItemActive(ctx)
 
-            if IsLBtnClicked and AnyActive == false and not ProC.ChoosingStyle then
+            if IsLBtnClicked and AnyActive == false and not FxdCtx.ProC.ChoosingStyle then
                 r.ImGui_DrawList_AddRectFilled(Drawlist, SpX, SpY, SpX + 180, SpY +
                     100, 0x88888866, nil)
                 ShowDpRange = true
@@ -253,15 +253,15 @@ if not FX[FXGUID[FX_Idx]].Collapse then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx + 1, 0, OV + Wheel_V /
                     50)
                 TimeNow = r.time_precise()
-                FX[FxGUID].ShowMsecRange = true
-                FX[FxGUID].MsecRange = tonumber(select(2,
+                FxdCtx.FX[FxGUID].ShowMsecRange = true
+                FxdCtx.FX[FxGUID].MsecRange = tonumber(select(2,
                     r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx + 1, 0)))
-                if FX[FxGUID].MsecRange then
-                    if FX[FxGUID].MsecRange > 999 then
-                        FX[FxGUID].MsecRange = round((FX[FxGUID].MsecRange / 1000), 2) ..
+                if FxdCtx.FX[FxGUID].MsecRange then
+                    if FxdCtx.FX[FxGUID].MsecRange > 999 then
+                        FxdCtx.FX[FxGUID].MsecRange = round((FxdCtx.FX[FxGUID].MsecRange / 1000), 2) ..
                             's'
                     else
-                        FX[FxGUID].MsecRange = math.floor(FX[FxGUID].MsecRange) ..
+                        FxdCtx.FX[FxGUID].MsecRange = math.floor(FxdCtx.FX[FxGUID].MsecRange) ..
                             'ms'
                     end
                 end
@@ -275,13 +275,13 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             else
                 ShowDpRange = false
             end
-        elseif FX[FxGUID].ShowMsecRange then
+        elseif FxdCtx.FX[FxGUID].ShowMsecRange then
             TimeAfter = r.time_precise()
             if TimeAfter < TimeNow + 0.5 then
                 r.ImGui_DrawList_AddTextEx(Drawlist, Font_Andale_Mono_20_B, 20,
-                    SpX + 70, SpY + 40, 0xffffffff, FX[FxGUID].MsecRange)
+                    SpX + 70, SpY + 40, 0xffffffff, FxdCtx.FX[FxGUID].MsecRange)
             else
-                FX[FxGUID].ShowMsecRange = false
+                FxdCtx.FX[FxGUID].ShowMsecRange = false
             end
         end
 
@@ -322,13 +322,13 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
         r.ImGui_Indent(ctx, 210)
-        AddKnob(ctx, '##Gain', 'Gain', FX[FxGUID][8].V or 0, 0, 1, 8, FX_Idx, 10,
+        AddKnob(ctx, '##Gain', 'Gain', FxdCtx.FX[FxGUID][8].V or 0, 0, 1, 8, FX_Idx, 10,
             'Pro C', 15, IIS, Disabled, LblTextSize, 'Bottom')
-        AddKnob(ctx, '##Dry', 'Dry', FX[FxGUID][9].V or 0, 0, 1, 9, FX_Idx, 12,
+        AddKnob(ctx, '##Dry', 'Dry', FxdCtx.FX[FxGUID][9].V or 0, 0, 1, 9, FX_Idx, 12,
             'Pro C', 15, IIS, Disabled, LblTextSize, 'Bottom')
         local OrigPosX, OrigPosY = r.ImGui_GetCursorPos(ctx)
         r.ImGui_SetCursorScreenPos(ctx, SpX - 20, SpY + 20)
-        AddSlider(ctx, '##Threshold', ' ', FX[FxGUID][10].V or 0, 0, 1, 10, FX_Idx, 1,
+        AddSlider(ctx, '##Threshold', ' ', FxdCtx.FX[FxGUID][10].V or 0, 0, 1, 10, FX_Idx, 1,
             'Pro C Thresh', 18, IIS, nil, 'Vert', 4, nil, nil, 180)
         r.ImGui_SetCursorPos(ctx, OrigPosX, OrigPosY)
 
@@ -434,7 +434,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_Indent(ctx, 5)
 
 
-        AddKnob(ctx, '##Ratio', 'RATIO', FX[FxGUID][5].V or 0, 0, 1, 5, FX_Idx, 2,
+        AddKnob(ctx, '##Ratio', 'RATIO', FxdCtx.FX[FxGUID][5].V or 0, 0, 1, 5, FX_Idx, 2,
             'Pro C', 20, IIS, 'Pro C Ratio Disabled', LblTextSize, 'Bottom')
         local KneePosX, KneePosY = r.ImGui_GetCursorPos(ctx)
 
@@ -455,12 +455,12 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_SetCursorPos(ctx, X + 90, Y)
 
 
-        AddKnob(ctx, 'Attack##Attack', 'Attack', FX[FxGUID][6].V or 0, 0, 1, 6,
+        AddKnob(ctx, 'Attack##Attack', 'Attack', FxdCtx.FX[FxGUID][6].V or 0, 0, 1, 6,
             FX_Idx, 5, 'Pro C', 20, IIS, Disabled, LblTextSize, 'Bottom')
 
 
         r.ImGui_SetCursorPos(ctx, X + 145, Y)
-        AddKnob(ctx, '##Release', 'Release', FX[FxGUID][7].V or 0, 0, 1, 7, FX_Idx, 6,
+        AddKnob(ctx, '##Release', 'Release', FxdCtx.FX[FxGUID][7].V or 0, 0, 1, 7, FX_Idx, 6,
             'Pro C', 20, IIS, Disabled, 2, 'Bottom')
 
 
@@ -468,30 +468,30 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_SetCursorPos(ctx, KneePosX - 3, KneePosY + 4)
         for Fx_p = 1, 4, 1 do
             r.ImGui_SetCursorPosY(ctx, KneePosY + 4)
-            local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_p]
-            local P_Num = FX[FxGUID][Fx_p].Num
+            local F_Tp = FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. Fx_p]
+            local P_Num = FxdCtx.FX[FxGUID][Fx_p].Num
             SliderStyle = 'Pro C'
-            if FX[FxGUID][Fx_P].V == nil then
-                FX[FxGUID][Fx_P].V = r
+            if FxdCtx.FX[FxGUID][Fx_P].V == nil then
+                FxdCtx.FX[FxGUID][Fx_P].V = r
                     .TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
             end
 
             if P_Num == 8 then
                 if Lookahead == 0 then
-                    AddDrag(ctx, '##' .. Fx_p, FX[FxGUID][3].Name,
-                        FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num,
-                        'Pro C Lookahead', (ProC.Width - 60) / 4, IIS, 'Disabled',
+                    AddDrag(ctx, '##' .. Fx_p, FxdCtx.FX[FxGUID][3].Name,
+                        FxdCtx.FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num,
+                        'Pro C Lookahead', (FxdCtx.ProC.Width - 60) / 4, IIS, 'Disabled',
                         'Lbl_Clickable')
                 else
-                    AddDrag(ctx, '##' .. Fx_p, FX[FxGUID][3].Name,
-                        FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num,
-                        'Pro C Lookahead', (ProC.Width - 60) / 4, IIS, nil,
+                    AddDrag(ctx, '##' .. Fx_p, FxdCtx.FX[FxGUID][3].Name,
+                        FxdCtx.FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num,
+                        'Pro C Lookahead', (FxdCtx.ProC.Width - 60) / 4, IIS, nil,
                         'Lbl_Clickable')
                 end
             else
-                AddDrag(ctx, '##' .. Fx_p, FX[FxGUID][Fx_p].Name,
-                    FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num, 'Pro C',
-                    (ProC.Width - 60) / 4, IIS, nil)
+                AddDrag(ctx, '##' .. Fx_p, FxdCtx.FX[FxGUID][Fx_p].Name,
+                    FxdCtx.FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num, 'Pro C',
+                    (FxdCtx.ProC.Width - 60) / 4, IIS, nil)
                 --r.ImGui_SameLine(ctx)
             end
             r.ImGui_SameLine(ctx)
@@ -500,9 +500,9 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_PopStyleVar(ctx, 2)
 
 
-        if not FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
-            table.insert(AddFX.Pos, FX_Idx)
-            table.insert(AddFX.Name, 'FXD Split to 4 channels')
+        if not FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
+            table.insert(FxdCtx.AddFX.Pos, FX_Idx)
+            table.insert(FxdCtx.AddFX.Name, 'FXD Split to 4 channels')
             if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
                 Rv = r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 4)
             end
@@ -513,10 +513,10 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
         local _, NextFX = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
 
-        if not NextFX:find('JS: FXD Gain Reduction Scope') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
-            table.insert(AddFX.Pos, FX_Idx + 1)
-            table.insert(AddFX.Name, 'FXD Gain Reduction Scope')
-            ProC.GainSc_FXGUID = FxGUID
+        if not NextFX:find('JS: FXD Gain Reduction Scope') and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
+            table.insert(FxdCtx.AddFX.Pos, FX_Idx + 1)
+            table.insert(FxdCtx.AddFX.Name, 'FXD Gain Reduction Scope')
+            FxdCtx.ProC.GainSc_FXGUID = FxGUID
 
             function WriteGmemToGainReductionScope(FxGUID)
 
@@ -541,5 +541,5 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             SyncAnalyzerPinWithFX(FX_Idx + 1, FX_Idx)
         end
     end
-    r.gmem_attach('CompReductionScope'); r.gmem_write(2000, PM.DIY_TrkID[TrkID])
+    r.gmem_attach('CompReductionScope'); r.gmem_write(2000, FxdCtx.PM.DIY_TrkID[TrkID])
 end

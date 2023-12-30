@@ -13,22 +13,22 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 0, 2 ^ (LayerNum * 2 - 2), 0)
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 1, 2 ^ (LayerNum * 2 - 1), 0)
     end
-    if Lyr.FX_Ins[FXGUID_RackMixer] == nil then Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
+    if FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] == nil then FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
     local guid = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
 
-    if FX.InLyr[guid] ~= FXGUID_RackMixer then
-        Lyr.FX_Ins[FXGUID_RackMixer] = Lyr.FX_Ins[FXGUID_RackMixer] + 1
-    elseif FX.InLyr[guid] == FXGUID_RackMixer then
+    if FxdCtx.FX.InLyr[guid] ~= FXGUID_RackMixer then
+        FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] = FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] + 1
+    elseif FxdCtx.FX.InLyr[guid] == FXGUID_RackMixer then
     end
 
-    FX.InLyr[guid] = FXGUID_RackMixer
+    FxdCtx.FX.InLyr[guid] = FXGUID_RackMixer
     r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. guid .. 'in layer', FXGUID_RackMixer)
-    FX.LyrNum[guid] = LayerNum
+    FxdCtx.FX.LyrNum[guid] = LayerNum
     r.SetProjExtState(0, 'FX Devices', 'FXLayer ' .. guid .. 'LayerNum', LayerNum)
 
-    FX[guid] = FX[guid] or {}
-    FX[guid].inWhichLyr = FX[FXGUID_RackMixer].LyrID[LayerNum]
-    r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. guid .. 'is in Layer ID', FX[FXGUID_RackMixer].LyrID
+    FxdCtx.FX[guid] = FxdCtx.FX[guid] or {}
+    FxdCtx.FX[guid].inWhichLyr = FxdCtx.FX[FXGUID_RackMixer].LyrID[LayerNum]
+    r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. guid .. 'is in Layer ID', FxdCtx.FX[FXGUID_RackMixer].LyrID
         [LayerNum])
 
 
@@ -36,10 +36,10 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
     --@todo if this is the 2nd + FX in Layer, receive from layer channels (layer 2 = 3-4, layer 3 = 5-6 etc)
 
 
-    r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, Lyr.FX_Ins[FXGUID_RackMixer])
+    r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer])
     for i = 1, RepeatTimeForWindows, 1 do
         local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
-        if FX.LyrNum[FXGUID] == LayerNum and FX.InLyr[FXGUID] == FXGUID_RackMixer then
+        if FxdCtx.FX.LyrNum[FXGUID] == LayerNum and FxdCtx.FX.InLyr[FXGUID] == FXGUID_RackMixer then
             _, FXName = r.TrackFX_GetFXName(LT_Track, i)
             SetPinMappings(i)
 
@@ -72,11 +72,11 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
         r.TrackFX_SetPinMappings(LT_Track, i, 1, 1, 2 ^ (LayerNum * 2 - 1), 0)
     end
 
-    if Lyr.FX_Ins[FXGUID_RackMixer] == nil then Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
+    if FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] == nil then FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] = 0 end
     local guid
     if Payload_Type == 'DND ADD FX' then
         guid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-        FX[guid] = FX[guid] or {}
+        FxdCtx.FX[guid] = FxdCtx.FX[guid] or {}
     else
         guid = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
     end
@@ -85,19 +85,19 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
     --    MoveFX_Out_Of_BS()
     --end
 
-    if FX.InLyr[guid] ~= FXGUID_RackMixer then
-        Lyr.FX_Ins[FXGUID_RackMixer] = Lyr.FX_Ins[FXGUID_RackMixer] + 1
-    elseif FX.InLyr[guid] == FXGUID_RackMixer then
+    if FxdCtx.FX.InLyr[guid] ~= FXGUID_RackMixer then
+        FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] = FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer] + 1
+    elseif FxdCtx.FX.InLyr[guid] == FXGUID_RackMixer then
     end
 
-    FX.InLyr[guid] = FXGUID_RackMixer
+    FxdCtx.FX.InLyr[guid] = FXGUID_RackMixer
     r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. guid .. 'in layer', FXGUID_RackMixer)
-    FX.LyrNum[guid] = LayerNum
+    FxdCtx.FX.LyrNum[guid] = LayerNum
     r.SetProjExtState(0, 'FX Devices', 'FXLayer ' .. guid .. 'LayerNum', LayerNum)
 
 
-    FX[guid].inWhichLyr = FX[FXGUID_RackMixer].LyrID[LayerNum]
-    r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. guid .. 'is in Layer ID', FX[FXGUID_RackMixer].LyrID
+    FxdCtx.FX[guid].inWhichLyr = FxdCtx.FX[FXGUID_RackMixer].LyrID[LayerNum]
+    r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. guid .. 'is in Layer ID', FxdCtx.FX[FXGUID_RackMixer].LyrID
         [LayerNum])
 
 
@@ -105,7 +105,7 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
     --@todo if this is the 2nd + FX in Layer, receive from layer channels (layer 2 = 3-4, layer 3 = 5-6 etc)
 
 
-    r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, Lyr.FX_Ins[FXGUID_RackMixer])
+    r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, FxdCtx.Lyr.FX_Ins[FXGUID_RackMixer])
 
 
     MoveFX(DragFX_ID, FX_Idx, true)
@@ -116,7 +116,7 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
     --[[ for i=1,  RepeatTimeForWindows,1 do
                 local FXGUID = r.TrackFX_GetFXGUID( LT_Track, i )
                 ]]
-    if FX.LyrNum[guid] == LayerNum and FX.InLyr[guid] == FXGUID_RackMixer then
+    if FxdCtx.FX.LyrNum[guid] == LayerNum and FxdCtx.FX.InLyr[guid] == FXGUID_RackMixer then
         local FX_Idx
         --_, FXName  = r.TrackFX_GetFXName( LT_Track, i )
         for i = 1, RepeatTimeForWindows, 1 do
@@ -146,17 +146,17 @@ function RepositionFXsInContainer(FX_Idx)
     r.Undo_BeginBlock()
     local FX_Idx = FX_Idx
     local FX_Count = r.TrackFX_GetCount(LT_Track)
-    if AddLastSpace == 'LastSpc' and Trk[TrkID].PostFX[1] then
-        FX_Idx = FX_Idx - #Trk[TrkID].PostFX
+    if AddLastSpace == 'LastSpc' and FxdCtx.Trk[TrkID].PostFX[1] then
+        FX_Idx = FX_Idx - #FxdCtx.Trk[TrkID].PostFX
     end
 
 
     -- Move the Head of Container
-    if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+    if FX_Idx > FxdCtx.Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx-1)
-        r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-    elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-        r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx, true)
+        r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload, LT_Track, FX_Idx - 1, true)
+    elseif FxdCtx.Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+        r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload, LT_Track, FX_Idx, true)
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx)
     end
 
@@ -170,7 +170,7 @@ function RepositionFXsInContainer(FX_Idx)
                 if DropDest == nil then DropDest = 0 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
 
-                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Glob.Payload]].FXsInBS, ID) then
+                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
                     if FX_Idx > DropDest and FX_Idx ~= RepeatTimeForWindows or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
                         r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx-2)
@@ -184,7 +184,7 @@ function RepositionFXsInContainer(FX_Idx)
             elseif DragFX_ID > FX_Idx then
                 if DropDest == nil then DropDest = 1 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
-                if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Glob.Payload]].FXsInBS, ID) then
+                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
                     r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                     --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
 
@@ -195,32 +195,32 @@ function RepositionFXsInContainer(FX_Idx)
             end
         end
     elseif Payload_Type == 'BS_Drag' then
-        for i, v in ipairs(FX[FXGUID[Glob.Payload]].FXsInBS) do
-            if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-                r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-            elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-                r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + i, LT_Track, FX_Idx + i, true)
+        for i, v in ipairs(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS) do
+            if FX_Idx > FxdCtx.Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+                r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload, LT_Track, FX_Idx - 1, true)
+            elseif FxdCtx.Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+                r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload + i, LT_Track, FX_Idx + i, true)
             end
         end
 
         --Move Joiner
-        if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
-            r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-        elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
-            r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, LT_Track,
-                FX_Idx + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, true)
+        if FX_Idx > FxdCtx.Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+            r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload, LT_Track, FX_Idx - 1, true)
+        elseif FxdCtx.Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+            r.TrackFX_CopyToTrack(LT_Track, FxdCtx.Glob.Payload + #FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS + 1, LT_Track,
+                FX_Idx + #FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS + 1, true)
         end
     end
     if Payload_Type == 'FX Layer Repositioning' then
         for i = 0, FX_Count, 1 do -- Move Splitter
             local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
 
-            if Lyr.SplitrAttachTo[FXGUID] == FXGUID_RackMixer then
+            if FxdCtx.Lyr.SplitrAttachTo[FXGUID] == FXGUID_RackMixer then
                 SplitrGUID = FXGUID
                 if FX_Idx == 0 then
                     r.TrackFX_CopyToTrack(LT_Track, i, LT_Track, 0, true)
                 elseif i > FX_Idx then -- FX_Idx = drop to fx position
-                    if Lyr.FrstFXPos[FXGUID_RackMixer] ~= nil then
+                    if FxdCtx.Lyr.FrstFXPos[FXGUID_RackMixer] ~= nil then
                         r.TrackFX_CopyToTrack(LT_Track, i, LT_Track, FX_Idx, true)
                         -- table.insert(MovFX.FromPos,i) table.insert(MovFX.ToPos, FX_Idx)
                     end

@@ -7,8 +7,8 @@ local function Filter_actions(filter_text)
     filter_text = Lead_Trim_ws(filter_text)
     local t = {}
     if filter_text == "" or not filter_text then return t end
-    for i = 1, #FX_LIST do
-        local action = FX_LIST[i]
+    for i = 1, #FxdCtx.FX_LIST do
+        local action = FxdCtx.FX_LIST[i]
         local name = action:lower()
         local found = true
         for word in filter_text:gmatch("%S+") do
@@ -28,13 +28,13 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
     local MAX_FX_SIZE = 250
-    local FxGUID = FXGUID[FX_Idx_For_AddFX or FX_Idx]
+    local FxGUID = FxdCtx.FXGUID[FX_Idx_For_AddFX or FX_Idx]
     reaper.ImGui_SetNextItemWidth(ctx, 180)
     _, ADDFX_FILTER = reaper.ImGui_InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER,
         reaper.ImGui_InputTextFlags_AutoSelectAll())
 
     if reaper.ImGui_IsWindowAppearing(ctx) then
-        local tb = FX_LIST
+        local tb = FxdCtx.FX_LIST
         reaper.ImGui_SetKeyboardFocusHere(ctx, -1)
     end
 
@@ -51,29 +51,29 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
         -- if Inserted into Layer
         local FxID = reaper.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
-        if FX.InLyr[FxGUID] == FXGUID_RackMixer and FX.InLyr[FxGUID] then
+        if FxdCtx.FX.InLyr[FxGUID] == FXGUID_RackMixer and FxdCtx.FX.InLyr[FxGUID] then
             DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
         end
         if SpaceIsBeforeRackMixer == 'SpcInBS' then
-            DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
+            DropFXintoBS(FxID, FxGUID_Container, FxdCtx.FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
         end
         if SpcIsInPre then
             local inspos = FX_Idx + 1
             if SpaceIsBeforeRackMixer == 'End of PreFX' then
-                table.insert(Trk[TrkID].PreFX, FxID)
+                table.insert(FxdCtx.Trk[TrkID].PreFX, FxID)
             else
-                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
+                table.insert(FxdCtx.Trk[TrkID].PreFX, FX_Idx + 1, FxID)
             end
-            for i, v in pairs(Trk[TrkID].PreFX) do
+            for i, v in pairs(FxdCtx.Trk[TrkID].PreFX) do
                 reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
                     true)
             end
         elseif SpcInPost then
             if reaper.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
-            table.insert(Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
+            table.insert(FxdCtx.Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
             -- InsertToPost_Src = FX_Idx + offset+2
-            for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
+            for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
+                reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '', true)
             end
         end
 
@@ -85,7 +85,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
         local x, y = reaper.ImGui_GetCursorScreenPos(ctx)
 
         ParentWinPos_x, ParentWinPos_y = reaper.ImGui_GetWindowPos(ctx)
-        local VP_R = VP.X + VP.w
+        local VP_R = FxdCtx.VP.X + FxdCtx.VP.w
         if x + MAX_FX_SIZE > VP_R then x = ParentWinPos_x - MAX_FX_SIZE end
 
         reaper.ImGui_SetNextWindowPos(ctx, x, y - filter_h / 2)
