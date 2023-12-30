@@ -125,3 +125,6 @@ Macro5Color = 0xf4ff21ff
 Macro6Color = 0xb9ff21ff
 Macro7Color = 0x6fff21ff
 Macro8Color = 0x21ff6bff
+
+
+FX_Add_Del_WaitTime = 2

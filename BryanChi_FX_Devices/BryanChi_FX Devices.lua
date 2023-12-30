@@ -75,7 +75,6 @@ Os_separator = package.config:sub(1, 1)
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
 VersionNumber = '1.0beta10.12'
-FX_Add_Del_WaitTime = 2
 
 FX_LIST, CAT = ReadFXFile()
 if not FX_LIST or not CAT then
