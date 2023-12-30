@@ -64,6 +64,7 @@ r = reaper
 require("src.Components.FilterBox")
 local MenuBar = require("src.Components.MenuBar")
 local state_helpers = require("src.helpers.state_helpers")
+local math_helpers = require("src.helpers.math_helpers")
 require("src.Functions.General Functions")
 
 require("src.Functions.EQ functions")
@@ -382,17 +383,6 @@ OffsetForMultipleMOD = 2
 
 
 
-
-local function SetMinMax(Input, Min, Max)
-    if Input >= Max then
-        Input = Max
-    elseif Input <= Min then
-        Input = Min
-    else
-        Input = Input
-    end
-    return Input
-end
 
 
 
@@ -1083,7 +1073,7 @@ function Loop()
 
 
 
-                        S[St] = SetMinMax(S[St] or 0, 0, 1)
+                        S[St] = math_helpers.SetMinMax(S[St] or 0, 0, 1)
                         if r.ImGui_IsItemActive(ctx) then
                             local _, v = r.ImGui_GetMouseDelta(ctx, nil, nil)
 
@@ -1094,7 +1084,7 @@ function Loop()
                                     S[St] = S[St] + v / 100
                                     r.gmem_write(4, 7)                                   -- tells jsfx user is changing a step's value
                                     r.gmem_write(5, i)                                   -- tells which macro user is tweaking
-                                    r.gmem_write(112, SetMinMax(S[St], 0, 1) * (-1) + 1) -- tells the step's value
+                                    r.gmem_write(112, math_helpers.SetMinMax(S[St], 0, 1) * (-1) + 1) -- tells the step's value
                                     r.gmem_write(113, St)                                -- tells which step
                                 end
                                 r.ImGui_ResetMouseDragDelta(ctx)
@@ -1276,10 +1266,10 @@ function Loop()
                                         --Calculate Value at Mouse pos
                                         local _, MsY = r.ImGui_GetMousePos(ctx)
 
-                                        S[St] = SetMinMax(((B - MsY) / StepSEQ_H), 0, 1) --[[ *(-1) ]]
+                                        S[St] = math_helpers.SetMinMax(((B - MsY) / StepSEQ_H), 0, 1) --[[ *(-1) ]]
                                         r.gmem_write(4, 7)                        -- tells jsfx user is changing a step's value
                                         r.gmem_write(5, i)                        -- tells which macro user is tweaking
-                                        r.gmem_write(112, SetMinMax(S[St], 0, 1)) -- tells the step's value
+                                        r.gmem_write(112, math_helpers.SetMinMax(S[St], 0, 1)) -- tells the step's value
                                         r.gmem_write(113, St)                     -- tells which step
 
                                         r.GetSetMediaTrackInfo_String(LT_Track,
@@ -1382,7 +1372,7 @@ function Loop()
                             end
 
                             if Retval then
-                                m.smooth = SetMinMax(0.1 ^ (1 - m.Smooth * 0.01), 0.1, 100)
+                                m.smooth = math_helpers.SetMinMax(0.1 ^ (1 - m.Smooth * 0.01), 0.1, 100)
                                 r.gmem_write(4, 10)       ---tells jsfx macro type = Follower, and user is adjusting smoothness
                                 r.gmem_write(5, i)        ---tells jsfx which macro
                                 r.gmem_write(9, m.smooth) -- Sets the smoothness
@@ -1445,7 +1435,7 @@ function Loop()
                         end
                     end
                     local H           = 20
-                    local MOD         = math.abs(SetMinMax((r.gmem_read(100 + i) or 0) / 127, -1, 1))
+                    local MOD         = math.abs(math_helpers.SetMinMax((r.gmem_read(100 + i) or 0) / 127, -1, 1))
                     FxdCtx.LFO.DummyH = FxdCtx.LFO.Win.h + 20
                     --LFO.DummyW  =  ( LFO.Win.w + 30) * ((Mc.LFO_leng or LFO.Def.Len)/4 )
                     Mc.Freq           = Mc.Freq or 1
@@ -1718,8 +1708,8 @@ function Loop()
                                 end
 
                                 table.insert(Node, InsertPos, {
-                                    x = SetMinMax(x, 0, 1),
-                                    y = SetMinMax(y, 0, 1),
+                                    x = math_helpers.SetMinMax(x, 0, 1),
+                                    y = math_helpers.SetMinMax(y, 0, 1),
                                 })
 
                                 Save_All_LFO_Info(Node)
@@ -1741,8 +1731,8 @@ function Loop()
 
                                         -- Segment Before the tweaking point
                                         if Node[ID].ctrlX and Node[ID].ctrlY then
-                                            Node[ID].ctrlX = SetMinMax(Node[ID].ctrlX, lastX, Node[ID].x)
-                                            Node[ID].ctrlY = SetMinMax(Node[ID].ctrlY, math.min(lastY, Y),
+                                            Node[ID].ctrlX = math_helpers.SetMinMax(Node[ID].ctrlX, lastX, Node[ID].x)
+                                            Node[ID].ctrlY = math_helpers.SetMinMax(Node[ID].ctrlY, math.min(lastY, Y),
                                                 math.max(lastY, Y))
 
                                             SaveLFO('Node' .. ID .. 'Ctrl X', Node[ID].ctrlX)
@@ -1809,8 +1799,8 @@ function Loop()
                                     local MsY = MsY / FxdCtx.LFO.DummyH
 
 
-                                    Node[ID].x = SetMinMax(Node[ID].x + MsX, lastX, nextX)
-                                    Node[ID].y = SetMinMax(Node[ID].y + MsY, 0, 1)
+                                    Node[ID].x = math_helpers.SetMinMax(Node[ID].x + MsX, lastX, nextX)
+                                    Node[ID].y = math_helpers.SetMinMax(Node[ID].y + MsY, 0, 1)
 
 
                                     if ID == 1 then
@@ -1833,7 +1823,7 @@ function Loop()
 
                                     if ID ~= #Node then
                                         local this, next = Node[ID].x, Node[ID + 1].x or 1
-                                        Node[ID + 1].ctrlX = SetMinMax(Node[ID + 1].ctrlX or (this + next) / 2, this,
+                                        Node[ID + 1].ctrlX = math_helpers.SetMinMax(Node[ID + 1].ctrlX or (this + next) / 2, this,
                                             next)
                                         if Node[ID + 1].ctrlX == (this + next) / 2 then Node[ID + 1].ctrlX = nil end
                                     end
@@ -1930,8 +1920,8 @@ function Loop()
                                     local CtrlX, CtrlY = Node[i].ctrlX or (Node[last].x + Node[i].x) / 2,
                                         Node[i].ctrlY or (Node[last].y + Node[i].y) / 2
 
-                                    Node[i].ctrlX      = SetMinMax(CtrlX + Dx, Node[last].x, Node[i].x)
-                                    Node[i].ctrlY      = SetMinMax(CtrlY + Dy, math.min(Node[last].y, Node[i].y),
+                                    Node[i].ctrlX      = math_helpers.SetMinMax(CtrlX + Dx, Node[last].x, Node[i].x)
+                                    Node[i].ctrlY      = math_helpers.SetMinMax(CtrlY + Dy, math.min(Node[last].y, Node[i].y),
                                         math.max(Node[last].y, Node[i].y))
 
                                     SaveLFO('Node' .. i .. 'Ctrl X', Node[i].ctrlX)
@@ -5998,13 +5988,13 @@ function Loop()
 
                                     X.Val = r.gmem_read(BsID + i)
                                     X.NxtVal = r.gmem_read(BsID + i + 1)
-                                    X.Pos = SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
+                                    X.Pos = math_helpers.SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
 
 
                                     --FX[FxGUID].Cross[i].Val = r.TrackFX_GetParamNormalized(LT_Track,FX_Idx, i)
 
-                                    local Cross_Pos = SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
-                                    local NxtCrossPos = SetMinMax(WinT + H - H * X.NxtVal, WinT, WinT + H)
+                                    local Cross_Pos = math_helpers.SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
+                                    local NxtCrossPos = math_helpers.SetMinMax(WinT + H - H * X.NxtVal, WinT, WinT + H)
 
 
                                     if --[[Hovering over a band]] r.ImGui_IsMouseHoveringRect(ctx, WinL, Cross_Pos - 3, WinR, Cross_Pos + 3) then
@@ -6639,7 +6629,7 @@ function Loop()
                                     if IsRBtnHeld then
                                         X.Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i);
 
-                                        X.Pos = SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
+                                        X.Pos = math_helpers.SetMinMax(WinT + H - H * X.Val, WinT, WinT + H)
                                     end
                                     local BsID = FxdCtx.FX[FxGUID].BandSplitID
                                     local TxtClr = getClr(r.ImGui_Col_Text())
