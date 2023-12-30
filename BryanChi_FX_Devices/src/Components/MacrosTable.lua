@@ -1,20 +1,5 @@
 local MacrosTable = {}
 
-local function PushClr(AssigningMacro)
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.LowMidSat[i])
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.MidSat[i])
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), EightColors.Bright[i])
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrab(), EightColors.HighSat_MidBright[i])
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrabActive(), EightColors.Bright_HighSat[i])
-
-    if AssigningMacro == i then
-        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.HighSat_MidBright[i])
-        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.bgWhenAsgnModAct[i])
-        PopColorTime = 2
-    end
-    ClrPop = 6
-    return PopColorTime
-end
 
 function MacrosTable.DisplayMacrosTable()
     r.ImGui_BeginTable(ctx, 'table1', 16, r.ImGui_TableFlags_NoPadInnerX())
@@ -60,6 +45,21 @@ function MacrosTable.DisplayMacrosTable()
         r.ImGui_PushID(ctx, i)
 
 
+        local function PushClr(AssigningMacro)
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.LowMidSat[i])
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.MidSat[i])
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgActive(), EightColors.Bright[i])
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrab(), EightColors.HighSat_MidBright[i])
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_SliderGrabActive(), EightColors.Bright_HighSat[i])
+
+            if AssigningMacro == i then
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), EightColors.HighSat_MidBright[i])
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBgHovered(), EightColors.bgWhenAsgnModAct[i])
+                PopColorTime = 2
+            end
+            ClrPop = 6
+            return PopColorTime
+        end
 
         FxdCtx.Trk[TrkID].Mod[i].Type = FxdCtx.Trk[TrkID].Mod[i].Type or 'Macro'
         if FxdCtx.Trk[TrkID].Mod[i].Type == 'Macro' then
