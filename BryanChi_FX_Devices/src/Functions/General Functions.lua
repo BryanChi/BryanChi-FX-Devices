@@ -10,6 +10,7 @@ local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 local pluginHelpers = require("src.helpers.plugin_helpers")
 local images_fonts = require("src.helpers.images_fonts")
+local state_helpers = require("src.helpers.state_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 ---General functions list
 
@@ -1455,7 +1456,7 @@ function DeleteFX(FX_Idx, FxGUID)
         end
     end
 
-    DeleteAllParamOfFX(FxGUID, TrkID)
+    state_helpers.DeleteAllParamOfFX(FxGUID, TrkID)
 
 
 

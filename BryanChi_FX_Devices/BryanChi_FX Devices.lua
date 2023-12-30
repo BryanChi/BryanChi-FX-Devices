@@ -63,6 +63,7 @@ end
 r = reaper
 require("src.Components.FilterBox")
 local MenuBar = require("src.Components.MenuBar")
+local state_helpers = require("src.helpers.state_helpers")
 require("src.Functions.General Functions")
 
 require("src.Functions.EQ functions")
@@ -767,29 +768,12 @@ function Loop()
 
 
 
-            ------------------------------
-            ------Menu Bar---------------
-            ------------------------------
-
 
 
             MenuBar.DisplayMenuBar()
 
 
 
-            function DeleteAllParamOfFX(FXGUID, TrkID)
-                for p, _ in pairs(FxdCtx.Trk.Prm.FXGUID) do
-                    if FxdCtx.Trk.Prm.FXGUID[p] == FXGUID and FXGUID ~= nil then
-                        FxdCtx.Trk.Prm.Inst[TrkID] = FxdCtx.Trk.Prm.Inst[TrkID] - 1
-                        FxdCtx.Prm.Num[p] = nil
-                        FxdCtx.PM.HasMod[p] = nil
-
-                        r.SetProjExtState(0, 'FX Devices', 'Params fxGUID of Param Inst' .. p, '')
-                    elseif FxdCtx.Trk.Prm.FXGUID[p] == nil and FXGUID == nil then
-
-                    end
-                end
-            end
 
             if Cont_Param_Add_Mode == true then
                 --TimeAfter_ContAdd= TimeAfter_ContAdd+1
@@ -6952,7 +6936,7 @@ function Loop()
                 end
 
                 if Sel_Track_FX_Count == 0 and DeletePrms == nil then --if it's the only fx
-                    DeleteAllParamOfFX(FxdCtx.FXGUID[0], TrkID, 0)
+                    state_helpers.DeleteAllParamOfFX(FxdCtx.FXGUID[0], TrkID, 0)
                     FxdCtx.FXGUID[0] = nil
                     DeletePrms = true
                 elseif Sel_Track_FX_Count ~= 0 then
