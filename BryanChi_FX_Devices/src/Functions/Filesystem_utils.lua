@@ -95,4 +95,15 @@ function fs_utils.ConcatPath(...)
     return table.concat({ ... }, sep)
 end
 
+---@param filename string
+---@return string[]
+function fs_utils.get_lines(filename)
+    local lines = {}
+    -- io.lines returns an iterator, so we need to manually unpack it into an array
+    for line in io.lines(filename) do
+        lines[#lines + 1] = line
+    end
+    return lines
+end
+
 return fs_utils

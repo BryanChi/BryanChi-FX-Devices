@@ -2,6 +2,7 @@ local state_helpers = require('src.helpers.state_helpers')
 local gui_helpers = require("src.Components.Gui_Helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local math_helpers = require("src.helpers.math_helpers")
+local table_helpers = require("src.helpers.table_helpers")
 local MacrosTable = {}
 
 
@@ -801,7 +802,7 @@ function MacrosTable.DisplayMacrosTable()
                                 'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released')
 
                             if r.ImGui_Checkbox(ctx, 'Legato', Mc.LFO_Legato) then
-                                Mc.LFO_Legato = toggle(Mc.LFO_Legato)
+                                Mc.LFO_Legato = state_helpers.toggle(Mc.LFO_Legato)
                                 ChangeLFO(21, 1, nil, 'LFO_Legato')
                             end
 
@@ -1370,7 +1371,7 @@ function MacrosTable.DisplayMacrosTable()
                     local ShownV = math.floor((Mc.LFO_Gain or 0) * 100)
 
                     -- check if prm has been assigned automation
-                    local AutoPrmIdx = tablefind(FxdCtx.Trk[TrkID].AutoPrms, 'Mod' .. Macro .. 'LFO Gain')
+                    local AutoPrmIdx = table_helpers.tablefind(FxdCtx.Trk[TrkID].AutoPrms, 'Mod' .. Macro .. 'LFO Gain')
 
 
                     _, Mc.LFO_Gain = r.ImGui_DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain',

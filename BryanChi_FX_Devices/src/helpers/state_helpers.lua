@@ -60,4 +60,38 @@ function state_helpers.GetLT_FX_Num()
     LT_Track = r.GetLastTouchedTrack()
 end
 
+---@generic T
+---@param v? T
+---@return boolean
+function state_helpers.toggle(v)
+    if v then v = false else v = true end
+    return v
+end
+
+function state_helpers.toggle2(a, b)
+    if a == b then return nil else return b end
+end
+
+---@param FX_Idx integer
+---@return integer|nil
+function state_helpers.ToggleCollapseAll(FX_Idx)
+    -- check if all are collapsed
+    local All_Collapsed
+    for i = 0, Sel_Track_FX_Count - 1, 1 do
+        if not FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse then All_Collapsed = false end
+    end
+    if All_Collapsed == false then
+        for i = 0, Sel_Track_FX_Count - 1, 1 do
+            FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse = true
+        end
+    else -- if all is collapsed
+        for i = 0, Sel_Track_FX_Count - 1, 1 do
+            FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse = false
+            FxdCtx.FX.WidthCollapse[FxdCtx.FXGUID[i]] = nil
+        end
+        BlinkFX = FX_Idx
+    end
+    return BlinkFX
+end
+
 return state_helpers

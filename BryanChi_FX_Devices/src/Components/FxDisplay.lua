@@ -1,6 +1,9 @@
 local gui_helpers = require("src.Components.Gui_Helpers")
 local table_helpers = require("src.helpers.table_helpers")
+local state_helpers = require("src.helpers.state_helpers")
 local fxModels = require("src.helpers.fxModels")
+local images_fonts = require("src.helpers.images_fonts")
+local math_helpers = require("src.helpers.math_helpers")
 local BlackListFXs = fxModels.BlackListFXs
 local fxDisplay = {}
 ---@param spaceIfPreFX number
@@ -46,7 +49,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
             end
 
             FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-            if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and FxdCtx.FXGUID[FX_Idx] ~= FxdCtx.FXGUID[FX_Idx - 1] then
+            if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and FxdCtx.FXGUID[FX_Idx] ~= FxdCtx.FXGUID[FX_Idx - 1] then
                 if FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == nil    --not in layer
                     and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
                     and string.find(FX_Name, 'RackMixer') == nil
@@ -85,7 +88,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                 --FX_IdxREAL =  FX_Idx+Lyr.FX_Ins[FXGUID[FX_Idx]]
                 Tab_Collapse_Win = false
 
-                if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not FxdCtx.FX[FxGUID].InWhichBand then
+                if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not FxdCtx.FX[FxGUID].InWhichBand then
                     createFXWindow(FX_Idx)
                     local _, _, _ = r.TrackFX_GetIOSize(LT_Track, FX_Idx)
                 end
@@ -903,13 +906,13 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         .ManualValuesFormat or {}
                                     if r.ImGui_Button(ctx, 'Get Current Value##' .. FxGUID .. (Itm or '')) then
                                         local Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
-                                        if not tablefind(FP.ManualValues, Val) then
+                                        if not table_helpers.tablefind(FP.ManualValues, Val) then
                                             table.insert(FxdCtx.FX[FxGUID][Itm].ManualValues, Val)
                                         end
                                     end
                                     for i, V in ipairs(FxdCtx.FX[FxGUID][Itm].ManualValues) do
                                         r.ImGui_AlignTextToFramePadding(ctx)
-                                        r.ImGui_Text(ctx, i .. ':' .. (round(V, 2) or 0))
+                                        r.ImGui_Text(ctx, i .. ':' .. (math_helpers.round(V, 2) or 0))
                                         SL()
                                         --r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                         Rv, FxdCtx.FX[FxGUID][Itm].ManualValuesFormat[i] = r.ImGui_InputText(ctx,
@@ -1881,7 +1884,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 for _, v in ipairs(FxdCtx.FX[FxGUID]) do
                                     local function CheckClr(Clr)
                                         if Clr and not r.ImGui_IsPopupOpen(ctx, '', r.ImGui_PopupFlags_AnyPopupId()) then
-                                            if not tablefind(FxdCtx.ClrPallet, Clr) and FxdCtx.ClrPallet then
+                                            if not table_helpers.tablefind(FxdCtx.ClrPallet, Clr) and FxdCtx.ClrPallet then
                                                 local _, _, _, A = r.ImGui_ColorConvertU32ToDouble4(Clr)
                                                 if A ~= 0 then
                                                     table.insert(FxdCtx.ClrPallet, Clr)
@@ -1900,7 +1903,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         for _, v in ipairs(FxdCtx.Draw[FxdCtx.FX.Win_Name_S[FX_Idx]].clr) do
                                             local Clr = v
                                             if Clr and not r.ImGui_IsPopupOpen(ctx, '', r.ImGui_PopupFlags_AnyPopupId()) then
-                                                if not tablefind(FxdCtx.ClrPallet, Clr) and FxdCtx.ClrPallet then
+                                                if not table_helpers.tablefind(FxdCtx.ClrPallet, Clr) and FxdCtx.ClrPallet then
                                                     table.insert(FxdCtx.ClrPallet, Clr)
                                                 end
                                             end
@@ -1915,7 +1918,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                         r.ImGui_ColorEditFlags_AlphaBar())
                                     if r.ImGui_IsItemClicked(ctx) and Mods == Alt then
-                                        table.remove(FxdCtx.ClrPallet, tablefind(v))
+                                        table.remove(FxdCtx.ClrPallet, table_helpers.tablefind(v))
                                     end
                                 end
 
@@ -2110,7 +2113,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             if LBtnClickCount == 2 and r.ImGui_IsItemActivated(ctx) then
                                 FxdCtx.FX[FxGUID].RenameFXLayering = true
                             elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
-                                BlinkFX = ToggleCollapseAll(FX_Idx)
+                                BlinkFX = state_helpers.ToggleCollapseAll(FX_Idx)
                             end
                         end
 
@@ -2611,7 +2614,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
                             FxdCtx.FX[FxGUID].Collapse = nil
                         elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
-                            BlinkFX = ToggleCollapseAll(FX_Idx)
+                            BlinkFX = state_helpers.ToggleCollapseAll(FX_Idx)
                         end
 
                         if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_None()) then
@@ -2961,7 +2964,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                     elseif btn and Mods == Alt then
                         FxdCtx.FX[FxGUID].DeleteBandSplitter = true
                     elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
-                        FxdCtx.FX[FxGUID].Collapse = toggle(FxdCtx.FX[FxGUID].Collapse)
+                        FxdCtx.FX[FxGUID].Collapse = state_helpers.toggle(FxdCtx.FX[FxGUID].Collapse)
                     elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then -- check if all are collapsed
                         local All_Collapsed
                         for i = 0, Sel_Track_FX_Count - 1, 1 do
@@ -3062,7 +3065,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         if FxdCtx.FX[v].InWhichBand >= i then
                                             FxdCtx.FX[v].InWhichBand = FxdCtx.FX[v].InWhichBand - 1
 
-                                            local Fx = tablefind(FxdCtx.FXGUID, v)
+                                            local Fx = table_helpers.tablefind(FxdCtx.FXGUID, v)
                                             --sets input channel
                                             r.TrackFX_SetPinMappings(LT_Track, Fx, 0, 0,
                                                 2 ^ ((FxdCtx.FX[v].InWhichBand + 1) * 2 - 2), 0)
@@ -3106,12 +3109,12 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                             if DragDeltaY > 0 then -- if drag upward
                                                 B = math.min(FxdCtx.Sel_Cross[1], FxdCtx.Sel_Cross[2])
                                                 table.remove(FxdCtx.Sel_Cross,
-                                                    tablefind(FxdCtx.Sel_Cross,
+                                                    table_helpers.tablefind(FxdCtx.Sel_Cross,
                                                         math.max(FxdCtx.Sel_Cross[1], FxdCtx.Sel_Cross[2])))
                                             else
                                                 B = math.max(FxdCtx.Sel_Cross[1], FxdCtx.Sel_Cross[2])
                                                 table.remove(FxdCtx.Sel_Cross,
-                                                    tablefind(FxdCtx.Sel_Cross,
+                                                    table_helpers.tablefind(FxdCtx.Sel_Cross,
                                                         math.min(FxdCtx.Sel_Cross[1], FxdCtx.Sel_Cross[2])))
                                             end
                                         else
@@ -3189,7 +3192,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                             if FxdCtx.FX[FxID].InWhichBand then
                                 table.remove(FxdCtx.FX[FxGUID_BS].FXsInBS,
-                                    tablefind(FxdCtx.FX[FxGUID_BS].FXsInBS, FxID))
+                                    table_helpers.tablefind(FxdCtx.FX[FxGUID_BS].FXsInBS, FxID))
                             end
 
 
@@ -3247,10 +3250,10 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             --- account for fxs with analyzers
                             local _, FX_Name = r.TrackFX_GetFXName(LT_Track, Pl)
 
-                            local IDinPost = tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
+                            local IDinPost = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
                             if IDinPost then MoveFX_Out_Of_Post(IDinPost) end
 
-                            local IDinPre = tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
+                            local IDinPre = table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
                             if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                         end
 
@@ -3259,9 +3262,9 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         FxdCtx.FX[FxGUID].FXCheckWait = (FxdCtx.FX[FxGUID].FXCheckWait or 0) + 1
                         if FxdCtx.FX[FxGUID].FXCheckWait > 10 then
                             for _, v in ipairs(FxdCtx.FX[FxGUID].FXsInBS) do
-                                if not tablefind(FxdCtx.FXGUID, v) then
+                                if not table_helpers.tablefind(FxdCtx.FXGUID, v) then
                                     table.remove(FxdCtx.FX[FxGUID].FXsInBS,
-                                        tablefind(FxdCtx.FX[FxGUID].FXsInBS, v))
+                                        table_helpers.tablefind(FxdCtx.FX[FxGUID].FXsInBS, v))
                                 end
                             end
                             FxdCtx.FX[FxGUID].FXCheckWait = 0
@@ -3307,7 +3310,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 local function Find_InsPos()
                                     local InsPos
                                     for _, v in ipairs(FxdCtx.FX[FxGUID].FXsInBS) do
-                                        if FxdCtx.FX[v].InWhichBand == i then InsPos = tablefind(FxdCtx.FXGUID, v) end
+                                        if FxdCtx.FX[v].InWhichBand == i then InsPos = table_helpers.tablefind(FxdCtx.FXGUID, v) end
                                     end
                                     Pl = Pl or InsPos
                                     if not InsPos then
@@ -3380,7 +3383,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                                         if OnOff == 0 then AnyMutedBand = true end
                                         if OnOff == 0 then table.insert(FxdCtx.FX[FxGUID].PreviouslyMutedBand, i) end
-                                        if tablefind(FxdCtx.FX[FxGUID].PreviouslyMutedBand, i) and OnOff == 1 then
+                                        if table_helpers.tablefind(FxdCtx.FX[FxGUID].PreviouslyMutedBand, i) and OnOff == 1 then
                                             r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 5 * i, 0)
                                         else
                                             r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 5 * i, 1)
@@ -3397,7 +3400,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                                         if OnOff == 1 then AnySolodBand = true end
                                         if OnOff == 1 then table.insert(FxdCtx.FX[FxGUID].PreviouslySolodBand, i) end
-                                        if tablefind(FxdCtx.FX[FxGUID].PreviouslySolodBand, i) and OnOff == 0 then
+                                        if table_helpers.tablefind(FxdCtx.FX[FxGUID].PreviouslySolodBand, i) and OnOff == 0 then
                                             r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 4 + 5 * i, 1)
                                         else
                                             r.TrackFX_SetParamNormalized(LT_Track, JoinerID, 4 + 5 * i, 0)
@@ -3495,7 +3498,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     for _, v in ipairs(FxdCtx.FX[FxGUID].FXsInBS) do
                                         if FxdCtx.FX[v].InWhichBand == i then
                                             table.insert(FxdCtx.DraggingFXs, v)
-                                            table.insert(FxdCtx.DraggingFXs_Idx, tablefind(FxdCtx.FXGUID, v))
+                                            table.insert(FxdCtx.DraggingFXs_Idx, table_helpers.tablefind(FxdCtx.FXGUID, v))
                                         end
                                     end
                                     FxdCtx.DraggingFXs.SrcBand = i
@@ -3513,7 +3516,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     if not IsLBtnHeld and Mods == 0 then -- if Dropped FXs
                                         for _, v in ipairs(FxdCtx.DraggingFXs) do
                                             FxdCtx.FX[v].InWhichBand = i
-                                            local Fx = tablefind(FxdCtx.FXGUID, v)
+                                            local Fx = table_helpers.tablefind(FxdCtx.FXGUID, v)
                                             r.GetSetMediaTrackInfo_String(LT_Track,
                                                 'P_EXT: FX is in which Band' .. v, i, true)
                                             --sets input channel
@@ -3536,9 +3539,9 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                             if not FXCountForBand[i] then -- if theres no fx in the band
                                             elseif FXCountForBand[i] > 0 then
                                                 for _, v in ipairs(FxdCtx.FX[FxGUID].FXsInBS) do
-                                                    if FxdCtx.FX[v].InWhichBand == i and tablefind(FxdCtx.FXGUID, v) then
+                                                    if FxdCtx.FX[v].InWhichBand == i and table_helpers.tablefind(FxdCtx.FXGUID, v) then
                                                         offset =
-                                                            tablefind(FxdCtx.FXGUID, v)
+                                                            table_helpers.tablefind(FxdCtx.FXGUID, v)
                                                     end
                                                 end
                                                 TrgFX = offset + I
@@ -3552,7 +3555,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                                 false)
                                             local ID = r.TrackFX_GetFXGUID(LT_Track, TrgFX)
 
-                                            if not tablefind(FxdCtx.FX[FxGUID].FXsInBS, ID) then
+                                            if not table_helpers.tablefind(FxdCtx.FX[FxGUID].FXsInBS, ID) then
                                                 table.insert(
                                                     FxdCtx.FX[FxGUID].FXsInBS, ID)
                                             end
@@ -3636,7 +3639,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     end
                                 end
                                 for i, v in ipairs(DelFX) do
-                                    r.TrackFX_Delete(LT_Track, tablefind(FxdCtx.FXGUID, v) - i + 1)
+                                    r.TrackFX_Delete(LT_Track, table_helpers.tablefind(FxdCtx.FXGUID, v) - i + 1)
                                 end
 
 
@@ -3768,7 +3771,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 --if i == 1 then  SL(nil,0)  AddSpaceBtwnFXs(FX_Idx,'SpcInBS',nil,nil,1, FxGUID) end
                                 SL(nil, 0)
 
-                                I = tablefind(FxdCtx.FXGUID, v)
+                                I = table_helpers.tablefind(FxdCtx.FXGUID, v)
                                 if I then
                                     createFXWindow(I)
                                     SL(nil, 0)
@@ -3859,7 +3862,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         r.TrackFX_Delete(LT_Track, FX_Idx)
                         r.TrackFX_Delete(LT_Track, FX_Idx + #FxdCtx.FX[FxGUID].FXsInBS)
                         for i = 0, Sel_Track_FX_Count, 1 do
-                            if tablefind(FxdCtx.FX[FxGUID].FXsInBS, FxdCtx.FXGUID[i]) then
+                            if table_helpers.tablefind(FxdCtx.FX[FxGUID].FXsInBS, FxdCtx.FXGUID[i]) then
                                 --sets input channel
                                 r.TrackFX_SetPinMappings(LT_Track, i, 0, 0, 1, 0)
                                 r.TrackFX_SetPinMappings(LT_Track, i, 0, 1, 2, 0)
@@ -3889,7 +3892,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         r.TrackFX_Delete(LT_Track, FX_Idx + #FxdCtx.FX[FxGUID].FXsInBS)
                         local DelFX = {}
                         for i = 0, Sel_Track_FX_Count, 1 do
-                            if tablefind(FxdCtx.FX[FxGUID].FXsInBS, FxdCtx.FXGUID[i]) then
+                            if table_helpers.tablefind(FxdCtx.FX[FxGUID].FXsInBS, FxdCtx.FXGUID[i]) then
                                 table.insert(DelFX, FxdCtx.FXGUID[i])
                             end
                         end
@@ -3898,7 +3901,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             FxdCtx.FX[v].InWhichBand = nil
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. v, '',
                                 true)
-                            r.TrackFX_Delete(LT_Track, tablefind(FxdCtx.FXGUID, v) - i)
+                            r.TrackFX_Delete(LT_Track, table_helpers.tablefind(FxdCtx.FXGUID, v) - i)
                         end
 
 

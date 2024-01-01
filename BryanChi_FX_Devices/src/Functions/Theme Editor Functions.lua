@@ -4,6 +4,8 @@ local customcolors = require("src.helpers.custom_colors")
 local CustomColors = customcolors.CustomColors
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local gui_helpers = require("src.Components.Gui_Helpers")
+local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
+local table_helpers = require("src.helpers.table_helpers")
 demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
@@ -59,7 +61,7 @@ function demo.PushStyle()
 
 
             for i, v in pairs(CustomColors) do
-                _G[v] = RecallGlobInfo(content, v .. ' = ', 'Num')
+                _G[v] = layout_editor_helpers.RecallGlobInfo(content, v .. ' = ', 'Num')
             end
         end
         DefaultThemeActive = true
@@ -125,7 +127,7 @@ end
 function PushStyle_AtScriptStart()
     local file, file_path = CallFile('r', 'ThemeColors.ini')
     if file then
-        local Lines = get_lines(file_path)
+        local Lines = fs_utils.get_lines(file_path)
         for i in demo.EachEnum('Col') do
             r.ImGui_PushStyleColor(ctx, 1, 0x372837ff)
         end
@@ -591,7 +593,7 @@ function Show_KBShortcutEditor()
                     end
 
                     if ShortCutKeyToSwitch then
-                        if not tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
+                        if not table_helpers.tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
                             FxdCtx.KB_Shortcut[ShortCutKeyIndex] = GetFinalTxt(i)
                         end
 
@@ -599,7 +601,7 @@ function Show_KBShortcutEditor()
 
                         ShortCutKeyToSwitch = nil
                         ShortCutKeyIndex = nil
-                    elseif not tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
+                    elseif not table_helpers.tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
                         table.insert(FxdCtx.KB_Shortcut, GetFinalTxt(i))
                     end
 

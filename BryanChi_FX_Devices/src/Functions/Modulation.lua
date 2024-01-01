@@ -5,6 +5,8 @@
 r = reaper
 local table_helpers = require("src.helpers.table_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
+local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
+local INI_parser = require("src.helpers.INI_parser")
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -333,12 +335,12 @@ function Get_LFO_Shape_From_File(filename)
         local file = io.open(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
         if file then 
 
-            local L = get_lines(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
+            local L = fs_utils.get_lines(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
 
             local content = file:read("a+")
 
 
-            local Count = get_aftr_Equal_Num(L[1])
+            local Count = INI_parser.get_aftr_Equal_Num(L[1])
             local Node = {}
 
 
@@ -348,13 +350,13 @@ function Get_LFO_Shape_From_File(filename)
                 Node[i] = {}
                 local N = Node[i] 
                 --N.x = get_aftr_Equal_Num(content, i..'.x = ' )
-                N.x = RecallGlobInfo(content , i..'.x = ', 'Num')
+                N.x = layout_editor_helpers.RecallGlobInfo(content , i..'.x = ', 'Num')
 
-                N.y = RecallGlobInfo(content , i..'.y = ', 'Num')
+                N.y = layout_editor_helpers.RecallGlobInfo(content , i..'.y = ', 'Num')
 
-                N.ctrlX = RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
+                N.ctrlX = layout_editor_helpers.RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
 
-                N.ctrlY = RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
+                N.ctrlY = layout_editor_helpers.RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
 
             end
             if Node[1] then 

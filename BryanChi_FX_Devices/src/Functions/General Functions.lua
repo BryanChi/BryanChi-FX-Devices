@@ -116,220 +116,7 @@ function AddMacroJSFX()
 end
 
 
----@param enable boolean
----@param title string
-function MouseCursorBusy(enable, title)
-    mx, my = r.GetMousePosition()
 
-    local hwnd = r.JS_Window_FindTop(title, true)
-    local hwnd = r.JS_Window_FromPoint(mx, my)
-
-    if enable then -- set cursor to hourglass
-        r.JS_Mouse_SetCursor(Invisi_Cursor)
-        -- block app from changing mouse cursor
-        r.JS_WindowMessage_Intercept(hwnd, "WM_SETCURSOR", false)
-    else -- set cursor to arrow
-        r.JS_Mouse_SetCursor(r.JS_Mouse_LoadCursor(32512))
-        -- allow app to change mouse cursor
-    end
-end
-
-
----TODO do we need this function? It’s unused
----@param str string|number|nil
-function ToNum(str)
-    str = tonumber(str)
-end
-
----@generic T
----@param v? T
----@return boolean
-function toggle(v)
-    if v then v = false else v = true end
-    return v
-end
-
----@param str string
-function get_aftr_Equal(str)
-    if str then
-        local o = str:sub((str:find('=') or -2) + 2)
-        if o == '' or o == ' ' then o = nil end
-        return o
-    end
-end
-
-
-
----@param Str string
----@param Id string
----@param Fx_P integer
----@param Type? "Num"|"Bool"
----@param untilwhere? integer
-function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
-    if Str then
-        local Out, LineChange
-        local ID = Fx_P .. '%. ' .. Id .. ' = '
-        local Start, End = Str:find(ID)
-        if untilwhere then
-            LineChange = Str:find(untilwhere, Start)
-        else
-            LineChange = Str:find('\n', Start)
-        end
-        if End and Str and LineChange then
-            if Type == 'Num' then
-                Out = tonumber(string.sub(Str, End + 1, LineChange - 1))
-            elseif Type == 'Bool' then
-                if string.sub(Str, End + 1, LineChange - 1) == 'true' then Out = true else Out = false end
-            else
-                Out = string.sub(Str, End + 1, LineChange - 1)
-            end
-        end
-        if Out == '' then Out = nil end
-        return Out
-    end
-end
-
----@param Str string
----@param ID string
----@param Type? "Num"|"Bool"
----@param untilwhere? integer
-function RecallGlobInfo(Str, ID, Type, untilwhere)
-    if Str then
-        local Out, LineChange
-        local Start, End = Str:find(ID)
-
-        if untilwhere then
-            LineChange = Str:find(untilwhere, Start)
-        else
-            LineChange = Str:find('\n', Start)
-        end
-        if End and Str and LineChange then
-            if Type == 'Num' then
-                Out = tonumber(string.sub(Str, End + 1, LineChange - 1))
-            elseif Type == 'Bool' then
-                if string.sub(Str, End + 1, LineChange - 1) == 'true' then Out = true else Out = false end
-            else
-                Out = string.sub(Str, End + 1, LineChange - 1)
-            end
-        end
-        if Out == '' then Out = nil end
-        return Out
-    end
-end
-
----@param Str string|nil
----@param Id string
----@param Fx_P integer
----@param Type? "Num"|"Bool"
----@return string[]|nil
-function RecallIntoTable(Str, Id, Fx_P, Type)
-    if Str then
-        local _, End = Str:find(Id)
-        local T = {}
-        while End do
-            local NextLine = Str:find('\n', End)
-            local EndPos
-            local NextSep = Str:find('|', End)
-            if NextSep and NextLine then
-                if NextSep > NextLine then
-                    End = nil
-                else
-                    if Type == 'Num' then
-                        table.insert(T, tonumber(Str:sub(End + 1, NextSep - 1)))
-                    else
-                        table.insert(T, Str:sub(End + 1, NextSep - 1))
-                    end
-
-                    _, NewEnd = Str:find('|%d+=', End + 1)
-                    if NewEnd then
-                        if NewEnd > NextLine then End = nil else End = NewEnd end
-                    else
-                        End = nil
-                    end
-                end
-            else
-                End = nil
-            end
-        end
-        if T[1] then return T end
-    end
-end
-
----@param str string|nil
-function get_aftr_Equal_bool(str)
-    if str then
-        local o = str:sub(str:find('=') + 2) ---@type string |boolean | nil
-        if o == '' or o == ' ' or 0 == 'nil' then
-            o = nil
-        elseif o == 'true' then
-            o = true
-        elseif o == 'false' then
-            o = false
-        else
-            o = nil
-        end
-        return o
-    end
-end
-
----@param str string|nil
-function get_aftr_Equal_Num(str, Title)
-    if str then
-        if not Title then 
-            if str:find('=') then
-                return tonumber(str:sub(str:find('=') + 2))
-            end
-        else 
-            if str:find(Title) then
-                return tonumber(str:sub(str:find(Title) + 2))
-            end
-        end
-    else
-        return nil
-    end
-end
-
----@param str string
-function OnlyNum(str)
-    return tonumber(str:gsub('[%D%.]', ''))
-end
-
----@param filename string
----@return string[]
-function get_lines(filename)
-    local lines = {}
-    -- io.lines returns an iterator, so we need to manually unpack it into an array
-    for line in io.lines(filename) do
-        lines[#lines + 1] = line
-    end
-    return lines
-end
-
----@generic T
----@generic Index
----@param Table table<Index, T>
----@param Pos1 Index
----@param Pos2 Index
----@return table<Index,T> Table
-function TableSwap(Table, Pos1, Pos2)
-    Table[Pos1], Table[Pos2] = Table[Pos2], Table[Pos1]
-    return Table
-end
-
----@generic T
----@generic Index
----@param tab table<Index, T>
----@param el T
----@return Index|nil
-function tablefind(tab, el)
-    if tab then
-        for index, value in pairs(tab) do
-            if value == el then
-                return index
-            end
-        end
-    end
-end
 
 ---@param FxGUID string
 function GetProjExt_FxNameNum(FxGUID)
@@ -420,31 +207,7 @@ function AddFX_HideWindow(track, fx_name, Position)
     end
 end
 
----@param FX_Idx integer
----@return integer|nil
-function ToggleCollapseAll(FX_Idx)
-    -- check if all are collapsed
-    local All_Collapsed
-    for i = 0, Sel_Track_FX_Count - 1, 1 do
-        if not FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse then All_Collapsed = false end
-    end
-    if All_Collapsed == false then
-        for i = 0, Sel_Track_FX_Count - 1, 1 do
-            FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse = true
-        end
-    else -- if all is collapsed
-        for i = 0, Sel_Track_FX_Count - 1, 1 do
-            FxdCtx.FX[FxdCtx.FXGUID[i]].Collapse = false
-            FxdCtx.FX.WidthCollapse[FxdCtx.FXGUID[i]] = nil
-        end
-        BlinkFX = FX_Idx
-    end
-    return BlinkFX
-end
 
-function toggle2(a,b)
-    if a == b then return nil  else return  b end 
-end
 ---@param str string
 ---@param DecimalPlaces number
 function RoundPrmV(str, DecimalPlaces)
@@ -483,59 +246,8 @@ function Vertical_FX_Name (name)
     return   Name_V:gsub("%b()", "") 
 end
 
----@param num number|nil|string
----@param numDecimalPlaces number
----@return number|nil
-function round(num, numDecimalPlaces)
-    num = tonumber(num)
-    if num then
-        local mult = 10 ^ (numDecimalPlaces or 0)
-        return math.floor(num * mult + 0.5) / mult
-    end
-end
 
 StringToBool = { ['true'] = true, ['false'] = false }
-
----@generic T
----@param tab table<string, T>
----@param val T
----@return boolean
-function has_value(tab, val)
-    local found = false
-    for index, value in pairs(tab) do
-        if value == val then
-            found = true
-        end
-    end
-    if found == true then
-        return true
-    else
-        return false
-    end
-end
-
----@generic T
----@param t T[]
----@return T[]|nil
-function findDuplicates(t)
-    local seen = {}       --keep record of elements we've seen
-    local duplicated = {} --keep a record of duplicated elements
-    if t then
-        for i, v in ipairs(t) do
-            local element = t[i]
-            if seen[element] then          --check if we've seen the element before
-                duplicated[element] = true --if we have then it must be a duplicate! add to a table to keep track of this
-            else
-                seen[element] = true       -- set the element to seen
-            end
-        end
-        if #duplicated > 1 then
-            return duplicated
-        else
-            return nil
-        end
-    end
-end
 
 --------------ImGUI Related ---------------------
 function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
@@ -1218,9 +930,9 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
         else -- Check if need to restore Global Blacklist settings
             file, file_path = CallFile('r', Nm .. '.ini', 'Preset Morphing')
             if file then
-                local L = get_lines(file_path)
+                local L = fs_utils.get_lines(file_path)
                 for i, V in ipairs(L) do
-                    local Num = get_aftr_Equal_Num(V)
+                    local Num = INI_parser.get_aftr_Equal_Num(V)
 
                     FxdCtx.FX[FxGUID].PrmList[Num] = {}
                     FxdCtx.FX[FxGUID].PrmList[Num].BL = true
@@ -1247,18 +959,18 @@ end
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
     r.Undo_BeginBlock()
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) or ''),
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) or ''),
         '',
         true)
     --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX '..(tablefind (Trk[TrkID].PostFX, FxGUID) or ''), '', true)
 
-    if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
+    if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
         DelFX_Name = 'FX in Pre-FX Chain'
-        table.remove(FxdCtx.Trk[TrkID].PreFX, tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID))
+        table.remove(FxdCtx.Trk[TrkID].PreFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID))
     end
 
-    if tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
-        table.remove(FxdCtx.Trk[TrkID].PostFX, tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID))
+    if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
+        table.remove(FxdCtx.Trk[TrkID].PostFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID))
         for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '', true)
         end
@@ -1267,8 +979,8 @@ function DeleteFX(FX_Idx, FxGUID)
     if FxdCtx.FX[FxGUID].InWhichBand then -- if FX is in band split
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then
-                if tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID) then
-                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID))
+                if table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID) then
+                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID))
                 end
             end
         end
@@ -1492,11 +1204,11 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
             if R_ClickOnWindowBtn and Mods == Ctrl then
                 r.ImGui_OpenPopup(ctx, 'Fx Module Menu')
             elseif R_ClickOnWindowBtn and Mods == 0 then
-                FxdCtx.FX[FxGUID].Collapse = toggle(FxdCtx.FX[FxGUID].Collapse)
+                FxdCtx.FX[FxGUID].Collapse = state_helpers.toggle(FxdCtx.FX[FxGUID].Collapse)
                 if not FxdCtx.FX[FxGUID].Collapse then FxdCtx.FX.WidthCollapse[FxGUID] = nil end
             elseif R_ClickOnWindowBtn and Mods == Alt then
                 -- check if all are collapsed
-                BlinkFX = ToggleCollapseAll(FX_Idx)
+                BlinkFX = state_helpers.ToggleCollapseAll(FX_Idx)
             end
         end
 
@@ -1526,7 +1238,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
             DragDroppingFX = true
             if IsAnyMouseDown == false then DragDroppingFX = false end
             HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
-            Post_DragFX_ID = tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
+            Post_DragFX_ID = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
         end
 
         if IsAnyMouseDown == false and DragDroppingFX == true then
@@ -2049,7 +1761,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         else
                             if not FxdCtx.FX[FxGUID].Morph_ID then
                                 table.insert(FxdCtx.Trk[TrkID].Morph_ID, FxGUID)
-                                FxdCtx.FX[FxGUID].Morph_ID = tablefind(FxdCtx.Trk[TrkID].Morph_ID, FxGUID)
+                                FxdCtx.FX[FxGUID].Morph_ID = table_helpers.tablefind(FxdCtx.Trk[TrkID].Morph_ID, FxGUID)
                             end
                         end
 
@@ -2251,7 +1963,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         end
         if not Hide then
             local CurPosX
-            if FxGUID == FxdCtx.FXGUID[(tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) or 0) - 1] then
+            if FxGUID == FxdCtx.FXGUID[(table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) or 0) - 1] then
                 --[[ CurPosX = r.ImGui_GetCursorPosX(ctx)
                 r.ImGui_SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
             end
@@ -3479,13 +3191,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local PID = FP[ConditionPrm_PID]
 
                                 if FxdCtx.FX[FxGUID][PID].ManualValues then
-                                    local V = round(
+                                    local V = math_helpers.round(
                                         r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                                             FP[ConditionPrm]),
                                         3)
                                     if FP[ConditionPrm_V_Norm] then
                                         for i, v in ipairs(FP[ConditionPrm_V_Norm]) do
-                                            if V == round(v, 3) then Pass = true end
+                                            if V == math_helpers.round(v, 3) then Pass = true end
                                         end
                                     end
                                 else
@@ -3580,7 +3292,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             local _, P_Nm = r.TrackFX_GetParamName(LT_Track,
                                                 FX_Idx,
                                                 P_Num)
-                                            local Df = RecallGlobInfo(Ct,
+                                            local Df = layout_editor_helpers.RecallGlobInfo(Ct,
                                                 P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
                                             if Df then
                                                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
@@ -3880,7 +3592,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0,
                                                 AddImage, nil, v.RPT_Clr, v.Clr)
                                         elseif v.Type == 'Gain Reduction Text' and not FxdCtx.FX[FxGUID].DontShowGR then 
-                                            local GR = round(GR, 1) 
+                                            local GR = math_helpers.round(GR, 1) 
                                             r.ImGui_DrawList_AddTextEx(WDL, Arial_12, 12 , x, y , v.Clr or 0xffffffff, GR or '' ) 
                                         end
                                     end
@@ -4440,7 +4152,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         if SpcInPost then SpcIsInPre = false end
         
         if SpcIsInPre then
-            if not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then -- if fx is not in pre fx
+            if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then -- if fx is not in pre fx
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
                     local offset = 0
                     if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = -1 end
@@ -4471,8 +4183,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' ..
                     i, v, true)
             end
-            if tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then
-                table.remove(FxdCtx.Trk[TrkID].PostFX, tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
+            if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then
+                table.remove(FxdCtx.Trk[TrkID].PostFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
             end
             FxdCtx.FX.InLyr[FxGUID_DragFX] = nil
         elseif SpcInPost then
@@ -4480,17 +4192,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
             if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
 
-            if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then -- if fx is not yet in post-fx chain
+            if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then -- if fx is not yet in post-fx chain
                 InsertToPost_Src = DragFX_ID + offset + 1
 
                 InsertToPost_Dest = SpcIDinPost
 
 
-                if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then
-                    table.remove(FxdCtx.Trk[TrkID].PreFX, tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
+                if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then
+                    table.remove(FxdCtx.Trk[TrkID].PreFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
                 end
             else                                -- if fx is already in post-fx chain
-                local IDinPost = tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
+                local IDinPost = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
                 if SpcIDinPost <= IDinPost then -- if drag towards left
                     table.remove(FxdCtx.Trk[TrkID].PostFX, IDinPost)
                     table.insert(FxdCtx.Trk[TrkID].PostFX, SpcIDinPost, FxGUID_DragFX)
@@ -4507,14 +4219,14 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         else -- if space is not in pre or post
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. DragFX_ID, '', true)
             if not MoveFromPostToNorm then
-                if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then
+                if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then
                     table.remove(FxdCtx.Trk[TrkID].PreFX,
-                    tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
+                    table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
                 end
             end
-            if tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then
+            if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then
                 table.remove(FxdCtx.Trk[TrkID].PostFX,
-                    tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
+                    table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
             end
         end
         for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
@@ -4561,12 +4273,12 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     function MoveFXwith1PreFXand1PosFX(DragFX_ID, FX_Idx, Undo_Lbl)
         r.Undo_BeginBlock()
-        table.remove(FxdCtx.Trk[TrkID].PreFX, tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
+        table.remove(FxdCtx.Trk[TrkID].PreFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
         for i = 1, #FxdCtx.Trk[TrkID].PreFX + 1, 1 do
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, FxdCtx.Trk[TrkID].PreFX[i] or '',
                 true)
         end
-        table.remove(FxdCtx.Trk[TrkID].PostFX, tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
+        table.remove(FxdCtx.Trk[TrkID].PostFX, table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX))
         for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '',
                 true)
@@ -4689,12 +4401,12 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
 
                 r.ImGui_SameLine(ctx, 100, 10)
-                local ContainerIdx = tablefind(FxdCtx.FXGUID, FxGUID_Container)
+                local ContainerIdx = table_helpers.tablefind(FxdCtx.FXGUID, FxGUID_Container)
                 local InsPos = math.min(FX_Idx - ContainerIdx + 1, #FxdCtx.FX[FxGUID_Container].FXsInBS)
 
 
                 if Dropped and Mods == 0 then
-                    local ContainerIdx = tablefind(FxdCtx.FXGUID, FxGUID_Container)
+                    local ContainerIdx = table_helpers.tablefind(FxdCtx.FXGUID, FxGUID_Container)
                     local InsPos = math_helpers.SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FxdCtx.FX[FxGUID_Container].FXsInBS)
 
 
@@ -4731,7 +4443,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         function MoveFX_Out_Of_BS()
             for i = 0, Sel_Track_FX_Count - 1, 1 do
                 if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then -- i is Band Splitter
-                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
+                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
                     r.GetSetMediaTrackInfo_String(LT_Track,
                         'P_EXT: FX is in which BS' .. FxGUID_DragFX, '', true)
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxdCtx.FXGUID
@@ -4753,8 +4465,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload( ctx)
 
 
-                if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
-                if tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) and (not SpcInPost or AddLastSpace == 'LastSpc') then
+                if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
+                if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) and (not SpcInPost or AddLastSpace == 'LastSpc') then
                     allowDropNext = true; MoveFromPostToNorm = true
                 end
                 if FxdCtx.FX[FxGUID_DragFX].InWhichBand then allowDropNext = true end
@@ -4799,7 +4511,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                             for i = 0, Sel_Track_FX_Count - 1, 1 do
                                 if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then -- i is Band Splitter
                                     table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS,
-                                        tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
+                                        table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
                                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxGUID_DragFX, '', true)
                                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxGUID_DragFX, '', true)
                                 end

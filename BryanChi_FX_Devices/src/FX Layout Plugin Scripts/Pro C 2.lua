@@ -4,6 +4,8 @@
 
 r = reaper
 
+local math_helpers = require("src.helpers.math_helpers")
+local table_helpers = require("src.helpers.table_helpers")
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
@@ -258,7 +260,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
                     r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx + 1, 0)))
                 if FxdCtx.FX[FxGUID].MsecRange then
                     if FxdCtx.FX[FxGUID].MsecRange > 999 then
-                        FxdCtx.FX[FxGUID].MsecRange = round((FxdCtx.FX[FxGUID].MsecRange / 1000), 2) ..
+                        FxdCtx.FX[FxGUID].MsecRange = math_helpers.round((FxdCtx.FX[FxGUID].MsecRange / 1000), 2) ..
                             's'
                     else
                         FxdCtx.FX[FxGUID].MsecRange = math.floor(FxdCtx.FX[FxGUID].MsecRange) ..
@@ -500,7 +502,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         r.ImGui_PopStyleVar(ctx, 2)
 
 
-        if not FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
+        if not FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
             table.insert(FxdCtx.AddFX.Pos, FX_Idx)
             table.insert(FxdCtx.AddFX.Name, 'FXD Split to 4 channels')
             if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
@@ -513,7 +515,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
 
         local _, NextFX = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
 
-        if not NextFX:find('JS: FXD Gain Reduction Scope') and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
+        if not NextFX:find('JS: FXD Gain Reduction Scope') and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) then
             table.insert(FxdCtx.AddFX.Pos, FX_Idx + 1)
             table.insert(FxdCtx.AddFX.Name, 'FXD Gain Reduction Scope')
             FxdCtx.ProC.GainSc_FXGUID = FxGUID

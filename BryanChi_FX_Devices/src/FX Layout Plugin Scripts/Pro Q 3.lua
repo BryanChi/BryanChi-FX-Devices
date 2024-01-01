@@ -1,5 +1,6 @@
 -- @noindex
 
+local table_helpers = require("src.helpers.table_helpers")
 local math_helpers = require("src.helpers.math_helpers")
 r = reaper
 local FX_Idx = PluginScript.FX_Idx
@@ -32,7 +33,7 @@ if ProQ3.LT_EQBand[FxdCtx.FXGUID[FX_Idx]] ~= nil then
     Gain = -30 + Gain * 60
     FreqValueDrag[FX_Idx] = Freq_LTBandNorm
     if Gain ~= nil then
-        ProQ3['Gain_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] = round(Gain, 1)
+        ProQ3['Gain_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] = math_helpers.round(Gain, 1)
     end
 end
 
@@ -42,7 +43,7 @@ r.ImGui_SetNextItemWidth(ctx, 60)
 if ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] < 1000 then
     FreqLbl = ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] .. ' Hz'
 elseif ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] > 1000 then
-    FreqLbl = round(ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] / 1000, 2) ..
+    FreqLbl = math_helpers.round(ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] / 1000, 2) ..
         ' kHz'
 end
 
@@ -254,7 +255,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             tx = tx + ProQ_Xpos_L
             if lx == nil then lx = tx end
 
-            tx = round(tx, 0)
+            tx = math_helpers.round(tx, 0)
 
 
             if lx ~= tx and i ~= 2 then
@@ -1225,7 +1226,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
 
     if FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('FXD ReSpectrum') then
         r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
-        if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
+        if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
             r.TrackFX_Delete(LT_Track,
                 FX_Idx - 1)
         end
@@ -1243,7 +1244,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             local AnyPopupOpen
             if r.ImGui_IsPopupOpen(ctx, 'Delete FX Layer ', r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel()) then AnyPopupOpen = true end
 
-            if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
+            if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
                 r.gmem_attach('gmemReEQ_Spectrum')
                 r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID])
                 FxdCtx.FX[FxGUID].ProQ_ID = FxdCtx.FX[FxGUID].ProQ_ID or

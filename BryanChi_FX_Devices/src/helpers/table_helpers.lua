@@ -54,6 +54,19 @@ function table_helpers.FindStringInTable(Table, V) ---TODO isn’t this a dupl
     end
 end
 
-
+---@generic T
+---@generic Index
+---@param tab table<Index, T>
+---@param el T
+---@return Index|nil
+function table_helpers.tablefind(tab, el)
+    if tab then
+        for index, value in pairs(tab) do
+            if value == el then
+                return index
+            end
+        end
+    end
+end
 
 return table_helpers

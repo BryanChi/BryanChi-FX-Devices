@@ -1,3 +1,4 @@
+local state_helpers = require("src.helpers.state_helpers")
 local MenuBar = {}
 ------------------------------
 ------Menu Bar---------------
@@ -8,11 +9,11 @@ function MenuBar.DisplayMenuBar()
 
             if r.ImGui_BeginMenu(ctx, 'Settings') then
                 if select(2, r.ImGui_MenuItem(ctx, 'Style Editor', shoirtcutIn, p_selected, enabledIn)) then
-                    OpenStyleEditor = toggle(OpenStyleEditor)
+                    OpenStyleEditor = state_helpers.toggle(OpenStyleEditor)
                 end
 
                 if select(2, r.ImGui_MenuItem(ctx, 'Keyboard Shortcut Editor', shoirtcutIn, p_selected, enabledIn)) then
-                    OpenKBEditor = toggle(OpenKBEditor)
+                    OpenKBEditor = state_helpers.toggle(OpenKBEditor)
                 end
                 if r.ImGui_GetWindowDockID(ctx) ~= -1 then
                     if select(2, r.ImGui_MenuItem(ctx, 'Dock script', shoirtcutIn, p_selected, enabledIn)) then
@@ -59,7 +60,7 @@ function MenuBar.DisplayMenuBar()
 
 
 
-            if r.ImGui_IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = toggle(Cont_Param_Add_Mode) end
+            if r.ImGui_IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = state_helpers.toggle(Cont_Param_Add_Mode) end
 
 
             if r.ImGui_Button(ctx, 'R') then

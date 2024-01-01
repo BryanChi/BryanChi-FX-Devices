@@ -38,4 +38,15 @@ function math_helpers.Curve_3pt_Bezier(startX, startY, controlX, controlY, endX,
     return X, Y
 end
 
+---@param num number|nil|string
+---@param numDecimalPlaces number
+---@return number|nil
+function math_helpers.round(num, numDecimalPlaces)
+    num = tonumber(num)
+    if num then
+        local mult = 10 ^ (numDecimalPlaces or 0)
+        return math.floor(num * mult + 0.5) / mult
+    end
+end
+
 return math_helpers

@@ -4,6 +4,9 @@ local fs_utils = require("src.Functions.Filesystem_utils")
 local math_helpers = require("src.helpers.math_helpers")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
+local INI_parser = require("src.helpers.INI_parser")
+local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
+local table_helpers = require("src.helpers.table_helpers")
 
 local function GetPayload()
     local retval, dndtype, payload = r.ImGui_GetDragDropPayload(ctx)
@@ -2145,11 +2148,11 @@ function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
         local PrmCount = r.GetExtState('FX Devices - ' .. FX_Name, 'Param Instance')
         local Ln = FxdCtx.FX[FxGUID].FileLine
 
-        if FxdCtx.FX[FxGUID].GrbRound ~= (get_aftr_Equal_Num(Ln[4]) or 0) then end
-        if FxdCtx.FX[FxGUID].Round ~= (get_aftr_Equal_Num(Ln[3]) or 0) then end
-        if FxdCtx.FX[FxGUID].BgClr ~= get_aftr_Equal_Num(Ln[5]) then end
-        if FxdCtx.FX[FxGUID].TitleWidth ~= (get_aftr_Equal_Num(Ln[7]) or 0) then end
-        if FxdCtx.FX[FxGUID].Width ~= (get_aftr_Equal_Num(Ln[6]) or 0) then end
+        if FxdCtx.FX[FxGUID].GrbRound ~= (INI_parser.get_aftr_Equal_Num(Ln[4]) or 0) then end
+        if FxdCtx.FX[FxGUID].Round ~= (INI_parser.get_aftr_Equal_Num(Ln[3]) or 0) then end
+        if FxdCtx.FX[FxGUID].BgClr ~= INI_parser.get_aftr_Equal_Num(Ln[5]) then end
+        if FxdCtx.FX[FxGUID].TitleWidth ~= (INI_parser.get_aftr_Equal_Num(Ln[7]) or 0) then end
+        if FxdCtx.FX[FxGUID].Width ~= (INI_parser.get_aftr_Equal_Num(Ln[6]) or 0) then end
 
         ChangeBeenMade = true
         --end
@@ -2160,16 +2163,16 @@ function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
             local function L(n)
                 return Ln[n + (40 - 14) * (Fx_P - 1)]
             end
-            if FP.Name ~= get_aftr_Equal_Num(L(14)) or
-                FP.Num ~= get_aftr_Equal_Num(L(15)) or
-                FP.Sldr_W ~= get_aftr_Equal_Num(L(16)) or
+            if FP.Name ~= INI_parser.get_aftr_Equal_Num(L(14)) or
+                FP.Num ~= INI_parser.get_aftr_Equal_Num(L(15)) or
+                FP.Sldr_W ~= INI_parser.get_aftr_Equal_Num(L(16)) or
                 FP.Type ~= get_aftr_Equal_(L(17)) or
-                FP.PosX ~= get_aftr_Equal_Num(L(18)) or
-                FP.PosY ~= get_aftr_Equal_Num(L(19)) or
-                FP.Style ~= get_aftr_Equal(L(20)) or
-                FP.V_FontSize ~= get_aftr_Equal_Num(L(21)) or
-                FP.CustomLbl ~= get_aftr_Equal_Num(L(22)) or
-                FP.FontSize ~= get_aftr_Equal_Num(L(23)) or
+                FP.PosX ~= INI_parser.get_aftr_Equal_Num(L(18)) or
+                FP.PosY ~= INI_parser.get_aftr_Equal_Num(L(19)) or
+                FP.Style ~= INI_parser.get_aftr_Equal(L(20)) or
+                FP.V_FontSize ~= INI_parser.get_aftr_Equal_Num(L(21)) or
+                FP.CustomLbl ~= INI_parser.get_aftr_Equal_Num(L(22)) or
+                FP.FontSize ~= INI_parser.get_aftr_Equal_Num(L(23)) or
                 FP.Sldr_H ~= '1' or
                 FP.BgClr ~= '2' or
                 FP.GrbClr ~= '3' or
@@ -2295,7 +2298,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         local T = FxdCtx.LO[FX_Name]
                         if file then
 
-                            Line = get_lines(file_path)
+                            Line = fs_utils.get_lines(file_path)
                             FxdCtx.FX[FxGUID].FileLine = Line
                             Content = file:read('*a')
                             local Ct = Content
@@ -2303,14 +2306,14 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             
 
                             T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
-                            T.Round = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
-                            T.GrbRound = RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
-                            T.BgClr = RecallGlobInfo(Ct, 'BgClr = ', 'Num')
-                            T.Width = RecallGlobInfo(Ct, 'Window Width = ', 'Num')
-                            T.TitleWidth = RecallGlobInfo(Ct, 'Title Width = ', 'Num')
-                            T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
-                            T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
-                            PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                            T.Round = layout_editor_helpers.RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
+                            T.GrbRound = layout_editor_helpers.RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
+                            T.BgClr = layout_editor_helpers.RecallGlobInfo(Ct, 'BgClr = ', 'Num')
+                            T.Width = layout_editor_helpers.RecallGlobInfo(Ct, 'Window Width = ', 'Num')
+                            T.TitleWidth = layout_editor_helpers.RecallGlobInfo(Ct, 'Title Width = ', 'Num')
+                            T.TitleClr = layout_editor_helpers.RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
+                            T.CustomTitle = layout_editor_helpers.RecallGlobInfo(Ct, 'Custom Title = ')
+                            PrmInst = layout_editor_helpers.RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
                         else
                             FxdCtx.Draw[FX_Name] = nil
                         end
@@ -2336,7 +2339,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
                         if --[[ r.GetExtState('FX Devices - '..FX_Name, 'Param Instance') ~= ''  ]] PrmInst then
                             local Ct = Content
-                            PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                            PrmCount = layout_editor_helpers.RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
 
                             if PrmCount then
                                 for Fx_P = 1, PrmCount or 0, 1 do
@@ -2349,33 +2352,33 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     local FP         = T[Fx_P]
                                     local ID         = FxGUID .. Fx_P
 
-                                    FP.Name          = RecallInfo(Ct, 'Name', Fx_P)
-                                    FP.Num           = RecallInfo(Ct, 'Num', Fx_P, 'Num')
-                                    FP.Sldr_W        = RecallInfo(Ct, 'Width', Fx_P, 'Num')
-                                    FP.Type          = RecallInfo(Ct, 'Type', Fx_P)
-                                    FP.PosX          = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
-                                    FP.PosY          = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
-                                    FP.Style         = RecallInfo(Ct, 'Style', Fx_P)
-                                    FP.V_FontSize    = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
-                                    FP.CustomLbl     = RecallInfo(Ct, 'Custom Label', Fx_P)
+                                    FP.Name          = layout_editor_helpers.RecallInfo(Ct, 'Name', Fx_P)
+                                    FP.Num           = layout_editor_helpers.RecallInfo(Ct, 'Num', Fx_P, 'Num')
+                                    FP.Sldr_W        = layout_editor_helpers.RecallInfo(Ct, 'Width', Fx_P, 'Num')
+                                    FP.Type          = layout_editor_helpers.RecallInfo(Ct, 'Type', Fx_P)
+                                    FP.PosX          = layout_editor_helpers.RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
+                                    FP.PosY          = layout_editor_helpers.RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
+                                    FP.Style         = layout_editor_helpers.RecallInfo(Ct, 'Style', Fx_P)
+                                    FP.V_FontSize    = layout_editor_helpers.RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
+                                    FP.CustomLbl     = layout_editor_helpers.RecallInfo(Ct, 'Custom Label', Fx_P)
                                     if FP.CustomLbl == '' then FP.CustomLbl = nil end
-                                    FP.FontSize     = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
-                                    FP.Height       = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
-                                    FP.BgClr        = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
-                                    FP.GrbClr       = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
-                                    FP.Lbl_Pos      = RecallInfo(Ct, 'Label Pos', Fx_P)
-                                    FP.V_Pos        = RecallInfo(Ct, 'Value Pos', Fx_P)
-                                    FP.Lbl_Clr      = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
-                                    FP.V_Clr        = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
-                                    FP.DragDir      = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
-                                    FP.Value_Thick  = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
-                                    FP.V_Pos_X      = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
-                                    FP.V_Pos_Y      = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
-                                    FP.Lbl_Pos_X    = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
-                                    FP.Lbl_Pos_Y    = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
-                                    FP.Switch_On_Clr= RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
+                                    FP.FontSize     = layout_editor_helpers.RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
+                                    FP.Height       = layout_editor_helpers.RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
+                                    FP.BgClr        = layout_editor_helpers.RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
+                                    FP.GrbClr       = layout_editor_helpers.RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
+                                    FP.Lbl_Pos      = layout_editor_helpers.RecallInfo(Ct, 'Label Pos', Fx_P)
+                                    FP.V_Pos        = layout_editor_helpers.RecallInfo(Ct, 'Value Pos', Fx_P)
+                                    FP.Lbl_Clr      = layout_editor_helpers.RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
+                                    FP.V_Clr        = layout_editor_helpers.RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
+                                    FP.DragDir      = layout_editor_helpers.RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
+                                    FP.Value_Thick  = layout_editor_helpers.RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
+                                    FP.V_Pos_X      = layout_editor_helpers.RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
+                                    FP.V_Pos_Y      = layout_editor_helpers.RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
+                                    FP.Lbl_Pos_X    = layout_editor_helpers.RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
+                                    FP.Lbl_Pos_Y    = layout_editor_helpers.RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
+                                    FP.Switch_On_Clr= layout_editor_helpers.RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
 
-                                    local path = RecallInfo(Ct, 'Custom Image', Fx_P)
+                                    local path = layout_editor_helpers.RecallInfo(Ct, 'Custom Image', Fx_P)
 
                                     if path then
                                         FP.ImagePath = path
@@ -2385,26 +2388,26 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     end
 
 
-                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', '\n'..Fx_P , 'Num', '|')
+                                    FP.ConditionPrm = layout_editor_helpers.RecallInfo(Ct, 'Condition Param', '\n'..Fx_P , 'Num', '|')
                                     for i = 2, 5, 1 do
-                                        FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
+                                        FP['ConditionPrm' .. i] = layout_editor_helpers.RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
                                     end
-                                    FP.V_Round = RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
-                                    FP.ValToNoteL = RecallInfo(Ct, 'Value to Note Length', Fx_P, 'Num')
-                                    FP.SwitchType = RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
-                                    FP.SwitchBaseV = RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
-                                    FP.SwitchTargV = RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
+                                    FP.V_Round = layout_editor_helpers.RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
+                                    FP.ValToNoteL = layout_editor_helpers.RecallInfo(Ct, 'Value to Note Length', Fx_P, 'Num')
+                                    FP.SwitchType = layout_editor_helpers.RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
+                                    FP.SwitchBaseV = layout_editor_helpers.RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
+                                    FP.SwitchTargV = layout_editor_helpers.RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
 
 
 
                                     if FP.ConditionPrm then
-                                        FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=', Fx_P, nil)
-                                        FP.ConditionPrm_V_Norm = RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm = |1=', Fx_P,'Num')
+                                        FP.ConditionPrm_V = layout_editor_helpers.RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=', Fx_P, nil)
+                                        FP.ConditionPrm_V_Norm = layout_editor_helpers.RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm = |1=', Fx_P,'Num')
                                     end
                                     for i = 2, 5, 1 do
-                                        FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P ..
+                                        FP['ConditionPrm_V' .. i] = layout_editor_helpers.RecallIntoTable(Ct, Fx_P ..
                                             '. Condition Param' .. i .. ' = %d+|1=', Fx_P, nil)
-                                        FP['ConditionPrm_V_Norm' .. i] = RecallIntoTable(Ct,
+                                        FP['ConditionPrm_V_Norm' .. i] = layout_editor_helpers.RecallIntoTable(Ct,
                                             Fx_P .. '. Condition Param Norm' .. i .. ' = |1=', Fx_P, 'Num')
                                     end
 
@@ -2414,12 +2417,12 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
                                     end
 
-                                    FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
-                                    FP.ManualValuesFormat = RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
+                                    FP.ManualValues = layout_editor_helpers.RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
+                                    FP.ManualValuesFormat = layout_editor_helpers.RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
 
 
 
-                                    local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P, 'Num')
+                                    local DrawNum = layout_editor_helpers.RecallInfo(Ct, 'Number of attached drawings', Fx_P, 'Num')
                                     if DrawNum then
                                         FP.Draw = FP.Draw or {}
                                         for D = 1, DrawNum, 1 do
@@ -2427,7 +2430,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                             local d = FP.Draw[D]
 
                                             local function RC(name, type)
-                                                return RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                                                return layout_editor_helpers.RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
                                             end
 
                                             d.Type = RC('Type')
@@ -2525,20 +2528,20 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         if file then
                             local All = file:read('*a')
 
-                            local Top = tablefind(Line, '========== Drawings ==========') or nil
+                            local Top = table_helpers.tablefind(Line, '========== Drawings ==========') or nil
 
 
                             if Top then
                                 local Ct = Content
 
                                 
-                                local DrawInst = RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
+                                local DrawInst = layout_editor_helpers.RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
 
 
                                 if DrawInst then
                                     if DrawInst > 0 then
                                         T.Draw = T.Draw or {}
-                                        T.Draw.Df_EdgeRound = get_aftr_Equal_Num(Line[Top + 1])
+                                        T.Draw.Df_EdgeRound = INI_parser.get_aftr_Equal_Num(Line[Top + 1])
                                     end
                                 end
                                 T.Draw = T.Draw or {}
@@ -2552,16 +2555,16 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     T.Draw[i] = T.Draw[i] or {}
                                     local D = T.Draw[i]
 
-                                    D.Type = RecallInfo(Ct, 'Type', 'D' .. i, Type, untilwhere)
-                                    D.L = RecallInfo(Ct, 'Left', 'D' .. i, 'Num')
-                                    D.R = RecallInfo(Ct, 'Right', 'D' .. i, 'Num')
-                                    D.T = RecallInfo(Ct, 'Top', 'D' .. i, 'Num')
-                                    D.B = RecallInfo(Ct, 'Bottom', 'D' .. i, 'Num')
-                                    D.clr = RecallInfo(Ct, 'Color', 'D' .. i, 'Num')
-                                    D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
-                                    D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
-                                    D.FilePath = RecallInfo(Ct, 'ImagePath', 'D' .. i)
-                                    D.KeepImgRatio = RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
+                                    D.Type = layout_editor_helpers.RecallInfo(Ct, 'Type', 'D' .. i, Type, untilwhere)
+                                    D.L = layout_editor_helpers.RecallInfo(Ct, 'Left', 'D' .. i, 'Num')
+                                    D.R = layout_editor_helpers.RecallInfo(Ct, 'Right', 'D' .. i, 'Num')
+                                    D.T = layout_editor_helpers.RecallInfo(Ct, 'Top', 'D' .. i, 'Num')
+                                    D.B = layout_editor_helpers.RecallInfo(Ct, 'Bottom', 'D' .. i, 'Num')
+                                    D.clr = layout_editor_helpers.RecallInfo(Ct, 'Color', 'D' .. i, 'Num')
+                                    D.Txt = layout_editor_helpers.RecallInfo(Ct, 'Text', 'D' .. i)
+                                    D.Txt = layout_editor_helpers.RecallInfo(Ct, 'Text', 'D' .. i)
+                                    D.FilePath = layout_editor_helpers.RecallInfo(Ct, 'ImagePath', 'D' .. i)
+                                    D.KeepImgRatio = layout_editor_helpers.RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
 
                                     if D.FilePath then
                                         D.Image = r.ImGui_CreateImage(D.FilePath)

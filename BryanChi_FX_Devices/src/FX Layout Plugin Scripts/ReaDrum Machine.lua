@@ -15,7 +15,7 @@ Pad          = {}
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local images_fonts = require("src.helpers.images_fonts")
-
+local state_helpers = require("src.helpers.state_helpers")
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -223,7 +223,7 @@ local function DrawPads(loopmin, loopmax)
     if ret then 
       ClickPadActions(a)
     elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
-      FxdCtx.FX[FxGUID].OPEN_PAD = toggle2(FxdCtx.FX[FxGUID].OPEN_PAD, a)
+      FxdCtx.FX[FxGUID].OPEN_PAD = state_helpers.toggle2(FxdCtx.FX[FxGUID].OPEN_PAD, a)
     -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
     --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
     --   r.ShowConsoleMsg(table.unpack(value_raw))

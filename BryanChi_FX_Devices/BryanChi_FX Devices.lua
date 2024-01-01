@@ -231,7 +231,7 @@ if CallFile('r', 'Keyboard Shortcuts.ini') then
     local file, filepath = CallFile('r', 'Keyboard Shortcuts.ini')
     if not file then return end
     Content = file:read('*a')
-    local L = get_lines(filepath)
+    local L = fs_utils.get_lines(filepath)
     for i, v in ipairs(L) do
         FxdCtx.KB_Shortcut[i] = v:sub(0, v:find(' =') - 1)
         FxdCtx.Command_ID[i] = v:sub(v:find(' =') + 3, nil)
@@ -732,14 +732,14 @@ function Loop()
                         'GetItemRect', WDL)
 
                     if Rv then
-                        if not tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID]) then
+                        if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID]) then
                             table.insert(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. #FxdCtx.Trk[TrkID].PreFX,
                                 FxdCtx.FXGUID[DragFX_ID], true)
                         end
 
                         -- move fx out of post chain
-                        local IDinPost = tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
+                        local IDinPost = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
                         if IDinPost then MoveFX_Out_Of_Post(IDinPost) end
 
                         --Move FX out of layer
@@ -800,7 +800,7 @@ function Loop()
             for i, v in pairs(FxdCtx.Trk[TrkID].PreFX or {}) do
                 if FxdCtx.FXGUID[i - Offset] ~= v then
                     if not FxdCtx.AddFX.Name[1] then
-                        table.insert(FxdCtx.MovFX.FromPos, tablefind(FxdCtx.FXGUID, v))
+                        table.insert(FxdCtx.MovFX.FromPos, table_helpers.tablefind(FxdCtx.FXGUID, v))
                         table.insert(FxdCtx.MovFX.ToPos, i - Offset)
                         table.insert(FxdCtx.MovFX.Lbl, 'Move FX into Pre-Chain')
                     end
@@ -821,7 +821,7 @@ function Loop()
 
             function MoveFX_Out_Of_Post(IDinPost)
                 table.remove(FxdCtx.Trk[TrkID].PostFX,
-                    IDinPost or tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]))
+                    IDinPost or table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]))
                 for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '',
                         true)
@@ -830,7 +830,7 @@ function Loop()
 
             function MoveFX_Out_Of_Pre(IDinPre)
                 table.remove(FxdCtx.Trk[TrkID].PreFX,
-                    IDinPre or tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID]))
+                    IDinPre or table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID]))
                 for i = 1, #FxdCtx.Trk[TrkID].PreFX + 1, 1 do
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, FxdCtx.Trk[TrkID].PreFX[i] or '', true)
                 end
@@ -839,7 +839,7 @@ function Loop()
             function RemoveFXfromBS()
                 for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do -- check all fxs and see if it's a band splitter
                     if FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS then
-                        local FxID = tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxdCtx.FXGUID[DragFX_ID])
+                        local FxID = table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxdCtx.FXGUID[DragFX_ID])
                         if FxID then
                             table.remove(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxID)
                             FxdCtx.FX[FxdCtx.FXGUID[DragFX_ID]].InWhichBand = nil
@@ -870,14 +870,14 @@ function Loop()
                     HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
-                    if Drop and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
+                    if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
                         table.insert(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #FxdCtx.Trk[TrkID].PostFX,
                             FxdCtx.FXGUID
                             [DragFX_ID], true)
                         r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, 999, true)
 
-                        local IDinPre = tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
+                        local IDinPre = table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
                         if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                     end
 
@@ -930,14 +930,14 @@ function Loop()
                         HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
 
-                        if Drop and not tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
+                        if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
                             --r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, 999, true)
                             table.insert(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID])
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #FxdCtx.Trk[TrkID].PostFX,
                                 FxdCtx.FXGUID[DragFX_ID], true)
 
 
-                            local IDinPre = tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
+                            local IDinPre = table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxdCtx.FXGUID[DragFX_ID])
                             if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
                         end
                     elseif Payload_Type == 'DND ADD FX' then
@@ -976,7 +976,7 @@ function Loop()
 
                         for FX_Idx, V in pairs(FxdCtx.Trk[TrkID].PostFX) do
                             local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
-                                tablefind(FxdCtx.FXGUID, V)
+                                table_helpers.tablefind(FxdCtx.FXGUID, V)
 
                             if FX_Idx == 1 and I then AddSpaceBtwnFXs(I - 1, 'SpcInPost', nil, nil, 1) end
                             if I then
@@ -1023,7 +1023,7 @@ function Loop()
 
 
                 for FX_Idx, V in pairs(FxdCtx.Trk[TrkID].PostFX) do
-                    local I = tablefind(FxdCtx.FXGUID, V)
+                    local I = table_helpers.tablefind(FxdCtx.FXGUID, V)
                     local P = Sel_Track_FX_Count - #FxdCtx.Trk[TrkID].PostFX + (FX_Idx - 1)
 
 
