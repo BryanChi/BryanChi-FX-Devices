@@ -23,13 +23,13 @@ local FxGUID = PluginScript.Guid
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
-FX[FxGUID].TitleWidth = 200 -- Use this to set title bar width 
-FX[FxGUID].Width = 350   -- use this to set the device's width
+FxdCtx.FX[FxGUID].TitleWidth = 200 -- Use this to set title bar width 
+FxdCtx.FX[FxGUID].Width = 350   -- use this to set the device's width
 
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
-ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 ---------------------------------------------
 ---------Function----------------------------
@@ -132,7 +132,7 @@ local function ButtonDrawlist(splitter, name, color, a)
   r.ImGui_DrawList_AddTextEx( draw_list, nil, font_size, xs, ys + char_size_h, r.ImGui_GetColorEx(ctx, font_color), name)
   r.ImGui_DrawList_AddText(draw_list, xs, ys, r.ImGui_GetColorEx(ctx, font_color), note_name)
 
-  if FX[FxGUID].OPEN_PAD == a then
+  if FxdCtx.FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
     Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
   end
@@ -182,7 +182,7 @@ local function OpenFXInsidePad(a)
     if f == tonumber(padfx_idx) then
     LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
     end 
-    FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w + (Spc or 0)
+    FxdCtx.FX[FxGUID].Width = (FxdCtx.FX[FxGUID].Width or 0) + w + (Spc or 0)
     if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
   end
 end
@@ -223,7 +223,7 @@ local function DrawPads(loopmin, loopmax)
     if ret then 
       ClickPadActions(a)
     elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
-      FX[FxGUID].OPEN_PAD = toggle2(FX[FxGUID].OPEN_PAD, a)
+      FxdCtx.FX[FxGUID].OPEN_PAD = toggle2(FxdCtx.FX[FxGUID].OPEN_PAD, a)
     -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
     --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
     --   r.ShowConsoleMsg(table.unpack(value_raw))
@@ -284,7 +284,7 @@ local function DrawPads(loopmin, loopmax)
     else
       DrawListButton(SPLITTER, "M", (RDM_Mute or CustomColorsDefault.RDM_Mute), nil, nil)
     end
-    if FX[FxGUID].OPEN_PAD == a then 
+    if FxdCtx.FX[FxGUID].OPEN_PAD == a then 
       RETURN = a 
     end 
   end
@@ -311,7 +311,7 @@ local def_btn_h = tw
 
 local w_open, w_closed = 250, def_btn_h + (s_window_x * 2)
 
-if not FX[FXGUID[FX_Idx]].Collapse then
+if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
   CheckKeys()
   UpdatePadID()
   local wx, wy = r.ImGui_GetWindowPos(ctx)
@@ -345,7 +345,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     
   local _, n = r.GetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU")
   if n ~= nil then
-    FX[FxGUID].LAST_MENU = tonumber(n)
+    FxdCtx.FX[FxGUID].LAST_MENU = tonumber(n)
   end
 
   r.ImGui_SetCursorPos(ctx, x, y - 7)
@@ -356,7 +356,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
       local xs, ys = r.ImGui_GetItemRectMin(ctx)
       local xe, ye = r.ImGui_GetItemRectMax(ctx)
       if rv then
-        FX[FxGUID].LAST_MENU = RememberTab(FX[FxGUID].LAST_MENU, i)
+        FxdCtx.FX[FxGUID].LAST_MENU = RememberTab(FxdCtx.FX[FxGUID].LAST_MENU, i)
       end
       r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
       if r.ImGui_BeginDragDropTarget(ctx) then
@@ -367,11 +367,11 @@ if not FX[FXGUID[FX_Idx]].Collapse then
       end
       r.ImGui_PopStyleColor(ctx)
       if (DND_ADD_FX or DND_MOVE_FX or FX_DRAG or r.ImGui_IsMouseDragging(ctx, 0)) and r.ImGui_IsMouseHoveringRect(ctx, xs, ys, xe, ye) then
-        FX[FxGUID].LAST_MENU = i
+        FxdCtx.FX[FxGUID].LAST_MENU = i
         r.SetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU", i)
       end
       HighlightHvredItem()
-      if FX[FxGUID].LAST_MENU == i then 
+      if FxdCtx.FX[FxGUID].LAST_MENU == i then 
         r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
         Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
@@ -379,22 +379,22 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     r.ImGui_EndChild(ctx)
   end
   local openpad 
-  if FX[FxGUID].LAST_MENU then       -- Open pads manu
+  if FxdCtx.FX[FxGUID].LAST_MENU then       -- Open pads manu
     r.ImGui_SetCursorPos(ctx, x + w_closed - 10, y - 7)
     if r.ImGui_BeginChild(ctx, "child_menu", w_open + 250, h + 88) then
-      local high = 128 - 16 * (FX[FxGUID].LAST_MENU - 1 )
-      local low = 128 - 16 * (FX[FxGUID].LAST_MENU) + 1 
+      local high = 128 - 16 * (FxdCtx.FX[FxGUID].LAST_MENU - 1 )
+      local low = 128 - 16 * (FxdCtx.FX[FxGUID].LAST_MENU) + 1 
       openpad = DrawPads(low, high)
       r.ImGui_EndChild(ctx)
     end
   end
   r.ImGui_DrawListSplitter_Merge(SPLITTER)  -- MERGE EVERYTHING FOR RENDER
-  if FX[FxGUID].OPEN_PAD == openpad and openpad then
+  if FxdCtx.FX[FxGUID].OPEN_PAD == openpad and openpad then
       
     r.ImGui_SetCursorPos(ctx, 340 + 5,0)
     local x1, y1 = r.ImGui_GetCursorScreenPos(ctx)
 
-    OpenFXInsidePad(FX[FxGUID].OPEN_PAD)
+    OpenFXInsidePad(FxdCtx.FX[FxGUID].OPEN_PAD)
     
     local x, y = r.ImGui_GetCursorScreenPos(ctx)
 

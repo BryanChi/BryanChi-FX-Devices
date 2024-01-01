@@ -40,7 +40,7 @@ function deadCode.AddProp(ShownName, Name, width, sl, defaultV, stepSize,
     if not D[Name] and not defaultV then FORMAT = '' end
 
     local rv, V = r.ImGui_DragDouble(ctx, '##' .. Name .. LBL,
-        D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
+        D[Name] or defaultV, stepSize or FxdCtx.LE.GridSize, min or -W,
         max or W - 10, FORMAT)
 
     if rv then D[Name] = V end

@@ -3,7 +3,7 @@
 -- @noindex
 
 r = reaper
-MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
+FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
 ---@param TrkNum number
@@ -27,14 +27,14 @@ function PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
     AssignMODtoFX = FX_Idx
     r.gmem_attach('ParamValues')
     if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'Macros', 0, 0) == -1 then
-        r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
+        r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
         AddMacroJSFX()
         AssignMODtoFX = AssignMODtoFX + 1
     end
 
 
-    r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
-    r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
+    r.gmem_write(2, FxdCtx.PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
+    r.gmem_write(11000 + FxdCtx.Trk.Prm.Assign, ParamValue_Modding)
 end
 
 ---@param FxGUID string
@@ -43,9 +43,9 @@ end
 ---@param FX_Idx integer
 function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
     if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
-        if FX[FxGUID][Fx_P].ModAMT then
+        if FxdCtx.FX[FxGUID][Fx_P].ModAMT then
             for Mc = 1, 8, 1 do
-                if FX[FxGUID][Fx_P].ModAMT[Mc] then
+                if FxdCtx.FX[FxGUID][Fx_P].ModAMT[Mc] then
                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) 
                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   
@@ -56,7 +56,7 @@ function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 0) 
                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.visible", 1)   
                         end
-                    FX[FxGUID][Fx_P].ModAMT[Mc] = 0
+                    FxdCtx.FX[FxGUID][Fx_P].ModAMT[Mc] = 0
                 end
             end
         end
@@ -64,7 +64,7 @@ function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
     end
 end
 
-MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
+FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 
 
 ---@param FxGUID string
@@ -75,19 +75,19 @@ MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ---@param Sldr_Width number
 ---@param Type "Knob"|"Vert"
 function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type)
-    local FP = FX[FxGUID][Fx_P]
+    local FP = FxdCtx.FX[FxGUID][Fx_P]
     local CC = FP.WhichCC
 
     if --[[Link CC back when mouse is up]] Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
-        if FX[FxGUID][Fx_P].WhichCC then
-            local CC = FX[FxGUID][Fx_P].WhichCC
+        if FxdCtx.FX[FxGUID][Fx_P].WhichCC then
+            local CC = FxdCtx.FX[FxGUID][Fx_P].WhichCC
 
             r.GetSetMediaTrackInfo_String(LT_Track,
                 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',
-                FX[FxGUID][Fx_P].V, true)
+                FxdCtx.FX[FxGUID][Fx_P].V, true)
 
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
-            PM.TimeNow = r.time_precise()
+            FxdCtx.PM.TimeNow = r.time_precise()
             r.gmem_write(11000 + CC, p_value)
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
@@ -103,21 +103,21 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
     if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and (Mods == 0 or Mods == Alt) then
-        for M, v in ipairs(MacroNums) do
+        for M, v in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
-                Trk.Prm.Assign = FP.WhichCC
+                FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 AssigningMacro = M
 
 
                 r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
                 r.gmem_write(6, FP.WhichCC)
             end
-            PM.DragOnModdedPrm = true
+            FxdCtx.PM.DragOnModdedPrm = true
         end
     elseif r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and Mods == Shift then
-        for M, v in ipairs(MacroNums) do
+        for M, v in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
-                Trk.Prm.Assign = FP.WhichCC
+                FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 BypassingMacro = M
                 r.gmem_write(5, BypassingMacro) --tells jsfx which macro is user tweaking
                 r.gmem_write(6, FP.WhichCC)
@@ -136,15 +136,15 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 if FP.ModBypass then
                     r.gmem_write(5, BypassingMacro) --tells jsfx which macro is user tweaking
                     r.gmem_write(6, FP.WhichCC)
-                    r.gmem_write(1000 * BypassingMacro + Trk.Prm.Assign, FP.ModAMT[BypassingMacro])
-                    r.gmem_write(3, Trk[TrkID].ModPrmInst)
+                    r.gmem_write(1000 * BypassingMacro + FxdCtx.Trk.Prm.Assign, FP.ModAMT[BypassingMacro])
+                    r.gmem_write(3, FxdCtx.Trk[TrkID].ModPrmInst)
                     FP.ModBypass = nil
                 else
                     FP.ModBypass = BypassingMacro
                     r.gmem_write(5, BypassingMacro)                         --tells jsfx which macro is user tweaking
                     r.gmem_write(6, FP.WhichCC)
-                    r.gmem_write(1000 * BypassingMacro + Trk.Prm.Assign, 0) -- set mod amount to 0
-                    r.gmem_write(3, Trk[TrkID].ModPrmInst)
+                    r.gmem_write(1000 * BypassingMacro + FxdCtx.Trk.Prm.Assign, 0) -- set mod amount to 0
+                    r.gmem_write(3, FxdCtx.Trk[TrkID].ModPrmInst)
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass',
                         BypassingMacro, true)
                 end
@@ -167,34 +167,34 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             false)
         if not ValBeforeMod then
             r.GetSetMediaTrackInfo_String(LT_Track,
-                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
+                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FxdCtx.FX[FxGUID][Fx_P].V, true)
         end
 
 
-        Trk.Prm.Assign = FP.WhichCC
+        FxdCtx.Trk.Prm.Assign = FP.WhichCC
 
 
         --store which param has which Macros assigned
         if FP.WhichMODs == nil then -- if This prm don't have a modulation assigned yet..
             FP.WhichMODs = tostring(AssigningMacro)
 
-            FX[FxGUID][Fx_P].ModAMT = FX[FxGUID][Fx_P].ModAMT or {}
-            Trk[TrkID].ModPrmInst = (Trk[TrkID].ModPrmInst or 0) + 1
-            FX[FxGUID][Fx_P].WhichCC = Trk[TrkID].ModPrmInst
+            FxdCtx.FX[FxGUID][Fx_P].ModAMT = FxdCtx.FX[FxGUID][Fx_P].ModAMT or {}
+            FxdCtx.Trk[TrkID].ModPrmInst = (FxdCtx.Trk[TrkID].ModPrmInst or 0) + 1
+            FxdCtx.FX[FxGUID][Fx_P].WhichCC = FxdCtx.Trk[TrkID].ModPrmInst
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' .. P_Num, FP.WhichCC, true)
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ModPrmInst', Trk[TrkID].ModPrmInst, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ModPrmInst', FxdCtx.Trk[TrkID].ModPrmInst, true)
 
-            Trk.Prm.Assign = Trk[TrkID].ModPrmInst
+            FxdCtx.Trk.Prm.Assign = FxdCtx.Trk[TrkID].ModPrmInst
         elseif FP.WhichMODs and string.find(FP.WhichMODs, tostring(AssigningMacro)) == nil then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
             FP.WhichMODs = FP.WhichMODs .. tostring(AssigningMacro)
         end
         local CC = FP.WhichCC
 
 
-        if not Trk.Prm.WhichMcros[CC .. TrkID] then
-            Trk.Prm.WhichMcros[CC .. TrkID] = tostring(AssigningMacro)
-        elseif Trk.Prm.WhichMcros[CC .. TrkID] and not string.find(Trk.Prm.WhichMcros[CC .. TrkID], tostring(AssigningMacro)) then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
-            Trk.Prm.WhichMcros[CC .. TrkID] = Trk.Prm.WhichMcros[CC .. TrkID] .. tostring(AssigningMacro)
+        if not FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID] then
+            FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID] = tostring(AssigningMacro)
+        elseif FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID] and not string.find(FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID], tostring(AssigningMacro)) then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
+            FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID] = FxdCtx.Trk.Prm.WhichMcros[CC .. TrkID] .. tostring(AssigningMacro)
         end
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods',
             FP.WhichMODs, true)
@@ -217,7 +217,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_chan", 16) -- 0 based, 0 = Omni
         r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_msg", 176)   -- 176 is CC
         r.TrackFX_SetNamedConfigParm(LT_Track, AssignMODtoFX, "param."..AssignToPrmNum..".plink.midi_msg2", CC) -- CC value
-        r.gmem_write(3, Trk[TrkID].ModPrmInst)
+        r.gmem_write(3, FxdCtx.Trk[TrkID].ModPrmInst)
 
         r.gmem_write(7, CC) --tells jsfx to rfetrieve P value
 
@@ -231,12 +231,12 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
 
-    if PM.DragOnModdedPrm == true and r.ImGui_IsMouseDown(ctx, 1) ~= true then
+    if FxdCtx.PM.DragOnModdedPrm == true and r.ImGui_IsMouseDown(ctx, 1) ~= true then
         AssigningMacro = nil
-        PM.DragOnModdedPrm = nil
+        FxdCtx.PM.DragOnModdedPrm = nil
     end
     if TrkID ~= TrkID_End then
-        r.gmem_write(3, Trk[TrkID].ModPrmInst or 0)
+        r.gmem_write(3, FxdCtx.Trk[TrkID].ModPrmInst or 0)
         if FP.ModAMT and FP.WhichCC then
             for M = 1, 8, 1 do
                 r.gmem_write(1000 * M + FP.WhichCC, FP.ModAMT[M] or 0)
@@ -247,10 +247,10 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     local Vertical
     if Type == 'Vert' then Vertical = 'Vert' end
     if FP then  FP.ModBipolar = FP.ModBipolar or {} end 
-    if --[[Right Dragging to adjust Mod Amt]] Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMacro then
-        local Id = FxGUID .. Trk.Prm.Assign
+    if --[[Right Dragging to adjust Mod Amt]] FxdCtx.Trk.Prm.Assign and FP.WhichCC == FxdCtx.Trk.Prm.Assign and AssigningMacro then
+        local Id = FxGUID .. FxdCtx.Trk.Prm.Assign
         local M = AssigningMacro
-        local IdM = 'Param:' .. tostring(Trk.Prm.Assign) .. 'Macro:' .. AssigningMacro
+        local IdM = 'Param:' .. tostring(FxdCtx.Trk.Prm.Assign) .. 'Macro:' .. AssigningMacro
 
 
         local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
@@ -264,7 +264,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if Vertical == 'Vert' or Type == 'knob' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
 
-        FX[FxGUID][Fx_P].ModAMT[M] = ((MouseDrag / 100) or 0) + (FX[FxGUID][Fx_P].ModAMT[M] or 0)
+        FxdCtx.FX[FxGUID][Fx_P].ModAMT[M] = ((MouseDrag / 100) or 0) + (FxdCtx.FX[FxGUID][Fx_P].ModAMT[M] or 0)
 
         if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
         if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
@@ -277,13 +277,13 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             FP.ModBipolar[M] = true 
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','true', true)
             r.gmem_write(4, 1)
-            r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+            r.gmem_write(1000 * AssigningMacro + FxdCtx.Trk.Prm.Assign, BipolarOut or  FP.ModAMT[M]) -- tells jsfx the param's mod amount
 
         elseif IsRBtnHeld and Mods == 0 then 
             FP.ModBipolar[M] = nil
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
             r.gmem_write(4, 1)
-            r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign,  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+            r.gmem_write(1000 * AssigningMacro + FxdCtx.Trk.Prm.Assign,  FP.ModAMT[M]) -- tells jsfx the param's mod amount
 
         end
 
@@ -298,22 +298,22 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
     if Type ~= 'knob' and FP.ModAMT then
         local offset = 0
-        for M, v in ipairs(MacroNums) do
+        for M, v in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
                 --if Modulation has been assigned to params
                 local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                 --- indicator of where the param is currently
-                if not FX[FxGUID][Fx_P].V then
-                    FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+                if not FxdCtx.FX[FxGUID][Fx_P].V then
+                    FxdCtx.FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
                 end
 
 
 
-                DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,
-                    FX[FxGUID][Fx_P].V, Vertical, FP, offset)
-                Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
+                DrawModLines(M, true, FxdCtx.Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,
+                    FxdCtx.FX[FxGUID][Fx_P].V, Vertical, FP, offset)
+                FxdCtx.Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
                 ParamHasMod_Any = true
                 offset = offset + OffsetForMultipleMOD
             end
@@ -363,21 +363,21 @@ function Get_LFO_Shape_From_File(filename)
 end
 
 function AutomateModPrm (Macro,str, jsfxMode, alias)
-    Trk[TrkID].AutoPrms = Trk[TrkID].AutoPrms or {}
-    if not FindExactStringInTable(Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
-        table.insert(Trk[TrkID].AutoPrms, 'Mod'.. Macro..str)
-        SetPrmAlias(LT_TrackNum, 1, 16+#Trk[TrkID].AutoPrms ,  alias)
-        r.GetFXEnvelope(LT_Track, 0, 15+#Trk[TrkID].AutoPrms, true)
+    FxdCtx.Trk[TrkID].AutoPrms = FxdCtx.Trk[TrkID].AutoPrms or {}
+    if not FindExactStringInTable(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
+        table.insert(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str)
+        SetPrmAlias(LT_TrackNum, 1, 16+#FxdCtx.Trk[TrkID].AutoPrms ,  alias)
+        r.GetFXEnvelope(LT_Track, 0, 15+#FxdCtx.Trk[TrkID].AutoPrms, true)
     end
     
     r.gmem_write(4, jsfxMode)  -- set mode to assigned mode
     r.gmem_write(5, Macro) 
-    r.gmem_write(9, #Trk[TrkID].AutoPrms)
+    r.gmem_write(9, #FxdCtx.Trk[TrkID].AutoPrms)
     
-    for i, v in ipairs(Trk[TrkID].AutoPrms) do 
+    for i, v in ipairs(FxdCtx.Trk[TrkID].AutoPrms) do 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Auto Mod'..i , v, true)
     end
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: How Many Automated Prm in Modulators' , #Trk[TrkID].AutoPrms, true)
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: How Many Automated Prm in Modulators' , #FxdCtx.Trk[TrkID].AutoPrms, true)
 end
 
 function SetModulationToBipolar(Macro)
@@ -388,7 +388,7 @@ end
 
 function WhenRightClickOnModulators(Macro)
     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
-        r.ImGui_OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
+        r.ImGui_OpenPopup(ctx, FxdCtx.Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
     end
     if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
         if not AssigningMacro then AssigningMacro = Macro
