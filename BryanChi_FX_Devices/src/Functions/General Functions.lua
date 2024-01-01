@@ -904,7 +904,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
             for i = 0, PrmCount - 4, 1 do
                 FxdCtx.FX[FxGUID].PrmList[i] = FxdCtx.FX[FxGUID].PrmList[i] or {}
                 ---@type integer, string|number|nil
-                local rv, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
+                local _, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
                 if BLprm ~= '' then
                     BLprm = tonumber(BLprm)
                     FxdCtx.FX[FxGUID].PrmList[BLprm] = FxdCtx.FX[FxGUID].PrmList[BLprm] or {}
@@ -1390,7 +1390,7 @@ function AddFX_Menu(FX_Idx)
                 local found = false
                 count = r.TrackFX_GetCount(TRACK) -- 1 based
                 for i = 0, count - 1 do
-                  local rv, rename = r.TrackFX_GetNamedConfigParm(TRACK, i, 'renamed_name') -- 0 based
+                  local _, rename = r.TrackFX_GetNamedConfigParm(TRACK, i, 'renamed_name') -- 0 based
                   if rename == 'ReaDrum Machine' then
                     found = true
                     break
@@ -1789,7 +1789,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         if env == nil then  -- Envelope is off
                             local env = r.GetFXEnvelope(LT_Track, 0, 7 + FxdCtx.FX[FxGUID].Morph_ID, true) -- true = Create envelope
                         else -- Envelope is on but invisible
-                            local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
+                            local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 0", "VIS 1")
                             r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                         end
@@ -1841,7 +1841,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     FxdCtx.FX[FxGUID].PrmList = FxdCtx.FX[FxGUID].PrmList or {}
                     for i = 0, Ct - 4, 1 do --get param names
                         FxdCtx.FX[FxGUID].PrmList[i]      = FxdCtx.FX[FxGUID].PrmList[i] or {}
-                        local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx,
+                        local _, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx,
                             i)
                         FxdCtx.FX[FxGUID].PrmList[i].Name = name
                     end
@@ -2500,7 +2500,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         FxdCtx.FX[FxGUID].PrmList = FxdCtx.FX[FxGUID].PrmList or {}
                         for i = 0, Ct - 4, 1 do --get param names
                             FxdCtx.FX[FxGUID].PrmList[i]      = FxdCtx.FX[FxGUID].PrmList[i] or {}
-                            local rv, name             = r.TrackFX_GetParamName(LT_Track,
+                            local _, name             = r.TrackFX_GetParamName(LT_Track,
                                 FX_Idx, i)
                             FxdCtx.FX[FxGUID].PrmList[i].Name = name
                         end
@@ -3617,14 +3617,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
                                 end     
                                 if ret then       -- new fx and parameter                   
-                                    local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
+                                    local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
                                     lead_fxid = root_container
                                     lead_paramnumber = buf
                                 end                                                                                                    
                             end
                             if r.ImGui_IsItemClicked(ctx, 1) and Mods == Shift then
                                 local P_Num = Prm.Num
-                                local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus")
+                                local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus")
                                 if bf == "15" then -- reset FX Devices' modulation bus/chan                                  
                                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
                                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
@@ -3661,7 +3661,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
                                             end
                                         else  -- new fx and parameter             
-                                            local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
+                                            local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
                                             r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 1)
                                             r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", lead_fxid) 
                                             r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", lead_paramnumber) 
@@ -3690,7 +3690,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     if env == nil then  -- Envelope is off
                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, true) -- true = Create envelope
                                     else -- Envelope is on
-                                        local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
+                                        local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                         if string.find(EnvelopeStateChunk, "VIS 1") then -- VIS 1 = visible, VIS 0 = invisible
                                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
                                             r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
@@ -3709,7 +3709,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     if env == nil then  -- Envelope is off
                                         local nothing
                                     else -- Envelope is on
-                                        local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
+                                        local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                         if string.find(EnvelopeStateChunk, "ACT 1") then
                                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ACT 1", "ACT 0")
                                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
@@ -3742,7 +3742,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add CC Link') then
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.active") 
-                                    local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus") 
+                                    local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus") 
                                     if bf == "15" then
                                         value = 1
                                         local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- For 14 bit, 128 + CC# is plink.midi_msg2 value, e.g. 02/34 become 130 (128-159)
