@@ -99,7 +99,7 @@ local function DnD_PLink_SOURCE(FX_Idx, P_Num)
         rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
         end     
         if ret then       -- new fx and parameter                   
-            local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
+            local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
             lead_fxid = root_container
             lead_paramnumber = buf
         end 
@@ -122,7 +122,7 @@ local function DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
         local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX PLINK')
         local lead_fxid, lead_paramnumber = payload:match("(.+),(.+)")
         if rv then
-            local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param.".. P_Num..".plink.midi_bus")
+            local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param.".. P_Num..".plink.midi_bus")
             if bf == "15" then -- reset FX Devices' modulation bus/chan                                  
                 r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
                 r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
@@ -159,7 +159,7 @@ local function DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
                         rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
                         end
                     else  -- new fx and parameter             
-                        local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
+                        local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
                         r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 1)
                         r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", lead_fxid) -- Link (root container + new mapped container parameter) to lead FX
                         r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", lead_paramnumber) 
@@ -1425,7 +1425,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
 
 
             if Options ~= 'Get Options' then
-                local rv
+                local _
 
                 for i = 1, #Options, 1 do
                     if r.ImGui_Selectable(ctx, Options[i], i) and WhichPrm ~= nil then
