@@ -10,15 +10,13 @@ local BlackListFXs = fxModels.BlackListFXs
 local SpecialLayoutFXs = fxModels.SpecialLayoutFXs
 local pluginHelpers = require("src.helpers.plugin_helpers")
 local images_fonts = require("src.helpers.images_fonts")
-local state_helpers = require("src.helpers.state_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local state_helpers = require("src.helpers.state_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
+local table_helpers = require("src.helpers.table_helpers")
+
 ---General functions list
 
----@param str string
-function GetFileExtension(str)
-    return str:match("^.+(%..+)$")
-end
 function InvisiBtn (ctx, x, y, str, w, h )  
     if x and y then 
         r.ImGui_SetCursorScreenPos(ctx, x,y)
@@ -569,55 +567,12 @@ end
 function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
     return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
 end
-
----@generic T
----@param Table table<string, T>
----@param V T
----@return boolean|nil
----@return T[]|nil
-function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?  -- this one uses string:find whereas exact uses ==
-    local found = nil
-    local Tab = {}
-    if V then
-        for i, val in pairs(Table) do
-            if string.find(val, V) ~= nil then
-                found = true
-                table.insert(Tab, i)
-            end
-        end
-        if found == true then return true, Tab else return false end
-    else
-        return nil
-    end
-end
-
 function Vertical_FX_Name (name)
     local Name = ChangeFX_Name(name)
     local Name = Name:gsub('%S+', { ['Valhalla'] = "", ['FabFilter'] = "" })
     local Name = Name:gsub('-', '|')
     local Name_V = Name:gsub("(.)", "%1\n")
     return   Name_V:gsub("%b()", "") 
-end
-
----@generic T
----@param Table table<string, T>
----@param V T
----@return boolean|nil
----@return T[]|nil
-function FindExactStringInTable(Table, V)
-    local found = nil
-    local Tab = {}
-    if V then
-        for i, val in pairs(Table) do
-            if val == V then
-                found = true
-                table.insert(Tab, i)
-            end
-        end
-        if found == true then return true, Tab else return false end
-    else
-        return nil
-    end
 end
 
 ---@param num number|nil|string
@@ -697,7 +652,7 @@ function QuestionHelpHint (Str)
         SL()
         r.ImGui_TextColored(ctx, 0x99999977, '(?)')
         if r.ImGui_IsItemHovered(ctx) then 
-            HintToolTip(Str)
+            gui_helpers.HintToolTip(Str)
         end
     end
 end
@@ -820,14 +775,6 @@ function SaveDrawings(FX_Idx, FxGUID)
             file:write('\n')
         end
     end
-end
-
----TODO remove this duplicate of tooltip()
----@param A string text for tooltip
-function ttp(A)
-    r.ImGui_BeginTooltip(ctx)
-    r.ImGui_SetTooltip(ctx, A)
-    r.ImGui_EndTooltip(ctx)
 end
 
 ---@param time number
@@ -978,7 +925,7 @@ function CreateWindowBtn_Vertical(Name, FX_Idx)
     if rv and Mods == 0 then
         openFXwindow(LT_Track, FX_Idx)
     elseif rv and Mods == Shift then
-        state_heplers.ToggleBypassFX(LT_Track, FX_Idx)
+        state_helpers.ToggleBypassFX(LT_Track, FX_Idx)
     elseif rv and Mods == Alt then
         DeleteFX(FX_Idx)
     end
@@ -1376,19 +1323,6 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     end
 end
 
----@param A string text for tooltip
-function tooltip(A)
-    r.ImGui_BeginTooltip(ctx)
-    r.ImGui_SetTooltip(ctx, A)
-    r.ImGui_EndTooltip(ctx)
-end
-
----@param A string text for tooltip
-function HintToolTip(A)
-    r.ImGui_BeginTooltip(ctx)
-    r.ImGui_SetTooltip(ctx, A)
-    r.ImGui_EndTooltip(ctx)
-end
 
 ---@param LT_Track MediaTrack
 ---@param FX_Idx integer
@@ -1400,7 +1334,7 @@ function openFXwindow(LT_Track, FX_Idx)
         r.TrackFX_Show(LT_Track, FX_Idx, 2)
     end
 end
---
+
 ---@param FX_Idx integer
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
@@ -1587,7 +1521,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
                 WindowBtn = r.ImGui_Button(ctx, Name .. '## '..FxGUID, width or FxdCtx.FX[FxGUID].TitleWidth or Default_FX_Width - 30, 20) -- create window name button
 
 
-                if r.ImGui_IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
+                if r.ImGui_IsItemHovered(ctx) and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                     FxdCtx.FX[FxGUID].TtlHvr = true
                     if not CantAddPrm then 
                         TtlR, TtlB = r.ImGui_GetItemRectMax(ctx)
@@ -2105,7 +2039,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             if r.ImGui_IsItemHovered(ctx) and FxdCtx.FX[FxGUID].MorphA_Name then
                 if FxdCtx.FX[FxGUID].MorphA_Name ~= '' then
-                    HintToolTip(FxdCtx.FX[FxGUID].MorphA_Name)
+                    gui_helpers.HintToolTip(FxdCtx.FX[FxGUID].MorphA_Name)
                 end
             end
 
@@ -2358,7 +2292,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if rv then FxdCtx.FX[FxGUID].MorphB_Name = presetname end
             end
             if r.ImGui_IsItemHovered(ctx) and FxdCtx.FX[FxGUID].MorphB_Name then
-                HintToolTip(FxdCtx.FX[FxGUID]
+                gui_helpers.HintToolTip(FxdCtx.FX[FxGUID]
                     .MorphB_Name)
             end
             r.ImGui_PopStyleColor(ctx, 3)
@@ -2395,12 +2329,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             DefaultWidth = FxdCtx.Df.KnobSize * Ct + GapBtwnPrmColumns
         end
 
-        if FindStringInTable(BlackListFXs, FX_Name) then
+        if table_helpers.FindStringInTable(BlackListFXs, FX_Name) then
             Hide = true
         end
 
         if FxdCtx.Trk[TrkID].PreFX_Hide then
-            if FindStringInTable(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
+            if table_helpers.FindStringInTable(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
                 Hide = true
             end
             if FxdCtx.Trk[TrkID].PreFX[FX_Idx + 1] == FxGUID then
@@ -2896,8 +2830,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                if DebugMode and r.ImGui_IsItemHovered(ctx) then tooltip('FX_Idx = '..FX_Idx) end
-                if DebugMode and r.ImGui_IsKeyDown(ctx, 84) then tooltip(TrkID) end
+                if DebugMode and r.ImGui_IsItemHovered(ctx) then gui_helpers.tooltip('FX_Idx = '..FX_Idx) end
+                if DebugMode and r.ImGui_IsKeyDown(ctx, 84) then gui_helpers.tooltip(TrkID) end
 
 
 
@@ -3469,7 +3403,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
 
-                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(pluginHelpers.PluginScripts, FxdCtx.FX.Win_Name_S[FX_Idx]) then
+                if table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not table_helpers.FindStringInTable(pluginHelpers.PluginScripts, FxdCtx.FX.Win_Name_S[FX_Idx]) then
                     SyncWetValues()
 
                     if FxdCtx.FX[FxGUID].Collapse ~= true then
@@ -3491,7 +3425,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 local function Decide_If_Create_Regular_Layout()
-                    if not FxdCtx.FX[FxGUID].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
+                    if not FxdCtx.FX[FxGUID].Collapse and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
                         local FX_has_Plugin
                         for i, v in pairs(pluginHelpers.PluginScripts) do
                             if FX_Name:find(v) then
@@ -4553,7 +4487,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and FxdCtx.Wet.ActiveAny ~= true and Knob_Active ~= true and not FxdCtx.Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 then
                 FxdCtx.Dvdr.Spc_Hover[TblIdxForSpace] = FxdCtx.Df.Dvdr_Hvr_W
                 if DebugMode then
-                    tooltip('FX_Idx :' .. FX_Idx ..'\n Pre/Post/Norm : ' ..
+                    gui_helpers.tooltip('FX_Idx :' .. FX_Idx ..'\n Pre/Post/Norm : ' ..
                         tostring(SpaceIsBeforeRackMixer) .. '\n SpcIDinPost: ' .. tostring(SpcIDinPost).. '\n AddLastSpace = '..(AddLastSpace or 'nil') ..'\n AdditionalWidth = '..(AdditionalWidth or 'nil') )
                 end
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), CLR_BtwnFXs_Btn_Hover)

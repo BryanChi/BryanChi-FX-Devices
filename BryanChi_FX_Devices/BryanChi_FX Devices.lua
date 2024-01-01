@@ -52,7 +52,7 @@ package.path = CurrentDirectory .. "?.lua;"
 FxdCtx = require("src.state.FxdCtx")
 local ThirdPartyDeps = require("src.helpers.thirdPartyDeps")
 local fs_utils = require("src.Functions.Filesystem_utils")
-
+local table_helpers = require("src.helpers.table_helpers")
 if ThirdPartyDeps() then return end
 
 function Msg(...)
@@ -67,6 +67,7 @@ local MenuBar = require("src.Components.MenuBar")
 local state_helpers = require("src.helpers.state_helpers")
 local math_helpers = require("src.helpers.math_helpers")
 local fxDisplay = require("src.Components.FxDisplay")
+local gui_helpers = require("src.Components.Gui_Helpers")
 require("src.Functions.General Functions")
 
 require("src.Functions.EQ functions")
@@ -557,7 +558,7 @@ function Loop()
                 for keynum = 0, 300, 1 do --
                     KeyDown = r.ImGui_IsKeyDown(ctx, keynum)
                     if KeyDown then
-                        tooltip(tostring(keynum))
+                        gui_helpers.tooltip(tostring(keynum))
                     end
                 end
             end
@@ -589,7 +590,7 @@ function Loop()
 
                 GetLT_FX_Num()
                 GetLTParam()
-                tooltip('Continuously Adding Last Touched Parameters..')
+                gui_helpers.tooltip('Continuously Adding Last Touched Parameters..')
 
                 local F = FxdCtx.FX[LT_FXGUID] or {}; local RptPrmFound
                 if LT_FXGUID and type(F) == 'table' then
@@ -1044,7 +1045,7 @@ function Loop()
             -- When Add or Delete Fx.....if  add fx or delete fx
             if Sel_Track_FX_Count ~= CompareFXCount then
                 if FxdCtx.FX.Win_Name then
-                    local _, tab = FindStringInTable(FxdCtx.FX.Win_Name, 'FX Devices Gain Reduction')
+                    local _, tab = table_helpers.FindStringInTable(FxdCtx.FX.Win_Name, 'FX Devices Gain Reduction')
                     if tab then
                         for _, v in ipairs(tab) do
                             r.gmem_attach('CompReductionScope')

@@ -1,5 +1,6 @@
 -- @noindex
 r = reaper
+local table_helpers = require("src.helpers.table_helpers")
 
 local fs_utils = {}
 
@@ -45,7 +46,7 @@ fs_utils.CopyImageFile = function (filename, subfolder)
     local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' ..
         SUBFOLDER .. filename:sub(index)
     local Files = fs_utils.scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
-    if FindExactStringInTable(Files, NewFileName) then
+    if table_helpers.FindExactStringInTable(Files, NewFileName) then
       return NewFileName, relativePath
     else
       fs_utils.CopyFile(filename, NewFileName)
@@ -83,5 +84,10 @@ function fs_utils.scandir(directory)
     --return F ---TODO should this be Files instead of F ?
 end
 
+
+---@param str string
+function fs_utils.GetFileExtension(str)
+    return str:match("^.+(%..+)$")
+end
 
 return fs_utils

@@ -3,6 +3,7 @@
 -- @noindex
 
 r = reaper
+local table_helpers = require("src.helpers.table_helpers")
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -364,7 +365,7 @@ end
 
 function AutomateModPrm (Macro,str, jsfxMode, alias)
     FxdCtx.Trk[TrkID].AutoPrms = FxdCtx.Trk[TrkID].AutoPrms or {}
-    if not FindExactStringInTable(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
+    if not table_helpers.FindExactStringInTable(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
         table.insert(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str)
         SetPrmAlias(LT_TrackNum, 1, 16+#FxdCtx.Trk[TrkID].AutoPrms ,  alias)
         r.GetFXEnvelope(LT_Track, 0, 15+#FxdCtx.Trk[TrkID].AutoPrms, true)

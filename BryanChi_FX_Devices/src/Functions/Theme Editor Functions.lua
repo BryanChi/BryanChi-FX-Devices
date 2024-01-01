@@ -2,6 +2,7 @@ r = reaper
 local customcolors = require("src.helpers.custom_colors")
 local CustomColors = customcolors.CustomColors
 local CustomColorsDefault = customcolors.CustomColorsDefault
+local gui_helpers = require("src.Components.Gui_Helpers")
 demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
@@ -550,7 +551,7 @@ function Show_KBShortcutEditor()
         SL()
         MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
-            HintToolTip(
+            gui_helpers.HintToolTip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
         end
 

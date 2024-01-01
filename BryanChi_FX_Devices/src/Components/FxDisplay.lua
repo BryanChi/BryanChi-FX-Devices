@@ -1,3 +1,5 @@
+local gui_helpers = require("src.Components.Gui_Helpers")
+local table_helpers = require("src.helpers.table_helpers")
 local fxModels = require("src.helpers.fxModels")
 local BlackListFXs = fxModels.BlackListFXs
 local fxDisplay = {}
@@ -46,14 +48,14 @@ function fxDisplay.displayFx(spaceIfPreFX)
             FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and FxdCtx.FXGUID[FX_Idx] ~= FxdCtx.FXGUID[FX_Idx - 1] then
                 if FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == nil    --not in layer
-                    and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
+                    and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
                     and string.find(FX_Name, 'RackMixer') == nil
                     and FX_Idx ~= RepeatTimeForWindows                   --not last fx
                     and not FxdCtx.FX[FxGUID].InWhichBand --[[Not in Band Split]] then
                     local Idx = FX_Idx
                     if FX_Idx == 1 then
                         local Nm = FxdCtx.FX.Win_Name[0]
-                        if Nm == 'JS: FXD Macros' or FindStringInTable(BlackListFXs, Nm) then Idx = 0 end
+                        if Nm == 'JS: FXD Macros' or table_helpers.FindStringInTable(BlackListFXs, Nm) then Idx = 0 end
                     end
                 elseif FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == FxdCtx.FXGUID[FX_Idx] and FxdCtx.FXGUID[FX_Idx] then
                     AddSpaceBtwnFXs(FX_Idx, true)
@@ -79,7 +81,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
             BGColor_FXWindow = BGColor_FXWindow or 0x434343ff
 
 
-            if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx]] == nil and FX_Idx ~= RepeatTimeForWindows and FindStringInTable(BlackListFXs, FX_Name) ~= true then
+            if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx]] == nil and FX_Idx ~= RepeatTimeForWindows and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true then
                 --FX_IdxREAL =  FX_Idx+Lyr.FX_Ins[FXGUID[FX_Idx]]
                 Tab_Collapse_Win = false
 
@@ -1262,7 +1264,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 end
 
                                 if r.ImGui_IsItemHovered(ctx) then
-                                    HintToolTip(
+                                    gui_helpers.HintToolTip(
                                         'Alt-Click to Delete All Conditions')
                                 end
 
@@ -1303,7 +1305,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         --GetParamOptions ('get', FxGUID,FX_Idx, LE.Sel_Items[1],LT_ParamNum)
                                     end
                                     if r.ImGui_IsItemHovered(ctx) then
-                                        tooltip('Click to set to last touched parameter')
+                                        gui_helpers.tooltip('Click to set to last touched parameter')
                                     end
 
 
@@ -1572,12 +1574,12 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                             local function SetRowName(str, notTAB, TAB)
                                                 r.ImGui_TableSetColumnIndex(ctx, 0)
                                                 if TAB then
-                                                    if FindExactStringInTable(TAB, D.Type) then
+                                                    if table_helpers.FindExactStringInTable(TAB, D.Type) then
                                                         r.ImGui_Text(ctx, str)
                                                         return true
                                                     end
                                                 elseif notTAB then
-                                                    if not FindExactStringInTable(notTAB, D.Type) then
+                                                    if not table_helpers.FindExactStringInTable(notTAB, D.Type) then
                                                         r.ImGui_Text(ctx, str)
                                                         return true
                                                     end
@@ -2075,7 +2077,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                             if FxdCtx.FX[FxGUID].AldreadyBPdFXs == {} then
                                                 table.insert(FxdCtx.FX[FxGUID].AldreadyBPdFXs,
                                                     r.TrackFX_GetFXGUID(LT_Track, i))
-                                            elseif not FindStringInTable(FxdCtx.FX[FxGUID].AldreadyBPdFXs, r.TrackFX_GetFXGUID(LT_Track, i)) then
+                                            elseif not table_helpers.FindStringInTable(FxdCtx.FX[FxGUID].AldreadyBPdFXs, r.TrackFX_GetFXGUID(LT_Track, i)) then
                                                 table.insert(FxdCtx.FX[FxGUID].AldreadyBPdFXs,
                                                     r.TrackFX_GetFXGUID(LT_Track, i))
                                             end
@@ -2646,13 +2648,13 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                             if FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == FxdCtx.FXGUID[FX_Idx] then --if fx is in rack mixer
                                 if FxdCtx.Lyr.Selected[FXGUID_RackMixer] == nil then FxdCtx.Lyr.Selected[FXGUID_RackMixer] = 1 end
-                                if FxdCtx.FX[FxdCtx.FXGUID[FX_Idx_InLayer]].inWhichLyr == FxdCtx.FX[FXGUID_RackMixer].LyrID[LyrID] and LyrID == FxdCtx.Lyr.Selected[FXGUID_RackMixer] and not FindStringInTable(BlackListFXs, FxdCtx.FX.Win_Name[FX_Idx_InLayer]) then
+                                if FxdCtx.FX[FxdCtx.FXGUID[FX_Idx_InLayer]].inWhichLyr == FxdCtx.FX[FXGUID_RackMixer].LyrID[LyrID] and LyrID == FxdCtx.Lyr.Selected[FXGUID_RackMixer] and not table_helpers.FindStringInTable(BlackListFXs, FxdCtx.FX.Win_Name[FX_Idx_InLayer]) then
                                     r.ImGui_SameLine(ctx, nil, 0)
 
                                     AddSpaceBtwnFXs(FX_Idx_InLayer, false, nil, LyrID)
                                     Xpos_Left, Ypos_Top = r.ImGui_GetItemRectMin(ctx)
                                     r.ImGui_SameLine(ctx, nil, 0)
-                                    if not FindStringInTable(BlackListFXs, FxdCtx.FX.Win_Name[FX_Idx_InLayer]) then
+                                    if not table_helpers.FindStringInTable(BlackListFXs, FxdCtx.FX.Win_Name[FX_Idx_InLayer]) then
                                         createFXWindow(FX_Idx_InLayer)
                                     else
                                     end
