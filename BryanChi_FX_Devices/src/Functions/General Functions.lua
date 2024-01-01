@@ -131,7 +131,8 @@ function GetProjExt_FxNameNum(FxGUID)
             local FP = FxdCtx.FX[FxGUID][P]
             if FP then
                 _, FP.Name = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID)
-                _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID); FP.Num = tonumber(FP.Num)
+                _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID)
+ FP.Num = tonumber(FP.Num)
             end
         end
     end
@@ -287,10 +288,14 @@ end
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding, thick)
     if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
-        L, T = r.ImGui_GetItemRectMin(ctx); R, B = r.ImGui_GetItemRectMax(ctx); w, h = r.ImGui_GetItemRectSize(ctx)
+        L, T = r.ImGui_GetItemRectMin(ctx)
+ R, B = r.ImGui_GetItemRectMax(ctx)
+ w, h = r.ImGui_GetItemRectSize(ctx)
         --Get item rect
     end
-    local P = Padding or 0 ; local HSC = H_OutlineSc or 4; local VSC = V_OutlineSc or 4
+    local P = Padding or 0 
+ local HSC = H_OutlineSc or 4
+ local VSC = V_OutlineSc or 4
     if Foreground == 'Foreground' then WinDrawList = FxdCtx.Glob.FDL else WinDrawList = Foreground end
     if not WinDrawList then WinDrawList = r.ImGui_GetWindowDrawList(ctx) end
     if FillClr then r.ImGui_DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
@@ -315,8 +320,10 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
 end
 
 function Highlight_Itm(WDL, FillClr, OutlineClr )
-    local L, T = r.ImGui_GetItemRectMin(ctx); 
-    local R, B = r.ImGui_GetItemRectMax(ctx); 
+    local L, T = r.ImGui_GetItemRectMin(ctx)
+ 
+    local R, B = r.ImGui_GetItemRectMax(ctx)
+ 
     
     if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
     if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
@@ -1064,7 +1071,8 @@ end
 ---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     state_helpers.GetLTParam()
-    local FX_Count = r.TrackFX_GetCount(LT_Track); local RptPrmFound
+    local FX_Count = r.TrackFX_GetCount(LT_Track)
+ local RptPrmFound
     local F = FxdCtx.FX[LT_FXGUID] or {}
 
     if F then
@@ -1914,7 +1922,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
         -- FX window color
 
-        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), FxdCtx.FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff); local poptimes = 1
+        r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), FxdCtx.FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff)
+ local poptimes = 1
 
 
         FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or {}
@@ -1973,8 +1982,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 FxdCtx.Glob.FDL = r.ImGui_GetForegroundDrawList(ctx)
 
                 WDL = r.ImGui_GetWindowDrawList(ctx)
-                Win_L, Win_T = r.ImGui_GetItemRectMin(ctx); Win_W, Win_H = r.ImGui_GetItemRectSize(ctx)
-                Win_R, _ = r.ImGui_GetItemRectMax(ctx); Win_B = Win_T + 220
+                Win_L, Win_T = r.ImGui_GetItemRectMin(ctx)
+ Win_W, Win_H = r.ImGui_GetItemRectSize(ctx)
+                Win_R, _ = r.ImGui_GetItemRectMax(ctx)
+ Win_B = Win_T + 220
 
                 if FxdCtx.Draw.DrawMode[FxGUID] == true then
                     local D = FxdCtx.Draw[FxNameS]
@@ -1993,16 +2004,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                         if r.ImGui_IsMouseClicked(ctx, 0) and Mods == 0 then
                             FxdCtx.Draw.CurrentylDrawing = true
-                            MsX_Start, MsY_Start = r.ImGui_GetMousePos(ctx);
+                            MsX_Start, MsY_Start = r.ImGui_GetMousePos(ctx)
+
                             CurX, CurY = r.ImGui_GetCursorScreenPos(ctx)
-                            Win_MsX_Start = MsX_Start - CurX; Win_MsY_Start = MsY_Start - CurY + 3
+                            Win_MsX_Start = MsX_Start - CurX
+ Win_MsY_Start = MsY_Start - CurY + 3
                         end
 
                         if FxdCtx.Draw.CurrentylDrawing then
                             if IsLBtnHeld and Mods == 0 and MsX_Start then
                                 MsX, MsY   = r.ImGui_GetMousePos(ctx)
                                 CurX, CurY = r.ImGui_GetCursorScreenPos(ctx)
-                                Win_MsX    = MsX - CurX; Win_MsY = MsY - CurY
+                                Win_MsX    = MsX - CurX
+ Win_MsY = MsY - CurY
 
                                 Rad        = MsX - MsX_Start
                                 local Clr = FxdCtx.Draw.clr or 0xffffffff
@@ -2068,8 +2082,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         --r.ImGui_SetItemDefaultFocus( ctx)
 
                         if r.ImGui_IsWindowAppearing(ctx) then
-                            table.insert(D.L, Win_MsX_Start);
-                            table.insert(D.T, Win_MsY_Start);;
+                            table.insert(D.L, Win_MsX_Start)
+
+                            table.insert(D.T, Win_MsY_Start)
+
+
                             table.insert(D.Type, FxdCtx.Draw.Type)
                             table.insert(D.B, Win_MsY)
                             table.insert(D.clr, FxdCtx.Draw.clr)
@@ -2082,7 +2099,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         if r.ImGui_IsItemDeactivatedAfterEdit(ctx) then
                             D.Txt[#D.Txt] = NewDrawTxt
-                            AddText = nil;
+                            AddText = nil
+
                             NewDrawTxt = nil
 
 
@@ -2223,7 +2241,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if FxdCtx.FX.LayEdit == FxGUID and FxdCtx.Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then -- Resize FX or title btn
                     MouseX, MouseY = r.ImGui_GetMousePos(ctx)
                     Win_L, Win_T = r.ImGui_GetItemRectMin(ctx)
-                    Win_R, _ = r.ImGui_GetItemRectMax(ctx); Win_B = Win_T + 220
+                    Win_R, _ = r.ImGui_GetItemRectMax(ctx)
+ Win_B = Win_T + 220
                     WinDrawList = r.ImGui_GetWindowDrawList(ctx)
                     r.ImGui_DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0, Win_R or 0,
                         Win_B, 0x00000055)
@@ -2263,10 +2282,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         r.ImGui_DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0,
                             Win_R or 0, Win_B, 0x00000055)
-                        local MsDragDeltaX, MsDragDeltaY = r.ImGui_GetMouseDragDelta(ctx); local Dx, Dy =
+                        local MsDragDeltaX, MsDragDeltaY = r.ImGui_GetMouseDragDelta(ctx)
+ local Dx, Dy =
                             r.ImGui_GetMouseDelta(ctx)
                         if not FxdCtx.FX[FxGUID].Width then FxdCtx.FX[FxGUID].Width = DefaultWidth end
-                        FxdCtx.FX[FxGUID].Width = FxdCtx.FX[FxGUID].Width + Dx; FxdCtx.LE.BeenEdited = true
+                        FxdCtx.FX[FxGUID].Width = FxdCtx.FX[FxGUID].Width + Dx
+ FxdCtx.LE.BeenEdited = true
                     end
                     if not IsLBtnHeld then FxdCtx.LE.ResizingFX = nil end
                 end
@@ -2278,7 +2299,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                 r.ImGui_SameLine(ctx, nil, 0)
                 if FxdCtx.FX.LayEdit == FxGUID and FxdCtx.Draw.DrawMode[FxGUID] ~= true then
-                    r.ImGui_BeginDisabled(ctx); R, T = r.ImGui_GetItemRectMax(ctx)
+                    r.ImGui_BeginDisabled(ctx)
+ R, T = r.ImGui_GetItemRectMax(ctx)
                 end
 
                 
@@ -2375,8 +2397,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 if FxdCtx.FX.LayEdit == FxGUID and FxdCtx.Draw.DrawMode[FxGUID] ~= true then
-                    local L, T = r.ImGui_GetItemRectMin(ctx); local R, _ = r.ImGui_GetItemRectMax(
-                        ctx); B = T + 20
+                    local L, T = r.ImGui_GetItemRectMin(ctx)
+ local R, _ = r.ImGui_GetItemRectMax(
+                        ctx)
+ B = T + 20
                     r.ImGui_DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
                     r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
 
@@ -2412,15 +2436,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                         if Mods == 0 then
                             if MouseDiff > FxdCtx.LE.GridSize then
-                                FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + FxdCtx.LE.GridSize; FxdCtx.LE.MouseX_before =
-                                    r.ImGui_GetMousePos(ctx); FxdCtx.LE.BeenEdited = true
+                                FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + FxdCtx.LE.GridSize
+ FxdCtx.LE.MouseX_before =
+                                    r.ImGui_GetMousePos(ctx)
+ FxdCtx.LE.BeenEdited = true
                             elseif MouseDiff < -FxdCtx.LE.GridSize then
-                                FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth - FxdCtx.LE.GridSize; FxdCtx.LE.MouseX_before =
-                                    r.ImGui_GetMousePos(ctx); FxdCtx.LE.BeenEdited = true
+                                FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth - FxdCtx.LE.GridSize
+ FxdCtx.LE.MouseX_before =
+                                    r.ImGui_GetMousePos(ctx)
+ FxdCtx.LE.BeenEdited = true
                             end
                         end
                         if Mods == Shift then
-                            FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + DeltaX; FxdCtx.LE.BeenEdited = true
+                            FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + DeltaX
+ FxdCtx.LE.BeenEdited = true
                         end
                     end
                     if IsLBtnHeld == false then FxdCtx.LE.ChangingTitleSize = nil end
@@ -3046,7 +3075,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
                 if Decide_If_Create_Regular_Layout() then 
-                    local WinP_X; local WinP_Y;
+                    local WinP_X
+ local WinP_Y
+
                     --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                     if FxdCtx.FX.Enable[FX_Idx] == true then
                         -- Params Colors-----
@@ -3092,7 +3123,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         local FP = FxdCtx.FX[FxGUID][Fx_P] ---@class FX_P
 
-                        local F_Tp = FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. Fx_P]; 
+                        local F_Tp = FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
+ 
                         local ID = FxGUID ..Fx_P
                         Rounding = 0.5
 
@@ -3408,11 +3440,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                             if v.Type == 'Line' then
                                                 if Prm.Type == 'Slider' or Prm.Type == 'Drag' or (not Prm.Type) then
-                                                    v.Height = v.Height or 0; v.Width = v.Width or w
-                                                    h        = v.Height or 0; w = v.Width or w
+                                                    v.Height = v.Height or 0
+ v.Width = v.Width or w
+                                                    h        = v.Height or 0
+ w = v.Width or w
                                                 elseif Prm.Type == 'V-Slider' then
-                                                    v.Height = v.Height or h; v.Width = v.Width or 0
-                                                    h = v.Height or h; w = v.Width or 0
+                                                    v.Height = v.Height or h
+ v.Width = v.Width or 0
+                                                    h = v.Height or h
+ w = v.Width or 0
                                                 end
 
 
@@ -3859,7 +3895,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_RootAndChildWindows())
                     then
                         if ClickOnAnyItem == nil and LBtnRel and AdjustPrmWidth ~= true and Mods == 0 then
-                            FxdCtx.LE.Sel_Items = {};
+                            FxdCtx.LE.Sel_Items = {}
+
                         elseif ClickOnAnyItem and LBtnRel then
                             ClickOnAnyItem = nil
                         elseif AdjustPrmWidth == true then
@@ -4046,7 +4083,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if FxdCtx.Trk[TrkID].PreFX_Hide then Hide = true end
             MoveTarget = FX_Idx + 1
         elseif FX_Idx + 1 - offset <= #FxdCtx.Trk[TrkID].PreFX and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
-            SpcIsInPre = true; if FxdCtx.Trk[TrkID].PreFX_Hide then Hide = true end
+            SpcIsInPre = true
+ if FxdCtx.Trk[TrkID].PreFX_Hide then Hide = true end
         end
     end
     --[[ if SpaceIsBeforeRackMixer == 'SpcInPost' or SpaceIsBeforeRackMixer == 'SpcInPost 1st spc' then
@@ -4452,7 +4490,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
                 if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) and (not SpcInPost or AddLastSpace == 'LastSpc') then
-                    allowDropNext = true; MoveFromPostToNorm = true
+                    allowDropNext = true
+ MoveFromPostToNorm = true
                 end
                 if FxdCtx.FX[FxGUID_DragFX].InWhichBand then allowDropNext = true end
                 if not FxdCtx.FX[FxGUID_DragFX].InWhichBand and SpaceIsBeforeRackMixer == 'SpcInBS' then allowDropNext = true end
