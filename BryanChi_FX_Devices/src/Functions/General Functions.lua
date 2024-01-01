@@ -1032,7 +1032,7 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     end
 
 
-    for i, v in ipairs(FxdCtx.FX[FxGUID]) do
+    for i, _ in ipairs(FxdCtx.FX[FxGUID]) do
         r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Name' .. FxGUID, FxdCtx.FX[FxGUID][i].Name)
         r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Num' .. FxGUID, FxdCtx.FX[FxGUID][i].Num)
     end
@@ -1068,7 +1068,7 @@ function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     local F = FxdCtx.FX[LT_FXGUID] or {}
 
     if F then
-        for i, v in ipairs(F) do
+        for i, _ in ipairs(F) do
             if FxdCtx.FX[LT_FXGUID][i].Num == LT_ParamNum then
                 RptPrmFound = true
 
@@ -1806,7 +1806,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 elseif FxdCtx.FX[FxGUID].Morph_ID or not FxdCtx.FX[FxGUID].Unlink then
                     if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
-                        for i, v in ipairs(FxdCtx.FX[FxGUID].MorphA), FxdCtx.FX[FxGUID].MorphA, -1 do
+                        for i, _ in ipairs(FxdCtx.FX[FxGUID].MorphA), FxdCtx.FX[FxGUID].MorphA, -1 do
                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 0)   -- 1 active, 0 inactive
                         end
                         r.GetSetMediaTrackInfo_String(LT_Track,
@@ -2794,7 +2794,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                 local TheresBL = TheresBL or {}
                                 local hasBL
-                                for i, v in ipairs(FxdCtx.FX[FxGUID].PrmList) do
+                                for i, _ in ipairs(FxdCtx.FX[FxGUID].PrmList) do
                                     local P = FxdCtx.FX[FxGUID].PrmList[i - 1]
                                     local prm = FxdCtx.FX[FxGUID].PrmList
 
@@ -2922,7 +2922,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         r.SetProjExtState(0, 'FX Devices - Preset Morph',
                                             'Whether FX has Blacklist' .. FxdCtx.FX.Win_Name_S[FX_Idx], 'No')
                                     end
-                                    for i, V in ipairs(FxdCtx.FX[FxGUID].MorphA) do
+                                    for i, _ in ipairs(FxdCtx.FX[FxGUID].MorphA) do
                                         local PrmBLed
                                         for I, v in ipairs(TheresBL) do
                                             if i == v then PrmBLed = v end
@@ -3085,7 +3085,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     --[[ for Fx_P, v in ipairs(FX[FxGUID])    do
                         if not FX[FxGUID][Fx_P].Name then table.remove(FX[FxGUID],Fx_P) end
                     end ]]
-                    for Fx_P, v in ipairs(FxdCtx.FX[FxGUID]) do --parameter faders
+                    for Fx_P, _ in ipairs(FxdCtx.FX[FxGUID]) do --parameter faders
                         --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
 
 
