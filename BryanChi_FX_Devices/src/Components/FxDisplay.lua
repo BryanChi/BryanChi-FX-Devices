@@ -2603,7 +2603,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         WindowBtnVertical = r.ImGui_Button(ctx, title .. '##Vertical', 25, 220) -- create window name button
                         if WindowBtnVertical and Mods == 0 then
                         elseif WindowBtnVertical == true and Mods == Shift then
-                            ToggleBypassFX()
+                            state_helpers.ToggleBypassFX()
                         elseif r.ImGui_IsItemClicked(ctx) and Mods == Alt then
                             FxdCtx.FX[FxGUID].DeleteFXLayer = true
                         elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
@@ -2955,7 +2955,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                     if btn and Mods == 0 then
                         openFXwindow(LT_Track, FX_Idx)
                     elseif btn and Mods == Shift then
-                        ToggleBypassFX(LT_Track, FX_Idx)
+                        state_helpers.ToggleBypassFX(LT_Track, FX_Idx)
                     elseif btn and Mods == Alt then
                         FxdCtx.FX[FxGUID].DeleteBandSplitter = true
                     elseif r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then

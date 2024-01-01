@@ -12,6 +12,7 @@ local pluginHelpers = require("src.helpers.plugin_helpers")
 local images_fonts = require("src.helpers.images_fonts")
 local state_helpers = require("src.helpers.state_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
+local state_helpers = require("src.helpers.state_helpers")
 ---General functions list
 
 ---@param str string
@@ -555,19 +556,6 @@ end
 
 
 
----TODO empty function
-function TableMaxVal()
-end
-
----TODO this is a duplicate, it’s unused and can’t you use #table instead?
----@param T table
----@return integer
-function tablelength(T)
-    local count = 0
-    for _ in pairs(T) do count = count + 1 end
-    return count
-end
-
 ---@param num number
 ---@param multipleOf number
 ---@return number
@@ -990,7 +978,7 @@ function CreateWindowBtn_Vertical(Name, FX_Idx)
     if rv and Mods == 0 then
         openFXwindow(LT_Track, FX_Idx)
     elseif rv and Mods == Shift then
-        ToggleBypassFX(LT_Track, FX_Idx)
+        state_heplers.ToggleBypassFX(LT_Track, FX_Idx)
     elseif rv and Mods == Alt then
         DeleteFX(FX_Idx)
     end
@@ -1412,19 +1400,7 @@ function openFXwindow(LT_Track, FX_Idx)
         r.TrackFX_Show(LT_Track, FX_Idx, 2)
     end
 end
-
----@param LT_Track MediaTrack
----@param FX_Idx integer
-function ToggleBypassFX(LT_Track, FX_Idx)
-    FxdCtx.FX.Enable = FxdCtx.FX.Enable or {}
-    FxdCtx.FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
-    if FxdCtx.FX.Enable[FX_Idx] == true then
-        r.TrackFX_SetEnabled(LT_Track, FX_Idx, false)
-    elseif FxdCtx.FX.Enable[FX_Idx] == false then
-        r.TrackFX_SetEnabled(LT_Track, FX_Idx, true)
-    end
-end
-
+--
 ---@param FX_Idx integer
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
@@ -1576,13 +1552,6 @@ function RemoveEmptyStr(str)
     if str == '' then return nil else return str end
 end
 
----@param T table
----@return integer
-function tablelength(T)
-    local count = 0
-    for _ in pairs(T) do count = count + 1 end
-    return count
-end
 ---@param Rpt integer
 function AddSpacing(Rpt)
     for i = 1, Rpt, 1 do
@@ -1694,7 +1663,7 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
             openFXwindow(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Shift then
-            ToggleBypassFX(LT_Track, FX_Idx)
+            state_helpers.ToggleBypassFX(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Alt then
             DeleteFX(FX_Idx,FxGUID)
         end
