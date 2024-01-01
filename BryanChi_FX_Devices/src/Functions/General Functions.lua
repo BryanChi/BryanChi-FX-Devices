@@ -22,37 +22,38 @@ local math_helpers = require("src.helpers.math_helpers")
 
 ------------------------------------------------------------------------------
 function BuildFXTree_item(tr, fxid, scale, oldscale)
-    local tr = tr or LT_Track 
-    local retval, buf = reaper.TrackFX_GetFXName( tr, fxid )
-    local ccok, container_count = reaper.TrackFX_GetNamedConfigParm( tr, fxid, 'container_count')
+    local tr = tr or LT_Track
+    local retval, buf = reaper.TrackFX_GetFXName(tr, fxid)
+    local ccok, container_count = reaper.TrackFX_GetNamedConfigParm(tr, fxid, 'container_count')
 
     local ret = {
         fxname = buf,
-        isopen = reaper.TrackFX_GetOpen( tr, fxid ),
-        GUID = reaper.TrackFX_GetFXGUID( tr, fxid ),
+        isopen = reaper.TrackFX_GetOpen(tr, fxid),
+        GUID = reaper.TrackFX_GetFXGUID(tr, fxid),
         addr_fxid = fxid,
         scale = oldscale
-      }
+    }
 
-    if ccok then  -- if fx in container is a container
-      ret.children = { }
-      local newscale = scale * (tonumber(container_count)+1)
+    if ccok then -- if fx in container is a container
+        ret.children = {}
+        local newscale = scale * (tonumber(container_count) + 1)
 
-      for child = 1, tonumber(container_count) do
-        ret.children[child] = BuildFXTree_item(tr, fxid + scale * child, newscale, scale)
-      end
+        for child = 1, tonumber(container_count) do
+            ret.children[child] = BuildFXTree_item(tr, fxid + scale * child, newscale, scale)
+        end
     end
     return ret
 end
+
 --------------------------------------------------------------------------
 function BuildFXTree(tr)
     -- table with referencing ID tree
-    local tr = tr or LT_Track 
-    if tr then 
+    local tr = tr or LT_Track
+    if tr then
         tree = {}
         local cnt = reaper.TrackFX_GetCount(tr)
         for i = 1, cnt do
-            tree[i] = BuildFXTree_item(tr, 0x2000000+i, cnt+1, cnt+1)
+            tree[i] = BuildFXTree_item(tr, 0x2000000 + i, cnt + 1, cnt + 1)
         end
         return tree
     end
@@ -60,29 +61,27 @@ end
 
 function Check_If_Has_Children_Prioritize_Empty_Container(TB)
     local Candidate
-    for _, v in ipairs( TB)  do 
-        if v.children then     
-            if v.children[1] then --if container not empty 
-                Candidate =  v.children 
-            elseif not v.children[1] then   -- if container empty
-
-                local Final = v.children ~=nil and 'children' or 'candidate'
+    for _, v in ipairs(TB) do
+        if v.children then
+            if v.children[1] then         --if container not empty
+                Candidate = v.children
+            elseif not v.children[1] then -- if container empty
+                local Final = v.children ~= nil and 'children' or 'candidate'
                 return v.children or Candidate
             end
         end
     end
-    if  Candidate then 
-        return  Candidate
+    if Candidate then
+        return Candidate
     end
 end
 
-local tr = reaper.GetSelectedTrack(0,0)
+local tr = reaper.GetSelectedTrack(0, 0)
 TREE = BuildFXTree(LT_Track or tr)
 
 function EndUndoBlock(str)
     r.Undo_EndBlock("ReaDrum Machine: " .. str, -1)
-  end
-
+end
 
 ---@param FX_Name string
 function ChangeFX_Name(FX_Name)
@@ -115,9 +114,6 @@ function AddMacroJSFX()
     end
 end
 
-
-
-
 ---@param FxGUID string
 function GetProjExt_FxNameNum(FxGUID)
     local PrmCount
@@ -132,7 +128,7 @@ function GetProjExt_FxNameNum(FxGUID)
             if FP then
                 _, FP.Name = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID)
                 _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID)
- FP.Num = tonumber(FP.Num)
+                FP.Num = tonumber(FP.Num)
             end
         end
     end
@@ -208,15 +204,10 @@ function AddFX_HideWindow(track, fx_name, Position)
     end
 end
 
-
-
 ---@param str string
 function StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
-
-
-
 
 ---@param FX_P integer
 ---@param FxGUID string
@@ -224,46 +215,44 @@ end
 function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
     return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
 end
-function Vertical_FX_Name (name)
+
+function Vertical_FX_Name(name)
     local Name = ChangeFX_Name(name)
     local Name = Name:gsub('%S+', { ['Valhalla'] = "", ['FabFilter'] = "" })
     local Name = Name:gsub('-', '|')
     local Name_V = Name:gsub("(.)", "%1\n")
-    return   Name_V:gsub("%b()", "") 
+    return Name_V:gsub("%b()", "")
 end
-
 
 StringToBool = { ['true'] = true, ['false'] = false }
 
 --------------ImGUI Related ---------------------
-function PinIcon (PinStatus, PinStr, size, lbl, ClrBG, ClrTint )
-    if PinStatus == PinStr then 
-        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
-            PinStatus = nil 
+function PinIcon(PinStatus, PinStr, size, lbl, ClrBG, ClrTint)
+    if PinStatus == PinStr then
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
+            PinStatus = nil
         end
-    else 
-        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then 
-            PinStatus = PinStr 
+    else
+        if r.ImGui_ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
+            PinStatus = PinStr
         end
     end
-    
-        if r.ImGui_IsItemHovered(ctx) then
-            TintClr = 0xCE1A28ff
-        end
+
+    if r.ImGui_IsItemHovered(ctx) then
+        TintClr = 0xCE1A28ff
+    end
     return PinStatus, TintClr
 end
 
-function QuestionHelpHint (Str)
-    if r.ImGui_IsItemHovered(ctx) then 
+function QuestionHelpHint(Str)
+    if r.ImGui_IsItemHovered(ctx) then
         SL()
         r.ImGui_TextColored(ctx, 0x99999977, '(?)')
-        if r.ImGui_IsItemHovered(ctx) then 
+        if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(Str)
         end
     end
 end
-
-
 
 ---@param FillClr number
 ---@param OutlineClr number
@@ -289,29 +278,29 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
                                Foreground, rounding, thick)
     if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
         L, T = r.ImGui_GetItemRectMin(ctx)
- R, B = r.ImGui_GetItemRectMax(ctx)
- w, h = r.ImGui_GetItemRectSize(ctx)
+        R, B = r.ImGui_GetItemRectMax(ctx)
+        w, h = r.ImGui_GetItemRectSize(ctx)
         --Get item rect
     end
-    local P = Padding or 0 
- local HSC = H_OutlineSc or 4
- local VSC = V_OutlineSc or 4
+    local P = Padding or 0
+    local HSC = H_OutlineSc or 4
+    local VSC = V_OutlineSc or 4
     if Foreground == 'Foreground' then WinDrawList = FxdCtx.Glob.FDL else WinDrawList = Foreground end
     if not WinDrawList then WinDrawList = r.ImGui_GetWindowDrawList(ctx) end
     if FillClr then r.ImGui_DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
 
-    local h = h or B-T 
-    local w = w or R-L
+    local h = h or B - T
+    local w = w or R - L
 
     if OutlineClr and not rounding then
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr,thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr,thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
+        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
     else
         if FillClr then r.ImGui_DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
         if OutlineClr then r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
@@ -319,17 +308,15 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
-function Highlight_Itm(WDL, FillClr, OutlineClr )
+function Highlight_Itm(WDL, FillClr, OutlineClr)
     local L, T = r.ImGui_GetItemRectMin(ctx)
- 
+
     local R, B = r.ImGui_GetItemRectMax(ctx)
- 
-    
+
+
     if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
     if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
 end
-
-
 
 ---@param ctx ImGui_Context
 ---@param time integer count in
@@ -340,7 +327,8 @@ end
 ---@param FX_Idx integer
 ---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
-    local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+    local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src',
+        'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
 
     local file_path = fs_utils.ConcatPath(dir_path, FX_Name .. '.ini')
@@ -374,7 +362,7 @@ function SaveDrawings(FX_Idx, FxGUID)
 
         for i, Type in ipairs(D) do
             D[i] = D[i] or {}
-            local D = FxdCtx.FX[FxGUID].Draw[i] 
+            local D = FxdCtx.FX[FxGUID].Draw[i]
             write('Type', D.Type, i)
             write('Left', D.L, i)
             write('Right', D.R, i)
@@ -414,6 +402,7 @@ function HideCursor(time)
 
     Hide()
 end
+
 function GetAllInfoNeededEachLoop()
     TimeEachFrame = r.ImGui_GetDeltaTime(ctx)
     if ImGUI_Time == nil then ImGUI_Time = 0 end
@@ -446,26 +435,24 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
-    if MouseBtn then 
-        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+    if MouseBtn then
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
-    elseif triggerKey then 
-        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+    elseif triggerKey then
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
-            
         end
     end
 
     if MousePosX_WhenClick then
-        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick  )
-       
+        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
+
         r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         local function Hide()
-            if MouseBtn then 
+            if MouseBtn then
                 if r.ImGui_IsMouseDown(ctx, MouseBtn) then
-
                     r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
                     r.defer(Hide)
                 else
@@ -474,37 +461,35 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
                         r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
                     end
                 end
-            elseif triggerKey then 
-
+            elseif triggerKey then
                 if r.ImGui_IsKeyDown(ctx, triggerKey) then
                     r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
                     r.defer(Hide)
                 else
                     r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
-                    if r.ImGui_IsKeyReleased(ctx, triggerKey) then 
+                    if r.ImGui_IsKeyReleased(ctx, triggerKey) then
                         r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
                     end
                 end
             end
         end
-       -- r.JS_Mouse_SetCursor(Invisi_Cursor)
+        -- r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         Hide()
     end
 end
 
-
 function GetMouseDelta(MouseBtn, triggerKey)
-    MouseDelta= MouseDelta or {}
+    MouseDelta = MouseDelta or {}
     local M = MouseDelta
-    if MouseBtn then 
-        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+    if MouseBtn then
+        if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
             M.StX, M.StY = r.GetMousePosition()
         end
     end
 
-    if triggerKey then 
-        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then 
+    if triggerKey then
+        if r.ImGui_IsKeyPressed(ctx, triggerKey, false) then
             M.StX, M.StY = r.GetMousePosition()
         end
     end
@@ -512,23 +497,21 @@ function GetMouseDelta(MouseBtn, triggerKey)
     M.X_now, M.Y_now = r.GetMousePosition()
 
 
-    if M.StX ~= M.X_now or M.StY ~= M.Y_now then 
-
-        local outX, outY =  M.X_now-M.StX , M.StY - M.Y_now
+    if M.StX ~= M.X_now or M.StY ~= M.Y_now then
+        local outX, outY = M.X_now - M.StX, M.StY - M.Y_now
         local UserOS = r.GetOS()
 
         if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
-        else  outY = -outY
+        else
+            outY = -outY
         end
 
         M.StX, M.StY = r.GetMousePosition()
         return outX, outY
-    else  return 0, 0
+    else
+        return 0, 0
     end
-
-
 end
-
 
 ---@param Name string
 ---@param FX_Idx integer
@@ -659,11 +642,11 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     local ANGLE_MAX = 3.141592 * 2.25
     local FxGUID = FxdCtx.FXGUID[FX_Idx] or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local p_value = p_value or 1
-    if FxGUID then 
+    if FxGUID then
         FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or {}
 
 
-        FxdCtx.Wet.P_Num[FX_Idx] = FxdCtx.Wet.P_Num[FX_Idx]  or  r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+        FxdCtx.Wet.P_Num[FX_Idx] = FxdCtx.Wet.P_Num[FX_Idx] or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
 
         r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
             item_inner_spacing[2])
@@ -684,21 +667,24 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         FxdCtx.FX[FxGUID].DeltaP   = FxdCtx.FX[FxGUID].DeltaP or (r.TrackFX_GetNumParams(LT_Track, LT_FXNum) - 1)
 
 
-        local ClrOverRide , ClrOverRide_Act
-        if FxdCtx.FX[FxGUID].BgClr == 0x258551ff then  ClrOverRide = 0xffffff88  ClrOverRide_Act = 0xffffffcc   end 
+        local ClrOverRide, ClrOverRide_Act
+        if FxdCtx.FX[FxGUID].BgClr == 0x258551ff then
+            ClrOverRide = 0xffffff88
+            ClrOverRide_Act = 0xffffffcc
+        end
 
 
         if is_active then
-            lineClr =  ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
-            CircleClr = ClrOverRide_Act or Change_Clr_A(  getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
-            
+            lineClr = ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
+            CircleClr = ClrOverRide_Act or Change_Clr_A(getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+
             value_changed = true
             ActiveAny = true
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num or FxdCtx.Wet.P_Num[FX_Idx], p_value)
         elseif is_hovered or p_value ~= 1 then
-            lineClr = ClrOverRide_Act or Change_Clr_A( getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+            lineClr = ClrOverRide_Act or Change_Clr_A(getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
         else
-            lineClr = ClrOverRide or  r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBgHovered())
+            lineClr = ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBgHovered())
         end
 
 
@@ -738,7 +724,8 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
             local radius_outer = radius_outer
             r.ImGui_DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
                 center[2] - radius_outer, center[1] + radius_outer, center[2] + radius_outer, 0x999900ff)
-            r.ImGui_DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2, 0xffffffff, 'S')
+            r.ImGui_DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2,
+                0xffffffff, 'S')
         end
 
         --[[ if is_active or is_hovered and FX[FxGUID].DeltaP_V ~= 1 then
@@ -911,7 +898,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
             for i = 0, PrmCount - 4, 1 do
                 FxdCtx.FX[FxGUID].PrmList[i] = FxdCtx.FX[FxGUID].PrmList[i] or {}
                 ---@type integer, string|number|nil
-                local _, BLprm       = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
+                local _, BLprm               = r.GetProjExtState(0, 'FX Devices - Preset Morph', Nm .. ' Blacklist ' .. i)
                 if BLprm ~= '' then
                     BLprm = tonumber(BLprm)
                     FxdCtx.FX[FxGUID].PrmList[BLprm] = FxdCtx.FX[FxGUID].PrmList[BLprm] or {}
@@ -935,7 +922,6 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
     end
 end
 
-
 ---@param LT_Track MediaTrack
 ---@param FX_Idx integer
 function openFXwindow(LT_Track, FX_Idx)
@@ -951,7 +937,8 @@ end
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
     r.Undo_BeginBlock()
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) or ''),
+    r.GetSetMediaTrackInfo_String(LT_Track,
+        'P_EXT: PreFX ' .. (table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) or ''),
         '',
         true)
     --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX '..(tablefind (Trk[TrkID].PostFX, FxGUID) or ''), '', true)
@@ -972,7 +959,8 @@ function DeleteFX(FX_Idx, FxGUID)
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then
                 if table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID) then
-                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID))
+                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS,
+                        table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID))
                 end
             end
         end
@@ -1026,7 +1014,7 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     for Mc = 1, 8, 1 do
         if FP.ModAMT then
             if FP.ModAMT[Mc] then
-                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..FP.Num..".plink.active", 0)   -- 1 active, 0 inactive
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 FP.ModAMT[Mc] = nil
             end
         end
@@ -1051,11 +1039,13 @@ function SyncTrkPrmVtoActualValue()
     for FX_Idx = 0, Sel_Track_FX_Count, 1 do                 ---for every selected FX in cur track
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx) ---get FX’s GUID
         if FxGUID then
-            FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or {}                    ---create new params table for FX if it doesn’t exist
-            for Fx_P = 1, #FxdCtx.FX[FxGUID] or 0, 1 do             ---for each param
+            FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or
+            {}                                               ---create new params table for FX if it doesn’t exist
+            for Fx_P = 1, #FxdCtx.FX[FxGUID] or 0, 1 do      ---for each param
                 if TrkID then
                     if not FxdCtx.FX[FxGUID][Fx_P].WhichMODs then
-                        FxdCtx.FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FxdCtx.FX[FxGUID][Fx_P].Num or 0) ---get param value
+                        FxdCtx.FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                            FxdCtx.FX[FxGUID][Fx_P].Num or 0)                                                                        ---get param value
                     end
                 end
             end
@@ -1072,7 +1062,7 @@ end
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
     state_helpers.GetLTParam()
     local FX_Count = r.TrackFX_GetCount(LT_Track)
- local RptPrmFound
+    local RptPrmFound
     local F = FxdCtx.FX[LT_FXGUID] or {}
 
     if F then
@@ -1106,9 +1096,8 @@ function AddSpacing(Rpt)
     end
 end
 
-function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer)
-    
-    if FxdCtx.FX[FxGUID] then 
+function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer)
+    if FxdCtx.FX[FxGUID] then
         if FxdCtx.FX[FxGUID].TitleClr then
             WinbtnClrPop = 3
             if not FxdCtx.FX[FxGUID].TitleClrHvr then
@@ -1127,16 +1116,17 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
 
 
-        if not FxdCtx.FX[FxGUID].Collapse  and not FxdCtx.FX[FxGUID].V_Win_Btn_Height or isContainer then
-            if not FxdCtx.FX[FxGUID].NoWindowBtn then 
-                local Name = (FxdCtx.FX[FxGUID].CustomTitle  or ChangeFX_Name(select(2,r.TrackFX_GetFXName(LT_Track,FX_Idx))).. '## ')
+        if not FxdCtx.FX[FxGUID].Collapse and not FxdCtx.FX[FxGUID].V_Win_Btn_Height or isContainer then
+            if not FxdCtx.FX[FxGUID].NoWindowBtn then
+                local Name = (FxdCtx.FX[FxGUID].CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
                 if DebugMode then Name = FxGUID end
-                WindowBtn = r.ImGui_Button(ctx, Name .. '## '..FxGUID, width or FxdCtx.FX[FxGUID].TitleWidth or Default_FX_Width - 30, 20) -- create window name button
+                WindowBtn = r.ImGui_Button(ctx, Name .. '## ' .. FxGUID,
+                    width or FxdCtx.FX[FxGUID].TitleWidth or Default_FX_Width - 30, 20)                                                    -- create window name button
 
 
                 if r.ImGui_IsItemHovered(ctx) and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                     FxdCtx.FX[FxGUID].TtlHvr = true
-                    if not CantAddPrm then 
+                    if not CantAddPrm then
                         TtlR, TtlB = r.ImGui_GetItemRectMax(ctx)
                         if r.ImGui_IsMouseHoveringRect(ctx, TtlR - 20, TtlB - 20, TtlR, TtlB) then
                             r.ImGui_DrawList_AddRectFilled(WDL, TtlR, TtlB, TtlR - 20, TtlB - 20,
@@ -1156,44 +1146,46 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
                     FxdCtx.FX[FxGUID].TtlHvr = nil
                 end
             end
-        elseif FxdCtx.FX[FxGUID].V_Win_Btn_Height and not FxdCtx.FX[FxGUID].Collapse then 
-            local Name = (FxdCtx.FX[FxGUID].CustomTitle or FxdCtx.FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2,r.TrackFX_GetFXName(LT_Track,FX_Idx))).. '## ')
+        elseif FxdCtx.FX[FxGUID].V_Win_Btn_Height and not FxdCtx.FX[FxGUID].Collapse then
+            local Name = (FxdCtx.FX[FxGUID].CustomTitle or FxdCtx.FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
-            local Name_V_NoManuFacturer = Vertical_FX_Name (Name)
-           -- r.ImGui_PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
+            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
+            -- r.ImGui_PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
             --r.ImGui_SameLine(ctx, nil, 0)
 
-             WindowBtn = r.ImGui_Button(ctx, Name_V_NoManuFacturer..'##'..FxGUID, 25, FxdCtx.FX[FxGUID].V_Win_Btn_Height)
+            WindowBtn = r.ImGui_Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25,
+                FxdCtx.FX[FxGUID].V_Win_Btn_Height)
 
-           -- r.ImGui_PopStyleVar(ctx)             --StyleVar#3 POP
-        else  -- if collapsed
+            -- r.ImGui_PopStyleVar(ctx)             --StyleVar#3 POP
+        else -- if collapsed
             FxdCtx.FX.WidthCollapse[FxGUID] = 27
-            local Name = (FxdCtx.FX[FxGUID].CustomTitle or FxdCtx.FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2,r.TrackFX_GetFXName(LT_Track,FX_Idx))).. '## ')
-            
-            local Name_V_NoManuFacturer = Vertical_FX_Name (Name)
+            local Name = (FxdCtx.FX[FxGUID].CustomTitle or FxdCtx.FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+
+            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
             r.ImGui_PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
             --r.ImGui_SameLine(ctx, nil, 0)
-            
-            WindowBtn = r.ImGui_Button(ctx, Name_V_NoManuFacturer..'##'..FxGUID, 25, 220)
+
+            WindowBtn = r.ImGui_Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
             r.ImGui_PopStyleVar(ctx)             --StyleVar#3 POP
         end
         r.ImGui_PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
 
-        local BgClr 
+        local BgClr
         FxdCtx.FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
-        
+
         if not FxdCtx.FX.Enable[FX_Idx] then
             --r.ImGui_DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
             BgClr = 0x00000088
         end
-        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, W, 1, 1, 'GetItemRect', WDL, FxdCtx.FX[FxGUID].Round --[[rounding]])
+        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, W, 1, 1, 'GetItemRect', WDL,
+            FxdCtx.FX[FxGUID].Round --[[rounding]])
 
 
-       -- r.ImGui_SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
+        -- r.ImGui_SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
         local R_ClickOnWindowBtn = r.ImGui_IsItemClicked(ctx, 1)
         local L_ClickOnWindowBtn = r.ImGui_IsItemClicked(ctx)
 
-        if not CantCollapse then 
+        if not CantCollapse then
             if R_ClickOnWindowBtn and Mods == Ctrl then
                 r.ImGui_OpenPopup(ctx, 'Fx Module Menu')
             elseif R_ClickOnWindowBtn and Mods == 0 then
@@ -1207,12 +1199,11 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
 
         if WindowBtn and Mods == 0 then
-
             openFXwindow(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Shift then
             state_helpers.ToggleBypassFX(LT_Track, FX_Idx)
         elseif WindowBtn and Mods == Alt then
-            DeleteFX(FX_Idx,FxGUID)
+            DeleteFX(FX_Idx, FxGUID)
         end
 
         if r.ImGui_IsItemHovered(ctx) then
@@ -1230,7 +1221,8 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
             DragDroppingFX = true
             if IsAnyMouseDown == false then DragDroppingFX = false end
-            HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
+            HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect',
+                WDL)
             Post_DragFX_ID = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
         end
 
@@ -1240,41 +1232,40 @@ function AddWindowBtn (FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContai
 
         ----Drag and drop END----
 
-        
 
-        if R_ClickOnWindowBtn then return 2 
-        elseif L_ClickOnWindowBtn then return 1 
-        end 
-        
+
+        if R_ClickOnWindowBtn then
+            return 2
+        elseif L_ClickOnWindowBtn then
+            return 1
+        end
     end
-
 end
 
 function DndAddFX_SRC(fx)
     if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_AcceptBeforeDelivery()) then
-      r.ImGui_SetDragDropPayload(ctx, 'DND ADD FX', fx)
-      r.ImGui_Text(ctx, fx)
-      r.ImGui_EndDragDropSource(ctx)
+        r.ImGui_SetDragDropPayload(ctx, 'DND ADD FX', fx)
+        r.ImGui_Text(ctx, fx)
+        r.ImGui_EndDragDropSource(ctx)
     end
 end
 
 function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
-
     --if not DND_ADD_FX then return  end
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
     if r.ImGui_BeginDragDropTarget(ctx) then
         local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-        
-        
+
+
         if dropped then
             local FX_Idx = Dest
             if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
-            
+
             r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
             local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
 
-                --if in layer
+            --if in layer
             if FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
                 DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
             end
@@ -1283,24 +1274,25 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
                     table.insert(FxdCtx.Trk[TrkID].PreFX, FxID)
                 else
-                table.insert(FxdCtx.Trk[TrkID].PreFX, FX_Idx + 1, FxID)
+                    table.insert(FxdCtx.Trk[TrkID].PreFX, FX_Idx + 1, FxID)
                 end
-                for i, v in pairs(FxdCtx.Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                    true) end
+                for i, v in pairs(FxdCtx.Trk[TrkID].PreFX) do
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
+                        true)
+                end
             elseif SpcInPost then
                 if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
                 table.insert(FxdCtx.Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
                 -- InsertToPost_Src = FX_Idx + offset+2
                 for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '', true)
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '',
+                        true)
                 end
             elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
                 DropFXintoBS(FxID, FxGUID_Container, FxdCtx.FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
             FX_Idx_OpenedPopup = nil
-
         end
-
     end
     r.ImGui_PopStyleColor(ctx)
 end
@@ -1331,9 +1323,9 @@ function AddFX_Menu(FX_Idx)
         local track_template_path = r.GetResourcePath() .. "/TrackTemplates" .. template
         if replace then
             local chunk = fs_utils.GetFileContext(track_template_path)
-            r.SetTrackStateChunk( TRACK, chunk, true )
+            r.SetTrackStateChunk(TRACK, chunk, true)
         else
-            r.Main_openProject( track_template_path )
+            r.Main_openProject(track_template_path)
         end
     end
     local function DrawTrackTemplates(tbl, path)
@@ -1360,8 +1352,8 @@ function AddFX_Menu(FX_Idx)
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
-        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost,SpcIDinPost) then
-            AddedFX=true 
+        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
+            AddedFX = true
             r.ImGui_CloseCurrentPopup(ctx)
         end -- Add FX Window
         r.ImGui_SeparatorText(ctx, "PLUGINS")
@@ -1370,16 +1362,16 @@ function AddFX_Menu(FX_Idx)
                 if FxdCtx.CAT[i].name == "FX CHAINS" then
                     DrawFxChains(FxdCtx.CAT[i].list)
                 elseif FxdCtx.CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
-                    DrawTrackTemplates(FxdCtx.CAT[i].list)                        
+                    DrawTrackTemplates(FxdCtx.CAT[i].list)
                 else
                     for j = 1, #FxdCtx.CAT[i].list do
-                        if r.ImGui_BeginMenu(ctx, FxdCtx.CAT[i].list[j].name ) then
+                        if r.ImGui_BeginMenu(ctx, FxdCtx.CAT[i].list[j].name) then
                             for p = 1, #FxdCtx.CAT[i].list[j].fx do
                                 if FxdCtx.CAT[i].list[j].fx[p] then
                                     if r.ImGui_Selectable(ctx, FxdCtx.CAT[i].list[j].fx[p]) then
                                         if TRACK then
-                                            AddedFX = true 
-                                            r.TrackFX_AddByName(TRACK, FxdCtx.CAT[i].list[j].fx[p], false,-1000 - FX_Idx)
+                                            AddedFX = true
+                                            r.TrackFX_AddByName(TRACK, FxdCtx.CAT[i].list[j].fx[p], false, -1000 - FX_Idx)
                                             LAST_USED_FX = FxdCtx.CAT[i].list[j].fx[p]
                                         end
                                     end
@@ -1396,21 +1388,21 @@ function AddFX_Menu(FX_Idx)
             if r.ImGui_Selectable(ctx, "ReaDrum Machine") then
                 local chain_src = "../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain"
                 local found = false
-                count = r.TrackFX_GetCount(TRACK) -- 1 based
+                count = r.TrackFX_GetCount(TRACK)                                          -- 1 based
                 for i = 0, count - 1 do
-                  local _, rename = r.TrackFX_GetNamedConfigParm(TRACK, i, 'renamed_name') -- 0 based
-                  if rename == 'ReaDrum Machine' then
-                    found = true
-                    break
-                  end
+                    local _, rename = r.TrackFX_GetNamedConfigParm(TRACK, i, 'renamed_name') -- 0 based
+                    if rename == 'ReaDrum Machine' then
+                        found = true
+                        break
+                    end
                 end
                 if not found then
-                r.Undo_BeginBlock()
-                r.PreventUIRefresh(1)
-                r.TrackFX_AddByName(TRACK, chain_src, false, -1000 - FX_Idx)
-                AddedFX=true
-                r.PreventUIRefresh(-1)
-                EndUndoBlock("ADD DRUM MACHINE")
+                    r.Undo_BeginBlock()
+                    r.PreventUIRefresh(1)
+                    r.TrackFX_AddByName(TRACK, chain_src, false, -1000 - FX_Idx)
+                    AddedFX = true
+                    r.PreventUIRefresh(-1)
+                    EndUndoBlock("ADD DRUM MACHINE")
                 end
             end
             DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
@@ -1419,20 +1411,20 @@ function AddFX_Menu(FX_Idx)
         TRACK = r.GetSelectedTrack(0, 0)
         if r.ImGui_Selectable(ctx, "CONTAINER") then
             r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
-            AddedFX=true
+            AddedFX = true
             LAST_USED_FX = "Container"
         end
         DndAddFX_SRC("Container")
         if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
             r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
-            AddedFX=true
+            AddedFX = true
             LAST_USED_FX = "Video processor"
         end
         DndAddFX_SRC("Video processor")
         if LAST_USED_FX then
             if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
                 r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - FX_Idx)
-                AddedFX=true
+                AddedFX = true
             end
         end
         DndAddFX_SRC(LAST_USED_FX)
@@ -1472,7 +1464,7 @@ function AddFX_Menu(FX_Idx)
                 local FXGUID = r.TrackFX_GetFXGUID(LT_Track, F)
                 local _, FX_Name = r.TrackFX_GetFXName(LT_Track, F)
                 if string.find(FX_Name, 'FXD Split to 32 Channels') ~= nil then
-                    FX_Layr_Inst                       = FX_Layr_Inst + 1
+                    FX_Layr_Inst                              = FX_Layr_Inst + 1
                     FxdCtx.Lyr.SpltrID[FX_Layr_Inst .. TrkID] = r.TrackFX_GetFXGUID(LT_Track,
                         FX_Idx - 1)
                 end
@@ -1529,7 +1521,7 @@ function AddFX_Menu(FX_Idx)
 
         if IsLBtnClicked then FX_Idx_OpenedPopup = nil end
 
-        if AddedFX then  RetrieveFXsSavedLayout(Sel_Track_FX_Count) end 
+        if AddedFX then RetrieveFXsSavedLayout(Sel_Track_FX_Count) end
 
 
 
@@ -1541,9 +1533,7 @@ function AddFX_Menu(FX_Idx)
     else
         FxdCtx.Dvdr.Clr[ClrLbl or ''] = 0x131313ff
     end
-
 end
-
 
 function createFXWindow(FX_Idx, Cur_X_Ofs)
     local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -1560,8 +1550,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         local Hide
         FxdCtx.FX.DL = r.ImGui_GetWindowDrawList(ctx)
 
-        if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]]  then 
-            ContainerX, ContainerY =r.ImGui_GetCursorScreenPos(ctx)
+        if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
+            ContainerX, ContainerY = r.ImGui_GetCursorScreenPos(ctx)
         end
 
         FX_Name = string.sub(FX_Name, 1, (string.find(FX_Name, '%(') or 30) - 1)
@@ -1591,15 +1581,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             'P_EXT: FX Morph A' .. i .. FxGUID,
                             FxdCtx.FX[FxGUID].MorphA[i], true)
                         if LinkCC then
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", FxdCtx.FX[FxGUID].MorphB[i])   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", Prm_Val) -- Baseline                                                
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)                      -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale",
+                                FxdCtx.FX[FxGUID].MorphB[i])                                                                         -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100)                   -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)                      -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15)                   -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan", 16)                  -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg", 160)                  -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2", LinkCC)              -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline", Prm_Val)                -- Baseline
                         end
                     else
                         if DontStoreCurrentVal ~= 'Dont' then FxdCtx.FX[FxGUID].MorphB[i] = Prm_Val end
@@ -1608,15 +1599,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 'P_EXT: FX Morph B' .. i ..
                                 FxGUID, FxdCtx.FX[FxGUID].MorphB[i], true)
                             if LinkCC then
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Prm_Val - FxdCtx.FX[FxGUID].MorphA[i])   -- Scale
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", LinkCC) -- CC value
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", FxdCtx.FX[FxGUID].MorphA[i]) -- Baseline                                                    
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)                                -- 1 active, 0 inactive
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale",
+                                    Prm_Val - FxdCtx.FX[FxGUID].MorphA[i])                                                                         -- Scale
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100)                             -- -100 enables midi_msg*
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)                                -- -1 not parameter link
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15)                             -- 0 based, 15 = Bus 16
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan", 16)                            -- 0 based, 0 = Omni
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg", 160)                            -- 160 is Aftertouch
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2",
+                                    LinkCC)                                                                                                        -- CC value
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline",
+                                    FxdCtx.FX[FxGUID].MorphA[i])                                                                                   -- Baseline
                             end
                         end
                     end
@@ -1767,15 +1761,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             if v ~= FxdCtx.FX[FxGUID].MorphB[i] then
                                 local function LinkPrm()
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 1)   -- 1 active, 0 inactive
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.scale", Scale)   -- Scale
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.effect", -100) -- -100 enables midi_msg*
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.param", -1)   -- -1 not parameter link
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.midi_msg2", FxdCtx.FX[FxGUID].Morph_ID) -- CC value
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".mod.baseline", v) -- Baseline                                                           
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)                         -- 1 active, 0 inactive
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale", Scale)                      -- Scale
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100)                      -- -100 enables midi_msg*
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)                         -- -1 not parameter link
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15)                      -- 0 based, 15 = Bus 16
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan",
+                                        16)                                                                                                     -- 0 based, 0 = Omni
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg",
+                                        160)                                                                                                    -- 160 is Aftertouch
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2",
+                                        FxdCtx.FX[FxGUID].Morph_ID)                                                                             -- CC value
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline", v)                         -- Baseline
                                     FxdCtx.FX[FxGUID][i] = FxdCtx.FX[FxGUID][i] or {}
                                     r.GetSetMediaTrackInfo_String(LT_Track,
                                         'P_EXT: FXs Morph_ID' .. FxGUID, FxdCtx.FX[FxGUID].Morph_ID, true)
@@ -1793,10 +1790,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                         -- Show Envelope for Morph Slider
-                        local env = r.GetFXEnvelope(LT_Track, 0, 7 + FxdCtx.FX[FxGUID].Morph_ID, false) -- Check if envelope is on
-                        if env == nil then  -- Envelope is off
+                        local env = r.GetFXEnvelope(LT_Track, 0, 7 + FxdCtx.FX[FxGUID].Morph_ID, false)    -- Check if envelope is on
+                        if env == nil then                                                                 -- Envelope is off
                             local env = r.GetFXEnvelope(LT_Track, 0, 7 + FxdCtx.FX[FxGUID].Morph_ID, true) -- true = Create envelope
-                        else -- Envelope is on but invisible
+                        else                                                                               -- Envelope is on but invisible
                             local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 0", "VIS 1")
                             r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
@@ -1810,12 +1807,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         SetPrmAlias(LT_TrackNum, 1, 8 + FxdCtx.FX[FxGUID].Morph_ID,
                             FxdCtx.FX.Win_Name_S[FX_Idx]:gsub("%b()", "") .. ' - Morph AB ')
-                            
                     end
                 elseif FxdCtx.FX[FxGUID].Morph_ID or not FxdCtx.FX[FxGUID].Unlink then
                     if r.ImGui_Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
                         for i, _ in ipairs(FxdCtx.FX[FxGUID].MorphA), FxdCtx.FX[FxGUID].MorphA, -1 do
-                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..i..".plink.active", 0)   -- 1 active, 0 inactive
+                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i ..
+                            ".plink.active", 0)                                                                             -- 1 active, 0 inactive
                         end
                         r.GetSetMediaTrackInfo_String(LT_Track,
                             'P_EXT: FXs Morph_ID' .. FxGUID,
@@ -1849,7 +1846,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     FxdCtx.FX[FxGUID].PrmList = FxdCtx.FX[FxGUID].PrmList or {}
                     for i = 0, Ct - 4, 1 do --get param names
                         FxdCtx.FX[FxGUID].PrmList[i]      = FxdCtx.FX[FxGUID].PrmList[i] or {}
-                        local _, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx,
+                        local _, name                     = r.TrackFX_GetParamName(LT_Track, FX_Idx,
                             i)
                         FxdCtx.FX[FxGUID].PrmList[i].Name = name
                     end
@@ -1858,9 +1855,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if r.ImGui_Selectable(ctx, 'Hide Morph Slider', false) then
                     FxdCtx.FX[FxGUID].MorphHide = true
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
-                        'true',true)
+                        'true', true)
                 end
-                
+
                 r.ImGui_EndPopup(ctx)
             else
                 MorphingMenuOpen = false
@@ -1912,7 +1909,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             if BtnB_TxtClr then r.ImGui_PopStyleColor(ctx) end
             if FxdCtx.FX.Enable[FX_Idx] == false then
-                r.ImGui_DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
+                r.ImGui_DrawList_AddRectFilled(WDL, L, T - 20, R, B + 20, 0x00000088)
             end
 
             r.ImGui_SetCursorPos(ctx, OrigCurX + 19, OrigCurY)
@@ -1923,7 +1920,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         -- FX window color
 
         r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ChildBg(), FxdCtx.FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff)
- local poptimes = 1
+        local poptimes = 1
 
 
         FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or {}
@@ -1962,18 +1959,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 r.ImGui_SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
             end
             local Width = FxdCtx.FX.WidthCollapse[FxGUID] or FxdCtx.FX[FxGUID].Width or DefaultWidth or 220
-            local winFlg = r.ImGui_WindowFlags_NoScrollWithMouse() + r.ImGui_WindowFlags_NoScrollbar() 
+            local winFlg = r.ImGui_WindowFlags_NoScrollWithMouse() + r.ImGui_WindowFlags_NoScrollbar()
             local dummyH = 220
-            if FX_Name == 'Container' then  
-                winFlg = FxdCtx.FX[FxGUID].NoScroll or  r.ImGui_WindowFlags_AlwaysAutoResize()
-                dummyH =0
-
+            if FX_Name == 'Container' then
+                winFlg = FxdCtx.FX[FxGUID].NoScroll or r.ImGui_WindowFlags_AlwaysAutoResize()
+                dummyH = 0
             end
             r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ScrollbarSize(), 8) -- styleVar ScrollBar
 
 
 
-            if r.ImGui_BeginChild(ctx, FX_Name .. FX_Idx, Width, 220,nil, winFlg) and not Hide then ----START CHILD WINDOW------
+            if r.ImGui_BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, winFlg) and not Hide then ----START CHILD WINDOW------
                 if FxdCtx.Draw[FxNameS] ~= nil then
                     local D = FxdCtx.Draw[FxNameS]
                 end
@@ -1983,15 +1979,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                 WDL = r.ImGui_GetWindowDrawList(ctx)
                 Win_L, Win_T = r.ImGui_GetItemRectMin(ctx)
- Win_W, Win_H = r.ImGui_GetItemRectSize(ctx)
+                Win_W, Win_H = r.ImGui_GetItemRectSize(ctx)
                 Win_R, _ = r.ImGui_GetItemRectMax(ctx)
- Win_B = Win_T + 220
+                Win_B = Win_T + 220
 
                 if FxdCtx.Draw.DrawMode[FxGUID] == true then
                     local D = FxdCtx.Draw[FxNameS]
                     r.ImGui_DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
                     -- add horizontal grid
-                    for i = 0, 220, FxdCtx.LE.GridSize do 
+                    for i = 0, 220, FxdCtx.LE.GridSize do
                         r.ImGui_DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
                     end
                     -- add vertical grid
@@ -2000,7 +1996,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                     if r.ImGui_IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not FxdCtx.Draw.SelItm and FxdCtx.Draw.Time == 0 then
                         if FxdCtx.Draw.Type == 'Text' then
-                            r.ImGui_SetMouseCursor(ctx,r.ImGui_MouseCursor_TextInput())
+                            r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_TextInput())
                         end
                         if r.ImGui_IsMouseClicked(ctx, 0) and Mods == 0 then
                             FxdCtx.Draw.CurrentylDrawing = true
@@ -2008,7 +2004,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             CurX, CurY = r.ImGui_GetCursorScreenPos(ctx)
                             Win_MsX_Start = MsX_Start - CurX
- Win_MsY_Start = MsY_Start - CurY + 3
+                            Win_MsY_Start = MsY_Start - CurY + 3
                         end
 
                         if FxdCtx.Draw.CurrentylDrawing then
@@ -2016,21 +2012,24 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 MsX, MsY   = r.ImGui_GetMousePos(ctx)
                                 CurX, CurY = r.ImGui_GetCursorScreenPos(ctx)
                                 Win_MsX    = MsX - CurX
- Win_MsY = MsY - CurY
+                                Win_MsY    = MsY - CurY
 
                                 Rad        = MsX - MsX_Start
-                                local Clr = FxdCtx.Draw.clr or 0xffffffff
+                                local Clr  = FxdCtx.Draw.clr or 0xffffffff
                                 if Rad < 0 then Rad = Rad * (-1) end
                                 if FxdCtx.Draw.Type == 'line' then
                                     r.ImGui_DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY_Start, Clr)
                                 elseif FxdCtx.Draw.Type == 'V-line' then
                                     r.ImGui_DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX_Start, MsY, Clr)
                                 elseif FxdCtx.Draw.Type == 'rectangle' then
-                                    r.ImGui_DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
+                                    r.ImGui_DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                        FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif FxdCtx.Draw.Type == 'Picture' then
-                                    r.ImGui_DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
+                                    r.ImGui_DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                        FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif FxdCtx.Draw.Type == 'rect fill' then
-                                    r.ImGui_DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
+                                    r.ImGui_DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                        FxdCtx.FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif FxdCtx.Draw.Type == 'circle' then
                                     r.ImGui_DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad, Clr)
                                 elseif FxdCtx.Draw.Type == 'circle fill' then
@@ -2041,7 +2040,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
 
                             if r.ImGui_IsMouseReleased(ctx, 0) and Mods == 0 and FxdCtx.Draw.Type ~= 'Text' then
-                                FxdCtx.FX[FxGUID].Draw[(#FxdCtx.FX[FxGUID].Draw or 0) + 1] =  {}
+                                FxdCtx.FX[FxGUID].Draw[(#FxdCtx.FX[FxGUID].Draw or 0) + 1] = {}
                                 local D = FxdCtx.FX[FxGUID].Draw[(#FxdCtx.FX[FxGUID].Draw or 1)]
 
 
@@ -2049,16 +2048,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 --find the next available slot in table
 
                                 if FxdCtx.Draw.Type == 'circle' or FxdCtx.Draw.Type == 'circle fill' then
-                                    D.R =  Rad
+                                    D.R = Rad
                                 else
-                                    D.R =  Win_MsX
+                                    D.R = Win_MsX
                                 end
 
-                                D.L =  Win_MsX_Start
-                                D.T =  Win_MsY_Start
-                                D.Type =  FxdCtx.Draw.Type
-                                D.B =  Win_MsY
-                                D.clr =  FxdCtx.Draw.clr or 0xffffffff
+                                D.L = Win_MsX_Start
+                                D.T = Win_MsY_Start
+                                D.Type = FxdCtx.Draw.Type
+                                D.B = Win_MsY
+                                D.clr = FxdCtx.Draw.clr or 0xffffffff
                                 --if not Draw.SelItm then Draw.SelItm = #D.Type end
                             end
 
@@ -2128,7 +2127,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     if FxdCtx.FX[FxGUID].Draw then
                         for i, D in ipairs(FxdCtx.FX[FxGUID].Draw) do
                             local ID = FX_Name .. i
-                            local CircleX, CircleY = Win_L + D.L , Win_T + D.T
+                            local CircleX, CircleY = Win_L + D.L, Win_T + D.T
                             local FDL = r.ImGui_GetForegroundDrawList(ctx)
                             r.ImGui_DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
                             r.ImGui_DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
@@ -2184,7 +2183,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end --- end of if draw mode is active
 
                 if FxdCtx.FX[FxGUID].Draw and not FxdCtx.FX[FxGUID].Collapse then
-
                     for i, Type in ipairs(FxdCtx.FX[FxGUID].Draw) do
                         FxdCtx.FX[FxGUID].Draw[i] = FxdCtx.FX[FxGUID].Draw[i] or {}
                         local D = FxdCtx.FX[FxGUID].Draw[i]
@@ -2242,7 +2240,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     MouseX, MouseY = r.ImGui_GetMousePos(ctx)
                     Win_L, Win_T = r.ImGui_GetItemRectMin(ctx)
                     Win_R, _ = r.ImGui_GetItemRectMax(ctx)
- Win_B = Win_T + 220
+                    Win_B = Win_T + 220
                     WinDrawList = r.ImGui_GetWindowDrawList(ctx)
                     r.ImGui_DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0, Win_R or 0,
                         Win_B, 0x00000055)
@@ -2283,11 +2281,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         r.ImGui_DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0,
                             Win_R or 0, Win_B, 0x00000055)
                         local MsDragDeltaX, MsDragDeltaY = r.ImGui_GetMouseDragDelta(ctx)
- local Dx, Dy =
+                        local Dx, Dy =
                             r.ImGui_GetMouseDelta(ctx)
                         if not FxdCtx.FX[FxGUID].Width then FxdCtx.FX[FxGUID].Width = DefaultWidth end
                         FxdCtx.FX[FxGUID].Width = FxdCtx.FX[FxGUID].Width + Dx
- FxdCtx.LE.BeenEdited = true
+                        FxdCtx.LE.BeenEdited = true
                     end
                     if not IsLBtnHeld then FxdCtx.LE.ResizingFX = nil end
                 end
@@ -2300,14 +2298,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 r.ImGui_SameLine(ctx, nil, 0)
                 if FxdCtx.FX.LayEdit == FxGUID and FxdCtx.Draw.DrawMode[FxGUID] ~= true then
                     r.ImGui_BeginDisabled(ctx)
- R, T = r.ImGui_GetItemRectMax(ctx)
+                    R, T = r.ImGui_GetItemRectMax(ctx)
                 end
 
-                
-                
 
 
-                AddWindowBtn (FxGUID, FX_Idx)
+
+
+                AddWindowBtn(FxGUID, FX_Idx)
 
 
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Border(), getClr(r.ImGui_Col_FrameBg()))
@@ -2398,9 +2396,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                 if FxdCtx.FX.LayEdit == FxGUID and FxdCtx.Draw.DrawMode[FxGUID] ~= true then
                     local L, T = r.ImGui_GetItemRectMin(ctx)
- local R, _ = r.ImGui_GetItemRectMax(
+                    local R, _ = r.ImGui_GetItemRectMax(
                         ctx)
- B = T + 20
+                    B = T + 20
                     r.ImGui_DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
                     r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
 
@@ -2437,19 +2435,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         if Mods == 0 then
                             if MouseDiff > FxdCtx.LE.GridSize then
                                 FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + FxdCtx.LE.GridSize
- FxdCtx.LE.MouseX_before =
+                                FxdCtx.LE.MouseX_before =
                                     r.ImGui_GetMousePos(ctx)
- FxdCtx.LE.BeenEdited = true
+                                FxdCtx.LE.BeenEdited = true
                             elseif MouseDiff < -FxdCtx.LE.GridSize then
                                 FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth - FxdCtx.LE.GridSize
- FxdCtx.LE.MouseX_before =
+                                FxdCtx.LE.MouseX_before =
                                     r.ImGui_GetMousePos(ctx)
- FxdCtx.LE.BeenEdited = true
+                                FxdCtx.LE.BeenEdited = true
                             end
                         end
                         if Mods == Shift then
                             FxdCtx.FX[FxGUID].TitleWidth = FxdCtx.FX[FxGUID].TitleWidth + DeltaX
- FxdCtx.LE.BeenEdited = true
+                            FxdCtx.LE.BeenEdited = true
                         end
                     end
                     if IsLBtnHeld == false then FxdCtx.LE.ChangingTitleSize = nil end
@@ -2464,7 +2462,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                if DebugMode and r.ImGui_IsItemHovered(ctx) then gui_helpers.tooltip('FX_Idx = '..FX_Idx) end
+                if DebugMode and r.ImGui_IsItemHovered(ctx) then gui_helpers.tooltip('FX_Idx = ' .. FX_Idx) end
                 if DebugMode and r.ImGui_IsKeyDown(ctx, 84) then gui_helpers.tooltip(TrkID) end
 
 
@@ -2529,7 +2527,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         FxdCtx.FX[FxGUID].PrmList = FxdCtx.FX[FxGUID].PrmList or {}
                         for i = 0, Ct - 4, 1 do --get param names
                             FxdCtx.FX[FxGUID].PrmList[i]      = FxdCtx.FX[FxGUID].PrmList[i] or {}
-                            local _, name             = r.TrackFX_GetParamName(LT_Track,
+                            local _, name                     = r.TrackFX_GetParamName(LT_Track,
                                 FX_Idx, i)
                             FxdCtx.FX[FxGUID].PrmList[i].Name = name
                         end
@@ -3011,14 +3009,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 ----Area right of window title
                 --------------------------------
                 function SyncWetValues(id)
-                    local id = FX_Idx or id 
+                    local id = FX_Idx or id
                     --when track change
                     if FxdCtx.Wet.Val[id] == nil or TrkID ~= TrkID_End or FXCountEndLoop ~= Sel_Track_FX_Count then -- if it's nil
                         FxdCtx.Glob.SyncWetValues = true
                     end
 
                     if FxdCtx.Glob.SyncWetValues == true then
-                        FxdCtx.Wet.P_Num[id] = r.TrackFX_GetParamFromIdent(LT_Track, id,':wet')
+                        FxdCtx.Wet.P_Num[id] = r.TrackFX_GetParamFromIdent(LT_Track, id, ':wet')
                         FxdCtx.Wet.Get = r.TrackFX_GetParamNormalized(LT_Track, id,
                             FxdCtx.Wet.P_Num[id])
                         FxdCtx.Wet.Val[id] = FxdCtx.Wet.Get
@@ -3036,12 +3034,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
 
-
                 if table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not table_helpers.FindStringInTable(pluginHelpers.PluginScripts, FxdCtx.FX.Win_Name_S[FX_Idx]) then
                     SyncWetValues()
 
                     if FxdCtx.FX[FxGUID].Collapse ~= true then
-                        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
+                        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+                            FxdCtx.Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
                     end
 
                     if r.ImGui_BeginDragDropTarget(ctx) then
@@ -3059,24 +3057,25 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 local function Decide_If_Create_Regular_Layout()
-                    if not FxdCtx.FX[FxGUID].Collapse and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
+                    if not FxdCtx.FX[FxGUID].Collapse and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                         local FX_has_Plugin
                         for _, v in pairs(pluginHelpers.PluginScripts) do
                             if FX_Name:find(v) then
-                                FX_has_Plugin = true  
+                                FX_has_Plugin = true
                             end
                         end
 
-                        if not FX_has_Plugin then  return true  
+                        if not FX_has_Plugin then
+                            return true
                         else
-                            if FxdCtx.FX[FxGUID].Compatible_W_regular then  return true  end 
+                            if FxdCtx.FX[FxGUID].Compatible_W_regular then return true end
                         end
                     end
                 end
 
-                if Decide_If_Create_Regular_Layout() then 
+                if Decide_If_Create_Regular_Layout() then
                     local WinP_X
- local WinP_Y
+                    local WinP_Y
 
                     --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                     if FxdCtx.FX.Enable[FX_Idx] == true then
@@ -3124,8 +3123,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         local FP = FxdCtx.FX[FxGUID][Fx_P] ---@class FX_P
 
                         local F_Tp = FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
- 
-                        local ID = FxGUID ..Fx_P
+
+                        local ID = FxGUID .. Fx_P
                         Rounding = 0.5
 
                         ParamX_Value = 'Param' ..
@@ -3255,41 +3254,43 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                             if Prm and FxGUID then
-
                                 DL_SPLITER = r.ImGui_CreateDrawListSplitter(WDL)
                                 r.ImGui_DrawListSplitter_Split(DL_SPLITER, 2)
                                 r.ImGui_DrawListSplitter_SetCurrentChannel(DL_SPLITER, 1)
                                 --Prm.V = Prm.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, Prm.Num)
                                 --- Add Parameter controls ---------
                                 if Prm.Type == 'Slider' or (not Prm.Type and not FxdCtx.FX.Def_Type[FxGUID]) or FxdCtx.FX.Def_Type[FxGUID] == 'Slider' then
-                                    AddSlider(ctx, '##' .. (Prm.Name or Fx_P)..FX_Name, Prm.CustomLbl,
+                                    AddSlider(ctx, '##' .. (Prm.Name or Fx_P) .. FX_Name, Prm.CustomLbl,
                                         Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style,
                                         Prm.Sldr_W or FxdCtx.FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical,
                                         GrabSize, Prm.Lbl, 8)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Sldr', curX, CurY)
                                 elseif FP.Type == 'Knob' or (FxdCtx.FX.Def_Type[FxGUID] == 'Knob' and Prm.Type == nil) then
-                                    AddKnob(ctx, '##' .. Prm.Name..FX_Name, Prm.CustomLbl, Prm.V, 0, 1, Fx_P,
+                                    AddKnob(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V, 0, 1, Fx_P,
                                         FX_Idx, Prm.Num, Prm.Style, Prm.Sldr_W or FxdCtx.Df.KnobRadius, 0,
                                         Disabled, Prm.FontSize, Prm.Lbl_Pos or 'Bottom', Prm.V_Pos)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Knob', curX, CurY)
                                 elseif Prm.Type == 'V-Slider' or (FxdCtx.FX.Def_Type[FxGUID] == 'V-Slider') then
-                                    AddSlider(ctx, '##' .. Prm.Name..FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1,
+                                    AddSlider(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1,
                                         Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or 15, 0, Disable,
                                         'Vert', GrabSize, Prm.Lbl, nil, Prm.Sldr_H or 160)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'V-Slider', curX, CurY)
                                 elseif Prm.Type == 'Switch' then
-                                    AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm.BgClr, Prm.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp,
+                                    AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm.BgClr,
+                                        Prm.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp,
                                         Prm.FontSize, FxGUID)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Switch', curX, CurY)
                                 elseif Prm.Type == 'Drag' or (FxdCtx.FX.Def_Type[FxGUID] == 'Drag') then
-                                    AddDrag(ctx, '##' .. Prm.Name..FX_Name, Prm.CustomLbl or Prm.Name,
+                                    AddDrag(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl or Prm.Name,
                                         Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Prm.Style,
                                         Prm.Sldr_W or FxdCtx.FX.Def_Sldr_W[FxGUID] or FxdCtx.Df.Sldr_W, -1, Disable,
                                         Lbl_Clickable, Prm.Lbl_Pos, Prm.V_Pos, Prm.DragDir)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Drag', curX, CurY)
                                 elseif Prm.Type == 'Selection' then
                                     AddCombo(ctx, LT_Track, FX_Idx,
-                                        Prm.Name .. FxGUID .. '## actual',Prm.Num, FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm.Style, FxGUID, Fx_P, FP.ManualValues)
+                                        Prm.Name .. FxGUID .. '## actual', Prm.Num,
+                                        FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm.Style, FxGUID, Fx_P,
+                                        FP.ManualValues)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Selection', curX,
                                         CurY)
                                 end
@@ -3324,14 +3325,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                 end
-    
+
                                 if FxdCtx.ToDef.ID and FxdCtx.ToDef.V then
                                     r.TrackFX_SetParamNormalized(LT_Track, FxdCtx.ToDef.ID, FxdCtx.ToDef.P,
                                         FxdCtx.ToDef
                                         .V)
                                     if Prm.WhichCC then
                                         if FxdCtx.Trk.Prm.WhichMcros[Prm.WhichCC .. TrkID] then
-                                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.active", 0)   -- 1 active, 0 inactive
+                                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.active", 0)                                                                 -- 1 active, 0 inactive
                                             r.TrackFX_SetParamNormalized(LT_Track, FxdCtx.ToDef.ID,
                                                 FxdCtx.ToDef.P,
                                                 FxdCtx.ToDef.V)
@@ -3343,13 +3345,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             r.gmem_write(7, Prm.WhichCC) --tells jsfx to retrieve P value
                                             FxdCtx.PM.TimeNow = r.time_precise()
                                             r.gmem_write(11000 + Prm.WhichCC, FxdCtx.ToDef.V)
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.active", 1)   -- 1 active, 0 inactive
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.effect", -100) -- -100 enables midi_msg*
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.param", -1)   -- -1 not parameter link
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.midi_msg", 176)   -- 176 is CC
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID, "param."..FxdCtx.ToDef.P..".plink.midi_msg2", Prm.WhichCC) -- CC value                                                                
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.active", 1)                                                              -- 1 active, 0 inactive
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.effect", -100)                                                           -- -100 enables midi_msg*
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.param", -1)                                                              -- -1 not parameter link
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.midi_bus", 15)                                                           -- 0 based, 15 = Bus 16
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.midi_chan", 16)                                                          -- 0 based, 0 = Omni
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.midi_msg", 176)                                                          -- 176 is CC
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, FxdCtx.ToDef.ID,
+                                                "param." .. FxdCtx.ToDef.P .. ".plink.midi_msg2", Prm.WhichCC)                                                 -- CC value
                                         end
                                     end
                                     Prm.V = FxdCtx.ToDef.V
@@ -3380,13 +3389,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                                    local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
+                                    local GR = tonumber(select(2,
+                                        r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
 
                                     for _, v in ipairs(FP.Draw) do
                                         local x, y              = r.ImGui_GetItemRectMin(ctx)
-                                        Prm.V = Prm.V or 0
-                                        local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
-                                        local y                 = y + (v.Y_Offset or 0) + (Prm.V * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
+                                        Prm.V                   = Prm.V or 0
+                                        local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) +
+                                        ((GR or 0) * (v.X_Offset_VA_GR or 0))
+                                        local y                 = y + (v.Y_Offset or 0) + (Prm.V * (v.Y_Offset_VA or 0)) +
+                                        ((GR or 0) * (v.Y_Offset_VA_GR or 0))
                                         local Thick             = (v.Thick or 2)
                                         local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
                                         local Clr_VA
@@ -3398,7 +3410,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                                         if v.X_Gap_VA and v.X_Gap_VA ~= 0 then
-                                            X_Gap = (v.X_Gap or 0) *Prm.V * v.X_Gap_VA
+                                            X_Gap = (v.X_Gap or 0) * Prm.V * v.X_Gap_VA
                                         end
                                         if v.Y_Gap_VA and v.Y_Gap_VA ~= 0 then
                                             Y_Gap = (v.Y_Gap or 0) * Prm.V * v.Y_Gap_VA
@@ -3423,17 +3435,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if v.Width_VA and v.Width_VA ~= 0 then
                                                 x2 = x + (w or 10) * Prm.V * (v.Width_VA)
                                             end
-                                            if v.Width_VA_GR then 
+                                            if v.Width_VA_GR then
                                                 x2 = x + (w or 10) * (GR * (v.Width_VA_GR or 0))
                                             end
 
                                             if v.Height_VA and v.Height_VA ~= 0 then
-                                                y2 = y + (h or 10) * Prm.V * (v.Height_VA) 
+                                                y2 = y + (h or 10) * Prm.V * (v.Height_VA)
                                             end
-                                            if v.Height_VA_GR and v.Height_VA_GR ~=0 then 
-
-                                                y2 = y + (h or 10) * GR * (v.Height_VA_GR) 
-
+                                            if v.Height_VA_GR and v.Height_VA_GR ~= 0 then
+                                                y2 = y + (h or 10) * GR * (v.Height_VA_GR)
                                             end
 
 
@@ -3441,14 +3451,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if v.Type == 'Line' then
                                                 if Prm.Type == 'Slider' or Prm.Type == 'Drag' or (not Prm.Type) then
                                                     v.Height = v.Height or 0
- v.Width = v.Width or w
+                                                    v.Width  = v.Width or w
                                                     h        = v.Height or 0
- w = v.Width or w
+                                                    w        = v.Width or w
                                                 elseif Prm.Type == 'V-Slider' then
                                                     v.Height = v.Height or h
- v.Width = v.Width or 0
+                                                    v.Width = v.Width or 0
                                                     h = v.Height or h
- w = v.Width or 0
+                                                    w = v.Width or 0
                                                 end
 
 
@@ -3612,9 +3622,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                             Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0,
                                                 AddImage, nil, v.RPT_Clr, v.Clr)
-                                        elseif v.Type == 'Gain Reduction Text' and not FxdCtx.FX[FxGUID].DontShowGR then 
-                                            local GR = math_helpers.round(GR, 1) 
-                                            r.ImGui_DrawList_AddTextEx(WDL, Arial_12, 12 , x, y , v.Clr or 0xffffffff, GR or '' ) 
+                                        elseif v.Type == 'Gain Reduction Text' and not FxdCtx.FX[FxGUID].DontShowGR then
+                                            local GR = math_helpers.round(GR, 1)
+                                            r.ImGui_DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff,
+                                                GR or '')
                                         end
                                     end
                                 end
@@ -3633,7 +3644,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if FP.UnlinkedModTable then
                                     if not r.TrackFX_GetOpen(LT_Track, FocusedFX) then -- if the fx is closed
                                         Link_Param_to_CC(LT_TrackNum, FocusedFX, Prm.Num, true, true, -101, nil, -1, 160, FX[FxGUID].Morph_ID, UnlinkedModTable['PARAMOD_BASELINE'], UnlinkedModTable['PARMLINK_SCALE']) Use native r.TrackFX_SetNamedConfigParm instead
-                                        FocusedFX=nil      FP.UnlinkedModTable = nil 
+                                        FocusedFX=nil      FP.UnlinkedModTable = nil
                                     end
                                 end ]]
                             end
@@ -3641,93 +3652,118 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local draw_list = r.ImGui_GetForegroundDrawList(ctx)
                                 local mouse_pos = { r.ImGui_GetMousePos(ctx) }
                                 local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 0) }
-                                r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], 0xB62424FF, 4.0)  -- Draw a line between the button and the mouse cursor                                          
+                                r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1],
+                                    mouse_pos[2], 0xB62424FF, 4.0)                                                                           -- Draw a line between the button and the mouse cursor
                                 local P_Num = Prm.Num
-                                lead_fxid = FX_Idx -- storing the original fx id
-                                fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
-                                lead_paramnumber = P_Num      
-                                local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container") 
-                                local rev = ret                       
+                                lead_fxid = FX_Idx                                                                                           -- storing the original fx id
+                                fxidx =
+                                FX_Idx                                                                                                       -- to prevent an error in layout editor function by not changing FX_Idx itself
+                                lead_paramnumber = P_Num
+                                local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container")
+                                local rev = ret
                                 while rev do -- to get root parent container id
-                                root_container = fxidx
-                                rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
-                                end     
-                                if ret then       -- new fx and parameter                   
-                                    local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
+                                    root_container = fxidx
+                                    rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+                                end
+                                if ret then -- new fx and parameter
+                                    local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                                        "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
                                     lead_fxid = root_container
                                     lead_paramnumber = buf
-                                end                                                                                                    
+                                end
                             end
                             if r.ImGui_IsItemClicked(ctx, 1) and Mods == Shift then
                                 local P_Num = Prm.Num
-                                local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus")
-                                if bf == "15" then -- reset FX Devices' modulation bus/chan                                  
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -1) 
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)
+                                local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                    "param." .. P_Num .. ".plink.midi_bus")
+                                if bf == "15" then                                                                        -- reset FX Devices' modulation bus/chan
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus",
+                                        0)                                                                                -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num ..
+                                    ".plink.midi_chan", 1)
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect",
+                                        -1)
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active",
+                                        0)
                                     if FxdCtx.FX[FxGUID][Fx_P].ModAMT then
                                         for Mc = 1, 8, 1 do
                                             if FxdCtx.FX[FxGUID][Fx_P].ModAMT[Mc] then
                                                 FxdCtx.FX[FxGUID][Fx_P].ModAMT[Mc] = 0
                                             end
                                         end
-                                    end                                                    
-                                end
-                                if lead_fxid ~= nil then   
-                                    follow_fxid = FX_Idx -- storing the original fx id
-                                    fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
-                                    follow_paramnumber = P_Num      
-                                    ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
-                                    local rev = ret                            
-                                    while rev do -- to get root parent container id
-                                    root_container = fxidx
-                                    rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
                                     end
-                                    if ret then  -- fx inside container  
-                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)                  
+                                end
+                                if lead_fxid ~= nil then
+                                    follow_fxid = FX_Idx -- storing the original fx id
+                                    fxidx =
+                                    FX_Idx               -- to prevent an error in layout editor function by not changing FX_Idx itself
+                                    follow_paramnumber = P_Num
+                                    ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
+                                    local rev = ret
+                                    while rev do -- to get root parent container id
+                                        root_container = fxidx
+                                        rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+                                    end
+                                    if ret then        -- fx inside container
+                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                                            "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
                                         if retval then -- toggle off and remove map
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 0)
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", -1) 
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", -1) 
-                                            local rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.active", 0)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.effect", -1)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.param", -1)
+                                            local rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid,
+                                                "parent_container")
                                             while rv do -- removing map
-                                            _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
-                                            r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "param." .. buf .. ".container_map.delete")
-                                            rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
+                                                _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, container_id,
+                                                    "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
+                                                r.TrackFX_GetNamedConfigParm(LT_Track, container_id,
+                                                    "param." .. buf .. ".container_map.delete")
+                                                rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id,
+                                                    "parent_container")
                                             end
-                                        else  -- new fx and parameter             
-                                            local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 1)
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", lead_fxid) 
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", lead_paramnumber) 
+                                        else                                                                                                                                        -- new fx and parameter
+                                            local _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                                                "container_map.add." .. follow_fxid .. "." .. follow_paramnumber)                                                                   -- map to the root
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.active", 1)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.effect", lead_fxid)
+                                            r.TrackFX_SetNamedConfigParm(LT_Track, root_container,
+                                                "param." .. buf .. ".plink.param", lead_paramnumber)
                                         end
-                                    else -- not inside container
-                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
-                                        if retval and buf == "1" then -- toggle off
+                                    else                                                                                                                       -- not inside container
+                                        local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid,
+                                            "param." .. follow_paramnumber .. ".plink.active")                                                                 -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
+                                        if retval and buf == "1" then                                                                                          -- toggle off
                                             value = 0
                                             lead_fxid = -1
                                             lead_paramnumber = -1
                                         else
                                             value = 1
                                         end
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active", value)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.effect", lead_fxid) 
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.param", lead_paramnumber) 
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid,
+                                            "param." .. follow_paramnumber .. ".plink.active", value)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid,
+                                            "param." .. follow_paramnumber .. ".plink.effect", lead_fxid)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid,
+                                            "param." .. follow_paramnumber .. ".plink.param", lead_paramnumber)
                                     end
-                                end  
-                            end 
+                                end
+                            end
                             if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl and not AssigningMacro then
                                 r.ImGui_OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                             end
                             if r.ImGui_BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                                 if r.ImGui_Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
-                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
-                                    if env == nil then  -- Envelope is off
+                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false)    -- Check if envelope is on
+                                    if env == nil then                                               -- Envelope is off
                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, true) -- true = Create envelope
-                                    else -- Envelope is on
+                                    else                                                             -- Envelope is on
                                         local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
-                                        if string.find(EnvelopeStateChunk, "VIS 1") then -- VIS 1 = visible, VIS 0 = invisible
+                                        if string.find(EnvelopeStateChunk, "VIS 1") then             -- VIS 1 = visible, VIS 0 = invisible
                                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "VIS 1", "VIS 0")
                                             r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                                         else -- on but invisible
@@ -3742,9 +3778,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 end
                                 if r.ImGui_Selectable(ctx, 'Remove Envelope', false) then
                                     local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
-                                    if env == nil then  -- Envelope is off
+                                    if env == nil then                                            -- Envelope is off
                                         local nothing
-                                    else -- Envelope is on
+                                    else                                                          -- Envelope is on
                                         local _, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                         if string.find(EnvelopeStateChunk, "ACT 1") then
                                             EnvelopeStateChunk = string.gsub(EnvelopeStateChunk, "ACT 1", "ACT 0")
@@ -3757,54 +3793,67 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     r.UpdateArrange()
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false) 
-                                    if retval and buf == "1" then -- Toggle
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active", 0)
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".acs.active")                                                            -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
+                                    if retval and buf == "1" then                                                                        -- Toggle
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                        ".acs.active", 0)
                                     else
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.active", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.chan", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".acs.stereo", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", 1)
-                                    end  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                        ".acs.active", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num .. ".acs.chan",
+                                            1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                        ".acs.stereo", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
+                                        Prm.Num .. ".mod.visible", 1)
+                                    end
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add LFO') then
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".lfo.active")
                                     if retval and buf == "1" then
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active", 0)  
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                        ".lfo.active", 0)
                                     else
-                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".lfo.active", 1)      
-                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", 1) 
-                                    end                                              
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                        ".lfo.active", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
+                                        Prm.Num .. ".mod.visible", 1)
+                                    end
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Add CC Link') then
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.active") 
-                                    local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".plink.active")
+                                    local _, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".plink.midi_bus")
                                     if bf == "15" then
                                         value = 1
-                                        local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- For 14 bit, 128 + CC# is plink.midi_msg2 value, e.g. 02/34 become 130 (128-159)
+                                        local retval, retvals_csv = r.GetUserInputs('Set CC value', 2,
+                                            'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0')                                                            -- For 14 bit, 128 + CC# is plink.midi_msg2 value, e.g. 02/34 become 130 (128-159)
                                         local input1val, input2val = retvals_csv:match("([^,]+),([^,]+)")
                                         if input2val == nil then
-                                            retvals = nil -- To make global retvals nil, when users choose cancel or close the window 
+                                            retvals = nil -- To make global retvals nil, when users choose cancel or close the window
                                         end
-                                        if input2val ~= nil then 
+                                        if input2val ~= nil then
                                             if type(input1val) == "string" then
                                                 local input1check = tonumber(input1val)
                                                 local input2check = tonumber(input2val)
                                                 if input1check and input2check then
-                                                  input1val = input1check
-                                                  input2val = input2check
+                                                    input1val = input1check
+                                                    input2val = input2check
                                                 else
-                                                  error('Only enter a number')
-                                                end 
-                                            end    
-                                        local input1val = tonumber(input1val)
-                                        local input2val = tonumber(input2val)                                                         
-                                            if input2val < 0 then  
+                                                    error('Only enter a number')
+                                                end
+                                            end
+                                            local input1val = tonumber(input1val)
+                                            local input2val = tonumber(input2val)
+                                            if input2val < 0 then
                                                 input2val = 0
                                             elseif input2val > 1 then
                                                 input2val = 1
                                             end
-                                            if input1val < 0 then  
+                                            if input1val < 0 then
                                                 input1val = 0
                                             elseif input2val == 0 and input1val > 119 then
                                                 input1val = 119
@@ -3825,30 +3874,31 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         value = 0
                                     else
                                         value = 1
-                                        local retval, retvals_csv = r.GetUserInputs('Set CC value', 2, 'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0') -- retvals_csv returns "input1,input2"
+                                        local retval, retvals_csv = r.GetUserInputs('Set CC value', 2,
+                                            'CC value(CC=0_119/14bit=0_31),14bit (yes=1/no=0)', '0,0')                                                            -- retvals_csv returns "input1,input2"
                                         local input1val, input2val = retvals_csv:match("([^,]+),([^,]+)")
                                         if input2val == nil then
-                                            retvals = nil -- To make global retvals nil, when users choose cancel or close the window 
+                                            retvals = nil -- To make global retvals nil, when users choose cancel or close the window
                                         end
                                         if input2val ~= nil then
                                             if type(input1val) == "string" then
                                                 local input1check = tonumber(input1val)
                                                 local input2check = tonumber(input2val)
                                                 if input1check and input2check then
-                                                  input1val = input1check
-                                                  input2val = input2check
+                                                    input1val = input1check
+                                                    input2val = input2check
                                                 else
-                                                  error('Only enter a number')
-                                                end 
-                                            end 
-                                        local input1val = tonumber(input1val)
-                                        local input2val = tonumber(input2val)                                                          
-                                            if input2val < 0 then  
+                                                    error('Only enter a number')
+                                                end
+                                            end
+                                            local input1val = tonumber(input1val)
+                                            local input2val = tonumber(input2val)
+                                            if input2val < 0 then
                                                 input2val = 0
                                             elseif input2val > 1 then
                                                 input2val = 1
                                             end
-                                            if input1val < 0 then  
+                                            if input1val < 0 then
                                                 input1val = 0
                                             elseif input2val == 0 and input1val > 119 then
                                                 input1val = 119
@@ -3860,23 +3910,32 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                     if retvals ~= nil then
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.active", value)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.effect", -100) 
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.param", -1)   
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_bus", 0)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_chan", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_msg", 176)  
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".plink.midi_msg2", retvals) 
-                                    end                                                      
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
+                                        Prm.Num .. ".plink.active", value)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
+                                        Prm.Num .. ".plink.effect", -100)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
+                                        Prm.Num .. ".plink.param", -1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
+                                            "param." .. Prm.Num .. ".plink.midi_bus", 0)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
+                                            "param." .. Prm.Num .. ".plink.midi_chan", 1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
+                                            "param." .. Prm.Num .. ".plink.midi_msg", 176)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
+                                            "param." .. Prm.Num .. ".plink.midi_msg2", retvals)
+                                    end
                                 end
                                 if r.ImGui_Selectable(ctx, 'Toggle Open Modulation/Link Window') then
-                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible") 
+                                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".mod.visible")
                                     if retval and buf == "1" then
                                         value = 0
                                     else
                                         value = 1
                                     end
-                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..Prm.Num..".mod.visible", value)                                                     
+                                    local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
+                                        "param." .. Prm.Num .. ".mod.visible", value)
                                 end
                                 r.ImGui_EndPopup(ctx)
                             end
@@ -3896,7 +3955,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     then
                         if ClickOnAnyItem == nil and LBtnRel and AdjustPrmWidth ~= true and Mods == 0 then
                             FxdCtx.LE.Sel_Items = {}
-
                         elseif ClickOnAnyItem and LBtnRel then
                             ClickOnAnyItem = nil
                         elseif AdjustPrmWidth == true then
@@ -3942,19 +4000,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     r.ImGui_DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000088)
                 end
 
-                --[[ if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_RootAndChildWindows()) then 
-                    DisableScroll = nil 
-                else DisableScroll = true 
+                --[[ if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_RootAndChildWindows()) then
+                    DisableScroll = nil
+                else DisableScroll = true
                 end ]]
 
                 r.ImGui_Dummy(ctx, 0, dummyH)
-                if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
-                    if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]]  and not Tab_Collapse_Win then 
-                        if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
+                if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then
+                    if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] and not Tab_Collapse_Win then
+                        if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab()) then
                             CollapseIfTab(FxGUID, FX_Idx)
-                            Tab_Collapse_Win = true 
-                            NeedRetrieveLayout = true 
-
+                            Tab_Collapse_Win = true
+                            NeedRetrieveLayout = true
                         end
                     end
                 end
@@ -3962,12 +4019,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 HoverWindow = r.ImGui_GetWindowSize(ctx)
 
                 r.ImGui_EndChild(ctx)
-
             end
 
 
-            
-            r.ImGui_PopStyleVar(ctx)-- styleVar ScrollBar
+
+            r.ImGui_PopStyleVar(ctx) -- styleVar ScrollBar
         end
 
 
@@ -3984,7 +4040,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-        
+
 
 
         r.ImGui_EndGroup(ctx)
@@ -3994,80 +4050,86 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     return HoverWindow
 end --of Create fx window function
 
-
-
-
 function get_fx_id_from_container_path(tr, idx1, ...)
-    local sc,rv = reaper.TrackFX_GetCount(tr)+1, 0x2000000 + idx1
-    for _,v in ipairs({...}) do
-      local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
-      if ccok ~= true then return nil end
-      rv = rv + sc * v
-      sc = sc * (1+tonumber(cc))
+    local sc, rv = reaper.TrackFX_GetCount(tr) + 1, 0x2000000 + idx1
+    for _, v in ipairs({ ... }) do
+        local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
+        if ccok ~= true then return nil end
+        rv = rv + sc * v
+        sc = sc * (1 + tonumber(cc))
     end
     return rv
 end
 
 function get_container_path_from_fx_id(tr, fxidx) -- returns a list of 1-based IDs from a fx-address
     if fxidx & 0x2000000 then
-      local ret = { }
-      local n = reaper.TrackFX_GetCount(tr)
-      local curidx = (fxidx - 0x2000000) % (n+1)
-      local remain = math.floor((fxidx - 0x2000000) / (n+1))
-      if curidx < 1 then return nil end -- bad address
-  
-      local addr, addr_sc = curidx + 0x2000000, n + 1
-      while true do
-        local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, addr, 'container_count')
-        if not ccok then return nil end -- not a container
-        ret[#ret+1] = curidx
-        n = tonumber(cc)
-        if remain <= n then if remain > 0 then ret[#ret+1] = remain end return ret end
-        curidx = remain % (n+1)
-        remain = math.floor(remain / (n+1))
+        local ret = {}
+        local n = reaper.TrackFX_GetCount(tr)
+        local curidx = (fxidx - 0x2000000) % (n + 1)
+        local remain = math.floor((fxidx - 0x2000000) / (n + 1))
         if curidx < 1 then return nil end -- bad address
-        addr = addr + addr_sc * curidx
-        addr_sc = addr_sc * (n+1)
-      end
+
+        local addr, addr_sc = curidx + 0x2000000, n + 1
+        while true do
+            local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, addr, 'container_count')
+            if not ccok then return nil end -- not a container
+            ret[#ret + 1] = curidx
+            n = tonumber(cc)
+            if remain <= n then
+                if remain > 0 then ret[#ret + 1] = remain end
+                return ret
+            end
+            curidx = remain % (n + 1)
+            remain = math.floor(remain / (n + 1))
+            if curidx < 1 then return nil end -- bad address
+            addr = addr + addr_sc * curidx
+            addr_sc = addr_sc * (n + 1)
+        end
     end
-    return { fxid+1 }
+    return { fxid + 1 }
 end
 
 function fx_map_parameter(tr, fxidx, parmidx) -- maps a parameter to the top level parent, returns { fxidx, parmidx }
     local path = get_container_path_from_fx_id(tr, fxidx)
     if not path then return nil end
     while #path > 1 do
-      fxidx = path[#path]
-      table.remove(path)
-      local cidx = get_fx_id_from_container_path(tr,table.unpack(path))
-      if cidx == nil then return nil end
-      local i, found = 0, nil
-      while true do
-        local rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_index",i))
-        if not rok then break end
-        if tonumber(r) == fxidx - 1 then
-          rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_parm",i))
-          if not rok then break end
-          if tonumber(r) == parmidx then found = true parmidx = i break end
+        fxidx = path[#path]
+        table.remove(path)
+        local cidx = get_fx_id_from_container_path(tr, table.unpack(path))
+        if cidx == nil then return nil end
+        local i, found = 0, nil
+        while true do
+            local rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_index", i))
+            if not rok then break end
+            if tonumber(r) == fxidx - 1 then
+                rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_parm", i))
+                if not rok then break end
+                if tonumber(r) == parmidx then
+                    found = true
+                    parmidx = i
+                    break
+                end
+            end
+            i = i + 1
         end
-        i = i + 1
-      end
-      if not found then
-        -- add a new mapping
-        local rok, r = reaper.TrackFX_GetNamedConfigParm(tr,cidx,"container_map.add")
-        if not rok then return nil end
-        r = tonumber(r)
-        reaper.TrackFX_SetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_index",r),tostring(fxidx - 1))
-        reaper.TrackFX_SetNamedConfigParm(tr,cidx,string.format("param.%d.container_map.fx_parm",r),tostring(parmidx))
-        parmidx = r
-      end
+        if not found then
+            -- add a new mapping
+            local rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx, "container_map.add")
+            if not rok then return nil end
+            r = tonumber(r)
+            reaper.TrackFX_SetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_index", r),
+                tostring(fxidx - 1))
+            reaper.TrackFX_SetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_parm", r),
+                tostring(parmidx))
+            parmidx = r
+        end
     end
     return fxidx, parmidx
 end
 
 --------------==  Space between FXs--------------------
-function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth, FX_Idx_in_Container)
-
+function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container,
+                         AdditionalWidth, FX_Idx_in_Container)
     local SpcIsInPre, Hide, SpcInPost, MoveTarget
     local WinW
 
@@ -4084,7 +4146,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             MoveTarget = FX_Idx + 1
         elseif FX_Idx + 1 - offset <= #FxdCtx.Trk[TrkID].PreFX and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
             SpcIsInPre = true
- if FxdCtx.Trk[TrkID].PreFX_Hide then Hide = true end
+            if FxdCtx.Trk[TrkID].PreFX_Hide then Hide = true end
         end
     end
     --[[ if SpaceIsBeforeRackMixer == 'SpcInPost' or SpaceIsBeforeRackMixer == 'SpcInPost 1st spc' then
@@ -4112,26 +4174,31 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         FxdCtx.Dvdr.Clr[ClrLbl] = FxdCtx.Dvdr.Clr[ClrLbl] or Clr.Dvdr.In_Layer
     end
 
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(),  FxdCtx.Dvdr.Clr[ClrLbl])
+    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), FxdCtx.Dvdr.Clr[ClrLbl])
 
-    local w = 10 + FxdCtx.Dvdr.Width[TblIdxForSpace] + (FxdCtx.Dvdr.Spc_Hover[TblIdxForSpace] or 0) + (AdditionalWidth or 0)
+    local w = 10 + FxdCtx.Dvdr.Width[TblIdxForSpace] + (FxdCtx.Dvdr.Spc_Hover[TblIdxForSpace] or 0) +
+    (AdditionalWidth or 0)
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
 
 
 
     -- StyleColor For Space Btwn Fx Windows
     if not Hide then
-        if r.ImGui_BeginChildFrame(ctx, '##SpaceBetweenWindows' .. FX_Idx .. tostring(SpaceIsBeforeRackMixer) .. 'Last SPC in Rack = ' .. tostring(AddLastSPCinRack), 10, 220, r.ImGui_WindowFlags_NoScrollbar()+r.ImGui_WindowFlags_NoScrollWithMouse()+r.ImGui_WindowFlags_NoNavFocus()+r.ImGui_WindowFlags_NoNav()) then
+        if r.ImGui_BeginChildFrame(ctx, '##SpaceBetweenWindows' .. FX_Idx .. tostring(SpaceIsBeforeRackMixer) .. 'Last SPC in Rack = ' .. tostring(AddLastSPCinRack), 10, 220, r.ImGui_WindowFlags_NoScrollbar() + r.ImGui_WindowFlags_NoScrollWithMouse() + r.ImGui_WindowFlags_NoNavFocus() + r.ImGui_WindowFlags_NoNav()) then
             --HOVER_RECT = r.ImGui_IsWindowHovered(ctx,  r.ImGui_HoveredFlags_RectOnly())
             HoverOnWindow = r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_AllowWhenBlockedByActiveItem())
-            WinW  = r.ImGui_GetWindowSize(ctx)
+            WinW          = r.ImGui_GetWindowSize(ctx)
 
 
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and FxdCtx.Wet.ActiveAny ~= true and Knob_Active ~= true and not FxdCtx.Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 then
                 FxdCtx.Dvdr.Spc_Hover[TblIdxForSpace] = FxdCtx.Df.Dvdr_Hvr_W
                 if DebugMode then
-                    gui_helpers.tooltip('FX_Idx :' .. FX_Idx ..'\n Pre/Post/Norm : ' ..
-                        tostring(SpaceIsBeforeRackMixer) .. '\n SpcIDinPost: ' .. tostring(SpcIDinPost).. '\n AddLastSpace = '..(AddLastSpace or 'nil') ..'\n AdditionalWidth = '..(AdditionalWidth or 'nil') )
+                    gui_helpers.tooltip('FX_Idx :' .. FX_Idx .. '\n Pre/Post/Norm : ' ..
+                        tostring(SpaceIsBeforeRackMixer) ..
+                        '\n SpcIDinPost: ' ..
+                        tostring(SpcIDinPost) ..
+                        '\n AddLastSpace = ' ..
+                        (AddLastSpace or 'nil') .. '\n AdditionalWidth = ' .. (AdditionalWidth or 'nil'))
                 end
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), CLR_BtwnFXs_Btn_Hover)
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonActive(), CLR_BtwnFXs_Btn_Active)
@@ -4158,7 +4225,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
             AddFX_Menu(FX_Idx)
-            
+
 
             r.ImGui_EndChildFrame(ctx)
         end
@@ -4173,7 +4240,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         local AltDest, AltDestLow, AltDestHigh, DontMove
 
         if SpcInPost then SpcIsInPre = false end
-        
+
         if SpcIsInPre then
             if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then -- if fx is not in pre fx
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
@@ -4244,7 +4311,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if not MoveFromPostToNorm then
                 if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) then
                     table.remove(FxdCtx.Trk[TrkID].PreFX,
-                    table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
+                        table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX))
                 end
             end
             if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) then
@@ -4283,7 +4350,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 table.insert(FxdCtx.MovFX.ToPos, FX_Idx - (offset or 0))
                 table.insert(FxdCtx.MovFX.FromPos, DragFX_ID)
             else
-                
                 table.insert(FxdCtx.MovFX.ToPos, FX_Idx - (Offset or 0))
                 table.insert(FxdCtx.MovFX.FromPos, DragFX_ID)
             end
@@ -4401,7 +4467,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     Msg('ansjdk')
                 end
 
-                
+
 
                 r.ImGui_EndDragDropTarget(ctx)
             else
@@ -4430,7 +4496,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if Dropped and Mods == 0 then
                     local ContainerIdx = table_helpers.tablefind(FxdCtx.FXGUID, FxGUID_Container)
-                    local InsPos = math_helpers.SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FxdCtx.FX[FxGUID_Container].FXsInBS)
+                    local InsPos = math_helpers.SetMinMax(FX_Idx - ContainerIdx + 1, 1,
+                        #FxdCtx.FX[FxGUID_Container].FXsInBS)
 
 
 
@@ -4453,7 +4520,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
                 -- Add from Sexan Add FX
                 if Payload_Type == 'DND ADD FX' then
-                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl)  -- band split
+                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- band split
                 end
 
                 r.ImGui_EndDragDropTarget(ctx)
@@ -4466,7 +4533,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         function MoveFX_Out_Of_BS()
             for i = 0, Sel_Track_FX_Count - 1, 1 do
                 if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then -- i is Band Splitter
-                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
+                    table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS,
+                        table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
                     r.GetSetMediaTrackInfo_String(LT_Track,
                         'P_EXT: FX is in which BS' .. FxGUID_DragFX, '', true)
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxdCtx.FXGUID
@@ -4477,21 +4545,18 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         end
 
         if r.ImGui_BeginDragDropTarget(ctx) then
-
             if Payload_Type == 'FX_Drag' then
-
-
                 local allowDropNext, MoveFromPostToNorm, DontAllowDrop
                 local FX_Idx = FX_Idx
                 if Mods == Apl then allowDropNext = true end
-                if not FxGUID_DragFX then FxGUID_DragFX =DragFxGuid end 
-                local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload( ctx)
+                if not FxGUID_DragFX then FxGUID_DragFX = DragFxGuid end
+                local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
 
 
                 if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID_DragFX) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
                 if table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX) and (not SpcInPost or AddLastSpace == 'LastSpc') then
                     allowDropNext = true
- MoveFromPostToNorm = true
+                    MoveFromPostToNorm = true
                 end
                 if FxdCtx.FX[FxGUID_DragFX].InWhichBand then allowDropNext = true end
                 if not FxdCtx.FX[FxGUID_DragFX].InWhichBand and SpaceIsBeforeRackMixer == 'SpcInBS' then allowDropNext = true end
@@ -4527,7 +4592,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         --[[ if FX.Win_Name_S[payload]:find('Pro%-Q 3') and not tablefind(Trk[TrkID].PostFX, FxGUID_DragFX ) and not SpcInPost and not SpcIsInPre and not tablefind(Trk[TrkID].PreFX, FxGUID_DragFX) then
                             MoveFXwith1PreFX(DragFX_ID, FX_Idx, 'Move Pro-Q 3 and it\'s analyzer')
                         else ]]
-                            MoveFX(payload, FX_Idx, true, nil)
+                        MoveFX(payload, FX_Idx, true, nil)
                         --[[ end ]]
 
                         -- Move FX Out of BandSplit
@@ -4536,8 +4601,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                                 if FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS then -- i is Band Splitter
                                     table.remove(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS,
                                         table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[i]].FXsInBS, FxGUID_DragFX))
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxGUID_DragFX, '', true)
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxGUID_DragFX, '', true)
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxGUID_DragFX,
+                                        '', true)
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxGUID_DragFX,
+                                        '', true)
                                 end
                             end
                             FxdCtx.FX[FxGUID_DragFX].InWhichBand = nil
@@ -4546,9 +4613,11 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                         -- Move FX Out of Layer
                         if FxdCtx.Lyr.FX_Ins[FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer]] ~= nil then
-                            FxdCtx.Lyr.FX_Ins[FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer]] = FxdCtx.Lyr.FX_Ins[FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer]] - 1
+                            FxdCtx.Lyr.FX_Ins[FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer]] = FxdCtx.Lyr.FX_Ins
+                            [FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer]] - 1
                         end
-                        r.SetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FXGUID_To_Check_If_InLayer .. 'in layer', "")
+                        r.SetProjExtState(0, 'FX Devices',
+                            'FXLayer - ' .. 'is FX' .. FXGUID_To_Check_If_InLayer .. 'in layer', "")
                         FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] = nil
                         FxdCtx.Dvdr.JustDroppedFX = true
                     elseif Dropped and Mods == Apl then
@@ -4559,9 +4628,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         MoveFX(payload, copypos, false)
                     end
                     r.ImGui_SameLine(ctx, nil, 0)
-
                 end
-
             elseif Payload_Type == 'FX Layer Repositioning' then -- FX Layer Repositioning
                 local FXGUID_RackMixer = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
 
@@ -4605,7 +4672,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     end
                 end
             elseif Payload_Type == 'DND ADD FX' then
-
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
 
                 local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
@@ -4614,12 +4680,12 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 if dropped then
                     local FX_Idx = FX_Idx
                     if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
-                    
+
                     r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Idx, false)
                     local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
                     local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-        
-                        --if in layer
+
+                    --if in layer
                     if FxdCtx.FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
                         DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
                     end
@@ -4628,39 +4694,38 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         if SpaceIsBeforeRackMixer == 'End of PreFX' then
                             table.insert(FxdCtx.Trk[TrkID].PreFX, FxID)
                         else
-                        table.insert(FxdCtx.Trk[TrkID].PreFX, FX_Idx + 1, FxID)
+                            table.insert(FxdCtx.Trk[TrkID].PreFX, FX_Idx + 1, FxID)
                         end
-                        for i, v in pairs(FxdCtx.Trk[TrkID].PreFX) do r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                            true) end
+                        for i, v in pairs(FxdCtx.Trk[TrkID].PreFX) do
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
+                                true)
+                        end
                     elseif SpcInPost then
                         if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then Offset = -1 else Offset = 0 end
                         table.insert(FxdCtx.Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
                         -- InsertToPost_Src = FX_Idx + offset+2
                         for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '', true)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i,
+                                FxdCtx.Trk[TrkID].PostFX[i] or '', true)
                         end
                     elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
                         DropFXintoBS(FxID, FxGUID_Container, FxdCtx.FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
                     end
                     FX_Idx_OpenedPopup = nil
-                    
                 end
                 r.ImGui_PopStyleColor(ctx)
 
                 r.ImGui_EndDragDropTarget(ctx)
             end
-
-            
         else
-            
             FxdCtx.Dvdr.Width[TblIdxForSpace] = 0
             FxdCtx.Dvdr.Clr[ClrLbl] = 0x131313ff
             r.ImGui_SameLine(ctx, nil, 0)
         end
 
 
-        
-        
+
+
         r.ImGui_SameLine(ctx, nil, 0)
     end
 
