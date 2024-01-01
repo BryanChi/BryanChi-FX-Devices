@@ -65,7 +65,6 @@ r = reaper
 require("src.Components.FilterBox")
 local MenuBar = require("src.Components.MenuBar")
 local state_helpers = require("src.helpers.state_helpers")
-local math_helpers = require("src.helpers.math_helpers")
 local fxDisplay = require("src.Components.FxDisplay")
 local gui_helpers = require("src.Components.Gui_Helpers")
 require("src.Functions.General Functions")
