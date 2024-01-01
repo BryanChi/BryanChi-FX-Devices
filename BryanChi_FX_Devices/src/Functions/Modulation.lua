@@ -107,7 +107,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
     if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and (Mods == 0 or Mods == Alt) then
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
                 FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 AssigningMacro = M
@@ -119,7 +119,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             FxdCtx.PM.DragOnModdedPrm = true
         end
     elseif r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and Mods == Shift then
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
                 FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 BypassingMacro = M
@@ -302,7 +302,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
     if Type ~= 'knob' and FP.ModAMT then
         local offset = 0
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
                 --if Modulation has been assigned to params
                 local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
