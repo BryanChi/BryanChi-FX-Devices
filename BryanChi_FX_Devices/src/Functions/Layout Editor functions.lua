@@ -744,7 +744,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         FP.ModBipolar= FP.ModBipolar or {}
 
         
-        for Macro, v in ipairs(FxdCtx.MacroNums) do
+        for Macro, _ in ipairs(FxdCtx.MacroNums) do
             
             if FP.ModAMT[Macro] then
                 --if Modulation has been assigned to params
@@ -2874,7 +2874,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
 
         file:write('\nParameter Specific Settings \n\n')
 
-        for i, v in ipairs(FxdCtx.FX[FxGUID]) do
+        for i, _ in ipairs(FxdCtx.FX[FxGUID]) do
             local Fx_P = i
             local FP = FxdCtx.FX[FxGUID][i]
             if type(i) ~= 'number' and i then
