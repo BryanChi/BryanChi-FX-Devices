@@ -1274,7 +1274,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         if SpacingBelow then
-            for i = 1, SpacingBelow, 1 do r.ImGui_Spacing(ctx) end
+            for _ = 1, SpacingBelow, 1 do r.ImGui_Spacing(ctx) end
         else
             r.ImGui_Spacing(ctx); r.ImGui_Spacing(ctx); r.ImGui_Spacing(ctx); r.ImGui_Spacing(ctx); r.ImGui_Spacing(
                 ctx)
@@ -2600,7 +2600,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
                         local function get_Container_Info ()
                             
-                            for i, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
+                            for _, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
 
                                 local FX_Id = v.addr_fxid
                                 local GUID = v.GUID
@@ -3106,7 +3106,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
 
 
-        for i, v in pairs(FxdCtx.LE.Sel_Items) do
+        for _, v in pairs(FxdCtx.LE.Sel_Items) do
             if Fx_P == v then
                 HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
                 FxdCtx.LE.SelectedItemType = ItemType
@@ -3159,35 +3159,35 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         if FxdCtx.LE.Sel_Items and not r.ImGui_IsAnyItemActive(ctx) then
             if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_DownArrow()) and Mods == 0 then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosY = FxdCtx.FX[FxGUID][v].PosY + FxdCtx.LE.GridSize end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_UpArrow()) and Mods == 0 then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosY = FxdCtx.FX[FxGUID][v].PosY - FxdCtx.LE.GridSize end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_LeftArrow()) and Mods == 0 then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosX = FxdCtx.FX[FxGUID][v].PosX - FxdCtx.LE.GridSize end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_RightArrow()) and Mods == 0 then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosX = FxdCtx.FX[FxGUID][v].PosX + FxdCtx.LE.GridSize end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_DownArrow()) and Mods == Shift then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosY = FxdCtx.FX[FxGUID][v].PosY + 1 end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_UpArrow()) and Mods == Shift then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosY = FxdCtx.FX[FxGUID][v].PosY - 1 end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_LeftArrow()) and Mods == Shift then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosX = FxdCtx.FX[FxGUID][v].PosX - 1 end
                 end
             elseif r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_RightArrow()) and Mods == Shift then
-                for i, v in ipairs(FxdCtx.LE.Sel_Items) do
+                for _, v in ipairs(FxdCtx.LE.Sel_Items) do
                     if v == Fx_P then FxdCtx.FX[FxGUID][v].PosX = FxdCtx.FX[FxGUID][v].PosX + 1 end
                 end
             end
@@ -3201,7 +3201,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_ResizeEW())
                 if IsLBtnClicked then
                     local ChangeSelectedItmBounds
-                    for i, v in pairs(FxdCtx.LE.Sel_Items) do
+                    for _, v in pairs(FxdCtx.LE.Sel_Items) do
                         if v == Fx_P then
                             ChangeSelectedItmBounds = true
                         end
@@ -3220,7 +3220,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 r.ImGui_DrawList_AddCircleFilled(WinDrawList, R, B, 4, 0xbbbbbbff)
                 if IsLBtnClicked then
                     local ChangeSelItmRadius
-                    for i, v in pairs(FxdCtx.LE.Sel_Items) do
+                    for _, v in pairs(FxdCtx.LE.Sel_Items) do
                         if v == Fx_P then ChangeSelItmRadius = true end
                     end
                     if ChangeSelItmRadius then FxdCtx.LE.ChangeRadius = 'Group' else FxdCtx.LE.ChangeRadius = Fx_P end
@@ -3289,7 +3289,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         if FxdCtx.LE.ChangeRadius == Fx_P then
             ChangeKnobRadius(Fx_P)
         elseif FxdCtx.LE.ChangeRadius == 'Group' then
-            for i, v in pairs(FxdCtx.LE.Sel_Items) do
+            for _, v in pairs(FxdCtx.LE.Sel_Items) do
                 if v == Fx_P then
                     ChangeKnobRadius(v)
                 end
@@ -3298,7 +3298,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
 
         if ChangePrmW == 'group' then
-            for i, v in pairs(FxdCtx.LE.Sel_Items) do
+            for _, v in pairs(FxdCtx.LE.Sel_Items) do
                 if v == Fx_P then
                     ChangeParamWidth(v)
                 end
@@ -3330,7 +3330,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         if FxdCtx.LE.ChangePos == Fx_P then
             ChangeItmPos()
         elseif LBtnDrag and type(FxdCtx.LE.ChangePos) == 'table' then
-            for i, v in pairs(FxdCtx.LE.ChangePos) do
+            for _, v in pairs(FxdCtx.LE.ChangePos) do
                 if v == Fx_P then
                     ChangeItmPos()
                 end
