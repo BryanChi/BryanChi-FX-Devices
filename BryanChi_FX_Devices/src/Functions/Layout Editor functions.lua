@@ -1,5 +1,7 @@
 -- @noindex
 r = reaper
+local fs_utils = require("src.Functions.Filesystem_utils")
+local math_helpers = require("src.helpers.math_helpers")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 
@@ -553,7 +555,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local offsetA, offsetB
                 if IsLBtnHeld then
                     local drag = FxdCtx.FX[FxGUID].MorphA[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx)) * -0.01
-                    FxdCtx.FX[FxGUID].MorphA[P_Num] = SetMinMax(drag, 0, 1)
+                    FxdCtx.FX[FxGUID].MorphA[P_Num] = math_helpers.SetMinMax(drag, 0, 1)
                     if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsY - BtnT) / sizeY
                         local Scale = FxdCtx.FX[FxGUID].MorphB[P_Num] - A
@@ -569,7 +571,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     end
                 elseif IsRBtnHeld then
                     local drag = FxdCtx.FX[FxGUID].MorphB[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx, 1)) * -0.01
-                    FxdCtx.FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
+                    FxdCtx.FX[FxGUID].MorphB[P_Num] = math_helpers.SetMinMax(drag, 0, 1)
                     if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FxdCtx.FX[FxGUID].MorphB[P_Num] - FxdCtx.FX[FxGUID].MorphA[P_Num])   -- Scale
@@ -758,11 +760,11 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 r.ImGui_DrawList_PathClear(draw_list)
 
                 --- shows modulation range
-                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro],ANGLE_MIN, ANGLE_MAX)
+                local Range = math_helpers.SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro],ANGLE_MIN, ANGLE_MAX)
                 local angle = angle 
                 if BipOfs ~=0 then 
 
-                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(  FP.ModAMT[Macro]   ) ,ANGLE_MIN, ANGLE_MAX) 
+                    local Range = math_helpers.SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(  FP.ModAMT[Macro]   ) ,ANGLE_MIN, ANGLE_MAX) 
                     r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle,Range )
                     r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
                     radius_outer * 0.1)
@@ -1001,7 +1003,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         end
         
         if is_active then
-            p_value = SetMinMax(p_value, v_min, v_max)
+            p_value = math_helpers.SetMinMax(p_value, v_min, v_max)
             value_changed = true
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             MvingP_Idx = CC
@@ -1013,7 +1015,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 local SzX, SzY = r.ImGui_GetItemRectSize(ctx)
                 local MsX, MsY = r.ImGui_GetMousePos(ctx)
 
-                r.ImGui_SetNextWindowPos(ctx, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y)
+                r.ImGui_SetNextWindowPos(ctx, math_helpers.SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y)
                 r.ImGui_BeginTooltip(ctx)
                 local Get, Pv = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
@@ -1099,8 +1101,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             if FxdCtx.FX[FxGUID].MorphA[P_Num] and FxdCtx.FX[FxGUID].MorphB[P_Num] then
                 HintMessage = 'LMB : adjust A   RMB : adjust B    Alt + Ctrl : Quick Access to morph value edit mode'
                 local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
-                local A = SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphA[P_Num], PosL, PosR)
-                local B = SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphB[P_Num], PosL, PosR)
+                local A = math_helpers.SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphA[P_Num], PosL, PosR)
+                local B = math_helpers.SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphB[P_Num], PosL, PosR)
                 local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
                 local MsX, MsY = r.ImGui_GetMousePos(ctx)
 
@@ -1133,7 +1135,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                     local X_A, X_B
                     local offsetA, offsetB
                     if IsLBtnHeld then
-                        FxdCtx.FX[FxGUID].MorphA[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
+                        FxdCtx.FX[FxGUID].MorphA[P_Num] = math_helpers.SetMinMax((MsX - PosL) / sizeX, 0, 1)
                         if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FxdCtx.FX[FxGUID].MorphB[P_Num] - A
@@ -1148,7 +1150,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", A) -- Baseline  
                         end
                     elseif IsRBtnHeld then
-                        FxdCtx.FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
+                        FxdCtx.FX[FxGUID].MorphB[P_Num] = math_helpers.SetMinMax((MsX - PosL) / sizeX, 0, 1)
                         if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FxdCtx.FX[FxGUID].MorphB[P_Num] - FxdCtx.FX[FxGUID].MorphA[P_Num])   -- Scale
@@ -1794,8 +1796,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if FxdCtx.FX[FxGUID].Morph_Value_Edit or (Mods == Alt + Ctrl and is_hovered) then
             if FxdCtx.FX[FxGUID].MorphA[P_Num] and FxdCtx.FX[FxGUID].MorphB[P_Num] then
                 local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
-                local A = SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphA[P_Num], PosL, PosR)
-                local B = SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphB[P_Num], PosL, PosR)
+                local A = math_helpers.SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphA[P_Num], PosL, PosR)
+                local B = math_helpers.SetMinMax(PosL + sizeX * FxdCtx.FX[FxGUID].MorphB[P_Num], PosL, PosR)
                 local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
                 local MsX, MsY = r.ImGui_GetMousePos(ctx)
 
@@ -1825,7 +1827,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     local X_A, X_B
                     local offsetA, offsetB
                     if IsLBtnHeld then
-                        FxdCtx.FX[FxGUID].MorphA[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
+                        FxdCtx.FX[FxGUID].MorphA[P_Num] = math_helpers.SetMinMax((MsX - PosL) / sizeX, 0, 1)
                         if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FxdCtx.FX[FxGUID].MorphB[P_Num] - A
@@ -1840,7 +1842,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", A) -- Baseline  
                         end
                     elseif IsRBtnHeld then
-                        FxdCtx.FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
+                        FxdCtx.FX[FxGUID].MorphB[P_Num] = math_helpers.SetMinMax((MsX - PosL) / sizeX, 0, 1)
                         if FxdCtx.FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FxdCtx.FX[FxGUID].MorphB[P_Num] - FxdCtx.FX[FxGUID].MorphA[P_Num])   -- Scale
@@ -2281,8 +2283,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         FxdCtx.FX[FxGUID].Draw =  T.Draw
                         
                     else
-                        local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
-                        local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+                        local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+                        local file_path = fs_utils.ConcatPath(dir_path, FX_Name .. '.ini')
 
                         -- Create directory for file if it doesn't exist
                         r.RecursiveCreateDirectory(dir_path, 0)
@@ -2759,13 +2761,13 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
         SldrGrabPos = SizeX * P_V
         SliderCurPos = L + SldrGrabPos 
         SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
-        SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
+        SliderModPos = math_helpers.SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
     elseif Vertical == 'Vert' then
         PosX_End_Of_Slider = T
         SldrGrabPos = (SizeY) * (P_V)
         SliderCurPos = B - SldrGrabPos
         SliderModPos = SliderCurPos - ((ModAmt * Sldr_Width) or 0)
-        SliderModPos = SetMinMax(SliderModPos, T, B)
+        SliderModPos = math_helpers.SetMinMax(SliderModPos, T, B)
     end
 
 
@@ -2783,7 +2785,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
         local MOD = McroV
         if M.Type == 'env' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
             r.gmem_attach('ParamValues')
-            MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
+            MOD = math.abs(math_helpers.SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
         end
         
 
@@ -2841,10 +2843,10 @@ end
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
 function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
-    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+    local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     --local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local FX_Name = ChangeFX_Name(FX_Name)
-    local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+    local file_path = fs_utils.ConcatPath(dir_path, FX_Name .. '.ini')
 
 
     r.RecursiveCreateDirectory(dir_path, 0)
@@ -3334,9 +3336,9 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         if LBtnRel and FxdCtx.LE.ChangePos == Fx_P and Max_L_MouseDownDuration > 0.1 then
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FxdCtx.FX[FxGUID][Fx_P].PosX and FxdCtx.FX[FxGUID][Fx_P].PosY then
-                FxdCtx.FX[FxGUID][Fx_P].PosX = SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosX, FxdCtx.LE.GridSize), 0,
+                FxdCtx.FX[FxGUID][Fx_P].PosX = math_helpers.SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosX, FxdCtx.LE.GridSize), 0,
                     Win_W - (FxdCtx.FX[FxGUID][Fx_P].Sldr_W or 15))
-                FxdCtx.FX[FxGUID][Fx_P].PosY = SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosY, FxdCtx.LE.GridSize), 0, 220 - 10)
+                FxdCtx.FX[FxGUID][Fx_P].PosY = math_helpers.SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosY, FxdCtx.LE.GridSize), 0, 220 - 10)
             end
         end
         if LBtnRel then
@@ -3373,7 +3375,7 @@ function Calc_strip_uv(img, V)
     local w, h = r.ImGui_Image_GetSize(img)
     local FrameNum = h / w
 
-    local StepizedV = (SetMinMax(math.floor(V * FrameNum), 0, FrameNum - 1) / FrameNum)
+    local StepizedV = (math_helpers.SetMinMax(math.floor(V * FrameNum), 0, FrameNum - 1) / FrameNum)
 
     local uvmin = (1 / FrameNum) * StepizedV * FrameNum
 

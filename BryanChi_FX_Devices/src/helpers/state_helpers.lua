@@ -26,5 +26,38 @@ function state_helpers.ToggleBypassFX(LT_Track, FX_Idx)
     end
 end
 
+function state_helpers.GetTrkSavedInfo(str, track, type)
+    if type == 'str' then
+        local o = select(2, r.GetSetMediaTrackInfo_String(track or LT_Track, 'P_EXT: ' .. str, '', false))
+        if o == '' then o = nil end
+        return o
+    else
+        return tonumber(select(2, r.GetSetMediaTrackInfo_String(track or LT_Track, 'P_EXT: ' .. str, '', false)))
+    end
+end
+
+function state_helpers.getProjSavedInfo(str, type)
+    if type == 'str' then
+        return select(2, r.GetProjExtState(0, 'FX Devices', str))
+    else
+        return tonumber(select(2, r.GetProjExtState(0, 'FX Devices', str)))
+    end
+end
+
+function state_helpers.GetLTParam()
+    LT_Track = r.GetLastTouchedTrack()
+    Retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
+    --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
+
+    if LT_Track ~= nil then
+        Retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
+        Retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
+    end
+end
+
+function state_helpers.GetLT_FX_Num()
+    Retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
+    LT_Track = r.GetLastTouchedTrack()
+end
 
 return state_helpers

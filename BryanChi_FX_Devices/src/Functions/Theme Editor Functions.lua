@@ -1,4 +1,5 @@
 r = reaper
+local fs_utils = require("src.Functions.Filesystem_utils")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColors = customcolors.CustomColors
 local CustomColorsDefault = customcolors.CustomColorsDefault
@@ -45,7 +46,7 @@ function demo.PushStyle()
             r.ImGui_PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
+        local file_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
             'src', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 
@@ -109,11 +110,11 @@ end
 function CallFile(mode, filename, folder)
     local dir_path
     if folder then
-        dir_path = ConcatPath(CurrentDirectory, 'src', folder)
+        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src', folder)
     else
-        dir_path = ConcatPath(CurrentDirectory, 'src')
+        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src')
     end
-    local file_path = ConcatPath(dir_path, filename)
+    local file_path = fs_utils.ConcatPath(dir_path, filename)
 
     -- Create directory for file if it doesn't exist
     r.RecursiveCreateDirectory(dir_path, 0)

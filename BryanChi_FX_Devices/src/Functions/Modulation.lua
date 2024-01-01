@@ -4,6 +4,7 @@
 
 r = reaper
 local table_helpers = require("src.helpers.table_helpers")
+local fs_utils = require("src.Functions.Filesystem_utils")
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -329,10 +330,10 @@ function Get_LFO_Shape_From_File(filename)
     if filename then 
 
 
-        local file = io.open(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
+        local file = io.open(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
         if file then 
 
-            local L = get_lines(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
+            local L = get_lines(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
 
             local content = file:read("a+")
 

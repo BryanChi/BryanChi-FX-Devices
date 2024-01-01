@@ -1,3 +1,4 @@
+local state_helpers = require('src.helpers.state_helpers')
 ---@param str string
 ---@param type? string
 ---@param Track MediaTrack
@@ -20,10 +21,10 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     FxdCtx.Trk[TrkID].Mod = {}
     FxdCtx.Trk[TrkID].SEQL = FxdCtx.Trk[TrkID].SEQL or {}
     FxdCtx.Trk[TrkID].SEQ_Dnom = FxdCtx.Trk[TrkID].SEQ_Dnom or {}
-    local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
+    local AutoPrmCount = state_helpers.GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
     FxdCtx.Trk[TrkID].AutoPrms = FxdCtx.Trk[TrkID].AutoPrms or {}
     for i = 1, (AutoPrmCount or 0) + 1, 1 do
-        FxdCtx.Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
+        FxdCtx.Trk[TrkID].AutoPrms[i] = state_helpers.GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
     end
 
 

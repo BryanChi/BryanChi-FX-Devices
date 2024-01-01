@@ -1,3 +1,4 @@
+local math_helpers = require("src.helpers.math_helpers")
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
 ---@param s string
 local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
@@ -90,7 +91,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
 
         reaper.ImGui_SetNextWindowPos(ctx, x, y - filter_h / 2)
         if reaper.ImGui_BeginPopup(ctx, "##popupp", r.ImGui_WindowFlags_NoFocusOnAppearing() --[[ MAX_FX_SIZE, filter_h ]]) then
-            ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
+            ADDFX_Sel_Entry = math_helpers.SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
             for i = 1, #filtered_fx do
                 local ShownName
                 if filtered_fx[i]:find('VST:') then

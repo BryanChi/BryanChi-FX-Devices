@@ -212,7 +212,7 @@ OffsetForMultipleMOD = 2
 --------------------------==  Before GUI (No Loop) ----------------------------
 
 
-GetLTParam()
+state_helpers.GetLTParam()
 
 ctx = r.ImGui_CreateContext('FX Device', r.ImGui_ConfigFlags_DockingEnable())
 
@@ -245,8 +245,8 @@ end
 ---------------------------- End For Before GUI ----------------------------
 
 function Loop()
-    GetLT_FX_Num()
-    GetLTParam()
+    state_helpers.GetLT_FX_Num()
+    state_helpers.GetLTParam()
     CheckDnDType() -- Defined in Layout Editor functions
 
     if ChangeFont then
@@ -588,8 +588,8 @@ function Loop()
             if Cont_Param_Add_Mode == true then
                 --TimeAfter_ContAdd= TimeAfter_ContAdd+1
 
-                GetLT_FX_Num()
-                GetLTParam()
+                state_helpers.GetLT_FX_Num()
+                state_helpers.GetLTParam()
                 gui_helpers.tooltip('Continuously Adding Last Touched Parameters..')
 
                 local F = FxdCtx.FX[LT_FXGUID] or {}; local RptPrmFound

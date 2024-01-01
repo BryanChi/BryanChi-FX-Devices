@@ -14,4 +14,14 @@ function gui_helpers.HintToolTip(A)
     r.ImGui_EndTooltip(ctx)
 end
 
-return  gui_helpers 
+function gui_helpers.InvisiBtn(ctx, x, y, str, w, h)
+    if x and y then
+        r.ImGui_SetCursorScreenPos(ctx, x, y)
+    end
+    local rv = r.ImGui_InvisibleButton(ctx, str, w, h or w)
+
+
+    return rv
+end
+
+return gui_helpers

@@ -1,5 +1,6 @@
 -- @noindex
 
+local math_helpers = require("src.helpers.math_helpers")
 r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -967,7 +968,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
                         local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                             ((BandforQadjusting - 1) * 13) + 7)
 
-                        Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,
+                        Q_Output = math_helpers.SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,
                             1)
 
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,

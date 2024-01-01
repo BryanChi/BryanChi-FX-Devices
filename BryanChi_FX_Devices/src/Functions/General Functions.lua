@@ -14,18 +14,9 @@ local fs_utils = require("src.Functions.Filesystem_utils")
 local state_helpers = require("src.helpers.state_helpers")
 local gui_helpers = require("src.Components.Gui_Helpers")
 local table_helpers = require("src.helpers.table_helpers")
+local math_helpers = require("src.helpers.math_helpers")
 
 ---General functions list
-
-function InvisiBtn (ctx, x, y, str, w, h )  
-    if x and y then 
-        r.ImGui_SetCursorScreenPos(ctx, x,y)
-    end
-    local rv = r.ImGui_InvisibleButton(ctx, str,w,h or w)
-
-
-    return rv
-end
 
 
 
@@ -92,54 +83,6 @@ function EndUndoBlock(str)
     r.Undo_EndBlock("ReaDrum Machine: " .. str, -1)
   end
 
-function Curve_3pt_Bezier(startX,startY,controlX,controlY,endX,endY)
-    local X , Y = {}, {}
-    for t = 0, 1, 0.1 do
-
-        local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
-        local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
-        table.insert(X, x)
-        table.insert(Y, y)
-    end
-    return X,Y
-end
-
-
-function GetTrkSavedInfo(str, track, type  )
-
-    if type=='str' then 
-        local o = select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false))
-        if o == '' then o = nil end 
-        return o
-    else
-        return tonumber( select(2, r.GetSetMediaTrackInfo_String(track or LT_Track , 'P_EXT: '..str, '', false)))
-    end
-end
-
-function getProjSavedInfo(str, type  )
-
-    if type=='str' then 
-        return select(2, r.GetProjExtState(0, 'FX Devices', str ))
-    else
-        return tonumber(select(2, r.GetProjExtState(0, 'FX Devices', str ))) 
-    end
-end
-
-
-
-function Normalize_Val (V1, V2, ActualV ,  Bipolar)
-
-    local Range = math.abs( (math.max(V1, V2) - math.min(V1, V2)) )
-    
-    local NormV = (math.min(V1, V2)+ Range - ActualV) / Range
-
-    if Bipolar  then 
-        return  -1 + (NormV  )* 2
-    else 
-        return NormV
-    end
-end
-
 
 ---@param FX_Name string
 function ChangeFX_Name(FX_Name)
@@ -172,21 +115,6 @@ function AddMacroJSFX()
     end
 end
 
-function GetLTParam()
-    LT_Track = r.GetLastTouchedTrack()
-    Retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
-    --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
-
-    if LT_Track ~= nil then
-        Retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
-        Retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
-    end
-end
-
-function GetLT_FX_Num()
-    Retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
-    LT_Track = r.GetLastTouchedTrack()
-end
 
 ---@param enable boolean
 ---@param title string
@@ -206,26 +134,6 @@ function MouseCursorBusy(enable, title)
     end
 end
 
-function ConcatPath(...)
-    -- Get system dependent path separator
-    local sep = package.config:sub(1, 1)
-    return table.concat({ ... }, sep)
-end
-
----@param Input number
----@param Min number
----@param Max number
----@return number
-function SetMinMax(Input, Min, Max)
-    if Input >= Max then
-        Input = Max
-    elseif Input <= Min then
-        Input = Min
-    else
-        Input = Input
-    end
-    return Input
-end
 
 ---TODO do we need this function? It’s unused
 ---@param str string|number|nil
@@ -728,10 +636,10 @@ end
 ---@param FX_Idx integer
 ---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
-    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+    local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     local FX_Name = ChangeFX_Name(FX_Name)
 
-    local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+    local file_path = fs_utils.ConcatPath(dir_path, FX_Name .. '.ini')
     -- Create directory for file if it doesn't exist
     r.RecursiveCreateDirectory(dir_path, 0)
     local file = io.open(file_path, 'r+')
@@ -1225,7 +1133,7 @@ end
 ---@return integer
 function Change_Clr_A(CLR, HowMuch)
     local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(CLR)
-    local A = SetMinMax(A + HowMuch, 0, 1)
+    local A = math_helpers.SetMinMax(A + HowMuch, 0, 1)
     return r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
 end
 
@@ -1238,7 +1146,7 @@ function Generate_Active_And_Hvr_CLRs(Clr)
         ActV = V - 0.2
         HvrV = V - 0.1
     end
-    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
+    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, math_helpers.SetMinMax(ActV or V + 0.2, 0, 1))
     local ActClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
     local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
     local HvrClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
@@ -1458,7 +1366,7 @@ end
 ---@param ShowAlreadyAddedPrm boolean
 ---@return boolean|unknown
 function IsPrmAlreadyAdded(ShowAlreadyAddedPrm)
-    GetLTParam()
+    state_helpers.GetLTParam()
     local FX_Count = r.TrackFX_GetCount(LT_Track); local RptPrmFound
     local F = FxdCtx.FX[LT_FXGUID] or {}
 
@@ -2082,7 +1990,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local _, v = r.ImGui_GetMouseDelta(ctx, nil, nil)
                 if Mods == Shift then DrgSpdMod = 4 end
                 DraggingMorph = FxGUID
-                FxdCtx.FX[FxGUID].MorphAB_Sldr = SetMinMax(
+                FxdCtx.FX[FxGUID].MorphAB_Sldr = math_helpers.SetMinMax(
                     (FxdCtx.FX[FxGUID].MorphAB_Sldr or 0) + v / (DrgSpdMod or 2), 0, 100)
                 SldrActClr = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_SliderGrabActive())
                 if FxdCtx.FX[FxGUID].MorphB[1] ~= nil then
@@ -2535,8 +2443,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     table.remove(D.R, i)
                                     table.remove(D.T, i)
                                     table.remove(D.B, i)
-                                    if D.Txt then table.remove(D.Txt, SetMinMax(i, 1, #D.Txt)) end
-                                    if D.clr then table.remove(D.clr, SetMinMax(i, 1, #D.clr)) end
+                                    if D.Txt then table.remove(D.Txt, math_helpers.SetMinMax(i, 1, #D.Txt)) end
+                                    if D.clr then table.remove(D.clr, math_helpers.SetMinMax(i, 1, #D.clr)) end
                                     if r.ImGui_BeginPopup(ctx, 'Drawlist Add Text Menu') then
                                         r.ImGui_CloseCurrentPopup(ctx)
                                         r.ImGui_EndPopup(ctx)
@@ -2922,7 +2830,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     if r.ImGui_Button(ctx, 'Save all values as default', -FLT_MIN) then
                         local dir_path = CurrentDirectory .. 'src'
-                        local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
+                        local file_path = fs_utils.ConcatPath(dir_path, 'FX Default Values.ini')
                         local file = io.open(file_path, 'a+')
 
                         if file then
@@ -3660,7 +3568,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if r.ImGui_IsItemClicked(ctx) and LBtnDC then
                                     if Mods == 0 then
                                         local dir_path = CurrentDirectory .. 'src'
-                                        local file_path = ConcatPath(dir_path,
+                                        local file_path = fs_utils.ConcatPath(dir_path,
                                             'FX Default Values.ini')
                                         local file = io.open(file_path, 'r')
 
@@ -3917,7 +3825,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                     for i = IN, OUT, (1 + (v.Gap or 0)) do
                                                         r.ImGui_DrawList_PathArcTo(WDL, x, y, i,
                                                             ANGLE_MIN,
-                                                            SetMinMax(
+                                                            math_helpers.SetMinMax(
                                                                 ANGLE_MIN +
                                                                 (ANGLE_MAX - ANGLE_MIN) * Prm.V,
                                                                 ANGLE_MIN, ANGLE_MAX))
@@ -4787,7 +4695,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if Dropped and Mods == 0 then
                     local ContainerIdx = tablefind(FxdCtx.FXGUID, FxGUID_Container)
-                    local InsPos = SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FxdCtx.FX[FxGUID_Container].FXsInBS)
+                    local InsPos = math_helpers.SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FxdCtx.FX[FxGUID_Container].FXsInBS)
 
 
 

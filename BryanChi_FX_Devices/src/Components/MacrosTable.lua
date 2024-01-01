@@ -1,3 +1,7 @@
+local state_helpers = require('src.helpers.state_helpers')
+local gui_helpers = require("src.Components.Gui_Helpers")
+local fs_utils = require("src.Functions.Filesystem_utils")
+local math_helpers = require("src.helpers.math_helpers")
 local MacrosTable = {}
 
 
@@ -681,7 +685,7 @@ function MacrosTable.DisplayMacrosTable()
                         local CtrlX = (N[i].ctrlX or ((N[math.max(i - 1, 1)].x + N[i].x) / 2)) * W + L
                         local CtrlY = T + H - (-(N[i].ctrlY or ((N[math.max(i - 1, 1)].y + N[i].y) / 2)) + 1) * H
 
-                        local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
+                        local PtsX, PtsY = math_helpers.Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
 
                         for i, _ in ipairs(PtsX) do
                             if i > 1 and PtsX[i] <= L + W then -- >1 because you need two points to draw a line
@@ -917,7 +921,7 @@ function MacrosTable.DisplayMacrosTable()
 
 
                     local function AddNode(x, y, ID)
-                        InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
+                        gui_helpers.InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
                         local Hvred
                         local L, T = r.ImGui_GetItemRectMin(ctx)
 
@@ -1091,7 +1095,7 @@ function MacrosTable.DisplayMacrosTable()
                                 end
                             end
 
-                            InvisiBtn(ctx, CtrlX - Sz / 2, CtrlY - Sz / 2, '##Ctrl Node' .. i, Sz)
+                            gui_helpers.InvisiBtn(ctx, CtrlX - Sz / 2, CtrlY - Sz / 2, '##Ctrl Node' .. i, Sz)
                             if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_C(), false) or r.ImGui_IsItemActivated(ctx) then
                                 DraggingLFOctrl = i
                             end
@@ -1142,7 +1146,7 @@ function MacrosTable.DisplayMacrosTable()
                             local CtrlY = B -
                                 (-(Node[i].ctrlY or (Node[last].y + Node[i].y) / 2) + 1) * FxdCtx.LFO.DummyH *
                                 Mc.LFO_Gain
-                            local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
+                            local PtsX, PtsY = math_helpers.Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
 
                             for i = 1, #PtsX, 2 do
                                 if i > 1 then -- >1 because you need two points to draw a line
@@ -1155,7 +1159,7 @@ function MacrosTable.DisplayMacrosTable()
                         PtsX = {}
                         PtsY = {}
 
-                        PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
+                        PtsX, PtsY = math_helpers.Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
 
                         if Wheel_V ~= 0 then Sqr = (Sqr or 0) + Wheel_V / 100 end
 
@@ -1517,7 +1521,7 @@ function MacrosTable.DisplayMacrosTable()
 
 
 
-                            local F = fs_utils.scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+                            local F = fs_utils.scandir(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
 
 
                             for _, v in ipairs(F) do
@@ -1530,7 +1534,7 @@ function MacrosTable.DisplayMacrosTable()
 
 
                             if FxdCtx.LFO.DeleteShape then
-                                os.remove(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes',
+                                os.remove(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes',
                                     Shapes[FxdCtx.LFO.DeleteShape].Name .. '.ini'))
                                 table.remove(Shapes, FxdCtx.LFO.DeleteShape)
                                 FxdCtx.LFO.DeleteShape = nil
@@ -1563,7 +1567,7 @@ function MacrosTable.DisplayMacrosTable()
 
 
                         local function Save_Shape_To_Track()
-                            local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+                            local HowManySavedShapes = state_helpers.GetTrkSavedInfo('LFO Saved Shape Count')
 
                             if HowManySavedShapes then
                                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count',
@@ -1589,7 +1593,7 @@ function MacrosTable.DisplayMacrosTable()
                             end
                         end
                         local function Save_Shape_To_Project()
-                            local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+                            local HowManySavedShapes = state_helpers.getProjSavedInfo('LFO Saved Shape Count')
 
                             r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count',
                                 (HowManySavedShapes or 0) + 1)
@@ -1615,19 +1619,19 @@ function MacrosTable.DisplayMacrosTable()
 
                         local function Track_Shapes()
                             local Shapes = {}
-                            local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+                            local HowManySavedShapes = state_helpers.GetTrkSavedInfo('LFO Saved Shape Count')
 
 
                             for I = 1, HowManySavedShapes or 0, 1 do
                                 local Shape = {}
-                                local Ct = GetTrkSavedInfo('Shape' .. I .. 'LFO Node Count = ')
+                                local Ct = state_helpers.GetTrkSavedInfo('Shape' .. I .. 'LFO Node Count = ')
 
                                 for i = 1, Ct or 1, 1 do
                                     Shape[i] = Shape[i] or {}
-                                    Shape[i].x = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'x = ')
-                                    Shape[i].y = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'y = ')
-                                    Shape[i].ctrlX = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
-                                    Shape[i].ctrlY = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
+                                    Shape[i].x = state_helpers.GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'x = ')
+                                    Shape[i].y = state_helpers.GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'y = ')
+                                    Shape[i].ctrlX = state_helpers.GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
+                                    Shape[i].ctrlY = state_helpers.GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
                                 end
                                 if Shape[1] then
                                     table.insert(Shapes, Shape)
@@ -1635,7 +1639,7 @@ function MacrosTable.DisplayMacrosTable()
                             end
 
                             if FxdCtx.LFO.DeleteShape then
-                                local Count = GetTrkSavedInfo('LFO Saved Shape Count')
+                                local Count = state_helpers.GetTrkSavedInfo('LFO Saved Shape Count')
                                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', Count - 1,
                                     true)
                                 table.remove(Shapes, FxdCtx.LFO.DeleteShape)
@@ -1667,18 +1671,18 @@ function MacrosTable.DisplayMacrosTable()
                         end
                         local function Proj_Shapes()
                             local Shapes = {}
-                            local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+                            local HowManySavedShapes = state_helpers.getProjSavedInfo('LFO Saved Shape Count')
 
                             for I = 1, HowManySavedShapes or 0, 1 do
                                 local Shape = {}
-                                local Ct = getProjSavedInfo('LFO Shape' .. I .. 'Node Count = ')
+                                local Ct = state_helpers.getProjSavedInfo('LFO Shape' .. I .. 'Node Count = ')
                                 for i = 1, Ct or 1, 1 do
                                     Shape[i] = Shape[i] or {}
-                                    Shape[i].x = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'x = ')
-                                    Shape[i].y = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'y = ')
-                                    Shape[i].ctrlX = getProjSavedInfo('LFO Shape' .. I ..
+                                    Shape[i].x = state_helpers.getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'x = ')
+                                    Shape[i].y = state_helpers.getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'y = ')
+                                    Shape[i].ctrlX = state_helpers.getProjSavedInfo('LFO Shape' .. I ..
                                         'Node ' .. i .. '.ctrlX = ')
-                                    Shape[i].ctrlY = getProjSavedInfo('LFO Shape' .. I ..
+                                    Shape[i].ctrlY = state_helpers.getProjSavedInfo('LFO Shape' .. I ..
                                         'Node ' .. i .. '.ctrlY = ')
                                 end
                                 if Shape[1] then
@@ -1687,7 +1691,7 @@ function MacrosTable.DisplayMacrosTable()
                             end
 
                             if FxdCtx.LFO.DeleteShape then
-                                local Count = getProjSavedInfo('LFO Saved Shape Count')
+                                local Count = state_helpers.getProjSavedInfo('LFO Saved Shape Count')
                                 r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', Count - 1)
                                 table.remove(Shapes, FxdCtx.LFO.DeleteShape)
 
@@ -1844,8 +1848,8 @@ function MacrosTable.DisplayMacrosTable()
                     r.ImGui_Button(ctx, 'Enter')
                     if r.ImGui_IsItemClicked(ctx) or (r.ImGui_IsItemFocused(ctx) and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Enter()) and Mods == 0) then
                         local LFO_Name = buf
-                        local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
-                        local file_path = ConcatPath(path, LFO_Name .. '.ini')
+                        local path = fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
+                        local file_path = fs_utils.ConcatPath(path, LFO_Name .. '.ini')
                         local file = io.open(file_path, 'w')
 
 
