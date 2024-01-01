@@ -208,15 +208,6 @@ function AddFX_HideWindow(track, fx_name, Position)
 end
 
 
----@param str string
----@param DecimalPlaces number
-function RoundPrmV(str, DecimalPlaces)
-    local A = tostring('%.' .. DecimalPlaces .. 'f')
-    --local num = tonumber(str:gsub('[^%d%.]', '')..str:gsub('[%d%.]',''))
-    local otherthanNum = str:gsub('[%d%.]', '')
-    local num = str:gsub('[^%d%.]', '')
-    return string.format(A, tonumber(num) or 0) .. otherthanNum
-end
 
 ---@param str string
 function StrToNum(str)
@@ -225,12 +216,6 @@ end
 
 
 
----@param num number
----@param multipleOf number
----@return number
-function roundUp(num, multipleOf)
-    return math.floor((num + multipleOf / 2) / multipleOf) * multipleOf;
-end
 
 ---@param FX_P integer
 ---@param FxGUID string

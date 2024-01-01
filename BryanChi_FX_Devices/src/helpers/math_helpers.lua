@@ -49,4 +49,11 @@ function math_helpers.round(num, numDecimalPlaces)
     end
 end
 
+---@param num number
+---@param multipleOf number
+---@return number
+function math_helpers.roundUp(num, multipleOf)
+    return math.floor((num + multipleOf / 2) / multipleOf) * multipleOf;
+end
+
 return math_helpers

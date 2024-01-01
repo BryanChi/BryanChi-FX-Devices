@@ -217,8 +217,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local FP = FxdCtx.FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
     if LblTextSize ~= 'No Font' then
-        Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-        V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        V_Font = 'Arial_' .. math_helpers.roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
         r.ImGui_PushFont(ctx, _G[Font])
     end
     local Radius       = Radius or 0
@@ -635,9 +635,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
             if noteL > 0.99 and noteL < 1.99 then
-                FormatPV = roundUp(noteL, 1) .. '/4'
+                FormatPV = math_helpers.roundUp(noteL, 1) .. '/4'
             elseif noteL > 1.99 then
-                FormatPV = roundUp(noteL, 2) .. '/4'
+                FormatPV = math_helpers.roundUp(noteL, 2) .. '/4'
             elseif noteL > 0.49 and noteL < 0.99 then
                 FormatPV = '1/8'
             elseif noteL > 0.24 and noteL < 0.49 then
@@ -649,7 +649,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
         end
 
-        if FxdCtx.FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FxdCtx.FX[FxGUID][Fx_P].V_Round) end
+        if FxdCtx.FX[FxGUID][Fx_P].V_Round then FormatPV = layout_editor_helpers.RoundPrmV(FormatPV, FxdCtx.FX[FxGUID][Fx_P].V_Round) end
 
 
         local ValueTxtW = r.ImGui_CalcTextSize(ctx, FormatPV, nil, nil, true)
@@ -870,9 +870,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
     FxdCtx.FX[FxGUID][Fx_P] = FxdCtx.FX[FxGUID][Fx_P] or {}
     local FP = FxdCtx.FX[FxGUID][Fx_P]
-    local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
-    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local V_Font = 'Arial_' .. math_helpers.roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
 
     
@@ -1213,7 +1213,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         r.ImGui_PopFont(ctx)
 
-        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = RoundPrmV(StrToNum(Format_P_V), FxdCtx.FX[FxGUID][Fx_P].V_Round) end
+        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = layout_editor_helpers.RoundPrmV(StrToNum(Format_P_V), FxdCtx.FX[FxGUID][Fx_P].V_Round) end
 
 
         if BtmLbl ~= 'No BtmLbl' then
@@ -1308,8 +1308,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     FxdCtx.FX[FxGUID or ''][Fx_P or ''] = FxdCtx.FX[FxGUID or ''][Fx_P or ''] or {}
     r.ImGui_BeginGroup(ctx)
     if Fx_P then FP = FxdCtx.FX[FxGUID][Fx_P] end
-    local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local V_Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     
     if Fx_P and FP then
         if (FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl') or FP.Lbl_Pos == 'Top' then
@@ -1525,11 +1525,11 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local clr, TextW, Font
     FxdCtx.FX[FxGUID][Fx_P] = FxdCtx.FX[FxGUID][Fx_P] or {}
     local FP = FxdCtx.FX[FxGUID][Fx_P]
-    local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local V_Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
 
     if FontSize then
-        Font = 'Font_Andale_Mono_' .. roundUp(FontSize, 1); r.ImGui_PushFont(ctx, _G[Font])
+        Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FontSize, 1); r.ImGui_PushFont(ctx, _G[Font])
     end
     if FxdCtx.FX[FxGUID][Fx_P].Lbl_Clr then r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), FxdCtx.FX[FxGUID][Fx_P].Lbl_Clr) end
     local popClr
@@ -1727,10 +1727,10 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local F_Tp = FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
 
-        local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        local Font = 'Font_Andale_Mono_' .. math_helpers.roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
 
-        local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        local V_Font = 'Arial_' .. math_helpers.roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
         if type(FP) ~= 'table' then
             FxdCtx.FX[FxGUID][Fx_P] = {}
@@ -2055,7 +2055,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local W, H          = SldrR - SldrL, SldrB - SldrT
         local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         r.ImGui_PushFont(ctx, Arial_11)
-        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = RoundPrmV(Format_P_V, FxdCtx.FX[FxGUID][Fx_P].V_Round) end
+        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = layout_editor_helpers.RoundPrmV(Format_P_V, FxdCtx.FX[FxGUID][Fx_P].V_Round) end
         TextW, Texth = r.ImGui_CalcTextSize(ctx, Format_P_V, nil, nil, true, -100)
         if is_active then txtclr = 0xEEEEEEff else txtclr = 0xD6D6D6ff end
 
@@ -2329,10 +2329,10 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                 CF = CF or {}
 
 
-                                ChangeFont_Size = roundUp(sz, 1)
-                                _G[var .. '_' .. roundUp(sz, 1)] = r.ImGui_CreateFont(ft, roundUp(sz, 1))
+                                ChangeFont_Size = math_helpers.roundUp(sz, 1)
+                                _G[var .. '_' .. math_helpers.roundUp(sz, 1)] = r.ImGui_CreateFont(ft, math_helpers.roundUp(sz, 1))
 
-                                r.ImGui_Attach(ctx, _G[var .. '_' .. roundUp(sz, 1)])
+                                r.ImGui_Attach(ctx, _G[var .. '_' .. math_helpers.roundUp(sz, 1)])
                                 ChangeFont_Font = var
                             end
                         end
@@ -3261,7 +3261,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 FxdCtx.FX[FxGUID][Fx_P].Sldr_W = ItemWidth
             end
             if LBtnRel and ChangePrmW == Fx_P then
-                FxdCtx.FX[FxGUID][Fx_P].Sldr_W = roundUp(FxdCtx.FX[FxGUID][Fx_P].Sldr_W, FxdCtx.LE
+                FxdCtx.FX[FxGUID][Fx_P].Sldr_W = math_helpers.roundUp(FxdCtx.FX[FxGUID][Fx_P].Sldr_W, FxdCtx.LE
                     .GridSize)
             end
             if LBtnRel then ChangePrmW = nil end
@@ -3278,7 +3278,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 FxdCtx.FX[FxGUID][Fx_P].Sldr_W = FxdCtx.FX[FxGUID][Fx_P].Sldr_W + DiagDrag;
             end
             if LBtnRel and FxdCtx.LE.ChangeRaius == Fx_P then
-                FxdCtx.FX[FxGUID][Fx_P].Sldr_W = roundUp(FxdCtx.FX[FxGUID][Fx_P].Sldr_W,
+                FxdCtx.FX[FxGUID][Fx_P].Sldr_W = math_helpers.roundUp(FxdCtx.FX[FxGUID][Fx_P].Sldr_W,
                     FxdCtx.LE.GridSize / 2)
             end
             if LBtnRel then FxdCtx.LE.ChangeRadius = nil end
@@ -3339,9 +3339,9 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         if LBtnRel and FxdCtx.LE.ChangePos == Fx_P and Max_L_MouseDownDuration > 0.1 then
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FxdCtx.FX[FxGUID][Fx_P].PosX and FxdCtx.FX[FxGUID][Fx_P].PosY then
-                FxdCtx.FX[FxGUID][Fx_P].PosX = math_helpers.SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosX, FxdCtx.LE.GridSize), 0,
+                FxdCtx.FX[FxGUID][Fx_P].PosX = math_helpers.SetMinMax(math_helpers.roundUp(FxdCtx.FX[FxGUID][Fx_P].PosX, FxdCtx.LE.GridSize), 0,
                     Win_W - (FxdCtx.FX[FxGUID][Fx_P].Sldr_W or 15))
-                FxdCtx.FX[FxGUID][Fx_P].PosY = math_helpers.SetMinMax(roundUp(FxdCtx.FX[FxGUID][Fx_P].PosY, FxdCtx.LE.GridSize), 0, 220 - 10)
+                FxdCtx.FX[FxGUID][Fx_P].PosY = math_helpers.SetMinMax(math_helpers.roundUp(FxdCtx.FX[FxGUID][Fx_P].PosY, FxdCtx.LE.GridSize), 0, 220 - 10)
             end
         end
         if LBtnRel then

@@ -738,7 +738,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 '##EditFontSize' .. FxGUID .. (FxdCtx.LE.Sel_Items[1] or ''),
                                 FrstSelItm.FontSize or Knob_DefaultFontSize, 0.25, 6, 64, '%.2f')
                             if Drag then
-                                local sz = roundUp(ft, 1)
+                                local sz = math_helpers.roundUp(ft, 1)
                                 if not _G['Font_Andale_Mono' .. '_' .. sz] then
                                     _G['Font_Andale_Mono' .. '_' .. sz] = r.ImGui_CreateFont('andale mono', sz)
                                     ChangeFont = FrstSelItm
@@ -764,7 +764,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 0.25, 6, 64,
                                 '%.2f')
                             if Drag then
-                                local sz = roundUp(ft, 1)
+                                local sz = math_helpers.roundUp(ft, 1)
                                 if not _G['Arial' .. '_' .. sz] then
                                     _G['Arial' .. '_' .. sz] = r.ImGui_CreateFont('Arial', sz)
                                     ChangeFont = FrstSelItm
@@ -3162,7 +3162,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     if FxdCtx.Sel_Cross[1] == i then
                                         r.ImGui_SetNextWindowPos(ctx, WinR, FxdCtx.FX[FxGUID].Cross[i].Pos - 14)
                                         r.ImGui_BeginTooltip(ctx)
-                                        r.ImGui_Text(ctx, roundUp(r.gmem_read(BsID + 4 + i), 1) .. ' Hz')
+                                        r.ImGui_Text(ctx, math_helpers.roundUp(r.gmem_read(BsID + 4 + i), 1) .. ' Hz')
                                         r.ImGui_EndTooltip(ctx)
                                         --r.ImGui_DrawList_AddText(Glob.FDL, WinL, Cross_Pos, getClr(r.ImGui_Col_Text()) , roundUp(r.gmem_read(10+i),1)..' Hz')
                                     end
@@ -3675,12 +3675,12 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             r.ImGui_DrawList_AddLine(WDL, WinL, X.Pos, WinR, X.Pos, TxtClr)
                             if FxdCtx.FX[FxGUID].Cross.DraggingBand ~= i then
                                 r.ImGui_DrawList_AddText(WDL, WinL, X.Pos, TxtClr,
-                                    roundUp(r.gmem_read(BsID + 4 + i), 1))
+                                    math_helpers.roundUp(r.gmem_read(BsID + 4 + i), 1))
                             end
                             if FxdCtx.FX[FxGUID].Cross.HoveringBand == i or FxdCtx.FX[FxGUID].Cross.DraggingBand == i then
                                 if not FxdCtx.FX[FxGUID].Cross.DraggingBand == i then
                                     r.ImGui_DrawList_AddText(WDL, WinL, X.Pos, TxtClr,
-                                        roundUp(r.gmem_read(BsID + 4 + i), 1))
+                                        math_helpers.roundUp(r.gmem_read(BsID + 4 + i), 1))
                                 end
                                 r.ImGui_DrawList_AddLine(WDL, WinL, X.Pos + 1, WinR, X.Pos, TxtClr)
 

@@ -95,4 +95,14 @@ function layout_editor_helpers.RecallIntoTable(Str, Id, Fx_P, Type)
     end
 end
 
+---@param str string
+---@param DecimalPlaces number
+function layout_editor_helpers.RoundPrmV(str, DecimalPlaces)
+    local A = tostring('%.' .. DecimalPlaces .. 'f')
+    --local num = tonumber(str:gsub('[^%d%.]', '')..str:gsub('[%d%.]',''))
+    local otherthanNum = str:gsub('[%d%.]', '')
+    local num = str:gsub('[^%d%.]', '')
+    return string.format(A, tonumber(num) or 0) .. otherthanNum
+end
+
 return layout_editor_helpers
