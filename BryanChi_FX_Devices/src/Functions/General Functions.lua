@@ -60,7 +60,7 @@ end
 
 function Check_If_Has_Children_Prioritize_Empty_Container(TB)
     local Candidate
-    for i, v in ipairs( TB)  do 
+    for _, v in ipairs( TB)  do 
         if v.children then     
             if v.children[1] then --if container not empty 
                 Candidate =  v.children 
@@ -916,7 +916,7 @@ function RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
             file, file_path = CallFile('r', Nm .. '.ini', 'Preset Morphing')
             if file then
                 local L = fs_utils.get_lines(file_path)
-                for i, V in ipairs(L) do
+                for _, V in ipairs(L) do
                     local Num = INI_parser.get_aftr_Equal_Num(V)
 
                     FxdCtx.FX[FxGUID].PrmList[Num] = {}
@@ -999,7 +999,7 @@ end
 function DeletePrm(FxGUID, Fx_P, FX_Idx)
     --LE.Sel_Items[1] = nil
     local FP = FxdCtx.FX[FxGUID][Fx_P]
-    for i, v in ipairs(FxdCtx.FX[FxGUID]) do
+    for _, v in ipairs(FxdCtx.FX[FxGUID]) do
         if v.ConditionPrm then
             v.ConditionPrm = nil
         end
@@ -1093,7 +1093,7 @@ end
 
 ---@param Rpt integer
 function AddSpacing(Rpt)
-    for i = 1, Rpt, 1 do
+    for _ = 1, Rpt, 1 do
         r.ImGui_Spacing(ctx)
     end
 end
@@ -3032,7 +3032,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local function Decide_If_Create_Regular_Layout()
                     if not FxdCtx.FX[FxGUID].Collapse and table_helpers.FindStringInTable(BlackListFXs, FX_Name) ~= true and table_helpers.FindStringInTable(SpecialLayoutFXs, FX_Name) == false  then
                         local FX_has_Plugin
-                        for i, v in pairs(pluginHelpers.PluginScripts) do
+                        for _, v in pairs(pluginHelpers.PluginScripts) do
                             if FX_Name:find(v) then
                                 FX_has_Plugin = true  
                             end
@@ -3181,7 +3181,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             FP[ConditionPrm]),
                                         3)
                                     if FP[ConditionPrm_V_Norm] then
-                                        for i, v in ipairs(FP[ConditionPrm_V_Norm]) do
+                                        for _, v in ipairs(FP[ConditionPrm_V_Norm]) do
                                             if V == math_helpers.round(v, 3) then Pass = true end
                                         end
                                     end
@@ -3189,7 +3189,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local _, V = r.TrackFX_GetFormattedParamValue(LT_Track,
                                         FX_Idx,
                                         FP[ConditionPrm])
-                                    for i, v in ipairs(FP[ConditionPrm_V]) do
+                                    for _, v in ipairs(FP[ConditionPrm_V]) do
                                         if V == v then Pass = true end
                                     end
                                 end
@@ -3350,7 +3350,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                     local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
 
-                                    for i, v in ipairs(FP.Draw) do
+                                    for _, v in ipairs(FP.Draw) do
                                         local x, y              = r.ImGui_GetItemRectMin(ctx)
                                         Prm.V = Prm.V or 0
                                         local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
@@ -3883,7 +3883,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                for i, v in pairs(pluginHelpers.PluginScripts) do
+                for _, v in pairs(pluginHelpers.PluginScripts) do
                     local FX_Name = FX_Name
 
 
@@ -3962,7 +3962,7 @@ end --of Create fx window function
 
 function get_fx_id_from_container_path(tr, idx1, ...)
     local sc,rv = reaper.TrackFX_GetCount(tr)+1, 0x2000000 + idx1
-    for i,v in ipairs({...}) do
+    for _,v in ipairs({...}) do
       local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
       if ccok ~= true then return nil end
       rv = rv + sc * v
