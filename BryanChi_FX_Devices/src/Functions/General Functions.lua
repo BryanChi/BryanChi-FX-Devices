@@ -19,13 +19,26 @@ local math_helpers = require("src.helpers.math_helpers")
 ---General functions list
 
 
+---@class FXTreeItem
+---@field fxname string
+---@field isopen boolean
+---@field GUID string
+---@field addr_fxid number
+---@field scale number
+---@field children? FXTreeItem[]
 
 ------------------------------------------------------------------------------
+---@param tr MediaTrack
+---@param fxid number
+---@param scale number
+---@param oldscale number
+---@return FXTreeItem
 function BuildFXTree_item(tr, fxid, scale, oldscale)
     local tr = tr or LT_Track
-    local retval, buf = reaper.TrackFX_GetFXName(tr, fxid)
+    local _, buf = reaper.TrackFX_GetFXName(tr, fxid)
     local ccok, container_count = reaper.TrackFX_GetNamedConfigParm(tr, fxid, 'container_count')
 
+    ---@type FXTreeItem
     local ret = {
         fxname = buf,
         isopen = reaper.TrackFX_GetOpen(tr, fxid),
@@ -46,11 +59,13 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
 end
 
 --------------------------------------------------------------------------
+---@param tr? MediaTrack
+---@return FXTreeItem[]|nil
 function BuildFXTree(tr)
     -- table with referencing ID tree
-    local tr = tr or LT_Track
+    tr = tr or LT_Track
     if tr then
-        tree = {}
+        local tree = {}
         local cnt = reaper.TrackFX_GetCount(tr)
         for i = 1, cnt do
             tree[i] = BuildFXTree_item(tr, 0x2000000 + i, cnt + 1, cnt + 1)
@@ -59,25 +74,6 @@ function BuildFXTree(tr)
     end
 end
 
-function Check_If_Has_Children_Prioritize_Empty_Container(TB)
-    local Candidate
-    for _, v in ipairs(TB) do
-        if v.children then
-            if v.children[1] then         --if container not empty
-                Candidate = v.children
-            elseif not v.children[1] then -- if container empty
-                local Final = v.children ~= nil and 'children' or 'candidate'
-                return v.children or Candidate
-            end
-        end
-    end
-    if Candidate then
-        return Candidate
-    end
-end
-
-local tr = reaper.GetSelectedTrack(0, 0)
-TREE = BuildFXTree(LT_Track or tr)
 
 function EndUndoBlock(str)
     r.Undo_EndBlock("ReaDrum Machine: " .. str, -1)

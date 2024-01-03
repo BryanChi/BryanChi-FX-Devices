@@ -2214,7 +2214,7 @@ end
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
     if LT_Track then
-        TREE = BuildFXTree(LT_Track or tr)
+        FxdCtx.TREE = BuildFXTree(LT_Track or tr)
 
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
             
@@ -2595,12 +2595,12 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
            
             if rv  then     -- if iterated fx is a container
                 local Upcoming_Container
-                if TREE[FX_Idx+1] then 
-                    if TREE[FX_Idx+1].children then 
+                if FxdCtx.TREE[FX_Idx+1] then 
+                    if FxdCtx.TREE[FX_Idx+1].children then 
 
                         local function get_Container_Info ()
                             
-                            for _, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
+                            for _, v in ipairs(Upcoming_Container or FxdCtx.TREE[FX_Idx+1].children) do 
 
                                 local FX_Id = v.addr_fxid
                                 local GUID = v.GUID

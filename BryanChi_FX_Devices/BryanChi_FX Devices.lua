@@ -521,7 +521,7 @@ function Loop()
                 end
 
                 RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-                TREE = BuildFXTree(LT_Track)
+                FxdCtx.TREE = BuildFXTree(LT_Track)
 
                 layoutRetrieved = true
                 SyncTrkPrmVtoActualValue()
@@ -534,7 +534,7 @@ function Loop()
                 --TREE = BuildFXTree(tr)
             end
 
-            TREE = BuildFXTree(tr)
+            FxdCtx.TREE = BuildFXTree(tr)
 
             ----Functions & Variables -------------
             FxdCtx.Glob.FDL = r.ImGui_GetForegroundDrawList(ctx)
