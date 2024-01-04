@@ -1,5 +1,6 @@
 -- @noindex
 r = reaper
+local GF = require("src.Functions.General Functions")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local math_helpers = require("src.helpers.math_helpers")
 local customcolors = require("src.helpers.custom_colors")
@@ -225,7 +226,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local pos          = { r.ImGui_GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
-    local Clr_SldrGrab = Change_Clr_A(getClr(r.ImGui_Col_SliderGrabActive()), -0.2)
+    local Clr_SldrGrab = Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.2)
 
 
     local TextW = r.ImGui_CalcTextSize(ctx, labeltoShow or FxdCtx.FX[FxGUID][Fx_P].Name, nil, nil, true)
@@ -265,9 +266,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_SourceNoPreviewTooltip()) then
                 r.ImGui_SetDragDropPayload(ctx, 'my_type', 'my_data')
                 Knob_Active  = true
-                Clr_SldrGrab = getClr(r.ImGui_Col_Text())
+                Clr_SldrGrab = GF.getClr(r.ImGui_Col_Text())
 
-                HideCursorTillMouseUp(0)
+                GF.HideCursorTillMouseUp(0)
                 r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
                 if -mouse_delta[2] ~= 0.0 then
                     local stepscale = 1
@@ -299,7 +300,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FP.Lbl_Pos == 'Free' then
         local Cx, Cy = r.ImGui_GetCursorScreenPos(ctx)
         r.ImGui_DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
-            pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or getClr(r.ImGui_Col_Text()),
+            pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or GF.getClr(r.ImGui_Col_Text()),
             FP.CustomLbl or FP.Name)
     end
 
@@ -327,7 +328,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             r.ImGui_Text(ctx, PV)
             r.ImGui_EndTooltip(ctx)
         end
-        Clr_SldrGrab = getClr(r.ImGui_Col_SliderGrabActive())
+        Clr_SldrGrab = GF.getClr(r.ImGui_Col_SliderGrabActive())
     end
 
 
@@ -628,7 +629,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         r.ImGui_PushFont(ctx, _G[V_Font])
         _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         if FxdCtx.FX[FxGUID][Fx_P].ValToNoteL then
-            FormatPV = StrToNum(FormatPV)
+            FormatPV = GF.StrToNum(FormatPV)
             tempo = r.Master_GetTempo()
             local num = FormatPV:gsub('[^%p%d]', '')
             noteL = num * tempo / 60000
@@ -882,7 +883,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         r.ImGui_PushFont(ctx, _G[Font])
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_TextColored(ctx, FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()), labeltoShow or FP.Name)
-        SL()
+        GF.SL()
         r.ImGui_PopFont(ctx)
     end
 
@@ -935,14 +936,14 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 local w = r.ImGui_CalcTextSize(ctx, labeltoShow or FP.Name)
                 r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
                 --r.ImGui_TextColored(ctx, FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())  ,labeltoShow or FP.Name )
-                MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
+                GF.MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
             end
             if FP.V_Pos == 'Top' then
                 local CurX             = r.ImGui_GetCursorPosX(ctx)
                 local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
                 local w                = r.ImGui_CalcTextSize(ctx, Param_Value)
                 r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
+                if Get then GF.MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
             end
         end
         
@@ -1213,7 +1214,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         r.ImGui_PopFont(ctx)
 
-        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = layout_editor_helpers.RoundPrmV(StrToNum(Format_P_V), FxdCtx.FX[FxGUID][Fx_P].V_Round) end
+        if FxdCtx.FX[FxGUID][Fx_P].V_Round then Format_P_V = layout_editor_helpers.RoundPrmV(GF.StrToNum(Format_P_V), FxdCtx.FX[FxGUID][Fx_P].V_Round) end
 
 
         if BtmLbl ~= 'No BtmLbl' then
@@ -1230,13 +1231,13 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                     local CurX = r.ImGui_GetCursorPosX(ctx)
                     local w = r.ImGui_CalcTextSize(ctx, labeltoShow or FP.Name)
                     r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                    MyText(labeltoShow or FP.Name, _G[Font], LblClr)
+                    GF.MyText(labeltoShow or FP.Name, _G[Font], LblClr)
                 end
                 if FP.V_Pos == 'Bottom' then
                     local Cx = r.ImGui_GetCursorPosX(ctx)
                     local txtW = r.ImGui_CalcTextSize(ctx, Format_P_V, nil, nil, true)
                     r.ImGui_SetCursorPosX(ctx, Cx + Sldr_Width / 2 - txtW / 2)
-                    MyText(Format_P_V, _G[V_Font], FP.V_Clr or LblClr)
+                    GF.MyText(Format_P_V, _G[V_Font], FP.V_Clr or LblClr)
                 end
             end
             if FP.Lbl_Pos == 'Free' then
@@ -1258,7 +1259,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             r.ImGui_SetCursorScreenPos(ctx, SldrR - TextW, Y)
 
 
-            MyText(Format_P_V, _G[V_Font], V_Clr)
+            GF.MyText(Format_P_V, _G[V_Font], V_Clr)
 
             r.ImGui_PopFont(ctx)
         end
@@ -1319,10 +1320,10 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                     LT_Track, FX_Idx, WhichPrm)
             end
             r.ImGui_AlignTextToFramePadding(ctx)
-            MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+            GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
                 FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
             if FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl' then
-                SL()
+                GF.SL()
             end
         end
         r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
@@ -1488,19 +1489,19 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         local m = B - lineheight / 2 - 3
         g = 2
         local X = R - ExtraW / 2
-        DrawTriangle(drawlist, X, m - g, 3, clr)
-        DrawDownwardTriangle(drawlist, X, m + g, 3, clr)
+        GF.DrawTriangle(drawlist, X, m - g, 3, clr)
+        GF.DrawDownwardTriangle(drawlist, X, m + g, 3, clr)
     end
 
 
 
     if FP.Lbl_Pos == 'Right' then
-        SL()
+        GF.SL()
         r.ImGui_AlignTextToFramePadding(ctx) --[[ r.ImGui_Text(ctx,FP.CustomLbl or FP.Name)  ]]
-        MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+        GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
     elseif FP.Lbl_Pos == 'Bottom' then
-        MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+        GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
     end
     r.ImGui_PopStyleVar(ctx)
@@ -1538,7 +1539,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.Lbl_Pos == 'Left' then
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
-        SL()
+        GF.SL()
     elseif FP.Lbl_Pos == 'Top' then
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
     end
@@ -1645,7 +1646,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local DL = r.ImGui_GetWindowDrawList(ctx)
 
     if FP.Lbl_Pos == 'Right' then
-        SL()
+        GF.SL()
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
     elseif FP.Lbl_Pos == 'Bottom' then
@@ -1653,14 +1654,14 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     elseif FP.Lbl_Pos == 'Free' then
         local Cx, Cy = r.ImGui_GetCursorScreenPos(ctx)
         r.ImGui_DrawList_AddTextEx(DL, _G[Font], FontSize or 11, Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0),
-            FP.Lbl_Clr or getClr(r.ImGui_Col_Text()), FP.CustomLbl or FP.Name)
+            FP.Lbl_Clr or GF.getClr(r.ImGui_Col_Text()), FP.CustomLbl or FP.Name)
     end
 
     if FP.V_Pos == 'Free' then
         local Cx, Cy = r.ImGui_GetCursorScreenPos(ctx)
         local _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         r.ImGui_DrawList_AddTextEx(DL, _G[Font], FontSize or 11, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0),
-            FP.Lbl_Clr or getClr(r.ImGui_Col_Text()), lbl)
+            FP.Lbl_Clr or GF.getClr(r.ImGui_Col_Text()), lbl)
     end
     if FP.V_Pos == 'Within' then r.ImGui_PopFont(ctx) end
 
@@ -1753,7 +1754,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         if Lbl_Pos == 'Left' then
             r.ImGui_AlignTextToFramePadding(ctx)
-            MyText(labeltoShow, _G[Font], FP.Lbl_Clr or 0xaaaaaaff)
+            GF.MyText(labeltoShow, _G[Font], FP.Lbl_Clr or 0xaaaaaaff)
             r.ImGui_SameLine(ctx, nil, 8)
             r.ImGui_AlignTextToFramePadding(ctx)
         elseif Lbl_Pos == 'Free' then
@@ -2084,21 +2085,21 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         if not Lbl_Pos or Lbl_Pos == 'Bottom' then
             local X, Y = r.ImGui_GetCursorScreenPos(ctx)
-            local TxtClr = FP.Lbl_Clr or getClr(r.ImGui_Col_Text())
-            if Disable == 'Disabled' then TxtClr = getClr(r.ImGui_Col_TextDisabled()) end
+            local TxtClr = FP.Lbl_Clr or GF.getClr(r.ImGui_Col_Text())
+            if Disable == 'Disabled' then TxtClr = GF.getClr(r.ImGui_Col_TextDisabled()) end
 
             if item_inner_spacing then
                 if item_inner_spacing < 0 then r.ImGui_SetCursorPosY(ctx, r.ImGui_GetCursorPosY(ctx) + item_inner_spacing) end
             end
 
-            MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, TxtClr)
+            GF.MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, TxtClr)
 
             if not string.find(FxdCtx.FX.Win_Name_S[FX_Idx] or '', 'Pro%-C 2') then r.ImGui_SameLine(ctx) end
 
             r.ImGui_SetCursorScreenPos(ctx, SldrR - TextW, Y)
 
             if Style ~= 'Pro C Lookahead' and Style ~= 'Pro C' and (not FxdCtx.FX[FxGUID][Fx_P].V_Pos or FxdCtx.FX[FxGUID][Fx_P].V_Pos == 'Right') then
-                MyText(Format_P_V, _G[V_Font], FP.V_Clr or getClr(r.ImGui_Col_Text()))
+                GF.MyText(Format_P_V, _G[V_Font], FP.V_Clr or GF.getClr(r.ImGui_Col_Text()))
             end
         end
 
@@ -2214,7 +2215,7 @@ end
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
     if LT_Track then
-        FxdCtx.TREE = BuildFXTree(LT_Track or tr)
+        FxdCtx.TREE = GF.BuildFXTree(LT_Track or tr)
 
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
             
@@ -2227,7 +2228,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FxdCtx.FX[FxGUID] = FxdCtx.FX[FxGUID] or {}
                     FxdCtx.FX[FxGUID].File = file
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-                    local FX_Name = ChangeFX_Name(FX_Name)
+                    local FX_Name = GF.ChangeFX_Name(FX_Name)
 
                     if FxdCtx.LO[FX_Name] then 
 
@@ -2485,7 +2486,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                         end
                                     end
                                 end
-                                GetProjExt_FxNameNum(FxGUID)
+                                GF.GetProjExt_FxNameNum(FxGUID)
                                 FxdCtx.Prm.InstAdded[FxGUID] = true
                             end
                         else ---- if no editings has been saved to extstate
@@ -2520,7 +2521,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                         FP.SwitchTargV  = nil
                                     end
                                 end
-                                GetProjExt_FxNameNum(FxGUID)
+                                GF.GetProjExt_FxNameNum(FxGUID)
                             end
                         end
 
@@ -2848,7 +2849,7 @@ end
 function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     local dir_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
     --local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-    local FX_Name = ChangeFX_Name(FX_Name)
+    local FX_Name = GF.ChangeFX_Name(FX_Name)
     local file_path = fs_utils.ConcatPath(dir_path, FX_Name .. '.ini')
 
 
@@ -3085,7 +3086,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     end ]]
 
 
-    SaveDrawings(FX_Idx, FxGUID)
+    GF.SaveDrawings(FX_Idx, FxGUID)
 end
 
 ---@param FxGUID string
@@ -3108,7 +3109,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         for _, v in pairs(FxdCtx.LE.Sel_Items) do
             if Fx_P == v then
-                HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
+                GF.HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
                 FxdCtx.LE.SelectedItemType = ItemType
             end
         end

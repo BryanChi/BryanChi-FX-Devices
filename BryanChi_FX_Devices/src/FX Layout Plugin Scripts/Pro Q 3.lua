@@ -1,4 +1,5 @@
 -- @noindex
+local GF = require("src.Functions.General Functions")
 
 local table_helpers = require("src.helpers.table_helpers")
 local math_helpers = require("src.helpers.math_helpers")
@@ -120,7 +121,7 @@ else
     ProQ3['scaleLabel' .. ' ID' .. FxdCtx.FXGUID[FX_Idx]] = 12
 end
 
-SL(340 - 60)
+GF.SL(340 - 60)
 -- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
 local GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 314)
 FxdCtx.FX.Round[FxGUID] = 100

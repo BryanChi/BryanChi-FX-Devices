@@ -1,5 +1,6 @@
 -- @noindex
 
+local GF = require("src.Functions.General Functions")
 
 
 r = reaper
@@ -26,7 +27,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     end
     r.ImGui_SetNextItemWidth(ctx, 10)
     r.ImGui_PushFont(ctx, Font_Andale_Mono_10)
-    MyText('Over:', nil, 0x818181ff)
+    GF.MyText('Over:', nil, 0x818181ff)
 
 
     r.ImGui_SameLine(ctx, 210, nil)
@@ -451,7 +452,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
             FxGUID, Fx_P)
         r.ImGui_SetCursorPos(ctx, X + 25, Y + 35)
 
-        MyText('STYLE', nil, 0xbbbbbbff)
+        GF.MyText('STYLE', nil, 0xbbbbbbff)
 
 
         r.ImGui_SetCursorPos(ctx, X + 90, Y)

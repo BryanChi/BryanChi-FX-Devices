@@ -1,3 +1,4 @@
+local GF = require("src.Functions.General Functions")
 local math_helpers = require("src.helpers.math_helpers")
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
 ---@param s string
@@ -81,7 +82,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
         ADDFX_FILTER = nil
     end
     if ADDFX_FILTER ~= '' and ADDFX_FILTER then
-        SL()
+        GF.SL()
         reaper.ImGui_SetNextWindowSize(ctx, MAX_FX_SIZE, filter_h + 20)
         local x, y = reaper.ImGui_GetCursorScreenPos(ctx)
 
@@ -101,44 +102,44 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                         CustomColorsDefault
                         .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
                     ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
-                    MyText('VST', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('VST', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('VST3:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6) .. '##vst3'
                     local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('VST3', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('JS:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    MyText('JS', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('JS', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('AU:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    MyText('AU', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('AU', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('CLAP:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6)
                     local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAP', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('CLAP', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('LV2:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5)
                     local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    MyText('LV2', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.MyText('LV2', nil, clr)
+                    GF.SL()
+                    GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
 
                 if reaper.ImGui_Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
@@ -149,13 +150,13 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     end
                 end
                 if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    GF.HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
                 -- DRAG AND DROP
                 if reaper.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
                     -- HIGHLIGHT DRAGGED FX
                     DRAG_FX = i
-                    DndAddFX_SRC(filtered_fx[i])
+                    GF.DndAddFX_SRC(filtered_fx[i])
                     --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
                 end
             end

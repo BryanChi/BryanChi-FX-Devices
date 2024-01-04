@@ -1,4 +1,5 @@
 r = reaper
+local GF = require("src.Functions.General Functions")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColors = customcolors.CustomColors
@@ -455,7 +456,7 @@ function ShowStyleEditor()
             end
 
             r.ImGui_Text(ctx, 'Specific Colors')
-            AddSpacing(2)
+            GF.AddSpacing(2)
 
             for i, v in pairs(CustomColors) do
                 if r.ImGui_TextFilter_PassFilter(FxdCtx.app.style_editor.colors.filter.inst, v) then
@@ -541,7 +542,7 @@ function Show_KBShortcutEditor()
             r.ImGui_SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
             r.ImGui_OpenPopup(ctx, '##Type Key Popup')
         end
-        SL()
+        GF.SL()
 
         if r.ImGui_Button(ctx, 'Save') then
             local file = CallFile('w', 'Keyboard Shortcuts.ini')
@@ -551,8 +552,8 @@ function Show_KBShortcutEditor()
         end
 
 
-        SL()
-        MyText('(?)', nil, 0xffffff66)
+        GF.SL()
+        GF.MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
@@ -637,9 +638,9 @@ function Show_KBShortcutEditor()
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
-            SL()
+            GF.SL()
             r.ImGui_Text(ctx, ' : ')
-            SL()
+            GF.SL()
             local CmdTxt, commandID
 
 

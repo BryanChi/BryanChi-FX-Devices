@@ -12,6 +12,7 @@
 r = reaper
 Pad          = {}
 
+local GF = require("src.Functions.General Functions")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local images_fonts = require("src.helpers.images_fonts")
@@ -174,13 +175,13 @@ local function OpenFXInsidePad(a)
     local FX_Id = ConvertPathToNestedPath(pad_id, f)
     local FX_Id_next = ConvertPathToNestedPath(pad_id, f + 1)
     local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-    Spc = AddSpaceBtwnFXs(FX_Id)
+    Spc = GF.AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
-    createFXWindow(FX_Id)
-    SL(nil, 0)
+    GF.createFXWindow(FX_Id)
+    GF.SL(nil, 0)
     local w = r.ImGui_GetItemRectSize(ctx)
     if f == tonumber(padfx_idx) then
-    LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
+    LastSpc = GF.AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
     end 
     FxdCtx.FX[FxGUID].Width = (FxdCtx.FX[FxGUID].Width or 0) + w + (Spc or 0)
     if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
@@ -370,7 +371,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.FX[FxGUID].LAST_MENU = i
         r.SetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU", i)
       end
-      HighlightHvredItem()
+      GF.HighlightHvredItem()
       if FxdCtx.FX[FxGUID].LAST_MENU == i then 
         r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
         Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))

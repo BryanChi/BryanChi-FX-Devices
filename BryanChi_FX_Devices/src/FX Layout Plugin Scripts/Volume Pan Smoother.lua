@@ -1,4 +1,5 @@
 -- @noindex
+local GF = require("src.Functions.General Functions")
 
 
 
@@ -13,9 +14,9 @@ local FxGUID = PluginScript.Guid
 FxdCtx.FX[FxGUID].TitleWidth = 50 -- Use this to set title bar width 
 FxdCtx.FX[FxGUID].Width = 200   -- use this to set the device's width
 
-SL()
+GF.SL()
 r.ImGui_Text(ctx, 'title area')
-SL()
+GF.SL()
 
 
 
@@ -57,7 +58,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     --[[AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
                 item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)]]
 
-    AddSpacing(5)
+    GF.AddSpacing(5)
 
     AddSlider(ctx, '##Pan', 'Pan', FxdCtx.FX[FxGUID][2--[[Prm table index]]].V or 0, 0, 1, 2, FX_Idx, 1, SliderStyle, 120 --[[Sldr width]],
         item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)

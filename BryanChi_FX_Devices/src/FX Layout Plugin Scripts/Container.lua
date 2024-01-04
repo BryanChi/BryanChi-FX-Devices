@@ -1,5 +1,6 @@
 -- @noindex
 
+local GF = require("src.Functions.General Functions")
 
 r                                  = reaper
 
@@ -215,7 +216,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
         local Click = AddWindowBtn(GUID, FX_Id, 130, true, true, true)
 
 
-        SL(165)
+        GF.SL(165)
         DragDropToCollapseView(FX_Id, CollapseXPos_screen, GUID, v)
 
 
@@ -228,7 +229,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
             end
         end
         if FxdCtx.FX[FxGUID].Sel_Preview == FX_Id then
-            HighlightSelectedItem(nil, Accent_Clr, nil, nil, nil, nil, nil, nil, nil, 1, 1, 'GetItemRect')
+            GF.HighlightSelectedItem(nil, Accent_Clr, nil, nil, nil, nil, nil, nil, nil, 1, 1, 'GetItemRect')
         end
         SyncWetValues(FX_Id)
         FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a' .. FX_Id, '',
@@ -296,10 +297,10 @@ else
             local function Render_Normal()
                 local diff, Cur_X_ofs
                 if i == 1 then
-                    SL(nil, 0)
-                    AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container,
+                    GF.SL(nil, 0)
+                    GF.AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container,
                         AdditionalWidth)
-                    SL(nil, 0)
+                    GF.SL(nil, 0)
                 end
 
 
@@ -309,8 +310,8 @@ else
                 end
 
 
-                local Hv = createFXWindow(FX_Id)
-                SL(nil, 0)
+                local Hv = GF.createFXWindow(FX_Id)
+                GF.SL(nil, 0)
 
                 if v.scale and GUID then
                     FxdCtx.FX[GUID] = FxdCtx.FX[GUID] or {}
@@ -323,7 +324,7 @@ else
 
                 if r.ImGui_IsItemHovered(ctx) then Hover = true end
 
-                LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
+                LastSpc = GF.AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
 
                 FxdCtx.FX[FxGUID].Width = (FxdCtx.FX[FxGUID].Width or 0) + w + (LastSpc or 0)
 
@@ -340,11 +341,11 @@ else
 
     local Add_FX_Btn_Ypos
     if FxdCtx.FX[FxGUID].Cont_Collapse == 1 and FxdCtx.FX[FxGUID].Sel_Preview then
-        SL()
+        GF.SL()
         Add_FX_Btn_Ypos = r.ImGui_GetCursorPosY(ctx) + 24
         r.ImGui_SetCursorPosY(ctx, tonumber(CollapseYPos))
 
-        Hv = createFXWindow(FxdCtx.FX[FxGUID].Sel_Preview)
+        Hv = GF.createFXWindow(FxdCtx.FX[FxGUID].Sel_Preview)
         if Hv then PreviewW = Hv end
         if PreviewW then FxdCtx.FX[FxGUID].Width = 50 + 150 + PreviewW end
     end
@@ -355,7 +356,7 @@ else
         if r.ImGui_Button(ctx, '+', 130) then
             r.ImGui_OpenPopup(ctx, 'Btwn FX Windows' .. FxdCtx.FX[FxGUID].LastSpc)
         end
-        AddFX_Menu(FxdCtx.FX[FxGUID].LastSpc)
+        GF.AddFX_Menu(FxdCtx.FX[FxGUID].LastSpc)
     end
 
     if Upcoming_Container then
@@ -376,7 +377,7 @@ else
     if not FxdCtx.FX[FxGUID].Collapse then
         local WDL = r.ImGui_GetWindowDrawList(ctx)
         --r.ImGui_DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X + (FxdCtx.FX[FxGUID].Width or 190) - 35, Y + 218, h, W, 1,
+        GF.HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X + (FxdCtx.FX[FxGUID].Width or 190) - 35, Y + 218, h, W, 1,
             0.2, GetItemRect, Foreground, rounding, 4)
     end
 end
