@@ -1,4 +1,5 @@
 local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.helpers.gui_helpers")
 local state_helpers = require("src.helpers.state_helpers")
 local MenuBar = {}
 ------------------------------
@@ -26,7 +27,7 @@ function MenuBar.DisplayMenuBar()
                 end
 
 
-                GF.MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
+                gui_helpers.MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
                 r.ImGui_EndMenu(ctx)
             end
 

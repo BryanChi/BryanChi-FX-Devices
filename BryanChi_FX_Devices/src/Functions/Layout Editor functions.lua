@@ -1,6 +1,6 @@
 -- @noindex
 r = reaper
-local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.helpers.gui_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local math_helpers = require("src.helpers.math_helpers")
 local customcolors = require("src.helpers.custom_colors")
@@ -936,14 +936,14 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 local w = r.ImGui_CalcTextSize(ctx, labeltoShow or FP.Name)
                 r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
                 --r.ImGui_TextColored(ctx, FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())  ,labeltoShow or FP.Name )
-                GF.MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
+                gui_helpers.MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
             end
             if FP.V_Pos == 'Top' then
                 local CurX             = r.ImGui_GetCursorPosX(ctx)
                 local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
                 local w                = r.ImGui_CalcTextSize(ctx, Param_Value)
                 r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                if Get then GF.MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
+                if Get then gui_helpers.MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
             end
         end
         
@@ -1231,13 +1231,13 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                     local CurX = r.ImGui_GetCursorPosX(ctx)
                     local w = r.ImGui_CalcTextSize(ctx, labeltoShow or FP.Name)
                     r.ImGui_SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                    GF.MyText(labeltoShow or FP.Name, _G[Font], LblClr)
+                    gui_helpers.MyText(labeltoShow or FP.Name, _G[Font], LblClr)
                 end
                 if FP.V_Pos == 'Bottom' then
                     local Cx = r.ImGui_GetCursorPosX(ctx)
                     local txtW = r.ImGui_CalcTextSize(ctx, Format_P_V, nil, nil, true)
                     r.ImGui_SetCursorPosX(ctx, Cx + Sldr_Width / 2 - txtW / 2)
-                    GF.MyText(Format_P_V, _G[V_Font], FP.V_Clr or LblClr)
+                    gui_helpers.MyText(Format_P_V, _G[V_Font], FP.V_Clr or LblClr)
                 end
             end
             if FP.Lbl_Pos == 'Free' then
@@ -1259,7 +1259,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             r.ImGui_SetCursorScreenPos(ctx, SldrR - TextW, Y)
 
 
-            GF.MyText(Format_P_V, _G[V_Font], V_Clr)
+            gui_helpers.MyText(Format_P_V, _G[V_Font], V_Clr)
 
             r.ImGui_PopFont(ctx)
         end
@@ -1320,7 +1320,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                     LT_Track, FX_Idx, WhichPrm)
             end
             r.ImGui_AlignTextToFramePadding(ctx)
-            GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+            gui_helpers.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
                 FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
             if FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl' then
                 GF.SL()
@@ -1498,10 +1498,10 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     if FP.Lbl_Pos == 'Right' then
         GF.SL()
         r.ImGui_AlignTextToFramePadding(ctx) --[[ r.ImGui_Text(ctx,FP.CustomLbl or FP.Name)  ]]
-        GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+        gui_helpers.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
     elseif FP.Lbl_Pos == 'Bottom' then
-        GF.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
+        gui_helpers.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
     end
     r.ImGui_PopStyleVar(ctx)
@@ -1754,7 +1754,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         if Lbl_Pos == 'Left' then
             r.ImGui_AlignTextToFramePadding(ctx)
-            GF.MyText(labeltoShow, _G[Font], FP.Lbl_Clr or 0xaaaaaaff)
+            gui_helpers.MyText(labeltoShow, _G[Font], FP.Lbl_Clr or 0xaaaaaaff)
             r.ImGui_SameLine(ctx, nil, 8)
             r.ImGui_AlignTextToFramePadding(ctx)
         elseif Lbl_Pos == 'Free' then
@@ -2092,14 +2092,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if item_inner_spacing < 0 then r.ImGui_SetCursorPosY(ctx, r.ImGui_GetCursorPosY(ctx) + item_inner_spacing) end
             end
 
-            GF.MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, TxtClr)
+            gui_helpers.MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, TxtClr)
 
             if not string.find(FxdCtx.FX.Win_Name_S[FX_Idx] or '', 'Pro%-C 2') then r.ImGui_SameLine(ctx) end
 
             r.ImGui_SetCursorScreenPos(ctx, SldrR - TextW, Y)
 
             if Style ~= 'Pro C Lookahead' and Style ~= 'Pro C' and (not FxdCtx.FX[FxGUID][Fx_P].V_Pos or FxdCtx.FX[FxGUID][Fx_P].V_Pos == 'Right') then
-                GF.MyText(Format_P_V, _G[V_Font], FP.V_Clr or GF.getClr(r.ImGui_Col_Text()))
+                gui_helpers.MyText(Format_P_V, _G[V_Font], FP.V_Clr or GF.getClr(r.ImGui_Col_Text()))
             end
         end
 

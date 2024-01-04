@@ -1,4 +1,5 @@
 local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.helpers.gui_helpers")
 local math_helpers = require("src.helpers.math_helpers")
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
 ---@param s string
@@ -25,7 +26,8 @@ local function Filter_actions(filter_text)
     return t
 end
 
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+local FilterBox ={}
+function FilterBox.displayFilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
     ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
@@ -102,42 +104,42 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                         CustomColorsDefault
                         .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
                     ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
-                    GF.MyText('VST', nil, clr)
+                    gui_helpers.MyText('VST', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('VST3:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6) .. '##vst3'
                     local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    GF.MyText('VST3', nil, clr)
+                    gui_helpers.MyText('VST3', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('JS:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    GF.MyText('JS', nil, clr)
+                    gui_helpers.MyText('JS', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('AU:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    GF.MyText('AU', nil, clr)
+                    gui_helpers.MyText('AU', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('CLAP:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6)
                     local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    GF.MyText('CLAP', nil, clr)
+                    gui_helpers.MyText('CLAP', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('LV2:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5)
                     local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    GF.MyText('LV2', nil, clr)
+                    gui_helpers.MyText('LV2', nil, clr)
                     GF.SL()
                     GF.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
@@ -191,3 +193,4 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     end
     return close
 end
+return FilterBox

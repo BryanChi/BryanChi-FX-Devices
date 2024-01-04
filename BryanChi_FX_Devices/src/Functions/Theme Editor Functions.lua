@@ -553,7 +553,7 @@ function Show_KBShortcutEditor()
 
 
         GF.SL()
-        GF.MyText('(?)', nil, 0xffffff66)
+        gui_helpers.MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')

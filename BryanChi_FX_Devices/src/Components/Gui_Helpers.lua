@@ -23,5 +23,23 @@ function gui_helpers.InvisiBtn(ctx, x, y, str, w, h)
 
     return rv
 end
+---@param text string
+---@param font? ImGui_Font
+---@param color? number rgba
+---@param WrapPosX? number
+function gui_helpers.MyText(text, font, color, WrapPosX)
+    if WrapPosX then r.ImGui_PushTextWrapPos(ctx, WrapPosX) end
+
+    if font then r.ImGui_PushFont(ctx, font) end
+    if color then
+        r.ImGui_TextColored(ctx, color, text)
+    else
+        r.ImGui_Text(ctx, text)
+    end
+
+    if font then r.ImGui_PopFont(ctx) end
+    if WrapPosX then r.ImGui_PopTextWrapPos(ctx) end
+end
+
 
 return gui_helpers

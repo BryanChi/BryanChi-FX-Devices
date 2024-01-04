@@ -62,7 +62,6 @@ function Msg(...)
 end
 
 r = reaper
-require("src.Components.FilterBox")
 local MenuBar = require("src.Components.MenuBar")
 local state_helpers = require("src.helpers.state_helpers")
 local fxDisplay = require("src.Components.FxDisplay")
@@ -1080,7 +1079,7 @@ function Loop()
             if HintMessage then
                 r.ImGui_Text(ctx, ' !')
                 GF.SL()
-                GF.MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
+                gui_helpers.MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
             end
             if not IsLBtnHeld then
                 FxdCtx.DraggingFXs = {}

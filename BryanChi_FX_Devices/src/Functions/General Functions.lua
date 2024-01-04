@@ -15,6 +15,7 @@ local state_helpers = require("src.helpers.state_helpers")
 local gui_helpers = require("src.Components.Gui_Helpers")
 local table_helpers = require("src.helpers.table_helpers")
 local math_helpers = require("src.helpers.math_helpers")
+local FilterBox = require("src.Components.FilterBox")
 
 ---General functions list
 local GF = {}
@@ -591,24 +592,6 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
             return var
         end
     end
-end
-
----@param text string
----@param font? ImGui_Font
----@param color? number rgba
----@param WrapPosX? number
-function GF.MyText(text, font, color, WrapPosX)
-    if WrapPosX then r.ImGui_PushTextWrapPos(ctx, WrapPosX) end
-
-    if font then r.ImGui_PushFont(ctx, font) end
-    if color then
-        r.ImGui_TextColored(ctx, color, text)
-    else
-        r.ImGui_Text(ctx, text)
-    end
-
-    if font then r.ImGui_PopFont(ctx) end
-    if WrapPosX then r.ImGui_PopTextWrapPos(ctx) end
 end
 
 ---@param ctx ImGui_Context
@@ -1347,7 +1330,7 @@ function GF.AddFX_Menu(FX_Idx)
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
-        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
+        if FilterBox.displayFilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
             AddedFX = true
             r.ImGui_CloseCurrentPopup(ctx)
         end -- Add FX Window
