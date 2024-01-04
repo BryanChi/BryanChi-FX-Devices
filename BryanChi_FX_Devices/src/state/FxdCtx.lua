@@ -188,5 +188,6 @@ FxdCtx.Wet = { DragLbl = {}, Val = {}, P_Num = {} }
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8 }
 
 FxdCtx.TREE = BuildFXTree(LT_Track or reaper.GetSelectedTrack(0, 0))
+FxdCtx.StringToBool = { ['true'] = true, ['false'] = false }
 
 return FxdCtx

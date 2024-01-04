@@ -220,7 +220,6 @@ function Vertical_FX_Name(name)
     return Name_V:gsub("%b()", "")
 end
 
-StringToBool = { ['true'] = true, ['false'] = false }
 
 --------------ImGUI Related ---------------------
 function PinIcon(PinStatus, PinStr, size, lbl, ClrBG, ClrTint)

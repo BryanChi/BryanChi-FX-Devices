@@ -253,7 +253,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                             false)))
 
                     FP.ModBipolar = FP.ModBipolar or {}
-                    FP.ModBipolar[m] = StringToBool
+                    FP.ModBipolar[m] = FxdCtx.StringToBool
                         [select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
 
                     if FxdCtx.Prm.McroModAmt[IdM] ~= nil then
