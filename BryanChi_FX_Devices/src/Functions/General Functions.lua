@@ -16,7 +16,7 @@ local gui_helpers = require("src.Components.Gui_Helpers")
 local table_helpers = require("src.helpers.table_helpers")
 local math_helpers = require("src.helpers.math_helpers")
 local FilterBox = require("src.Components.FilterBox")
-
+local INI_parser = require("src.helpers.INI_parser")
 ---General functions list
 local GF = {}
 
@@ -693,13 +693,6 @@ function GF.DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
     local Cy = CenterY
     local S = size
     r.ImGui_DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
-end
-
----Same Line
----@param xpos? number offset_from_start_xIn
----@param pad? number spacingIn
-function gui_helpers.SL(xpos, pad)
-    r.ImGui_SameLine(ctx, xpos, pad)
 end
 
 ---@param w number
