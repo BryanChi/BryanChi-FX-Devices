@@ -542,7 +542,7 @@ function Show_KBShortcutEditor()
             r.ImGui_SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
             r.ImGui_OpenPopup(ctx, '##Type Key Popup')
         end
-        GF.SL()
+        gui_helpers.SL()
 
         if r.ImGui_Button(ctx, 'Save') then
             local file = CallFile('w', 'Keyboard Shortcuts.ini')
@@ -552,7 +552,7 @@ function Show_KBShortcutEditor()
         end
 
 
-        GF.SL()
+        gui_helpers.SL()
         gui_helpers.MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(
@@ -638,9 +638,9 @@ function Show_KBShortcutEditor()
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
-            GF.SL()
+            gui_helpers.SL()
             r.ImGui_Text(ctx, ' : ')
-            GF.SL()
+            gui_helpers.SL()
             local CmdTxt, commandID
 
 

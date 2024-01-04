@@ -118,11 +118,11 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             SaveLayoutEditings(FX_Name, FX_Idx, FxdCtx.FXGUID[FX_Idx])
                             CloseLayEdit = true; FxdCtx.FX.LayEdit = nil
                         end
-                        GF.SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, 'Exit##Lay') then
                             r.ImGui_OpenPopup(ctx, 'Save Editing?')
                         end
-                        GF.SL()
+                        gui_helpers.SL()
 
                         if FxdCtx.LE.Sel_Items[1] then
                             local I = FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]]
@@ -144,14 +144,14 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 FxdCtx.LE.Sel_Items = {}
                             end
 
-                            GF.SL(nil, 30)
+                            gui_helpers.SL(nil, 30)
 
                             if r.ImGui_Button(ctx, 'Copy Properties') then
                                 CopyPrm = {}
                                 CopyPrm = I
                             end
 
-                            GF.SL()
+                            gui_helpers.SL()
                             if r.ImGui_Button(ctx, 'Paste Properties') then
                                 for _, _ in pairs(FxdCtx.LE.Sel_Items) do
                                     I.Type        = CopyPrm.Type
@@ -187,7 +187,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 end
                             end
                         end
-                        GF.SL(nil, 30)
+                        gui_helpers.SL(nil, 30)
 
                         if FxdCtx.Draw.DrawMode[FxGUID] then
                             if r.ImGui_Button(ctx, 'Exit Background Edit') then FxdCtx.Draw.DrawMode[FxGUID] = false end
@@ -293,7 +293,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                                     if D[It].Type == 'Picture' then
                                         r.ImGui_Text(ctx, 'File Path:')
-                                        GF.SL()
+                                        gui_helpers.SL()
                                         DragDropPics = DragDropPics or {}
 
                                         if r.ImGui_BeginChildFrame(ctx, '##drop_files', FullWidth, 40) then
@@ -381,7 +381,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                                             _, D[It].Txt = r.ImGui_InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
 
-                                            GF.SL()
+                                            gui_helpers.SL()
                                             r.ImGui_Text(ctx, 'Font Size:')
                                             local rv, Sz = r.ImGui_InputInt(ctx, '## font size ' .. It,
                                                 D[It].FtSize or 12)
@@ -455,24 +455,24 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             local function FreeValuePosSettings()
                                 if FrstSelItm.V_Pos == 'Free' then
                                     r.ImGui_Text(ctx, 'X:')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, 50)
                                     local EditPosX, PosX = r.ImGui_DragDouble(ctx,
                                         ' ##EditValuePosX' .. FxGUID .. FxdCtx.LE.Sel_Items[1],
                                         FrstSelItm.V_Pos_X or 0,
                                         0.25, nil, nil, '%.2f')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if EditPosX then
                                         for _, _ in pairs(FxdCtx.LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
                                     end
                                     r.ImGui_Text(ctx, 'Y:')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, 50)
                                     local EditPosY, PosY = r.ImGui_DragDouble(ctx,
                                         ' ##EditValuePosY' .. FxGUID .. FxdCtx.LE.Sel_Items[1],
                                         FrstSelItm.V_Pos_Y or 0,
                                         0.25, nil, nil, '%.2f')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if EditPosY then
                                         for _, _ in pairs(FxdCtx.LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
                                     end
@@ -481,24 +481,24 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             local function FreeLblPosSettings()
                                 if FrstSelItm.Lbl_Pos == 'Free' then
                                     r.ImGui_Text(ctx, 'X:')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, 50)
                                     local EditPosX, PosX = r.ImGui_DragDouble(ctx,
                                         ' ##EditLblPosX' .. FxGUID .. FxdCtx.LE.Sel_Items[1],
                                         FrstSelItm.Lbl_Pos_X or 0,
                                         0.25, nil, nil, '%.2f')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if EditPosX then
                                         for _, _ in pairs(FxdCtx.LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
                                     end
                                     r.ImGui_Text(ctx, 'Y:')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, 50)
                                     local EditPosY, PosY = r.ImGui_DragDouble(ctx,
                                         ' ##EditLblPosY' .. FxGUID .. FxdCtx.LE.Sel_Items[1],
                                         FrstSelItm.Lbl_Pos_Y or 0,
                                         0.25, nil, nil, '%.2f')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if EditPosY then
                                         for _, _ in pairs(FxdCtx.LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
                                     end
@@ -756,7 +756,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
 
 
-                            GF.SL()
+                            gui_helpers.SL()
                             r.ImGui_Text(ctx, 'Value Font Size: '); r.ImGui_SameLine(ctx)
                             r.ImGui_SetNextItemWidth(ctx, 50)
                             local Drag, ft = r.ImGui_DragDouble(ctx,
@@ -810,7 +810,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 MinW = 7
                             end
 
-                            GF.SL()
+                            gui_helpers.SL()
 
 
                             local _, W = r.ImGui_DragDouble(ctx,
@@ -827,9 +827,9 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
 
                             if FrstSelItm.Type ~= 'Knob' then
-                                GF.SL()
+                                gui_helpers.SL()
                                 r.ImGui_Text(ctx, 'Height: ')
-                                GF.SL()
+                                gui_helpers.SL()
                                 r.ImGui_SetNextItemWidth(ctx, 60)
                                 local max, defaultH
                                 if FrstSelItm.Type == 'V-Slider' then
@@ -914,12 +914,12 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     for i, V in ipairs(FxdCtx.FX[FxGUID][Itm].ManualValues) do
                                         r.ImGui_AlignTextToFramePadding(ctx)
                                         r.ImGui_Text(ctx, i .. ':' .. (math_helpers.round(V, 2) or 0))
-                                        GF.SL()
+                                        gui_helpers.SL()
                                         --r.ImGui_SetNextItemWidth(ctx, -R_ofs)
                                         Rv, FxdCtx.FX[FxGUID][Itm].ManualValuesFormat[i] = r.ImGui_InputText(ctx,
                                             '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i,
                                             FxdCtx.FX[FxGUID][Itm].ManualValuesFormat[i])
-                                        GF.SL()
+                                        gui_helpers.SL()
                                         if IconBtn(20, 20, 'T', BgClr, 'center', '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i) then
                                             table.remove(FxdCtx.FX[FxGUID][Itm].ManualValuesFormat, i)
                                             table.remove(FxdCtx.FX[FxGUID][Itm].ManualValues, i)
@@ -960,7 +960,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             end
 
 
-                            GF.SL()
+                            gui_helpers.SL()
                             if r.ImGui_BeginChildFrame(ctx, '##drop_files', -R_ofs, 20) then
                                 if not FrstSelItm.ImagePath then
                                     r.ImGui_Text(ctx, 'Drag and drop files here...')
@@ -1138,7 +1138,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             if EditPosX then
                                 for _, v in pairs(FxdCtx.LE.Sel_Items) do FxdCtx.FX[FxGUID][v].PosX = PosX end
                             end
-                            GF.SL()
+                            gui_helpers.SL()
                             r.ImGui_Text(ctx, 'Pos-Y: '); r.ImGui_SameLine(ctx)
                             r.ImGui_SetNextItemWidth(ctx, 80)
                             local EditPosY, PosY = r.ImGui_DragDouble(ctx, ' ##EditPosY' ..
@@ -1160,7 +1160,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                 r.ImGui_ColorEditFlags_AlphaBar())
                             if not FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]].BgClr or FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]] == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
-                                GF.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0, 'GetItemRect')
+                                gui_helpers.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0, 'GetItemRect')
                             end
                             if ClrEdited then
                                 for _, v in pairs(FxdCtx.LE.Sel_Items) do FxdCtx.FX[FxGUID][v].BgClr = PrmBgClr end
@@ -1176,7 +1176,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     .ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                     r.ImGui_ColorEditFlags_AlphaBar())
                                 if not FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]].GrbClr or FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]].GrbClr == r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrab()) then
-                                    GF.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0,
+                                    gui_helpers.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 0, 0,
                                         'GetItemRect')
                                 end
                                 if GrbClrEdited then
@@ -1187,9 +1187,9 @@ function fxDisplay.displayFx(spaceIfPreFX)
                             end
 
                             if FrstSelItm.Type == 'Knob' then
-                                GF.SL()
+                                gui_helpers.SL()
                                 r.ImGui_Text(ctx, 'Thickness : ')
-                                GF.SL()
+                                gui_helpers.SL()
                                 r.ImGui_SetNextItemWidth(ctx, 40)
                                 local TD, Thick = r.ImGui_DragDouble(ctx,
                                     '##EditValueFontSize' .. FxGUID .. (FxdCtx.LE.Sel_Items[1] or ''),
@@ -1218,7 +1218,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     for _, v in pairs(FxdCtx.LE.Sel_Items) do FxdCtx.FX[FxGUID][v].V_Clr = V_Clr end
                                 end
                             elseif FrstSelItm.Type == 'Switch' then
-                                GF.SL()
+                                gui_helpers.SL()
                                 r.ImGui_Text(ctx, 'On Color: ')
                                 r.ImGui_SameLine(ctx)
                                 local DragLbl_Clr_Edited, V_Clr = r.ImGui_ColorEdit4(ctx,
@@ -1275,7 +1275,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
 
                                 if FrstSelItm[ShowCondition] or FxdCtx.FX[FxGUID][P][ConditionPrm] then
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if not FxdCtx.FX[FxGUID][P][ConditionPrm_PID] then
                                         for i, _ in ipairs(FxdCtx.FX[FxGUID]) do
                                             if FxdCtx.FX[FxGUID][i].Num == FrstSelItm[ConditionPrm] then
@@ -1463,9 +1463,9 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                     r.ImGui_AlignTextToFramePadding(ctx)
                                     local rv = r.ImGui_TreeNode(ctx, 'Drawing ' .. i)
 
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_Text(ctx, ' Type : ')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, 100)
 
 
@@ -1494,7 +1494,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         r.ImGui_EndCombo(ctx)
                                     end
 
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     if r.ImGui_Button(ctx, 'Delete##' .. i) then
                                         RemoveDraw = i
                                     end
@@ -1525,7 +1525,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                                     if images_fonts.TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
                                                         D.Image, D.FilePath = nil
                                                     end
-                                                    GF.SL()
+                                                    gui_helpers.SL()
                                                 end
                                                 if not D.FilePath then
                                                     r.ImGui_Text(ctx, 'Drag and drop files here...')
@@ -1811,7 +1811,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 r.ImGui_ColorEditFlags_NoInputs()|    r.ImGui_ColorEditFlags_AlphaPreviewHalf()|
                                 r.ImGui_ColorEditFlags_AlphaBar())
                             if FxdCtx.FX[FxGUID].BgClr == r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBg()) then
-                                GF.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                                gui_helpers.HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                             end
 
                             r.ImGui_Text(ctx, 'FX Title Color:')
@@ -2361,7 +2361,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         FxdCtx.Lyr.Rename[LyrID .. FxGUID] = false
                                         FXLayerRenaming = nil
                                     end
-                                    GF.SL(nil, 10)
+                                    gui_helpers.SL(nil, 10)
                                 end
 
                                 ------------ Confirm delete layer ---------------------
@@ -2441,7 +2441,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                         end
                                     end
 
-                                    GF.HighlightSelectedItem(0x88888844, 0xffffffff, 0, L, T, R, B, h, W,
+                                    gui_helpers.HighlightSelectedItem(0x88888844, 0xffffffff, 0, L, T, R, B, h, W,
                                         H_OutlineSc, V_OutlineSc, 'GetItemRect')
                                     r.ImGui_EndDragDropTarget(ctx)
                                 end
@@ -2952,7 +2952,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                 if r.ImGui_BeginChild(ctx, 'FXD Saike BandSplitter' .. FxGUID, Width, 220) then
                     local SpcW = GF.AddSpaceBtwnFXs(FX_Idx, 'SpaceBeforeBS', nil, nil, 1, FxGUID)
-                    GF.SL(nil, 0)
+                    gui_helpers.SL(nil, 0)
 
                     local btnTitle = string.gsub('Band Split', "(.)", "%1\n")
                     local btn = r.ImGui_Button(ctx, btnTitle .. '##Vertical', BtnWidth, 220) -- create window name button   Band Split button
@@ -2995,7 +2995,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                         --HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L,T,R,B,h,w, H_OutlineSc, V_OutlineSc,'GetItemRect',WDL )
                     end
-                    GF.SL(nil, 0)
+                    gui_helpers.SL(nil, 0)
                     r.gmem_attach('FXD_BandSplit')
 
 
@@ -3511,7 +3511,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
 
                                 if FxdCtx.DraggingFXs[1] and FxdCtx.DraggingFXs.SrcBand ~= i then
-                                    GF.HighlightSelectedItem(0xffffff25, 0xffffff66, 0, WinL, CrossPos - 1, WinR - 1,
+                                    gui_helpers.HighlightSelectedItem(0xffffff25, 0xffffff66, 0, WinL, CrossPos - 1, WinR - 1,
                                         Nxt_CrossPos + 1, Nxt_CrossPos - CrossPos, WinR - WinL, 1, 1,
                                         NoGetItemRect, NoForeground, NOrounding)
                                     if not IsLBtnHeld and Mods == 0 then -- if Dropped FXs
@@ -3602,7 +3602,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 end
                             end
                             if FxdCtx.FX[FxGUID].Sel_Band == i then
-                                GF.HighlightSelectedItem(0xffffff25, 0xffffff66, 0, WinL, CrossPos - 1, WinR - 1,
+                                gui_helpers.HighlightSelectedItem(0xffffff25, 0xffffff66, 0, WinL, CrossPos - 1, WinR - 1,
                                     Nxt_CrossPos + 1, Nxt_CrossPos - CrossPos, WinR - WinL, 1, 1, NoGetItemRect,
                                     NoForeground, NOrounding)
                             end
@@ -3649,7 +3649,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 FxdCtx.FX[FxGUID].PromptDeleteBand = nil
                                 r.ImGui_CloseCurrentPopup(ctx)
                             end
-                            GF.SL()
+                            gui_helpers.SL()
                             if r.ImGui_Button(ctx, '(n) No') or r.ImGui_IsKeyPressed(ctx, 78) then
                                 r.ImGui_CloseCurrentPopup(ctx)
                             end
@@ -3765,19 +3765,19 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                 if FxName:find('FXD ReSpectrum') then ofs = ofs + 1 end
 
                                 if not FrstFX then
-                                    GF.SL(nil, 0)
+                                    gui_helpers.SL(nil, 0)
                                     GF.AddSpaceBtwnFXs(FX_ID - 1, 'SpcInBS', nil, nil, nil, FxGUID)
                                     FrstFX = true
                                 end
                                 --if i == 1 then  SL(nil,0)  AddSpaceBtwnFXs(FX_Idx,'SpcInBS',nil,nil,1, FxGUID) end
-                                GF.SL(nil, 0)
+                                gui_helpers.SL(nil, 0)
 
                                 I = table_helpers.tablefind(FxdCtx.FXGUID, v)
                                 if I then
                                     GF.createFXWindow(I)
-                                    GF.SL(nil, 0)
+                                    gui_helpers.SL(nil, 0)
                                     GF.AddSpaceBtwnFXs(I - ofs, 'SpcInBS', nil, nil, nil, FxGUID)
-                                    GF.SL(nil, 0)
+                                    gui_helpers.SL(nil, 0)
                                     --[[ if i == #FX[FxGUID].FXsInBS then  ]]
                                     LastFX_XPos = r.ImGui_GetCursorScreenPos(ctx)
                                 end
@@ -3828,14 +3828,14 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                         if DraggingFX_L_Pos then
                             local W = LastFX_XPos - DraggingFX_L_Pos
-                            GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, DraggingFX_L_Pos, WinT, LastFX_XPos,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, DraggingFX_L_Pos, WinT, LastFX_XPos,
                                 WinT + H, H, W, H_OutlineSc, V_OutlineSc, NoGetItemRect, WDL)
                             if not IsLBtnHeld then DraggingFX_L_Pos = nil end
                         end
                     else
                         if DraggingFX_L_Pos then
                             local W = Width - 10
-                            GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, DraggingFX_L_Pos, WinT,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, DraggingFX_L_Pos, WinT,
                                 DraggingFX_L_Pos + W, WinT + H, H, W, H_OutlineSc, V_OutlineSc, NoGetItemRect,
                                 WDL)
                             if not IsLBtnHeld then DraggingFX_L_Pos = nil end
@@ -3885,7 +3885,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                         FxdCtx.FX[FxGUID].DeleteBandSplitter = nil
                         r.Undo_EndBlock('Delete Band Split and put enclosed FXs back into channel one', 0)
                     end
-                    GF.SL()
+                    gui_helpers.SL()
 
                     if r.ImGui_Button(ctx, '(y) Yes') or r.ImGui_IsKeyPressed(ctx, 89) then
                         r.Undo_BeginBlock()
@@ -3908,7 +3908,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
 
                         r.Undo_EndBlock('Delete Band Split and all enclosed FXs', 0)
                     end
-                    GF.SL()
+                    gui_helpers.SL()
                     if r.ImGui_Button(ctx, '(esc) Cancel') or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then
                         FxdCtx.FX[FxGUID].DeleteBandSplitter = nil
                         r.ImGui_CloseCurrentPopup(ctx)

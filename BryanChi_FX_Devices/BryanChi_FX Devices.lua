@@ -700,8 +700,8 @@ function Loop()
 
             if MouseAtLeftEdge and not FxdCtx.Trk[TrkID].PreFX[1] and string.len(Payload_Type) > 1 then
                 Rv = r.ImGui_Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-                GF.SL(nil, 0)
-                GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                gui_helpers.SL(nil, 0)
+                gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
 
                 if Payload_Type == 'FX_Drag' then
@@ -726,7 +726,7 @@ function Loop()
             if r.ImGui_BeginDragDropTarget(ctx) then
                 if Payload_Type == 'FX_Drag' then
                     Rv, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Rv then
@@ -861,11 +861,11 @@ function Loop()
                 r.ImGui_SameLine(ctx, nil, -5)
                 Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 Rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-                GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain
                     Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -925,7 +925,7 @@ function Loop()
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
                     if Payload_Type == 'FX_Drag' then
                         Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                        GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
 
                         if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -940,7 +940,7 @@ function Loop()
                         end
                     elseif Payload_Type == 'DND ADD FX' then
                         Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-                        GF.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                             'GetItemRect', WDL)
                         if Dropped then
                             r.TrackFX_AddByName(LT_Track, Payload, false, -1000 - Sel_Track_FX_Count)
@@ -1078,7 +1078,7 @@ function Loop()
             r.ImGui_SetCursorPosY(ctx, HintPos) ]]
             if HintMessage then
                 r.ImGui_Text(ctx, ' !')
-                GF.SL()
+                gui_helpers.SL()
                 gui_helpers.MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
             end
             if not IsLBtnHeld then

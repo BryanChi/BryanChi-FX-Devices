@@ -1,6 +1,6 @@
 -- @noindex
 
-local gui_helpers = require("src.helpers.gui_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 
 r = reaper

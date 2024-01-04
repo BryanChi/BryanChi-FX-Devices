@@ -242,7 +242,7 @@ end
 
 function QuestionHelpHint(Str)
     if r.ImGui_IsItemHovered(ctx) then
-        GF.SL()
+        gui_helpers.SL()
         r.ImGui_TextColored(ctx, 0x99999977, '(?)')
         if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(Str)
@@ -250,59 +250,6 @@ function QuestionHelpHint(Str)
     end
 end
 
----@param FillClr number
----@param OutlineClr number
----@param Padding number
----@param L number
----@param T number
----@param R number
----@param B number
----@param h number
----@param w number
----@param H_OutlineSc any
----@param V_OutlineSc any
----@param GetItemRect "GetItemRect"|nil
----@param Foreground? ImGui_DrawList
----@param rounding? number
----@return number|nil L
----@return number|nil T
----@return number|nil R
----@return number|nil B
----@return number|nil w
----@return number|nil h
-function GF.HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
-                               Foreground, rounding, thick)
-    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
-        L, T = r.ImGui_GetItemRectMin(ctx)
-        R, B = r.ImGui_GetItemRectMax(ctx)
-        w, h = r.ImGui_GetItemRectSize(ctx)
-        --Get item rect
-    end
-    local P = Padding or 0
-    local HSC = H_OutlineSc or 4
-    local VSC = V_OutlineSc or 4
-    if Foreground == 'Foreground' then WinDrawList = FxdCtx.Glob.FDL else WinDrawList = Foreground end
-    if not WinDrawList then WinDrawList = r.ImGui_GetWindowDrawList(ctx) end
-    if FillClr then r.ImGui_DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
-
-    local h = h or B - T
-    local w = w or R - L
-
-    if OutlineClr and not rounding then
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
-        r.ImGui_DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
-    else
-        if FillClr then r.ImGui_DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
-        if OutlineClr then r.ImGui_DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
-    end
-    if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
-end
 
 function Highlight_Itm(WDL, FillClr, OutlineClr)
     local L, T = r.ImGui_GetItemRectMin(ctx)
@@ -564,13 +511,13 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     if rpt then
         for i = 0, rpt - 1, 1 do
             if Now > TimeBegin + dur * i and Now < TimeBegin + dur * (i + 0.5) then -- second blink
-                GF.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+                gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                     Foreground)
             end
         end
     else
         if Now > TimeBegin and Now < TimeBegin + dur / 2 then
-            GF.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+            gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                 Foreground)
         elseif Now > TimeBegin + dur / 2 + dur then
             TimeBegin = r.time_precise()
@@ -579,7 +526,7 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
 
     if EdgeNoBlink == 'EdgeNoBlink' then
         if Now < TimeBegin + dur * (rpt - 0.95) then
-            GF.HighlightSelectedItem(0xffffff00, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+            gui_helpers.HighlightSelectedItem(0xffffff00, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                 Foreground)
         end
     end
@@ -751,7 +698,7 @@ end
 ---Same Line
 ---@param xpos? number offset_from_start_xIn
 ---@param pad? number spacingIn
-function GF.SL(xpos, pad)
+function gui_helpers.SL(xpos, pad)
     r.ImGui_SameLine(ctx, xpos, pad)
 end
 
@@ -779,7 +726,7 @@ function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     end
     if BGClr then FillClr = BGClr end
 
-    L, T, R, B, W, H = GF.HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+    L, T, R, B, W, H = gui_helpers.HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
         'GetItemRect', Foreground)
     TxtSzW, TxtSzH = r.ImGui_CalcTextSize(ctx, icon)
     if center == 'center' then
@@ -1155,7 +1102,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             --r.ImGui_DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
             BgClr = 0x00000088
         end
-        GF.HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, W, 1, 1, 'GetItemRect', WDL,
+        gui_helpers.HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, W, 1, 1, 'GetItemRect', WDL,
             FxdCtx.FX[FxGUID].Round --[[rounding]])
 
 
@@ -1199,7 +1146,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
             DragDroppingFX = true
             if IsAnyMouseDown == false then DragDroppingFX = false end
-            GF.HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect',
+            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect',
                 WDL)
             Post_DragFX_ID = table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID_DragFX)
         end
@@ -1217,14 +1164,6 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         elseif L_ClickOnWindowBtn then
             return 1
         end
-    end
-end
-
-function GF.DndAddFX_SRC(fx)
-    if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_AcceptBeforeDelivery()) then
-        r.ImGui_SetDragDropPayload(ctx, 'DND ADD FX', fx)
-        r.ImGui_Text(ctx, fx)
-        r.ImGui_EndDragDropSource(ctx)
     end
 end
 
@@ -1293,7 +1232,7 @@ function GF.AddFX_Menu(FX_Idx)
                             -1000 - FX_Idx)
                     end
                 end
-                GF.DndAddFX_SRC(table.concat({ path, Os_separator, tbl[i], extension }))
+                gui_helpers.DndAddFX_SRC(table.concat({ path, Os_separator, tbl[i], extension }))
             end
         end
     end
@@ -1383,7 +1322,7 @@ function GF.AddFX_Menu(FX_Idx)
                     EndUndoBlock("ADD DRUM MACHINE")
                 end
             end
-            GF.DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
+            gui_helpers.DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
             r.ImGui_EndMenu(ctx)
         end
         TRACK = r.GetSelectedTrack(0, 0)
@@ -1392,20 +1331,20 @@ function GF.AddFX_Menu(FX_Idx)
             AddedFX = true
             LAST_USED_FX = "Container"
         end
-        GF.DndAddFX_SRC("Container")
+        gui_helpers.DndAddFX_SRC("Container")
         if r.ImGui_Selectable(ctx, "VIDEO PROCESSOR") then
             r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
             AddedFX = true
             LAST_USED_FX = "Video processor"
         end
-        GF.DndAddFX_SRC("Video processor")
+        gui_helpers.DndAddFX_SRC("Video processor")
         if LAST_USED_FX then
             if r.ImGui_Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
                 r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - FX_Idx)
                 AddedFX = true
             end
         end
-        GF.DndAddFX_SRC(LAST_USED_FX)
+        gui_helpers.DndAddFX_SRC(LAST_USED_FX)
         r.ImGui_SeparatorText(ctx, "UTILS")
         if r.ImGui_Selectable(ctx, 'Add FX Layering', false) then
             local FX_Idx = FX_Idx
@@ -2633,18 +2572,18 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                 r.ImGui_TextFilter_Set(Filter, Txt)
                             end
                             if FilterTxt then
-                                GF.SL()
+                                gui_helpers.SL()
                                 BL_All = r.ImGui_Button(ctx, 'Blacklist all results')
                             end
 
                             r.ImGui_Text(ctx, 'Save morphing settings to : ')
-                            GF.SL()
+                            gui_helpers.SL()
                             local Save_FX = r.ImGui_Button(ctx, 'FX Instance', 80)
-                            GF.SL()
+                            gui_helpers.SL()
                             local Save_Proj = r.ImGui_Button(ctx, 'Project', 80)
-                            GF.SL()
+                            gui_helpers.SL()
                             local Save_Glob = r.ImGui_Button(ctx, 'Global', 80)
-                            GF.SL()
+                            gui_helpers.SL()
                             local FxNam = FxdCtx.FX.Win_Name_S[FX_Idx]:gsub("%b()", "")
                             demo.HelpMarker(
                                 'FX Instance: \nBlacklist will only apply to the current instance of ' ..
@@ -2737,7 +2676,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                     ------- A --------------------
                                     r.ImGui_TableSetColumnIndex(ctx, 2)
                                     r.ImGui_Text(ctx, 'A:')
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     r.ImGui_SetNextItemWidth(ctx, -FLT_MIN)
 
                                     local i = LT_ParamNum or 0
@@ -2756,11 +2695,11 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                         P.FormatV_A = GetFormatPrmV(FxdCtx.FX[FxGUID].MorphA[i], OrigV, i)
                                     end
 
-                                    GF.SL()
+                                    gui_helpers.SL()
                                     --------- B --------------------
                                     r.ImGui_TableSetColumnIndex(ctx, 3)
                                     r.ImGui_Text(ctx, 'B:')
-                                    GF.SL()
+                                    gui_helpers.SL()
 
                                     local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                         FX_Idx, i)
@@ -2837,7 +2776,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                         ------- A --------------------
                                         r.ImGui_TableSetColumnIndex(ctx, 2)
                                         r.ImGui_Text(ctx, 'A:')
-                                        GF.SL()
+                                        gui_helpers.SL()
 
                                         local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                             FX_Idx,
@@ -2860,12 +2799,12 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,i, OrigV)  ]]
                                         end
 
-                                        GF.SL()
+                                        gui_helpers.SL()
 
                                         --------- B --------------------
                                         r.ImGui_TableSetColumnIndex(ctx, 3)
                                         r.ImGui_Text(ctx, 'B:')
-                                        GF.SL()
+                                        gui_helpers.SL()
 
                                         local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                             FX_Idx,
@@ -4552,7 +4491,7 @@ function GF.AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID,
                     FxdCtx.Dvdr.Width[TblIdxForSpace] = 0
                     r.ImGui_EndDragDropTarget(ctx)
                 else
-                    GF.HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
+                    gui_helpers.HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
                     FxdCtx.Dvdr.Clr[ClrLbl] = r.ImGui_GetStyleColor(ctx, r.ImGui_Col_Button())
                     FxdCtx.Dvdr.Width[TblIdxForSpace] = FxdCtx.Df.Dvdr_Width
@@ -4653,7 +4592,7 @@ function GF.AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID,
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(), 0)
 
                 local dropped, payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-                GF.HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
+                gui_helpers.HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
                 if dropped then
                     local FX_Idx = FX_Idx

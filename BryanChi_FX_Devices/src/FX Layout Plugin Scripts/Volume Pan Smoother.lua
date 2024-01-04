@@ -1,5 +1,6 @@
 -- @noindex
 local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 
 
@@ -14,9 +15,9 @@ local FxGUID = PluginScript.Guid
 FxdCtx.FX[FxGUID].TitleWidth = 50 -- Use this to set title bar width 
 FxdCtx.FX[FxGUID].Width = 200   -- use this to set the device's width
 
-GF.SL()
+gui_helpers.SL()
 r.ImGui_Text(ctx, 'title area')
-GF.SL()
+gui_helpers.SL()
 
 
 

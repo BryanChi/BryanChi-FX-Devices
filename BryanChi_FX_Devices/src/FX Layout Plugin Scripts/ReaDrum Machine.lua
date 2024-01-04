@@ -17,6 +17,7 @@ local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local images_fonts = require("src.helpers.images_fonts")
 local state_helpers = require("src.helpers.state_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -178,7 +179,7 @@ local function OpenFXInsidePad(a)
     Spc = GF.AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
     GF.createFXWindow(FX_Id)
-    GF.SL(nil, 0)
+    gui_helpers.SL(nil, 0)
     local w = r.ImGui_GetItemRectSize(ctx)
     if f == tonumber(padfx_idx) then
     LastSpc = GF.AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)

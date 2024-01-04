@@ -1,4 +1,4 @@
-local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.Components.Gui_Helpers")
 ---I'm moving all unused functions to this file.
 ---This is just to make sure I'm not deleting anything we might need later.
 local deadCode = {}
@@ -34,7 +34,7 @@ function deadCode.AddProp(ShownName, Name, width, sl, defaultV, stepSize,
                           min, max, format)
     if ShownName then
         r.ImGui_Text(ctx, ShownName)
-        GF.SL()
+        gui_helpers.SL()
     end
     if width then r.ImGui_SetNextItemWidth(ctx, width) end
     local FORMAT = format
@@ -45,7 +45,7 @@ function deadCode.AddProp(ShownName, Name, width, sl, defaultV, stepSize,
         max or W - 10, FORMAT)
 
     if rv then D[Name] = V end
-    if sl then GF.SL() end
+    if sl then gui_helpers.SL() end
     return r.ImGui_IsItemActive(ctx)
 end
 

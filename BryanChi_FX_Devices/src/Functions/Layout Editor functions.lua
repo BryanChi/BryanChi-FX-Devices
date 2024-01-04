@@ -1,6 +1,6 @@
 -- @noindex
 r = reaper
-local gui_helpers = require("src.helpers.gui_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local math_helpers = require("src.helpers.math_helpers")
 local customcolors = require("src.helpers.custom_colors")
@@ -8,7 +8,7 @@ local CustomColorsDefault = customcolors.CustomColorsDefault
 local INI_parser = require("src.helpers.INI_parser")
 local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
 local table_helpers = require("src.helpers.table_helpers")
-
+local GF = require("src.Functions.General Functions")
 local function GetPayload()
     local retval, dndtype, payload = r.ImGui_GetDragDropPayload(ctx)
     if retval then
@@ -883,7 +883,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         r.ImGui_PushFont(ctx, _G[Font])
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_TextColored(ctx, FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()), labeltoShow or FP.Name)
-        GF.SL()
+        gui_helpers.SL()
         r.ImGui_PopFont(ctx)
     end
 
@@ -1323,7 +1323,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
             gui_helpers.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
                 FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
             if FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl' then
-                GF.SL()
+                gui_helpers.SL()
             end
         end
         r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
@@ -1496,7 +1496,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
 
 
     if FP.Lbl_Pos == 'Right' then
-        GF.SL()
+        gui_helpers.SL()
         r.ImGui_AlignTextToFramePadding(ctx) --[[ r.ImGui_Text(ctx,FP.CustomLbl or FP.Name)  ]]
         gui_helpers.MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font],
             FP.Lbl_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text()))
@@ -1539,7 +1539,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.Lbl_Pos == 'Left' then
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
-        GF.SL()
+        gui_helpers.SL()
     elseif FP.Lbl_Pos == 'Top' then
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
     end
@@ -1646,7 +1646,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local DL = r.ImGui_GetWindowDrawList(ctx)
 
     if FP.Lbl_Pos == 'Right' then
-        GF.SL()
+        gui_helpers.SL()
         r.ImGui_AlignTextToFramePadding(ctx)
         r.ImGui_Text(ctx, FP.CustomLbl or FP.Name)
     elseif FP.Lbl_Pos == 'Bottom' then
@@ -3109,7 +3109,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         for _, v in pairs(FxdCtx.LE.Sel_Items) do
             if Fx_P == v then
-                GF.HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
+                gui_helpers.HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
                 FxdCtx.LE.SelectedItemType = ItemType
             end
         end

@@ -1,6 +1,7 @@
 -- @noindex
 
 local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 r                                  = reaper
 
@@ -216,7 +217,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
         local Click = AddWindowBtn(GUID, FX_Id, 130, true, true, true)
 
 
-        GF.SL(165)
+        gui_helpers.SL(165)
         DragDropToCollapseView(FX_Id, CollapseXPos_screen, GUID, v)
 
 
@@ -229,7 +230,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
             end
         end
         if FxdCtx.FX[FxGUID].Sel_Preview == FX_Id then
-            GF.HighlightSelectedItem(nil, Accent_Clr, nil, nil, nil, nil, nil, nil, nil, 1, 1, 'GetItemRect')
+            gui_helpers.HighlightSelectedItem(nil, Accent_Clr, nil, nil, nil, nil, nil, nil, nil, 1, 1, 'GetItemRect')
         end
         SyncWetValues(FX_Id)
         FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a' .. FX_Id, '',
@@ -297,10 +298,10 @@ else
             local function Render_Normal()
                 local diff, Cur_X_ofs
                 if i == 1 then
-                    GF.SL(nil, 0)
+                    gui_helpers.SL(nil, 0)
                     GF.AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container,
                         AdditionalWidth)
-                    GF.SL(nil, 0)
+                    gui_helpers.SL(nil, 0)
                 end
 
 
@@ -311,7 +312,7 @@ else
 
 
                 local Hv = GF.createFXWindow(FX_Id)
-                GF.SL(nil, 0)
+                gui_helpers.SL(nil, 0)
 
                 if v.scale and GUID then
                     FxdCtx.FX[GUID] = FxdCtx.FX[GUID] or {}
@@ -341,7 +342,7 @@ else
 
     local Add_FX_Btn_Ypos
     if FxdCtx.FX[FxGUID].Cont_Collapse == 1 and FxdCtx.FX[FxGUID].Sel_Preview then
-        GF.SL()
+        gui_helpers.SL()
         Add_FX_Btn_Ypos = r.ImGui_GetCursorPosY(ctx) + 24
         r.ImGui_SetCursorPosY(ctx, tonumber(CollapseYPos))
 
@@ -377,7 +378,7 @@ else
     if not FxdCtx.FX[FxGUID].Collapse then
         local WDL = r.ImGui_GetWindowDrawList(ctx)
         --r.ImGui_DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
-        GF.HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X + (FxdCtx.FX[FxGUID].Width or 190) - 35, Y + 218, h, W, 1,
+        gui_helpers.HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X + (FxdCtx.FX[FxGUID].Width or 190) - 35, Y + 218, h, W, 1,
             0.2, GetItemRect, Foreground, rounding, 4)
     end
 end
