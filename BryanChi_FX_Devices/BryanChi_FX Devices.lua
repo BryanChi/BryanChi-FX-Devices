@@ -73,7 +73,6 @@ require("src.Functions.Layout Editor functions")
 require("src.Functions.FX Layering")
 require("src.Functions.Modulation")
 require("src.Functions.Theme Editor Functions")
-require("src.Functions.Filesystem_utils")
 require("src.Constants")
 
 
@@ -225,8 +224,8 @@ images_fonts.attachImagesAndFonts()
 ---------------------------------------------------------------
 -----------Retrieve Keyboard Shortcut Settings ----------------
 ---------------------------------------------------------------
-if CallFile('r', 'Keyboard Shortcuts.ini') then
-    local file, filepath = CallFile('r', 'Keyboard Shortcuts.ini')
+if fs_utils.CallFile('r', 'Keyboard Shortcuts.ini') then
+    local file, filepath = fs_utils.CallFile('r', 'Keyboard Shortcuts.ini')
     if not file then return end
     Content = file:read('*a')
     local L = fs_utils.get_lines(filepath)

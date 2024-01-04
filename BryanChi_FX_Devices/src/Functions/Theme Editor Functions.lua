@@ -105,42 +105,6 @@ function demo.EachEnum(enum)
     end
 end
 
----@param mode openmode
----@param filename string
----@param folder? string
----@return file*?
----@return string
-function CallFile(mode, filename, folder)
-    local dir_path
-    if folder then
-        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src', folder)
-    else
-        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src')
-    end
-    local file_path = fs_utils.ConcatPath(dir_path, filename)
-
-    -- Create directory for file if it doesn't exist
-    r.RecursiveCreateDirectory(dir_path, 0)
-    local file = io.open(file_path, mode)
-    return file, file_path
-end
-
-function PushStyle_AtScriptStart()
-    local file, file_path = CallFile('r', 'ThemeColors.ini')
-    if file then
-        local Lines = fs_utils.get_lines(file_path)
-        for i in demo.EachEnum('Col') do
-            r.ImGui_PushStyleColor(ctx, 1, 0x372837ff)
-        end
-    else
-        ----- Default Color theme ---------------
-    end
-end
-
---PushStyle_AtScriptStart()
-
-
-
 function demo.GetStyleData()
     local data = { vars = {}, colors = {} }
     local vec2 = {
@@ -304,7 +268,7 @@ function ShowStyleEditor()
             r.ImGui_SameLine(ctx) ]]
         if r.ImGui_Button(ctx, 'Save Color Settings') then
             -- for each enum
-            local file = CallFile('w', 'ThemeColors.ini')
+            local file = fs_utils.CallFile('w', 'ThemeColors.ini')
 
             if file then
                 --[[ for i, name in demo.EachEnum('Col') do
@@ -545,7 +509,7 @@ function Show_KBShortcutEditor()
         gui_helpers.SL()
 
         if r.ImGui_Button(ctx, 'Save') then
-            local file = CallFile('w', 'Keyboard Shortcuts.ini')
+            local file = fs_utils.CallFile('w', 'Keyboard Shortcuts.ini')
             for i, v in pairs(FxdCtx.KB_Shortcut) do
                 file:write(v, ' = ', FxdCtx.Command_ID[i], '\n')
             end

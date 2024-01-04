@@ -106,4 +106,24 @@ function fs_utils.get_lines(filename)
     return lines
 end
 
+---@param mode openmode
+---@param filename string
+---@param folder? string
+---@return file*?
+---@return string
+function fs_utils.CallFile(mode, filename, folder)
+    local dir_path
+    if folder then
+        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src', folder)
+    else
+        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src')
+    end
+    local file_path = fs_utils.ConcatPath(dir_path, filename)
+
+    -- Create directory for file if it doesn't exist
+    r.RecursiveCreateDirectory(dir_path, 0)
+    local file = io.open(file_path, mode)
+    return file, file_path
+end
+
 return fs_utils

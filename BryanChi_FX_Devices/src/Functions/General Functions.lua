@@ -825,7 +825,7 @@ function GF.RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
                 end
             end
         else -- Check if need to restore Global Blacklist settings
-            file, file_path = CallFile('r', Nm .. '.ini', 'Preset Morphing')
+            file, file_path = fs_utils.CallFile('r', Nm .. '.ini', 'Preset Morphing')
             if file then
                 local L = fs_utils.get_lines(file_path)
                 for _, V in ipairs(L) do
@@ -2874,7 +2874,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                     --else r.SetProjExtState(0,'FX Devices - Preset Morph','Whether FX has Blacklist'..FX.Win_Name_S[FX_Idx], '')
                                 elseif TheresBL[1] and Save_Glob then
-                                    file, file_path = CallFile('w', FxdCtx.FX.Win_Name_S[FX_Idx] .. '.ini',
+                                    file, file_path = fs_utils.CallFile('w', FxdCtx.FX.Win_Name_S[FX_Idx] .. '.ini',
                                         'Preset Morphing')
                                     if file then
                                         for i, V in ipairs(TheresBL) do
