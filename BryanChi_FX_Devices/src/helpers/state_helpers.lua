@@ -94,4 +94,21 @@ function state_helpers.ToggleCollapseAll(FX_Idx)
     return BlinkFX
 end
 
+function state_helpers.close_fxd()
+    NumOfTotalTracks = r.GetNumTracks()
+    for T = 0, NumOfTotalTracks - 1, 1 do
+        local track = r.GetTrack(0, T)
+        local TrkID = r.GetTrackGUID(track)
+        for i, _ in ipairs(FxdCtx.MacroNums) do
+            if FxdCtx.Trk[TrkID].Mod[i].Val ~= nil then
+                r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID,
+                    FxdCtx.Trk[TrkID].Mod[i].Val)
+            end
+        end
+    end
+end
+
+
 return state_helpers
+
+

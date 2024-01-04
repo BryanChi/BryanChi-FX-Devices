@@ -725,7 +725,8 @@ function Loop()
             if r.ImGui_BeginDragDropTarget(ctx) then
                 if Payload_Type == 'FX_Drag' then
                     Rv, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                        V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Rv then
@@ -836,7 +837,8 @@ function Loop()
             function RemoveFXfromBS()
                 for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do -- check all fxs and see if it's a band splitter
                     if FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS then
-                        local FxID = table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxdCtx.FXGUID[DragFX_ID])
+                        local FxID = table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS,
+                            FxdCtx.FXGUID[DragFX_ID])
                         if FxID then
                             table.remove(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxID)
                             FxdCtx.FX[FxdCtx.FXGUID[DragFX_ID]].InWhichBand = nil
@@ -864,7 +866,8 @@ function Loop()
                     'GetItemRect', WDL)
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain
                     Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                        V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -924,7 +927,8 @@ function Loop()
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
                     if Payload_Type == 'FX_Drag' then
                         Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                            V_OutlineSc,
                             'GetItemRect', WDL)
 
                         if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -939,7 +943,8 @@ function Loop()
                         end
                     elseif Payload_Type == 'DND ADD FX' then
                         Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                            V_OutlineSc,
                             'GetItemRect', WDL)
                         if Dropped then
                             r.TrackFX_AddByName(LT_Track, Payload, false, -1000 - Sel_Track_FX_Count)
@@ -1099,17 +1104,7 @@ function Loop()
     if open then
         r.defer(Loop)
     else --on script close
-        NumOfTotalTracks = r.GetNumTracks()
-        for T = 0, NumOfTotalTracks - 1, 1 do
-            local track = r.GetTrack(0, T)
-            local TrkID = r.GetTrackGUID(track)
-            for i, _ in ipairs(FxdCtx.MacroNums) do
-                if FxdCtx.Trk[TrkID].Mod[i].Val ~= nil then
-                    r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID,
-                        FxdCtx.Trk[TrkID].Mod[i].Val)
-                end
-            end
-        end
+        state_helpers.close_fxd()
     end
     Track_Fetch_At_End = r.GetLastTouchedTrack()
     WaitForGmem = WaitForGmem + 1
