@@ -1,3 +1,5 @@
+local state_helpers = require('src.helpers.state_helpers')
+local GF = require("src.Functions.General Functions")
 ---@param str string
 ---@param type? string
 ---@param Track MediaTrack
@@ -20,10 +22,10 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     FxdCtx.Trk[TrkID].Mod = {}
     FxdCtx.Trk[TrkID].SEQL = FxdCtx.Trk[TrkID].SEQL or {}
     FxdCtx.Trk[TrkID].SEQ_Dnom = FxdCtx.Trk[TrkID].SEQ_Dnom or {}
-    local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
+    local AutoPrmCount = state_helpers.GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
     FxdCtx.Trk[TrkID].AutoPrms = FxdCtx.Trk[TrkID].AutoPrms or {}
     for i = 1, (AutoPrmCount or 0) + 1, 1 do
-        FxdCtx.Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
+        FxdCtx.Trk[TrkID].AutoPrms[i] = state_helpers.GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
     end
 
 
@@ -171,7 +173,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         if Def_Type ~= '' then FxdCtx.FX.Def_Type[FxGUID] = Def_Type end
 
         if FxGUID ~= nil then
-            GetProjExt_FxNameNum(FxGUID)
+            GF.GetProjExt_FxNameNum(FxGUID)
 
             _, FxdCtx.FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' ..
                 FxGUID .. 'in layer')
@@ -247,12 +249,12 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                     FxdCtx.Trk[TrkID].Mod[m].Val = tonumber(select(2,
                         r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
 
-                    FP.ModBypass = RemoveEmptyStr(select(2,
+                    FP.ModBypass = GF.RemoveEmptyStr(select(2,
                         r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '',
                             false)))
 
                     FP.ModBipolar = FP.ModBipolar or {}
-                    FP.ModBipolar[m] = StringToBool
+                    FP.ModBipolar[m] = FxdCtx.StringToBool
                         [select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
 
                     if FxdCtx.Prm.McroModAmt[IdM] ~= nil then
@@ -272,7 +274,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                 FxdCtx.FX[FxGUID].PrmList = {}
                 local PrmCount = r.TrackFX_GetNumParams(Track, FX_Idx)
 
-                RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
+                GF.RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
 
                 for i = 0, PrmCount - 4, 1 do
                     _, FxdCtx.FX[FxGUID].MorphA[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. i .. FxGUID, '',

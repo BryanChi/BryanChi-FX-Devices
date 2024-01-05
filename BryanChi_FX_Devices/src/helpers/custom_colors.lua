@@ -1,3 +1,5 @@
+local math_helpers = require("src.helpers.math_helpers")
+
 local colors = {}
 
 colors.CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
@@ -62,10 +64,10 @@ colors.BlendColors = function(Clr1, Clr2, pos)
 
     local R2, G2, B2, A2 = r.ImGui_ColorConvertU32ToDouble4(Clr2)
 
-    local R3 = SetMinMax((R2 - R1) * pos + R1, 0, 1)
-    local G3 = SetMinMax((G2 - G1) * pos + G1, 0, 1)
-    local B3 = SetMinMax((B2 - B1) * pos + B1, 0, 1)
-    local A3 = SetMinMax((A2 - A1) * pos + A1, 0, 1)
+    local R3 = math_helpers.SetMinMax((R2 - R1) * pos + R1, 0, 1)
+    local G3 = math_helpers.SetMinMax((G2 - G1) * pos + G1, 0, 1)
+    local B3 = math_helpers.SetMinMax((B2 - B1) * pos + B1, 0, 1)
+    local A3 = math_helpers.SetMinMax((A2 - A1) * pos + A1, 0, 1)
 
     return r.ImGui_ColorConvertDouble4ToU32(R3, G3, B3, A3)
 end

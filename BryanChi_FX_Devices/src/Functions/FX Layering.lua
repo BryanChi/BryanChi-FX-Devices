@@ -1,6 +1,7 @@
 -- @noindex
 r = reaper
 
+local table_helpers = require("src.helpers.table_helpers")
 ---@param FXGUID_RackMixer string
 ---@param LayerNum integer
 ---@param DragFX_ID integer
@@ -170,7 +171,7 @@ function RepositionFXsInContainer(FX_Idx)
                 if DropDest == nil then DropDest = 0 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
 
-                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
+                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
                     if FX_Idx > DropDest and FX_Idx ~= RepeatTimeForWindows or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
                         r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx-2)
@@ -184,7 +185,7 @@ function RepositionFXsInContainer(FX_Idx)
             elseif DragFX_ID > FX_Idx then
                 if DropDest == nil then DropDest = 1 end
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
-                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
+                if FxdCtx.FX.InLyr[ID] == FXGUID_RackMixer or table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FxdCtx.Glob.Payload]].FXsInBS, ID) then
                     r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                     --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
 
