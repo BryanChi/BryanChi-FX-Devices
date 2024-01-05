@@ -403,7 +403,7 @@ function WhenRightClickOnModulators(Macro)
     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
         SetModulationToBipolar(Macro)
     end
-    if AssigningMacro==Macro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
+    if AssigningMacro==Macro then gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
 end
 
 

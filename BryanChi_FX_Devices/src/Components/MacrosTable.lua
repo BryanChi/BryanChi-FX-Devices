@@ -90,7 +90,7 @@ function MacrosTable.DisplayMacrosTable()
             end
 
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
 
 
@@ -165,7 +165,7 @@ function MacrosTable.DisplayMacrosTable()
             r.ImGui_DrawList_AddLine(WDL, L, B, L + W * Mc.ATK, T, 0xffffffff)
 
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
 
             r.ImGui_SetNextItemWidth(ctx, 60)
@@ -193,7 +193,7 @@ function MacrosTable.DisplayMacrosTable()
             --r.ImGui_DrawList_AddLine(Glob.FDL, L ,T,L+W*Rel,T, 0xffffffff)
             r.ImGui_DrawList_AddLine(WDL, L, T, L + W * Mc.REL, B, 0xffffffff)
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
             r.ImGui_TableSetColumnIndex(ctx, i * 2 - 1)
             r.ImGui_PushItemWidth(ctx, -FLT_MIN)
@@ -248,7 +248,7 @@ function MacrosTable.DisplayMacrosTable()
                 if St == 1 and AssigningMacro == i then
                     local H = 20
                     local W = (FxdCtx.VP.w - 10) / 12
-                    BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
+                    gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
 
                     --HighlightSelectedItem(0xffffff77,0xffffff33, 0, L,T,L+W,T+H,H,W, 1, 1,GetItemRect, Foreground)
                 end

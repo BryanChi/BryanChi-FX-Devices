@@ -598,7 +598,7 @@ function Show_KBShortcutEditor()
 
             if AlreadyAddedKey == v then
                 r.ImGui_SetScrollHereY(ctx)
-                _, stop = BlinkItem(0.3, 3.5)
+                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
@@ -619,7 +619,7 @@ function Show_KBShortcutEditor()
             end
 
             if AlreadyAddedKey == v then
-                _, stop = BlinkItem(0.3, 3.5)
+                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
             end
 
 
