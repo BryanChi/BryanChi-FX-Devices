@@ -539,7 +539,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
             end ]]
         else
             r.TrackFX_Show(LT_Track, FX_Idx + 1, 2)
-            SyncAnalyzerPinWithFX(FX_Idx + 1, FX_Idx)
+            GF.SyncAnalyzerPinWithFX(FX_Idx + 1, FX_Idx)
         end
     end
     r.gmem_attach('CompReductionScope'); r.gmem_write(2000, FxdCtx.PM.DIY_TrkID[TrkID])

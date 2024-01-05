@@ -135,7 +135,7 @@ end
 ---@param FX_Idx integer
 ---@param Target_FX_Idx integer
 ---@param FX_Name string
-function SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
+function GF.SyncAnalyzerPinWithFX(FX_Idx, Target_FX_Idx, FX_Name)
     -- input --
     local Target_L, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 0) -- L chan
     local Target_R, _ = r.TrackFX_GetPinMappings(LT_Track, Target_FX_Idx, 0, 1) -- R chan
@@ -523,13 +523,13 @@ function GF.Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Id
 
         if is_active then
             lineClr = ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
-            CircleClr = ClrOverRide_Act or Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+            CircleClr = ClrOverRide_Act or GF.Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
 
             value_changed = true
             ActiveAny = true
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num or FxdCtx.Wet.P_Num[FX_Idx], p_value)
         elseif is_hovered or p_value ~= 1 then
-            lineClr = ClrOverRide_Act or Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+            lineClr = ClrOverRide_Act or GF.Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
         else
             lineClr = ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBgHovered())
         end
@@ -603,7 +603,7 @@ end
 ---@param CLR number
 ---@param HowMuch number
 ---@return integer
-function Change_Clr_A(CLR, HowMuch)
+function GF.Change_Clr_A(CLR, HowMuch)
     local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(CLR)
     local A = math_helpers.SetMinMax(A + HowMuch, 0, 1)
     return r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
@@ -849,7 +849,7 @@ function GF.AddSpacing(Rpt)
     end
 end
 
-function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer)
+function GF.AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer)
     if FxdCtx.FX[FxGUID] then
         if FxdCtx.FX[FxGUID].TitleClr then
             WinbtnClrPop = 3
@@ -1307,11 +1307,11 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
             local OrigCurX, OrigCurY = r.ImGui_GetCursorPos(ctx)
 
             DefClr_A_Act = Morph_A or CustomColorsDefault.Morph_A
-            DefClr_A = Change_Clr_A(DefClr_A_Act, -0.2)
-            DefClr_A_Hvr = Change_Clr_A(DefClr_A_Act, -0.1)
+            DefClr_A = GF.Change_Clr_A(DefClr_A_Act, -0.2)
+            DefClr_A_Hvr = GF.Change_Clr_A(DefClr_A_Act, -0.1)
             DefClr_B_Act = Morph_B or CustomColorsDefault.Morph_B
-            DefClr_B = Change_Clr_A(DefClr_B_Act, -0.2)
-            DefClr_B_Hvr = Change_Clr_A(DefClr_B_Act, -0.1)
+            DefClr_B = GF.Change_Clr_A(DefClr_B_Act, -0.2)
+            DefClr_B_Hvr = GF.Change_Clr_A(DefClr_B_Act, -0.1)
 
 
             function StoreAllPrmVal(AB, DontStoreCurrentVal, LinkCC)
@@ -2050,7 +2050,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                AddWindowBtn(FxGUID, FX_Idx)
+                GF.AddWindowBtn(FxGUID, FX_Idx)
 
 
                 r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Border(), GF.getClr(r.ImGui_Col_FrameBg()))
@@ -3795,7 +3795,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
     return HoverWindow
 end --of Create fx window function
 
-function get_fx_id_from_container_path(tr, idx1, ...)
+function GF.get_fx_id_from_container_path(tr, idx1, ...)
     local sc, rv = reaper.TrackFX_GetCount(tr) + 1, 0x2000000 + idx1
     for _, v in ipairs({ ... }) do
         local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
@@ -3840,7 +3840,7 @@ function GF.fx_map_parameter(tr, fxidx, parmidx) -- maps a parameter to the top 
     while #path > 1 do
         fxidx = path[#path]
         table.remove(path)
-        local cidx = get_fx_id_from_container_path(tr, table.unpack(path))
+        local cidx = GF.get_fx_id_from_container_path(tr, table.unpack(path))
         if cidx == nil then return nil end
         local i, found = 0, nil
         while true do

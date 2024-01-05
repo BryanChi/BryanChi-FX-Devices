@@ -395,7 +395,7 @@ function Loop()
                 elseif v:find('FXD Gain Reduction Scope') then
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FxdCtx.AddFX.Pos[i])
 
-                    SyncAnalyzerPinWithFX(FxdCtx.AddFX.Pos[i], FxdCtx.AddFX.Pos[i] - 1, FX_Name)
+                    GF.SyncAnalyzerPinWithFX(FxdCtx.AddFX.Pos[i], FxdCtx.AddFX.Pos[i] - 1, FX_Name)
                 end
             end
 

@@ -226,7 +226,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local pos          = { r.ImGui_GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
-    local Clr_SldrGrab = Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.2)
+    local Clr_SldrGrab = GF.Change_Clr_A(GF.getClr(r.ImGui_Col_SliderGrabActive()), -0.2)
 
 
     local TextW = r.ImGui_CalcTextSize(ctx, labeltoShow or FxdCtx.FX[FxGUID][Fx_P].Name, nil, nil, true)
@@ -1574,17 +1574,17 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
             popClr = 2
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Button(), FxdCtx.FX[FxGUID][Fx_P].Switch_On_Clr)
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(),
-                Change_Clr_A(FxdCtx.FX[FxGUID][Fx_P].Switch_On_Clr, -0.2))
+                GF.Change_Clr_A(FxdCtx.FX[FxGUID][Fx_P].Switch_On_Clr, -0.2))
         else
             popClr = 2
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Button(), BgClr or 0x00000000)
-            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), Change_Clr_A((BgClr or 0xffffff00), -0.2))
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), GF.Change_Clr_A((BgClr or 0xffffff00), -0.2))
         end
     else
         if BgClr then
             popClr = 2
             r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Button(), BgClr or 0xffffff00)
-            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), Change_Clr_A((BgClr or 0xffffff00), -0.2))
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_ButtonHovered(), GF.Change_Clr_A((BgClr or 0xffffff00), -0.2))
         end
     end
 

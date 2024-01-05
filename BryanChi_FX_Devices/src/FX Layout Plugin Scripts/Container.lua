@@ -214,7 +214,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
         r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ItemSpacing(), 1, -3)
 
         FxdCtx.FX[GUID] = FxdCtx.FX[GUID] or {}
-        local Click = AddWindowBtn(GUID, FX_Id, 130, true, true, true)
+        local Click = GF.AddWindowBtn(GUID, FX_Id, 130, true, true, true)
 
 
         gui_helpers.SL(165)

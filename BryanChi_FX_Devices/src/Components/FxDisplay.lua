@@ -2841,7 +2841,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                     end
                 else
                     if FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx + 1]] then -- if in layering
-                        SyncAnalyzerPinWithFX(FX_Idx, FX_Idx + 1, FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)])
+                        GF.SyncAnalyzerPinWithFX(FX_Idx, FX_Idx + 1, FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)])
                         FxdCtx.FX.InLyr[FxGUID] = FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx + 1]]
                     else
                         FxdCtx.FX.InLyr[FxGUID] = nil
@@ -2853,7 +2853,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                 if FX_Name_After then
                     if string.find(FX_Name_After, 'Pro%-C 2') then
                         if FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx + 1]] then -- if in layering
-                            SyncAnalyzerPinWithFX(FX_Idx, FX_Idx + 1, FX_Name)
+                            GF.SyncAnalyzerPinWithFX(FX_Idx, FX_Idx + 1, FX_Name)
                         end
                     end
                 end
@@ -2871,7 +2871,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                 if FxdCtx.FX[FxGUID].ProC_Scope_Del_Wait > FX_Add_Del_WaitTime + 10 then
                     if string.find(FX_Name_Before, 'Pro%-C 2') then
                         if FxdCtx.FX.InLyr[FxdCtx.FXGUID[FX_Idx - 1]] then -- if in layering
-                            SyncAnalyzerPinWithFX(FX_Idx, FX_Idx - 1, FX_Name)
+                            GF.SyncAnalyzerPinWithFX(FX_Idx, FX_Idx - 1, FX_Name)
                         end
                     end
                     FxdCtx.FX[FxGUID].ProC_Scope_Del_Wait = 0

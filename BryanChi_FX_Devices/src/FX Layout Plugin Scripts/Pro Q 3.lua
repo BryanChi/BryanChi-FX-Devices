@@ -1231,7 +1231,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             r.TrackFX_Delete(LT_Track,
                 FX_Idx - 1)
         end
-        SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
+        GF.SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
             FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)])
     else -- if no spectrum is before pro-Q 3
         FxdCtx.FX[FxGUID].AddEQSpectrumWait = (FxdCtx.FX[FxGUID].AddEQSpectrumWait or 0) + 1

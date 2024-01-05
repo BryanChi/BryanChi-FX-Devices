@@ -302,11 +302,11 @@ function MacrosTable.DisplayMacrosTable()
 
 
                 local W, H = r.ImGui_GetItemRectSize(ctx)
-                local Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
+                local Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
                 if r.ImGui_IsItemActive(ctx) then
                     Clr = EightColors.Bright_HighSat[i]
                 elseif r.ImGui_IsItemHovered(ctx) then
-                    Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
+                    Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
                 end
 
 
@@ -486,11 +486,11 @@ function MacrosTable.DisplayMacrosTable()
                                 r.GetSetMediaTrackInfo_String(LT_Track,
                                     'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', SEQ_RMB_Val, true)
                             end
-                            local Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
+                            local Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
 
                             if r.ImGui_IsItemHovered(ctx, r.ImGui_HoveredFlags_RectOnly()) and not SmallSEQActive then
                                 FillClr = 0xffffff22
-                                Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
+                                Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
                             end
                             gui_helpers.HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1,
                                 GetItemRect, Foreground)
@@ -1232,7 +1232,7 @@ function MacrosTable.DisplayMacrosTable()
                                         (PtsY[CurrentPlayPos] - PtsY[pos]) * (i / (PtsX[n] - PtsX[pos]))
 
                                     r.ImGui_DrawList_AddLine(FDL, Lx or x2, Ly or y2, x2, y2,
-                                        Change_Clr_A(0xffffff00, (i / (PlayPosX - PtsX[pos])) * 0.3), 7)
+                                        GF.Change_Clr_A(0xffffff00, (i / (PlayPosX - PtsX[pos])) * 0.3), 7)
                                     Ly = y2
                                     Lx = x2
 
