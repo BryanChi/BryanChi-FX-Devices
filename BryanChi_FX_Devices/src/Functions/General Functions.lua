@@ -481,7 +481,7 @@ end
 ---@return boolean ActiveAny
 ---@return boolean ValueChanged
 ---@return integer p_value
-function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
+function GF.Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
     r.ImGui_SetNextItemWidth(ctx, 40)
     local radius_outer = 10
     local pos = { r.ImGui_GetCursorScreenPos(ctx) }
@@ -2853,7 +2853,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                     SyncWetValues()
 
                     if FxdCtx.FX[FxGUID].Collapse ~= true then
-                        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+                        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '',
                             FxdCtx.Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
                     end
 

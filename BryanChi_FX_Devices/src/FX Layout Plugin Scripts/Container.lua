@@ -40,7 +40,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
     r.ImGui_SetCursorPos(ctx, 3, 135)
     SyncWetValues(FX_Idx)
 
-    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '',
         FxdCtx.Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
     r.ImGui_SetCursorPos(ctx, x, y)
 end
@@ -233,7 +233,7 @@ local function Render_Collapsed(v, CollapseXPos, FX_Id, CollapseYPos, i, GUID, T
             gui_helpers.HighlightSelectedItem(nil, Accent_Clr, nil, nil, nil, nil, nil, nil, nil, 1, 1, 'GetItemRect')
         end
         SyncWetValues(FX_Id)
-        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a' .. FX_Id, '',
+        FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Id] = GF.Add_WetDryKnob(ctx, 'a' .. FX_Id, '',
             FxdCtx.Wet.Val[FX_Id] or 1, 0, 1, FX_Id)
 
 

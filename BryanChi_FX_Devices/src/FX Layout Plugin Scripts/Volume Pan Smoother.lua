@@ -21,7 +21,7 @@ gui_helpers.SL()
 
 
 
-ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 
 

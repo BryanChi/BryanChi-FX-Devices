@@ -1,6 +1,7 @@
 -- @noindex
 
 local gui_helpers = require("src.Components.Gui_Helpers")
+local GF = require("src.Functions.General Functions")
 
 
 r = reaper
@@ -43,7 +44,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     r.ImGui_SameLine(ctx, FxdCtx.ProC.Width - 25)
 
     SyncWetValues()
-    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '',
         FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 end
 r.ImGui_PopStyleVar(ctx)

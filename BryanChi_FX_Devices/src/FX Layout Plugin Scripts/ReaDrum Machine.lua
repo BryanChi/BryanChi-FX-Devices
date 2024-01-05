@@ -31,7 +31,7 @@ FxdCtx.FX[FxGUID].Width = 350   -- use this to set the device's width
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
-ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 ---------------------------------------------
 ---------Function----------------------------
