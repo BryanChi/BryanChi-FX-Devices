@@ -45,9 +45,6 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.Prm.InstAdded[FxdCtx.FXGUID[FX_Idx]] = true
         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxdCtx.FXGUID[FX_Idx] .. 'Params Added','true') --- this line is needed so the parameters will only be added once.
     end
-    function F_Tp(FX_P)
-        return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
-    end
 
 
 

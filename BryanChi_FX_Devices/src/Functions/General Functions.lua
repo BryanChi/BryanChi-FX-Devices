@@ -207,13 +207,6 @@ function GF.StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
 
----@param FX_P integer
----@param FxGUID string
----@return unknown
-function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
-    return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
-end
-
 function GF.Vertical_FX_Name(name)
     local Name = GF.ChangeFX_Name(name)
     local Name = Name:gsub('%S+', { ['Valhalla'] = "", ['FabFilter'] = "" })

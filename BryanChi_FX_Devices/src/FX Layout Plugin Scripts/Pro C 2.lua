@@ -112,9 +112,6 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxdCtx.FXGUID[FX_Idx] .. 'Params Added',
             'true')
     end
-    function F_Tp(FX_P)
-        return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
-    end
 
     if FxdCtx.FX[PluginScript.Guid][1].Num and FxdCtx.FX[PluginScript.Guid][8] then
         r.ImGui_Indent(ctx, 20)
