@@ -129,5 +129,33 @@ function layout_editor_helpers.DrawDownwardTriangle(DL, CenterX, CenterY, size, 
     r.ImGui_DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
 end
 
+---@param Fx_P integer fx parameter index
+---@param FxGUID string
+---@param Shape "Circle"|"Rect"
+---@param L number p_min_x
+---@param T number p_min_y
+---@param R? number p_max_x
+---@param B? number p_max_y
+---@param Rad? number radius
+function layout_editor_helpers.IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
+    if Fx_P .. FxGUID == TryingToAddExistingPrm then
+        if r.time_precise() > TimeNow and r.time_precise() < TimeNow + 0.1 or r.time_precise() > TimeNow + 0.2 and r.time_precise() < TimeNow + 0.3 then
+            if Shape == 'Circle' then
+                r.ImGui_DrawList_AddCircleFilled(FxdCtx.FX.DL, L, T, Rad, 0x99999950)
+            elseif Shape == 'Rect' then
+                local L, T = r.ImGui_GetItemRectMin(ctx)
+                r.ImGui_DrawList_AddRectFilled(FxdCtx.FX.DL, L, T, R, B, 0x99999977, Rounding)
+            end
+        end
+    end
+    if Fx_P .. FxGUID == TryingToAddExistingPrm_Cont then
+        local L, T = r.ImGui_GetItemRectMin(ctx)
+        if Shape == 'Circle' then
+            r.ImGui_DrawList_AddCircleFilled(FxdCtx.FX.DL, L, T, Rad, 0x99999950)
+        elseif Shape == 'Rect' then
+            r.ImGui_DrawList_AddRectFilled(FxdCtx.FX.DL, L, T, R, B, 0x99999977, Rounding)
+        end
+    end
+end
 
 return layout_editor_helpers
