@@ -62,19 +62,17 @@ function Msg(...)
 end
 
 r = reaper
-require("src.Components.FilterBox")
 local MenuBar = require("src.Components.MenuBar")
 local state_helpers = require("src.helpers.state_helpers")
 local fxDisplay = require("src.Components.FxDisplay")
 local gui_helpers = require("src.Components.Gui_Helpers")
-require("src.Functions.General Functions")
+local GF = require("src.Functions.General Functions")
 
 require("src.Functions.EQ functions")
 require("src.Functions.Layout Editor functions")
 require("src.Functions.FX Layering")
 require("src.Functions.Modulation")
 require("src.Functions.Theme Editor Functions")
-require("src.Functions.Filesystem_utils")
 require("src.Constants")
 
 
@@ -226,8 +224,8 @@ images_fonts.attachImagesAndFonts()
 ---------------------------------------------------------------
 -----------Retrieve Keyboard Shortcut Settings ----------------
 ---------------------------------------------------------------
-if CallFile('r', 'Keyboard Shortcuts.ini') then
-    local file, filepath = CallFile('r', 'Keyboard Shortcuts.ini')
+if fs_utils.CallFile('r', 'Keyboard Shortcuts.ini') then
+    local file, filepath = fs_utils.CallFile('r', 'Keyboard Shortcuts.ini')
     if not file then return end
     Content = file:read('*a')
     local L = fs_utils.get_lines(filepath)
@@ -352,11 +350,11 @@ function Loop()
 
 
             HintMessage = nil
-            GetAllInfoNeededEachLoop()
+            GF.GetAllInfoNeededEachLoop()
 
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
-                if not IsPrmAlreadyAdded(true) then
+                if not GF.IsPrmAlreadyAdded(true) then
                     StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
@@ -386,7 +384,7 @@ function Loop()
 
 
 
-                AddFX_HideWindow(LT_Track, v, -1000 - FxdCtx.AddFX.Pos[i])
+                GF.AddFX_HideWindow(LT_Track, v, -1000 - FxdCtx.AddFX.Pos[i])
                 if v:find('FXD Band Joiner') then
                     local SplittrID = r.TrackFX_GetFXGUID(LT_Track, FxdCtx.AddFX.Pos[i] - 1)
                     local JoinerID = r.TrackFX_GetFXGUID(LT_Track, FxdCtx.AddFX.Pos[i])
@@ -397,7 +395,7 @@ function Loop()
                 elseif v:find('FXD Gain Reduction Scope') then
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FxdCtx.AddFX.Pos[i])
 
-                    SyncAnalyzerPinWithFX(FxdCtx.AddFX.Pos[i], FxdCtx.AddFX.Pos[i] - 1, FX_Name)
+                    GF.SyncAnalyzerPinWithFX(FxdCtx.AddFX.Pos[i], FxdCtx.AddFX.Pos[i] - 1, FX_Name)
                 end
             end
 
@@ -521,10 +519,10 @@ function Loop()
                 end
 
                 RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-                TREE = BuildFXTree(LT_Track)
+                FxdCtx.TREE = GF.BuildFXTree(LT_Track)
 
                 layoutRetrieved = true
-                SyncTrkPrmVtoActualValue()
+                GF.SyncTrkPrmVtoActualValue()
                 LT_TrackNum = math.floor(r.GetMediaTrackInfo_Value(LT_Track, 'IP_TRACKNUMBER'))
             end
 
@@ -534,7 +532,7 @@ function Loop()
                 --TREE = BuildFXTree(tr)
             end
 
-            TREE = BuildFXTree(tr)
+            FxdCtx.TREE = GF.BuildFXTree(tr)
 
             ----Functions & Variables -------------
             FxdCtx.Glob.FDL = r.ImGui_GetForegroundDrawList(ctx)
@@ -701,8 +699,8 @@ function Loop()
 
             if MouseAtLeftEdge and not FxdCtx.Trk[TrkID].PreFX[1] and string.len(Payload_Type) > 1 then
                 Rv = r.ImGui_Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-                SL(nil, 0)
-                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                gui_helpers.SL(nil, 0)
+                gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
 
                 if Payload_Type == 'FX_Drag' then
@@ -727,7 +725,8 @@ function Loop()
             if r.ImGui_BeginDragDropTarget(ctx) then
                 if Payload_Type == 'FX_Drag' then
                     Rv, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                        V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Rv then
@@ -838,7 +837,8 @@ function Loop()
             function RemoveFXfromBS()
                 for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do -- check all fxs and see if it's a band splitter
                     if FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS then
-                        local FxID = table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxdCtx.FXGUID[DragFX_ID])
+                        local FxID = table_helpers.tablefind(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS,
+                            FxdCtx.FXGUID[DragFX_ID])
                         if FxID then
                             table.remove(FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].FXsInBS, FxID)
                             FxdCtx.FX[FxdCtx.FXGUID[DragFX_ID]].InWhichBand = nil
@@ -862,11 +862,12 @@ function Loop()
                 r.ImGui_SameLine(ctx, nil, -5)
                 Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
                 Rv               = r.ImGui_Button(ctx, 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-                HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
                     'GetItemRect', WDL)
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain
                     Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                    gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                        V_OutlineSc,
                         'GetItemRect', WDL)
 
                     if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -902,7 +903,7 @@ function Loop()
             if Payload_Type == 'DND ADD FX' then
                 local SpcIDinPost
                 if SpcInPost then SpcIDinPost = math.max(#FxdCtx.Trk[TrkID].PostFX, 1) end
-                DndAddFXfromBrowser_TARGET(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost) -- post fx
+                GF.DndAddFXfromBrowser_TARGET(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost) -- post fx
             end
 
             PostFX_Width = math.min(
@@ -926,7 +927,8 @@ function Loop()
                 if r.ImGui_BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
                     if Payload_Type == 'FX_Drag' then
                         Drop, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
-                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                            V_OutlineSc,
                             'GetItemRect', WDL)
 
                         if Drop and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxdCtx.FXGUID[DragFX_ID]) then
@@ -941,7 +943,8 @@ function Loop()
                         end
                     elseif Payload_Type == 'DND ADD FX' then
                         Dropped, Payload = r.ImGui_AcceptDragDropPayload(ctx, 'DND ADD FX')
-                        HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc, V_OutlineSc,
+                        gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, W, H_OutlineSc,
+                            V_OutlineSc,
                             'GetItemRect', WDL)
                         if Dropped then
                             r.TrackFX_AddByName(LT_Track, Payload, false, -1000 - Sel_Track_FX_Count)
@@ -977,9 +980,9 @@ function Loop()
                             local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
                                 table_helpers.tablefind(FxdCtx.FXGUID, V)
 
-                            if FX_Idx == 1 and I then AddSpaceBtwnFXs(I - 1, 'SpcInPost', nil, nil, 1) end
+                            if FX_Idx == 1 and I then GF.AddSpaceBtwnFXs(I - 1, 'SpcInPost', nil, nil, 1) end
                             if I then
-                                createFXWindow(I)
+                                GF.createFXWindow(I)
                                 r.ImGui_SameLine(ctx, nil, 0)
 
                                 FxdCtx.FX[FxdCtx.FXGUID[I]].PostWin_SzX, _ = r.ImGui_GetItemRectSize(ctx)
@@ -988,9 +991,9 @@ function Loop()
                                     10 -- 10 is space btwn fxs
 
                                 if FX_Idx == #FxdCtx.Trk[TrkID].PostFX then
-                                    AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, #FxdCtx.Trk[TrkID].PostFX + 1)
+                                    GF.AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, #FxdCtx.Trk[TrkID].PostFX + 1)
                                 else
-                                    AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, FX_Idx + 1)
+                                    GF.AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, FX_Idx + 1)
                                 end
                                 if FX_Idx == #FxdCtx.Trk[TrkID].PostFX and r.ImGui_IsItemHovered(ctx, r.ImGui_HoveredFlags_RectOnly()) then
                                     MouseAtRightEdge = true --[[ else MouseAtRightEdge = nil ]]
@@ -1079,8 +1082,8 @@ function Loop()
             r.ImGui_SetCursorPosY(ctx, HintPos) ]]
             if HintMessage then
                 r.ImGui_Text(ctx, ' !')
-                SL()
-                MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
+                gui_helpers.SL()
+                gui_helpers.MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
             end
             if not IsLBtnHeld then
                 FxdCtx.DraggingFXs = {}
@@ -1101,17 +1104,7 @@ function Loop()
     if open then
         r.defer(Loop)
     else --on script close
-        NumOfTotalTracks = r.GetNumTracks()
-        for T = 0, NumOfTotalTracks - 1, 1 do
-            local track = r.GetTrack(0, T)
-            local TrkID = r.GetTrackGUID(track)
-            for i, _ in ipairs(FxdCtx.MacroNums) do
-                if FxdCtx.Trk[TrkID].Mod[i].Val ~= nil then
-                    r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID,
-                        FxdCtx.Trk[TrkID].Mod[i].Val)
-                end
-            end
-        end
+        state_helpers.close_fxd()
     end
     Track_Fetch_At_End = r.GetLastTouchedTrack()
     WaitForGmem = WaitForGmem + 1

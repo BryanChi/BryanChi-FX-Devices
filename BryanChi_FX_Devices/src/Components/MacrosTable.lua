@@ -1,3 +1,4 @@
+local GF = require("src.Functions.General Functions")
 local state_helpers = require('src.helpers.state_helpers')
 local gui_helpers = require("src.Components.Gui_Helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
@@ -89,7 +90,7 @@ function MacrosTable.DisplayMacrosTable()
             end
 
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
 
 
@@ -135,7 +136,7 @@ function MacrosTable.DisplayMacrosTable()
 
             At, Mc.ATK = r.ImGui_DragDouble(ctx, '## atk' .. i, Mc.ATK, DragSpeed, 0, 1, '',
                 r.ImGui_SliderFlags_NoInput())
-            SL(nil, 0)
+            gui_helpers.SL(nil, 0)
             RCat = r.ImGui_IsItemClicked(ctx, 1)
             local L, T = r.ImGui_GetItemRectMin(ctx)
             local W, H = r.ImGui_GetItemRectSize(ctx)
@@ -164,7 +165,7 @@ function MacrosTable.DisplayMacrosTable()
             r.ImGui_DrawList_AddLine(WDL, L, B, L + W * Mc.ATK, T, 0xffffffff)
 
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
 
             r.ImGui_SetNextItemWidth(ctx, 60)
@@ -192,7 +193,7 @@ function MacrosTable.DisplayMacrosTable()
             --r.ImGui_DrawList_AddLine(Glob.FDL, L ,T,L+W*Rel,T, 0xffffffff)
             r.ImGui_DrawList_AddLine(WDL, L, T, L + W * Mc.REL, B, 0xffffffff)
             if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
+                gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
             end
             r.ImGui_TableSetColumnIndex(ctx, i * 2 - 1)
             r.ImGui_PushItemWidth(ctx, -FLT_MIN)
@@ -247,7 +248,7 @@ function MacrosTable.DisplayMacrosTable()
                 if St == 1 and AssigningMacro == i then
                     local H = 20
                     local W = (FxdCtx.VP.w - 10) / 12
-                    BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
+                    gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
 
                     --HighlightSelectedItem(0xffffff77,0xffffff33, 0, L,T,L+W,T+H,H,W, 1, 1,GetItemRect, Foreground)
                 end
@@ -269,7 +270,7 @@ function MacrosTable.DisplayMacrosTable()
 
 
                 if r.ImGui_IsItemHovered(ctx) then FillClr = 0xffffff22 end
-                HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1, GetItemRect,
+                gui_helpers.HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1, GetItemRect,
                     Foreground)
 
 
@@ -301,11 +302,11 @@ function MacrosTable.DisplayMacrosTable()
 
 
                 local W, H = r.ImGui_GetItemRectSize(ctx)
-                local Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
+                local Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
                 if r.ImGui_IsItemActive(ctx) then
                     Clr = EightColors.Bright_HighSat[i]
                 elseif r.ImGui_IsItemHovered(ctx) then
-                    Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
+                    Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
                 end
 
 
@@ -314,7 +315,7 @@ function MacrosTable.DisplayMacrosTable()
                 if CurrentPos == St then -- if Step SEQ 'playhead' is now on current step
                     r.ImGui_DrawList_AddRect(Macros_WDL, L, T + H, L + W - 1, T, 0xffffff99)
                 end
-                SL(nil, 0)
+                gui_helpers.SL(nil, 0)
             end
 
 
@@ -328,7 +329,7 @@ function MacrosTable.DisplayMacrosTable()
                         local WDL = r.ImGui_GetWindowDrawList(ctx)
                         r.ImGui_Text(ctx, 'Sequence Length : ')
                         local function writeSEQDNom()
-                            if AddMacroJSFX() then
+                            if GF.AddMacroJSFX() then
                                 r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                 r.gmem_write(5, i) --[[tells JSFX the macro]]
                                 r.gmem_write(10, FxdCtx.Trk[TrkID].SEQ_Dnom[i])
@@ -340,7 +341,7 @@ function MacrosTable.DisplayMacrosTable()
                         end
 
                         local function writeSEQGmem()
-                            if AddMacroJSFX() then
+                            if GF.AddMacroJSFX() then
                                 r.gmem_write(4, 8)
                                 r.gmem_write(5, i)
                                 r.gmem_write(9, FxdCtx.Trk[TrkID].SEQL[i])
@@ -358,13 +359,13 @@ function MacrosTable.DisplayMacrosTable()
                             '##' .. 'Macro' .. i .. 'SEQ Length',
                             FxdCtx.Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 2, 64)
                         if r.ImGui_IsItemActive(ctx) then writeSEQGmem() end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, 'x2##' .. i) then
                             FxdCtx.Trk[TrkID].SEQL[i] = math.floor((FxdCtx.Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps) *
                                 2)
                             writeSEQGmem()
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '/2##' .. i) then
                             FxdCtx.Trk[TrkID].SEQL[i] = math.floor((FxdCtx.Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps) /
                                 2)
@@ -377,62 +378,62 @@ function MacrosTable.DisplayMacrosTable()
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 0.125 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                 R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 0.25
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 0.25 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                 R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1/2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 0.5
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 0.5 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
                                 R, B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1/4 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 1
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 1 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                 B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1/8 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 2
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 2 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                 B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1/16 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 4
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 4 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                 B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
-                        SL()
+                        gui_helpers.SL()
                         if r.ImGui_Button(ctx, '1/32 ##' .. 'Macro' .. i .. 'SEQ Denom') then
                             FxdCtx.Trk[TrkID].SEQ_Dnom[i] = 8
                             writeSEQDNom()
                         end
-                        SL()
+                        gui_helpers.SL()
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 8 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                 B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
                         if r.ImGui_Button(ctx, '1/64 ##' .. 'Macro' .. i .. 'SEQ Denom') then
@@ -440,7 +441,7 @@ function MacrosTable.DisplayMacrosTable()
                             writeSEQDNom()
                         end
                         if FxdCtx.Trk[TrkID].SEQ_Dnom[i] == 16 then
-                            HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                            gui_helpers.HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
                                 B, h, W, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
                         end
 
@@ -451,7 +452,7 @@ function MacrosTable.DisplayMacrosTable()
                             local L, T = r.ImGui_GetItemRectMin(ctx); local R, B = r.ImGui_GetItemRectMax(ctx); local w, h =
                                 r.ImGui_GetItemRectSize(ctx)
                             r.ImGui_DrawList_AddText(WDL, L + StepSEQ_W / 2 / 2, B - 15, 0x999999ff, St)
-                            SL(nil, 0)
+                            gui_helpers.SL(nil, 0)
                             local FillClr = 0x00000000
 
                             if r.ImGui_IsItemClicked(ctx) then
@@ -485,13 +486,13 @@ function MacrosTable.DisplayMacrosTable()
                                 r.GetSetMediaTrackInfo_String(LT_Track,
                                     'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', SEQ_RMB_Val, true)
                             end
-                            local Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
+                            local Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
 
                             if r.ImGui_IsItemHovered(ctx, r.ImGui_HoveredFlags_RectOnly()) and not SmallSEQActive then
                                 FillClr = 0xffffff22
-                                Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
+                                Clr = GF.Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
                             end
-                            HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1,
+                            gui_helpers.HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1,
                                 GetItemRect, Foreground)
 
 
@@ -553,7 +554,7 @@ function MacrosTable.DisplayMacrosTable()
                 r.ImGui_SetNextWindowSize(ctx, 350, 55)
                 if r.ImGui_Begin(ctx, 'Follower Windowww' .. i, true, r.ImGui_WindowFlags_NoResize() + r.ImGui_WindowFlags_NoDocking() + r.ImGui_WindowFlags_NoCollapse() + r.ImGui_WindowFlags_NoScrollbar() + r.ImGui_WindowFlags_NoTitleBar()) then
                     r.ImGui_Text(ctx, 'Speed : ')
-                    SL()
+                    gui_helpers.SL()
                     local m = FxdCtx.Trk[TrkID].Mod[i]
                     local CurX = r.ImGui_GetCursorPosX(ctx)
                     Retval, m.Smooth = r.ImGui_DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,
@@ -584,7 +585,7 @@ function MacrosTable.DisplayMacrosTable()
 
                     --r.ImGui_Text(ctx, ('S = ' .. (m.Smooth or '') .. 's= ' .. (m.smooth or '')))
                     r.ImGui_Text(ctx, 'Gain : ')
-                    SL(CurX)
+                    gui_helpers.SL(CurX)
 
                     Rv, m.Gain = r.ImGui_DragDouble(ctx, '##Gain' .. i, m.Gain or 100, 1, 0, 400, '%.0f' .. '%%')
                     if r.ImGui_IsItemActive(ctx) then
@@ -731,10 +732,10 @@ function MacrosTable.DisplayMacrosTable()
                             end ]]
                     local BtnSz = 11
 
-                    FxdCtx.LFO.Pin = PinIcon(FxdCtx.LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz,
+                    FxdCtx.LFO.Pin = GF.PinIcon(FxdCtx.LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz,
                         'LFO window pin' .. Macro,
                         0x00000000, ClrTint)
-                    SL()
+                    gui_helpers.SL()
 
 
                     if r.ImGui_ImageButton(ctx, '## copy' .. Macro, Img.Copy, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then
@@ -746,7 +747,7 @@ function MacrosTable.DisplayMacrosTable()
                         end
                     end
 
-                    SL()
+                    gui_helpers.SL()
                     if not FxdCtx.LFO.Clipboard then r.ImGui_BeginDisabled(ctx) end
                     if r.ImGui_ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then
                         for i, v in ipairs(FxdCtx.LFO.Clipboard) do
@@ -757,7 +758,7 @@ function MacrosTable.DisplayMacrosTable()
                     end
                     if not FxdCtx.LFO.Clipboard then r.ImGui_EndDisabled(ctx) end
 
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_SetNextItemWidth(ctx, 100)
                     if r.ImGui_BeginCombo(ctx, '## Env_Or_Loop' .. Macro, Mc.LFO_Env_or_Loop or 'Loop') then
                         if r.ImGui_Selectable(ctx, 'Loop', p_1selected, flagsIn, size_wIn, size_hIn) then
@@ -773,7 +774,7 @@ function MacrosTable.DisplayMacrosTable()
                     end
 
                     if Mc.LFO_Env_or_Loop == 'Envelope' then
-                        SL()
+                        gui_helpers.SL()
                         r.ImGui_SetNextItemWidth(ctx, 120)
                         local ShownName
                         if Mc.Rel_Type == 'Custom Release - No Jump' then ShownName = 'Custom No Jump' end
@@ -783,7 +784,7 @@ function MacrosTable.DisplayMacrosTable()
                                 Mc.Rel_Type = 'Latch'
                                 ChangeLFO(19, 0, nil, 'LFO_Release_Type') -- 1 for latch
                             end
-                            QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
+                            gui_helpers.QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
                             --[[ if r.ImGui_Selectable( ctx, 'Simple Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then
                                         Mc.Rel_Type = 'Simple Release'
                                         ChangeLFO(19, 1 , nil, 'LFO_Release_Type') -- 1 for Simple release
@@ -792,13 +793,13 @@ function MacrosTable.DisplayMacrosTable()
                                 Mc.Rel_Type = 'Custom Release'
                                 ChangeLFO(19, 2, nil, 'LFO_Release_Type') -- 2 for Custom release
                             end
-                            QuestionHelpHint('Jump to release node when midi note is released')
+                            gui_helpers.QuestionHelpHint('Jump to release node when midi note is released')
 
                             if r.ImGui_Selectable(ctx, 'Custom Release - No Jump', p_1selected, flagsIn, size_wIn, size_hIn) then
                                 Mc.Rel_Type = 'Custom Release - No Jump'
                                 ChangeLFO(19, 3, nil, 'LFO_Release_Type') -- 3 for Custom release no jump
                             end
-                            QuestionHelpHint(
+                            gui_helpers.QuestionHelpHint(
                                 'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released')
 
                             if r.ImGui_Checkbox(ctx, 'Legato', Mc.LFO_Legato) then
@@ -811,12 +812,12 @@ function MacrosTable.DisplayMacrosTable()
                     end
 
 
-                    SL(nil, 30)
+                    gui_helpers.SL(nil, 30)
                     if r.ImGui_ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then
                         FxdCtx.LFO.OpenSaveDialog = Macro
                     end
 
-                    SL()
+                    gui_helpers.SL()
 
 
                     if r.ImGui_ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz * 2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint) then
@@ -827,7 +828,7 @@ function MacrosTable.DisplayMacrosTable()
                                 Macro
                         end
                     end
-                    if FxdCtx.LFO.OpenShapeSelect then Highlight_Itm(WDL, 0xffffff55) end
+                    if FxdCtx.LFO.OpenShapeSelect then gui_helpers.Highlight_Itm(WDL, 0xffffff55) end
 
 
                     r.ImGui_Dummy(ctx, (FxdCtx.LFO.Win.w) * ((Mc.LFO_leng or FxdCtx.LFO.Def.Len) / 4),
@@ -841,7 +842,7 @@ function MacrosTable.DisplayMacrosTable()
                     local Win_T, Win_B = T, T + h -- 7 is prob the window padding
                     local Win_L = L
                     r.ImGui_DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff22)
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_Dummy(ctx, 10, 10)
 
 
@@ -989,8 +990,8 @@ function MacrosTable.DisplayMacrosTable()
                         -- if moving node
                         if (r.ImGui_IsItemActive(ctx) and Mods == 0) or DraggingNode == ID then
                             tweaking = Macro
-                            HideCursorTillMouseUp(nil, r.ImGui_Key_X())
-                            HideCursorTillMouseUp(0)
+                            GF.HideCursorTillMouseUp(nil, r.ImGui_Key_X())
+                            GF.HideCursorTillMouseUp(0)
                             HoverNode = ID
                             Send_All_Coord()
 
@@ -999,7 +1000,7 @@ function MacrosTable.DisplayMacrosTable()
                             if ID == 1 then lastX = 0 end
                             if ID == #Node then nextX = 1 end
 
-                            local MsX, MsY = GetMouseDelta(0, r.ImGui_Key_X())
+                            local MsX, MsY = GF.GetMouseDelta(0, r.ImGui_Key_X())
                             local MsX = MsX / FxdCtx.LFO.DummyW
                             local MsY = MsY / FxdCtx.LFO.DummyH
 
@@ -1120,7 +1121,7 @@ function MacrosTable.DisplayMacrosTable()
                         --- changing control point
                         if DraggingLFOctrl == i then
                             tweaking           = Macro
-                            local Dx, Dy       = GetMouseDelta(0, r.ImGui_Key_C())
+                            local Dx, Dy       = GF.GetMouseDelta(0, r.ImGui_Key_C())
                             local Dx, Dy       = Dx / FxdCtx.LFO.DummyW, Dy / FxdCtx.LFO.DummyH
                             local CtrlX, CtrlY = Node[i].ctrlX or (Node[last].x + Node[i].x) / 2,
                                 Node[i].ctrlY or (Node[last].y + Node[i].y) / 2
@@ -1231,7 +1232,7 @@ function MacrosTable.DisplayMacrosTable()
                                         (PtsY[CurrentPlayPos] - PtsY[pos]) * (i / (PtsX[n] - PtsX[pos]))
 
                                     r.ImGui_DrawList_AddLine(FDL, Lx or x2, Ly or y2, x2, y2,
-                                        Change_Clr_A(0xffffff00, (i / (PlayPosX - PtsX[pos])) * 0.3), 7)
+                                        GF.Change_Clr_A(0xffffff00, (i / (PlayPosX - PtsX[pos])) * 0.3), 7)
                                     Ly = y2
                                     Lx = x2
 
@@ -1259,8 +1260,8 @@ function MacrosTable.DisplayMacrosTable()
 
 
                     if DraggingLFOctrl then
-                        HideCursorTillMouseUp(nil, r.ImGui_Key_C())
-                        HideCursorTillMouseUp(0)
+                        GF.HideCursorTillMouseUp(nil, r.ImGui_Key_C())
+                        GF.HideCursorTillMouseUp(0)
                     end
 
 
@@ -1305,7 +1306,7 @@ function MacrosTable.DisplayMacrosTable()
                     r.ImGui_SetCursorPos(ctx, 10, FxdCtx.LFO.Win.h + 55)
                     r.ImGui_AlignTextToFramePadding(ctx)
                     r.ImGui_Text(ctx, 'Speed:')
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_SetNextItemWidth(ctx, 50)
                     local _, V = r.ImGui_DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
                     if r.ImGui_IsItemActive(ctx) then
@@ -1336,12 +1337,12 @@ function MacrosTable.DisplayMacrosTable()
                             ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
                         end
                     end
-                    SL(nil, 30)
+                    gui_helpers.SL(nil, 30)
 
 
                     ---- Add Length slider
                     r.ImGui_Text(ctx, 'Length:')
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_SetNextItemWidth(ctx, 80)
                     local LengthBefore = Mc.LFO_leng
                     _, Mc.LFO_leng = r.ImGui_SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length',
@@ -1364,9 +1365,9 @@ function MacrosTable.DisplayMacrosTable()
 
 
                     ------ Add LFO Gain
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_Text(ctx, 'Gain')
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_SetNextItemWidth(ctx, 80)
                     local ShownV = math.floor((Mc.LFO_Gain or 0) * 100)
 
@@ -1447,7 +1448,7 @@ function MacrosTable.DisplayMacrosTable()
                                     --reaper.ImGui_SetCursorPosX( ctx, - 15 )
                                     local L, T = r.ImGui_GetItemRectMin(ctx)
                                     if r.ImGui_IsMouseHoveringRect(ctx, L, T, L + 200, T + 10) then
-                                        SL(W - 8)
+                                        gui_helpers.SL(W - 8)
 
                                         if images_fonts.TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
                                             r.ImGui_OpenPopup(ctx, 'Delete shape prompt' .. i)
@@ -1478,7 +1479,7 @@ function MacrosTable.DisplayMacrosTable()
                                         FxdCtx.LFO.DeleteShape = i
                                         r.ImGui_CloseCurrentPopup(ctx)
                                     end
-                                    SL()
+                                    gui_helpers.SL()
                                     if r.ImGui_Button(ctx, 'No') or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_N()) or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then
                                         r.ImGui_CloseCurrentPopup(ctx)
                                     end
@@ -1729,7 +1730,7 @@ function MacrosTable.DisplayMacrosTable()
                                 Save_Shape_To_Track()
                             end
                         end
-                        SL()
+                        gui_helpers.SL()
                         r.ImGui_AlignTextToFramePadding(ctx)
 
 
@@ -1870,7 +1871,7 @@ function MacrosTable.DisplayMacrosTable()
                         FxdCtx.LFO.OpenSaveDialog = nil
                         r.ImGui_CloseCurrentPopup(ctx)
                     end
-                    SL()
+                    gui_helpers.SL()
                     r.ImGui_Button(ctx, 'Cancel (Esc)')
                     if r.ImGui_IsItemClicked(ctx) or r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Escape()) then
                         r.ImGui_CloseCurrentPopup(ctx)
@@ -1959,7 +1960,7 @@ function MacrosTable.DisplayMacrosTable()
 
         if r.ImGui_BeginPopup(ctx, 'Macro' .. i .. 'Menu') then
             if r.ImGui_Selectable(ctx, 'Automate', false) then
-                AddMacroJSFX()
+                GF.AddMacroJSFX()
                 -- Show Envelope for Morph Slider
                 local env = r.GetFXEnvelope(LT_Track, 0, i - 1, false)  -- Check if envelope is on
                 if env == nil then                                      -- Envelope is off

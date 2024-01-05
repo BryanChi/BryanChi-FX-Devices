@@ -1,4 +1,5 @@
 r = reaper
+local GF = require("src.Functions.General Functions")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColors = customcolors.CustomColors
@@ -103,42 +104,6 @@ function demo.EachEnum(enum)
         return table.unpack(enum_cache[i])
     end
 end
-
----@param mode openmode
----@param filename string
----@param folder? string
----@return file*?
----@return string
-function CallFile(mode, filename, folder)
-    local dir_path
-    if folder then
-        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src', folder)
-    else
-        dir_path = fs_utils.ConcatPath(CurrentDirectory, 'src')
-    end
-    local file_path = fs_utils.ConcatPath(dir_path, filename)
-
-    -- Create directory for file if it doesn't exist
-    r.RecursiveCreateDirectory(dir_path, 0)
-    local file = io.open(file_path, mode)
-    return file, file_path
-end
-
-function PushStyle_AtScriptStart()
-    local file, file_path = CallFile('r', 'ThemeColors.ini')
-    if file then
-        local Lines = fs_utils.get_lines(file_path)
-        for i in demo.EachEnum('Col') do
-            r.ImGui_PushStyleColor(ctx, 1, 0x372837ff)
-        end
-    else
-        ----- Default Color theme ---------------
-    end
-end
-
---PushStyle_AtScriptStart()
-
-
 
 function demo.GetStyleData()
     local data = { vars = {}, colors = {} }
@@ -303,7 +268,7 @@ function ShowStyleEditor()
             r.ImGui_SameLine(ctx) ]]
         if r.ImGui_Button(ctx, 'Save Color Settings') then
             -- for each enum
-            local file = CallFile('w', 'ThemeColors.ini')
+            local file = fs_utils.CallFile('w', 'ThemeColors.ini')
 
             if file then
                 --[[ for i, name in demo.EachEnum('Col') do
@@ -455,7 +420,7 @@ function ShowStyleEditor()
             end
 
             r.ImGui_Text(ctx, 'Specific Colors')
-            AddSpacing(2)
+            GF.AddSpacing(2)
 
             for i, v in pairs(CustomColors) do
                 if r.ImGui_TextFilter_PassFilter(FxdCtx.app.style_editor.colors.filter.inst, v) then
@@ -541,18 +506,18 @@ function Show_KBShortcutEditor()
             r.ImGui_SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
             r.ImGui_OpenPopup(ctx, '##Type Key Popup')
         end
-        SL()
+        gui_helpers.SL()
 
         if r.ImGui_Button(ctx, 'Save') then
-            local file = CallFile('w', 'Keyboard Shortcuts.ini')
+            local file = fs_utils.CallFile('w', 'Keyboard Shortcuts.ini')
             for i, v in pairs(FxdCtx.KB_Shortcut) do
                 file:write(v, ' = ', FxdCtx.Command_ID[i], '\n')
             end
         end
 
 
-        SL()
-        MyText('(?)', nil, 0xffffff66)
+        gui_helpers.SL()
+        gui_helpers.MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
             gui_helpers.HintToolTip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
@@ -633,13 +598,13 @@ function Show_KBShortcutEditor()
 
             if AlreadyAddedKey == v then
                 r.ImGui_SetScrollHereY(ctx)
-                _, stop = BlinkItem(0.3, 3.5)
+                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
-            SL()
+            gui_helpers.SL()
             r.ImGui_Text(ctx, ' : ')
-            SL()
+            gui_helpers.SL()
             local CmdTxt, commandID
 
 
@@ -654,7 +619,7 @@ function Show_KBShortcutEditor()
             end
 
             if AlreadyAddedKey == v then
-                _, stop = BlinkItem(0.3, 3.5)
+                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
             end
 
 

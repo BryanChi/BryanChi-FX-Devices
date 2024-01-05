@@ -1,3 +1,5 @@
+local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.Components.Gui_Helpers")
 local state_helpers = require("src.helpers.state_helpers")
 local MenuBar = {}
 ------------------------------
@@ -25,7 +27,7 @@ function MenuBar.DisplayMenuBar()
                 end
 
 
-                MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
+                gui_helpers.MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
                 r.ImGui_EndMenu(ctx)
             end
 
@@ -52,7 +54,7 @@ function MenuBar.DisplayMenuBar()
                     end
                 end ]]
 
-                if not IsPrmAlreadyAdded(true) then
+                if not GF.IsPrmAlreadyAdded(true) then
                     StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
                         true)
                 end
@@ -92,7 +94,7 @@ function MenuBar.DisplayMenuBar()
                 end
 
                 if #FxdCtx.LE.Sel_Items > 1 then
-                    SL()
+                    gui_helpers.SL()
                     if r.ImGui_Button(ctx, 'Align Y-Axis') then
                         for _, v in ipairs(FxdCtx.LE.Sel_Items) do FxdCtx.FX[FxGUID][v].PosX = FxdCtx.FX[FxGUID][FxdCtx.LE.Sel_Items[1]].PosX end
                     elseif r.ImGui_Button(ctx, 'Align X-Axis') then

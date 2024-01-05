@@ -1,4 +1,5 @@
 -- @noindex
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 local table_helpers = require("src.helpers.table_helpers")
 local math_helpers = require("src.helpers.math_helpers")
@@ -120,7 +121,7 @@ else
     ProQ3['scaleLabel' .. ' ID' .. FxdCtx.FXGUID[FX_Idx]] = 12
 end
 
-SL(340 - 60)
+gui_helpers.SL(340 - 60)
 -- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
 local GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 314)
 FxdCtx.FX.Round[FxGUID] = 100
@@ -1230,7 +1231,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             r.TrackFX_Delete(LT_Track,
                 FX_Idx - 1)
         end
-        SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
+        GF.SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
             FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)])
     else -- if no spectrum is before pro-Q 3
         FxdCtx.FX[FxGUID].AddEQSpectrumWait = (FxdCtx.FX[FxGUID].AddEQSpectrumWait or 0) + 1

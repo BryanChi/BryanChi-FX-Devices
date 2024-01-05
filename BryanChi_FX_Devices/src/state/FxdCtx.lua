@@ -3,6 +3,7 @@
 ---in the main file.
 local FxdCtx = {}
 
+local GF = require("src.Functions.General Functions")
 
 ---@class ViewPort
 FxdCtx.VP = {} -- viewport info
@@ -187,5 +188,7 @@ FxdCtx.Mc = { Val_Trk = {}, V_Out = { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Name = {} }
 FxdCtx.Wet = { DragLbl = {}, Val = {}, P_Num = {} }
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8 }
 
+FxdCtx.TREE = GF.BuildFXTree(LT_Track or reaper.GetSelectedTrack(0, 0))
+FxdCtx.StringToBool = { ['true'] = true, ['false'] = false }
 
 return FxdCtx

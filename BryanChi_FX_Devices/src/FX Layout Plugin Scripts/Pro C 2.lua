@@ -1,5 +1,7 @@
 -- @noindex
 
+local gui_helpers = require("src.Components.Gui_Helpers")
+local GF = require("src.Functions.General Functions")
 
 
 r = reaper
@@ -26,7 +28,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     end
     r.ImGui_SetNextItemWidth(ctx, 10)
     r.ImGui_PushFont(ctx, Font_Andale_Mono_10)
-    MyText('Over:', nil, 0x818181ff)
+    gui_helpers.MyText('Over:', nil, 0x818181ff)
 
 
     r.ImGui_SameLine(ctx, 210, nil)
@@ -42,7 +44,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     r.ImGui_SameLine(ctx, FxdCtx.ProC.Width - 25)
 
     SyncWetValues()
-    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
+    FxdCtx.Wet.ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '',
         FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 end
 r.ImGui_PopStyleVar(ctx)
@@ -109,9 +111,6 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.Prm.InstAdded[FxdCtx.FXGUID[FX_Idx]] = true
         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxdCtx.FXGUID[FX_Idx] .. 'Params Added',
             'true')
-    end
-    function F_Tp(FX_P)
-        return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
     end
 
     if FxdCtx.FX[PluginScript.Guid][1].Num and FxdCtx.FX[PluginScript.Guid][8] then
@@ -451,7 +450,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
             FxGUID, Fx_P)
         r.ImGui_SetCursorPos(ctx, X + 25, Y + 35)
 
-        MyText('STYLE', nil, 0xbbbbbbff)
+        gui_helpers.MyText('STYLE', nil, 0xbbbbbbff)
 
 
         r.ImGui_SetCursorPos(ctx, X + 90, Y)
@@ -540,7 +539,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
             end ]]
         else
             r.TrackFX_Show(LT_Track, FX_Idx + 1, 2)
-            SyncAnalyzerPinWithFX(FX_Idx + 1, FX_Idx)
+            GF.SyncAnalyzerPinWithFX(FX_Idx + 1, FX_Idx)
         end
     end
     r.gmem_attach('CompReductionScope'); r.gmem_write(2000, FxdCtx.PM.DIY_TrkID[TrkID])
