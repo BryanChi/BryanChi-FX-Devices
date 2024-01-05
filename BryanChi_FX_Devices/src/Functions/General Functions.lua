@@ -600,41 +600,6 @@ function GF.Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Id
     end
 end
 
----@param w number
----@param h number
----@param icon string
----@param BGClr? number
----@param center? string
----@param Identifier? string
----@return boolean|nil
-function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
-    r.ImGui_PushFont(ctx, images_fonts.FontAwesome)
-    if r.ImGui_InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
-    end
-    local FillClr
-    if r.ImGui_IsItemActive(ctx) then
-        FillClr = GF.getClr(r.ImGui_Col_ButtonActive())
-        IcnClr = GF.getClr(r.ImGui_Col_TextDisabled())
-    elseif r.ImGui_IsItemHovered(ctx) then
-        FillClr = GF.getClr(r.ImGui_Col_ButtonHovered())
-        IcnClr = GF.getClr(r.ImGui_Col_Text())
-    else
-        FillClr = GF.getClr(r.ImGui_Col_Button())
-        IcnClr = GF.getClr(r.ImGui_Col_Text())
-    end
-    if BGClr then FillClr = BGClr end
-
-    L, T, R, B, W, H = gui_helpers.HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
-        'GetItemRect', Foreground)
-    TxtSzW, TxtSzH = r.ImGui_CalcTextSize(ctx, icon)
-    if center == 'center' then
-        r.ImGui_DrawList_AddText(WDL, L + W / 2 - TxtSzW / 2, T - H / 2 - 1, IcnClr, icon)
-    else
-        r.ImGui_DrawList_AddText(WDL, L + 3, T - H / 2, IcnClr, icon)
-    end
-    r.ImGui_PopFont(ctx)
-    if r.ImGui_IsItemActivated(ctx) then return true end
-end
 
 ---@param f integer
 ---@return integer
@@ -2331,7 +2296,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                         r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(),
                             GF.getClr(r.ImGui_Col_TextDisabled()))
                     end
-                    if IconBtn(20, 20, 'Y') then -- settings icon
+                    if gui_helpers.IconBtn(20, 20, 'Y') then -- settings icon
                         if OpenMorphSettings then
                             OpenMorphSettings = FxGUID
                         else
@@ -2540,7 +2505,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
                                 r.ImGui_SetNextItemWidth(ctx, 20)
                                 r.ImGui_TableSetColumnIndex(ctx, 0)
 
-                                IconBtn(20, 20, 'M', 0x00000000)
+                                gui_helpers.IconBtn(20, 20, 'M', 0x00000000)
 
                                 r.ImGui_TableSetColumnIndex(ctx, 1)
                                 r.ImGui_AlignTextToFramePadding(ctx)

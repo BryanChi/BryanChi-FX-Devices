@@ -920,7 +920,7 @@ function fxDisplay.displayFx(spaceIfPreFX)
                                             '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i,
                                             FxdCtx.FX[FxGUID][Itm].ManualValuesFormat[i])
                                         gui_helpers.SL()
-                                        if IconBtn(20, 20, 'T', BgClr, 'center', '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i) then
+                                        if gui_helpers.IconBtn(20, 20, 'T', BgClr, 'center', '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i) then
                                             table.remove(FxdCtx.FX[FxGUID][Itm].ManualValuesFormat, i)
                                             table.remove(FxdCtx.FX[FxGUID][Itm].ManualValues, i)
                                         end
