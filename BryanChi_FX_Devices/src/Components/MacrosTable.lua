@@ -329,7 +329,7 @@ function MacrosTable.DisplayMacrosTable()
                         local WDL = r.ImGui_GetWindowDrawList(ctx)
                         r.ImGui_Text(ctx, 'Sequence Length : ')
                         local function writeSEQDNom()
-                            if AddMacroJSFX() then
+                            if GF.AddMacroJSFX() then
                                 r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                 r.gmem_write(5, i) --[[tells JSFX the macro]]
                                 r.gmem_write(10, FxdCtx.Trk[TrkID].SEQ_Dnom[i])
@@ -341,7 +341,7 @@ function MacrosTable.DisplayMacrosTable()
                         end
 
                         local function writeSEQGmem()
-                            if AddMacroJSFX() then
+                            if GF.AddMacroJSFX() then
                                 r.gmem_write(4, 8)
                                 r.gmem_write(5, i)
                                 r.gmem_write(9, FxdCtx.Trk[TrkID].SEQL[i])
@@ -1960,7 +1960,7 @@ function MacrosTable.DisplayMacrosTable()
 
         if r.ImGui_BeginPopup(ctx, 'Macro' .. i .. 'Menu') then
             if r.ImGui_Selectable(ctx, 'Automate', false) then
-                AddMacroJSFX()
+                GF.AddMacroJSFX()
                 -- Show Envelope for Morph Slider
                 local env = r.GetFXEnvelope(LT_Track, 0, i - 1, false)  -- Check if envelope is on
                 if env == nil then                                      -- Envelope is off

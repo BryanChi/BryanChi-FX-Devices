@@ -72,7 +72,7 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
-          EndUndoBlock("ADD FX TO PAD")
+          GF.EndUndoBlock("ADD FX TO PAD")
         elseif not Pad[a] then   -- create target and add fx to it
           CountPads()
           AddPad(note_name, a) -- dst
@@ -93,7 +93,7 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
-          EndUndoBlock("MOVE FX TO PAD")
+          GF.EndUndoBlock("MOVE FX TO PAD")
         end
     end
   end

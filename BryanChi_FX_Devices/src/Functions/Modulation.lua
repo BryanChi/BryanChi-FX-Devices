@@ -3,6 +3,7 @@
 -- @noindex
 
 r = reaper
+local GF = require("src.Functions.General Functions")
 local table_helpers = require("src.helpers.table_helpers")
 local fs_utils = require("src.Functions.Filesystem_utils")
 local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
@@ -32,7 +33,7 @@ function PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
     r.gmem_attach('ParamValues')
     if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'Macros', 0, 0) == -1 then
         r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
-        AddMacroJSFX()
+        GF.AddMacroJSFX()
         AssignMODtoFX = AssignMODtoFX + 1
     end
 

@@ -76,7 +76,7 @@ function GF.BuildFXTree(tr)
 end
 
 
-function EndUndoBlock(str)
+function GF.EndUndoBlock(str)
     r.Undo_EndBlock("ReaDrum Machine: " .. str, -1)
 end
 
@@ -99,7 +99,8 @@ function GF.ChangeFX_Name(FX_Name)
     end
 end
 
-function AddMacroJSFX()
+---TODO move to plugin_helpers
+function GF.AddMacroJSFX()
     local MacroGetLT_Track = r.GetLastTouchedTrack()
     MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
     if MacrosJSFXExist == -1 then
@@ -1312,7 +1313,7 @@ function GF.AddFX_Menu(FX_Idx)
                     r.TrackFX_AddByName(TRACK, chain_src, false, -1000 - FX_Idx)
                     AddedFX = true
                     r.PreventUIRefresh(-1)
-                    EndUndoBlock("ADD DRUM MACHINE")
+                    GF.EndUndoBlock("ADD DRUM MACHINE")
                 end
             end
             gui_helpers.DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
@@ -1664,7 +1665,7 @@ function GF.createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         if --[[Add Macros JSFX if not found]] r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then
                             r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
-                            AddMacroJSFX()
+                            GF.AddMacroJSFX()
                         end
                         for i, v in ipairs(FxdCtx.FX[FxGUID].MorphA), FxdCtx.FX[FxGUID].MorphA, -1 do
                             local Scale = FxdCtx.FX[FxGUID].MorphB[i] - v
