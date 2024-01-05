@@ -784,7 +784,7 @@ function MacrosTable.DisplayMacrosTable()
                                 Mc.Rel_Type = 'Latch'
                                 ChangeLFO(19, 0, nil, 'LFO_Release_Type') -- 1 for latch
                             end
-                            QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
+                            gui_helpers.QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
                             --[[ if r.ImGui_Selectable( ctx, 'Simple Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then
                                         Mc.Rel_Type = 'Simple Release'
                                         ChangeLFO(19, 1 , nil, 'LFO_Release_Type') -- 1 for Simple release
@@ -793,13 +793,13 @@ function MacrosTable.DisplayMacrosTable()
                                 Mc.Rel_Type = 'Custom Release'
                                 ChangeLFO(19, 2, nil, 'LFO_Release_Type') -- 2 for Custom release
                             end
-                            QuestionHelpHint('Jump to release node when midi note is released')
+                            gui_helpers.QuestionHelpHint('Jump to release node when midi note is released')
 
                             if r.ImGui_Selectable(ctx, 'Custom Release - No Jump', p_1selected, flagsIn, size_wIn, size_hIn) then
                                 Mc.Rel_Type = 'Custom Release - No Jump'
                                 ChangeLFO(19, 3, nil, 'LFO_Release_Type') -- 3 for Custom release no jump
                             end
-                            QuestionHelpHint(
+                            gui_helpers.QuestionHelpHint(
                                 'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released')
 
                             if r.ImGui_Checkbox(ctx, 'Legato', Mc.LFO_Legato) then
@@ -828,7 +828,7 @@ function MacrosTable.DisplayMacrosTable()
                                 Macro
                         end
                     end
-                    if FxdCtx.LFO.OpenShapeSelect then Highlight_Itm(WDL, 0xffffff55) end
+                    if FxdCtx.LFO.OpenShapeSelect then gui_helpers.Highlight_Itm(WDL, 0xffffff55) end
 
 
                     r.ImGui_Dummy(ctx, (FxdCtx.LFO.Win.w) * ((Mc.LFO_leng or FxdCtx.LFO.Def.Len) / 4),
@@ -1000,7 +1000,7 @@ function MacrosTable.DisplayMacrosTable()
                             if ID == 1 then lastX = 0 end
                             if ID == #Node then nextX = 1 end
 
-                            local MsX, MsY = GetMouseDelta(0, r.ImGui_Key_X())
+                            local MsX, MsY = GF.GetMouseDelta(0, r.ImGui_Key_X())
                             local MsX = MsX / FxdCtx.LFO.DummyW
                             local MsY = MsY / FxdCtx.LFO.DummyH
 
@@ -1121,7 +1121,7 @@ function MacrosTable.DisplayMacrosTable()
                         --- changing control point
                         if DraggingLFOctrl == i then
                             tweaking           = Macro
-                            local Dx, Dy       = GetMouseDelta(0, r.ImGui_Key_C())
+                            local Dx, Dy       = GF.GetMouseDelta(0, r.ImGui_Key_C())
                             local Dx, Dy       = Dx / FxdCtx.LFO.DummyW, Dy / FxdCtx.LFO.DummyH
                             local CtrlX, CtrlY = Node[i].ctrlX or (Node[last].x + Node[i].x) / 2,
                                 Node[i].ctrlY or (Node[last].y + Node[i].y) / 2

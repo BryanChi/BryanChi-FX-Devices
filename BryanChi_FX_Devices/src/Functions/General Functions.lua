@@ -241,27 +241,6 @@ function GF.PinIcon(PinStatus, PinStr, size, lbl, ClrBG, ClrTint)
     return PinStatus, TintClr
 end
 
-function QuestionHelpHint(Str)
-    if r.ImGui_IsItemHovered(ctx) then
-        gui_helpers.SL()
-        r.ImGui_TextColored(ctx, 0x99999977, '(?)')
-        if r.ImGui_IsItemHovered(ctx) then
-            gui_helpers.HintToolTip(Str)
-        end
-    end
-end
-
-
-function Highlight_Itm(WDL, FillClr, OutlineClr)
-    local L, T = r.ImGui_GetItemRectMin(ctx)
-
-    local R, B = r.ImGui_GetItemRectMax(ctx)
-
-
-    if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
-    if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
-end
-
 ---@param ctx ImGui_Context
 ---@param time integer count in
 function GF.PopClr(ctx, time)
@@ -423,8 +402,10 @@ function GF.HideCursorTillMouseUp(MouseBtn, triggerKey)
     end
 end
 
-function GetMouseDelta(MouseBtn, triggerKey)
-    MouseDelta = MouseDelta or {}
+---@param MouseBtn integer
+---@param triggerKey integer
+function GF.GetMouseDelta(MouseBtn, triggerKey)
+    local MouseDelta = {}
     local M = MouseDelta
     if MouseBtn then
         if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
@@ -670,30 +651,6 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
         return ActiveAny, value_changed, p_value
     end
-end
-
----@param DL ImGui_DrawList
----@param CenterX number
----@param CenterY number
----@param size number
----@param clr number rgba color
-function GF.DrawTriangle(DL, CenterX, CenterY, size, clr)
-    local Cx = CenterX
-    local Cy = CenterY
-    local S = size
-    r.ImGui_DrawList_AddTriangleFilled(DL, Cx, Cy - S, Cx - S, Cy, Cx + S, Cy, clr or 0x77777777ff)
-end
-
----@param DL ImGui_DrawList
----@param CenterX number
----@param CenterY number
----@param size number
----@param clr number rgba color
-function GF.DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
-    local Cx = CenterX
-    local Cy = CenterY
-    local S = size
-    r.ImGui_DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
 end
 
 ---@param w number

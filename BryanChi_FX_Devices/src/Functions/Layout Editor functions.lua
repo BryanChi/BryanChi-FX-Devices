@@ -1489,8 +1489,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         local m = B - lineheight / 2 - 3
         g = 2
         local X = R - ExtraW / 2
-        GF.DrawTriangle(drawlist, X, m - g, 3, clr)
-        GF.DrawDownwardTriangle(drawlist, X, m + g, 3, clr)
+        layout_editor_helpers.DrawTriangle(drawlist, X, m - g, 3, clr)
+        layout_editor_helpers.DrawDownwardTriangle(drawlist, X, m + g, 3, clr)
     end
 
 

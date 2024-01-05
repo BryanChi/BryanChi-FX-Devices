@@ -136,7 +136,7 @@ local function ButtonDrawlist(splitter, name, color, a)
 
   if FxdCtx.FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
-    Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
+    gui_helpers.Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
   end
 end
 
@@ -375,7 +375,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
       GF.HighlightHvredItem()
       if FxdCtx.FX[FxGUID].LAST_MENU == i then 
         r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
-        Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
+        gui_helpers.Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
     end
     r.ImGui_EndChild(ctx)

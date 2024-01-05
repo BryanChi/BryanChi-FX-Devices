@@ -166,7 +166,7 @@ local function DndMoveFXtoContainer_TARGET()
     if r.ImGui_BeginDragDropTarget(ctx) then
         local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX_Drag')
         r.ImGui_EndDragDropTarget(ctx)
-        Highlight_Itm(WDL, 0xffffff33)
+        gui_helpers.Highlight_Itm(WDL, 0xffffff33)
         if rv and Mods == 0 then
             local FX_Id = 0x2000000 + 1 * (r.TrackFX_GetCount(LT_Track) + 1) + (Root_ID + 1) -- root containder
 

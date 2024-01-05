@@ -110,4 +110,24 @@ function gui_helpers.DndAddFX_SRC(fx)
     end
 end
 
+function gui_helpers.QuestionHelpHint(Str)
+    if r.ImGui_IsItemHovered(ctx) then
+        gui_helpers.SL()
+        r.ImGui_TextColored(ctx, 0x99999977, '(?)')
+        if r.ImGui_IsItemHovered(ctx) then
+            gui_helpers.HintToolTip(Str)
+        end
+    end
+end
+
+
+function gui_helpers.Highlight_Itm(WDL, FillClr, OutlineClr)
+    local L, T = r.ImGui_GetItemRectMin(ctx)
+
+    local R, B = r.ImGui_GetItemRectMax(ctx)
+
+    if FillClr then r.ImGui_DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
+    if OutlineClr then r.ImGui_DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
+end
+
 return gui_helpers
