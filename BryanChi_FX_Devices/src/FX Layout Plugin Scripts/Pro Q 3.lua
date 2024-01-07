@@ -1,16 +1,16 @@
 -- @noindex
-local gui_helpers = require("src.Components.Gui_Helpers")
-
-local table_helpers = require("src.helpers.table_helpers")
-local math_helpers = require("src.helpers.math_helpers")
-r = reaper
-local FX_Idx = PluginScript.FX_Idx
-local FxGUID = PluginScript.Guid
+local gui_helpers             = require("src.Components.Gui_Helpers")
+local GF                      = require("src.Functions.General Functions")
+local table_helpers           = require("src.helpers.table_helpers")
+local math_helpers            = require("src.helpers.math_helpers")
+r                             = reaper
+local FX_Idx                  = PluginScript.FX_Idx
+local FxGUID                  = PluginScript.Guid
 
 FxdCtx.FX[FxGUID].CustomTitle = 'Pro-Q 3'
-FxdCtx.FX[FxGUID].TitleWidth= 50
-FxdCtx.FX[FxGUID].BgClr  = 0x000000ff
-FxdCtx.FX[FxGUID].Width = 340
+FxdCtx.FX[FxGUID].TitleWidth  = 50
+FxdCtx.FX[FxGUID].BgClr       = 0x000000ff
+FxdCtx.FX[FxGUID].Width       = 340
 
 
 ---------------------------------------------
@@ -191,9 +191,9 @@ if not FxdCtx.FX[FxGUID].Collapse then
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x090909ff)
 
     ProQ3.H = 200
-    local L , T = r.ImGui_GetCursorScreenPos(ctx)
+    local L, T = r.ImGui_GetCursorScreenPos(ctx)
 
-    r.ImGui_SetNextWindowPos(ctx, L, T-28)
+    r.ImGui_SetNextWindowPos(ctx, L, T - 28)
 
 
     if r.ImGui_BeginChildFrame(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
