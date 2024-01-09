@@ -1,10 +1,18 @@
+local images_fonts = require("src.helpers.images_fonts")
 local gui_helpers = {}
---
 ---@param A string text for tooltip
 function gui_helpers.tooltip(A)
     r.ImGui_BeginTooltip(ctx)
     r.ImGui_SetTooltip(ctx, A)
     r.ImGui_EndTooltip(ctx)
+end
+
+---This is a duplicate of General Function's getClr.
+--I'm having to leave it in here to avoid circular dependencies.
+---@param f integer
+---@return integer
+function gui_helpers.getClr(f)
+    return r.ImGui_GetStyleColor(ctx, f)
 end
 
 ---@param A string text for tooltip
@@ -23,6 +31,7 @@ function gui_helpers.InvisiBtn(ctx, x, y, str, w, h)
 
     return rv
 end
+
 ---@param text string
 ---@param font? ImGui_Font
 ---@param color? number rgba
@@ -68,8 +77,9 @@ end
 ---@return number|nil B
 ---@return number|nil w
 ---@return number|nil h
-function gui_helpers.HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
-                               Foreground, rounding, thick)
+function gui_helpers.HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                                           GetItemRect,
+                                           Foreground, rounding, thick)
     if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
         L, T = r.ImGui_GetItemRectMin(ctx)
         R, B = r.ImGui_GetItemRectMax(ctx)
@@ -120,7 +130,6 @@ function gui_helpers.QuestionHelpHint(Str)
     end
 end
 
-
 function gui_helpers.Highlight_Itm(WDL, FillClr, OutlineClr)
     local L, T = r.ImGui_GetItemRectMin(ctx)
 
@@ -154,13 +163,15 @@ function gui_helpers.BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, 
     if rpt then
         for i = 0, rpt - 1, 1 do
             if Now > TimeBegin + dur * i and Now < TimeBegin + dur * (i + 0.5) then -- second blink
-                gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+                gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                    GetItemRect,
                     Foreground)
             end
         end
     else
         if Now > TimeBegin and Now < TimeBegin + dur / 2 then
-            gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+            gui_helpers.HighlightSelectedItem(0xffffff77, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                GetItemRect,
                 Foreground)
         elseif Now > TimeBegin + dur / 2 + dur then
             TimeBegin = r.time_precise()
@@ -169,7 +180,8 @@ function gui_helpers.BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, 
 
     if EdgeNoBlink == 'EdgeNoBlink' then
         if Now < TimeBegin + dur * (rpt - 0.95) then
-            gui_helpers.HighlightSelectedItem(0xffffff00, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
+            gui_helpers.HighlightSelectedItem(0xffffff00, EdgeClr, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+                GetItemRect,
                 Foreground)
         end
     end
@@ -198,18 +210,19 @@ function gui_helpers.IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrenc
     local FillClr
     local IcnClr
     if r.ImGui_IsItemActive(ctx) then
-        FillClr = GF.getClr(r.ImGui_Col_ButtonActive())
-        IcnClr = GF.getClr(r.ImGui_Col_TextDisabled())
+        FillClr = gui_helpers.getClr(r.ImGui_Col_ButtonActive())
+        IcnClr = gui_helpers.getClr(r.ImGui_Col_TextDisabled())
     elseif r.ImGui_IsItemHovered(ctx) then
-        FillClr = GF.getClr(r.ImGui_Col_ButtonHovered())
-        IcnClr = GF.getClr(r.ImGui_Col_Text())
+        FillClr = gui_helpers.getClr(r.ImGui_Col_ButtonHovered())
+        IcnClr = gui_helpers.getClr(r.ImGui_Col_Text())
     else
-        FillClr = GF.getClr(r.ImGui_Col_Button())
-        IcnClr = GF.getClr(r.ImGui_Col_Text())
+        FillClr = gui_helpers.getClr(r.ImGui_Col_Button())
+        IcnClr = gui_helpers.getClr(r.ImGui_Col_Text())
     end
     if BGClr then FillClr = BGClr end
 
-    L, T, R, B, W, H = gui_helpers.HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
+    L, T, R, B, W, H = gui_helpers.HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc,
+        V_OutlineSc,
         'GetItemRect', Foreground)
     TxtSzW, TxtSzH = r.ImGui_CalcTextSize(ctx, icon)
     if center == 'center' then
