@@ -3,6 +3,11 @@
 -- @noindex
 
 r = reaper
+local GF = require("src.Functions.General Functions")
+local table_helpers = require("src.helpers.table_helpers")
+local fs_utils = require("src.Functions.Filesystem_utils")
+local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
+local INI_parser = require("src.helpers.INI_parser")
 FxdCtx.MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -28,7 +33,7 @@ function PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
     r.gmem_attach('ParamValues')
     if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'Macros', 0, 0) == -1 then
         r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
-        AddMacroJSFX()
+        GF.AddMacroJSFX()
         AssignMODtoFX = AssignMODtoFX + 1
     end
 
@@ -103,7 +108,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
     if r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and AssigningMacro == nil and (Mods == 0 or Mods == Alt) then
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
                 FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 AssigningMacro = M
@@ -115,7 +120,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             FxdCtx.PM.DragOnModdedPrm = true
         end
     elseif r.ImGui_IsItemClicked(ctx, 1) and FP.ModAMT and Mods == Shift then
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] then
                 FxdCtx.Trk.Prm.Assign = FP.WhichCC
                 BypassingMacro = M
@@ -298,7 +303,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
     if Type ~= 'knob' and FP.ModAMT then
         local offset = 0
-        for M, v in ipairs(FxdCtx.MacroNums) do
+        for M, _ in ipairs(FxdCtx.MacroNums) do
             if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
                 --if Modulation has been assigned to params
                 local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
@@ -328,15 +333,15 @@ function Get_LFO_Shape_From_File(filename)
     if filename then 
 
 
-        local file = io.open(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
+        local file = io.open(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename), 'r')
         if file then 
 
-            local L = get_lines(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
+            local L = fs_utils.get_lines(fs_utils.ConcatPath(CurrentDirectory, 'src', 'LFO Shapes', filename))
 
             local content = file:read("a+")
 
 
-            local Count = get_aftr_Equal_Num(L[1])
+            local Count = INI_parser.get_aftr_Equal_Num(L[1])
             local Node = {}
 
 
@@ -346,13 +351,13 @@ function Get_LFO_Shape_From_File(filename)
                 Node[i] = {}
                 local N = Node[i] 
                 --N.x = get_aftr_Equal_Num(content, i..'.x = ' )
-                N.x = RecallGlobInfo(content , i..'.x = ', 'Num')
+                N.x = layout_editor_helpers.RecallGlobInfo(content , i..'.x = ', 'Num')
 
-                N.y = RecallGlobInfo(content , i..'.y = ', 'Num')
+                N.y = layout_editor_helpers.RecallGlobInfo(content , i..'.y = ', 'Num')
 
-                N.ctrlX = RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
+                N.ctrlX = layout_editor_helpers.RecallGlobInfo(content , i..'.ctrlX = ' , "Num")
 
-                N.ctrlY = RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
+                N.ctrlY = layout_editor_helpers.RecallGlobInfo(content , i..'.ctrlY = ' , 'Num')
 
             end
             if Node[1] then 
@@ -364,7 +369,7 @@ end
 
 function AutomateModPrm (Macro,str, jsfxMode, alias)
     FxdCtx.Trk[TrkID].AutoPrms = FxdCtx.Trk[TrkID].AutoPrms or {}
-    if not FindExactStringInTable(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
+    if not table_helpers.FindExactStringInTable(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str) then 
         table.insert(FxdCtx.Trk[TrkID].AutoPrms, 'Mod'.. Macro..str)
         SetPrmAlias(LT_TrackNum, 1, 16+#FxdCtx.Trk[TrkID].AutoPrms ,  alias)
         r.GetFXEnvelope(LT_Track, 0, 15+#FxdCtx.Trk[TrkID].AutoPrms, true)
@@ -398,7 +403,7 @@ function WhenRightClickOnModulators(Macro)
     if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
         SetModulationToBipolar(Macro)
     end
-    if AssigningMacro==Macro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
+    if AssigningMacro==Macro then gui_helpers.BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
 end
 
 

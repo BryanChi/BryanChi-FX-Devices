@@ -10,12 +10,15 @@
 r                            = reaper
 Pad                          = {}
 
-local customcolors           = require("src.helpers.custom_colors")
-local CustomColorsDefault    = customcolors.CustomColorsDefault
-local images_fonts           = require("src.helpers.images_fonts")
+local GF = require("src.Functions.General Functions")
+local customcolors = require("src.helpers.custom_colors")
+local CustomColorsDefault = customcolors.CustomColorsDefault
+local images_fonts = require("src.helpers.images_fonts")
+local state_helpers = require("src.helpers.state_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
-local FX_Idx                 = PluginScript.FX_Idx
-local FxGUID                 = PluginScript.Guid
+local FX_Idx = PluginScript.FX_Idx
+local FxGUID = PluginScript.Guid
 
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
@@ -29,8 +32,7 @@ if FX_Idx < 0x2000000 then
   Root_FxGuid = FxGUID
 end
 
-ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1,
-  FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 ---------------------------------------------
 ---------Function----------------------------
@@ -61,39 +63,39 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
     r.PreventUIRefresh(1)
     GetDrumMachineIdx(track)
     if FX_Drag and Mods == 0 then
-      if Pad[a] then -- add fx to target
-        local dst_pad = Pad[a].Pad_ID
-        local dst_num = Pad[a].Pad_Num
-        -- dst_guid = Pad[a].Pad_GUID
-        local dstfx_idx = CountPadFX(dst_num)
-        local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-        local dst_id = ConvertPathToNestedPath(parent_id, dst_num)
-        local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
-        r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
-        r.PreventUIRefresh(-1)
-        EndUndoBlock("ADD FX TO PAD")
-      elseif not Pad[a] then -- create target and add fx to it
-        CountPads()
-        AddPad(note_name, a) -- dst
-        AddNoteFilter(notenum, pad_num)
-        local previous_pad_id = ConvertPathToNestedPath(parent_id, pad_num - 1)
-        local next_pad_id = ConvertPathToNestedPath(parent_id, pad_num + 1)
-        Pad[a] = { -- dst
-          Previous_Pad_ID = previous_pad_id,
-          Pad_ID = pad_id,
-          Next_Pad_ID = next_pad_id,
-          Pad_Num = pad_num,
-          TblIdx = a,
-          Note_Num = notenum
-        }
-        local dstfx_idx = CountPadFX(pad_num)
-        local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-        local pad_id = ConvertPathToNestedPath(parent_id, pad_num)
-        local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
-        r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
-        r.PreventUIRefresh(-1)
-        EndUndoBlock("MOVE FX TO PAD")
-      end
+        if Pad[a] then   -- add fx to target
+          local dst_pad = Pad[a].Pad_ID
+          local dst_num = Pad[a].Pad_Num
+          -- dst_guid = Pad[a].Pad_GUID
+          local dstfx_idx = CountPadFX(dst_num)
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local dst_id = ConvertPathToNestedPath(parent_id, dst_num)
+          local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
+          r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
+          r.PreventUIRefresh(-1)
+          GF.EndUndoBlock("ADD FX TO PAD")
+        elseif not Pad[a] then   -- create target and add fx to it
+          CountPads()
+          AddPad(note_name, a) -- dst
+          AddNoteFilter(notenum, pad_num)
+          local previous_pad_id = ConvertPathToNestedPath(parent_id, pad_num - 1)
+          local next_pad_id = ConvertPathToNestedPath(parent_id, pad_num + 1)
+          Pad[a] = { -- dst
+            Previous_Pad_ID = previous_pad_id,
+            Pad_ID = pad_id,
+            Next_Pad_ID = next_pad_id,
+            Pad_Num = pad_num,
+            TblIdx = a,
+            Note_Num = notenum
+          }
+          local dstfx_idx = CountPadFX(pad_num) 
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local pad_id = ConvertPathToNestedPath(parent_id, pad_num)
+          local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
+          r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
+          r.PreventUIRefresh(-1)
+          GF.EndUndoBlock("MOVE FX TO PAD")
+        end
     end
   end
   r.ImGui_PopStyleColor(ctx)
@@ -143,7 +145,7 @@ local function ButtonDrawlist(splitter, name, color, a)
 
   if FxdCtx.FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
-    Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
+    gui_helpers.Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
   end
   if Pad[a] and Pad[a].Filter_ID then
     local rv = r.TrackFX_GetParam(track, Pad[a].Filter_ID, 1)
@@ -191,14 +193,14 @@ local function OpenFXInsidePad(a)
     local FX_Id = ConvertPathToNestedPath(pad_id, f)
     local FX_Id_next = ConvertPathToNestedPath(pad_id, f + 1)
     local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-    Spc = AddSpaceBtwnFXs(FX_Id)
+    Spc = GF.AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
-    createFXWindow(FX_Id)
-    SL(nil, 0)
+    GF.createFXWindow(FX_Id)
+    gui_helpers.SL(nil, 0)
     local w = r.ImGui_GetItemRectSize(ctx)
     if f == tonumber(padfx_idx) then
-      LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
-    end
+    LastSpc = GF.AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
+    end 
     FxdCtx.FX[FxGUID].Width = (FxdCtx.FX[FxGUID].Width or 0) + w + (Spc or 0)
     if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
   end
@@ -451,11 +453,10 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.FX[FxGUID].LAST_MENU = i
         r.SetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU", i)
       end
-      HighlightHvredItem()
-      if FxdCtx.FX[FxGUID].LAST_MENU == i then
+      GF.HighlightHvredItem()
+      if FxdCtx.FX[FxGUID].LAST_MENU == i then 
         r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
-        Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight),
-          (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
+        gui_helpers.Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
     end
     r.ImGui_EndChild(ctx)
