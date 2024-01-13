@@ -1,13 +1,16 @@
 -- @noindex
-
-r = reaper
-local FX_Idx = PluginScript.FX_Idx
-local FxGUID = PluginScript.Guid
+local gui_helpers             = require("src.Components.Gui_Helpers")
+local GF                      = require("src.Functions.General Functions")
+local table_helpers           = require("src.helpers.table_helpers")
+local math_helpers            = require("src.helpers.math_helpers")
+r                             = reaper
+local FX_Idx                  = PluginScript.FX_Idx
+local FxGUID                  = PluginScript.Guid
 
 FxdCtx.FX[FxGUID].CustomTitle = 'Pro-Q 3'
-FxdCtx.FX[FxGUID].TitleWidth= 50
-FxdCtx.FX[FxGUID].BgClr  = 0x000000ff
-FxdCtx.FX[FxGUID].Width = 340
+FxdCtx.FX[FxGUID].TitleWidth  = 50
+FxdCtx.FX[FxGUID].BgClr       = 0x000000ff
+FxdCtx.FX[FxGUID].Width       = 340
 
 
 ---------------------------------------------
@@ -31,7 +34,7 @@ if ProQ3.LT_EQBand[FxdCtx.FXGUID[FX_Idx]] ~= nil then
     Gain = -30 + Gain * 60
     FreqValueDrag[FX_Idx] = Freq_LTBandNorm
     if Gain ~= nil then
-        ProQ3['Gain_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] = round(Gain, 1)
+        ProQ3['Gain_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] = math_helpers.round(Gain, 1)
     end
 end
 
@@ -41,7 +44,7 @@ r.ImGui_SetNextItemWidth(ctx, 60)
 if ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] < 1000 then
     FreqLbl = ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] .. ' Hz'
 elseif ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] > 1000 then
-    FreqLbl = round(ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] / 1000, 2) ..
+    FreqLbl = math_helpers.round(ProQ3['Freq_LTBand - ' .. FxdCtx.FXGUID[FX_Idx]] / 1000, 2) ..
         ' kHz'
 end
 
@@ -118,7 +121,7 @@ else
     ProQ3['scaleLabel' .. ' ID' .. FxdCtx.FXGUID[FX_Idx]] = 12
 end
 
-SL(340 - 60)
+gui_helpers.SL(340 - 60)
 -- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
 local GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 314)
 FxdCtx.FX.Round[FxGUID] = 100
@@ -188,9 +191,9 @@ if not FxdCtx.FX[FxGUID].Collapse then
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x090909ff)
 
     ProQ3.H = 200
-    local L , T = r.ImGui_GetCursorScreenPos(ctx)
+    local L, T = r.ImGui_GetCursorScreenPos(ctx)
 
-    r.ImGui_SetNextWindowPos(ctx, L, T-28)
+    r.ImGui_SetNextWindowPos(ctx, L, T - 28)
 
 
     if r.ImGui_BeginChildFrame(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
@@ -253,7 +256,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             tx = tx + ProQ_Xpos_L
             if lx == nil then lx = tx end
 
-            tx = round(tx, 0)
+            tx = math_helpers.round(tx, 0)
 
 
             if lx ~= tx and i ~= 2 then
@@ -967,7 +970,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
                         local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                             ((BandforQadjusting - 1) * 13) + 7)
 
-                        Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,
+                        Q_Output = math_helpers.SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,
                             1)
 
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
@@ -1224,11 +1227,11 @@ if not FxdCtx.FX[FxGUID].Collapse then
 
     if FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('FXD ReSpectrum') then
         r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
-        if tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
+        if table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) then
             r.TrackFX_Delete(LT_Track,
                 FX_Idx - 1)
         end
-        SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
+        GF.SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
             FxdCtx.FX.Win_Name[math.max(FX_Idx - 1, 0)])
     else -- if no spectrum is before pro-Q 3
         FxdCtx.FX[FxGUID].AddEQSpectrumWait = (FxdCtx.FX[FxGUID].AddEQSpectrumWait or 0) + 1
@@ -1242,7 +1245,7 @@ if not FxdCtx.FX[FxGUID].Collapse then
             local AnyPopupOpen
             if r.ImGui_IsPopupOpen(ctx, 'Delete FX Layer ', r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel()) then AnyPopupOpen = true end
 
-            if not tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
+            if not table_helpers.tablefind(FxdCtx.Trk[TrkID].PostFX, FxGUID) and not table_helpers.tablefind(FxdCtx.Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
                 r.gmem_attach('gmemReEQ_Spectrum')
                 r.gmem_write(1, FxdCtx.PM.DIY_TrkID[TrkID])
                 FxdCtx.FX[FxGUID].ProQ_ID = FxdCtx.FX[FxGUID].ProQ_ID or

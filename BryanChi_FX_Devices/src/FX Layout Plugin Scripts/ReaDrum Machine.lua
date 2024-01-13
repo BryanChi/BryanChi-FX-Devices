@@ -12,10 +12,12 @@
 r = reaper
 Pad          = {}
 
+local GF = require("src.Functions.General Functions")
 local customcolors = require("src.helpers.custom_colors")
 local CustomColorsDefault = customcolors.CustomColorsDefault
 local images_fonts = require("src.helpers.images_fonts")
-
+local state_helpers = require("src.helpers.state_helpers")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
@@ -29,7 +31,7 @@ FxdCtx.FX[FxGUID].Width = 350   -- use this to set the device's width
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
-ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 ---------------------------------------------
 ---------Function----------------------------
@@ -70,7 +72,7 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
-          EndUndoBlock("ADD FX TO PAD")
+          GF.EndUndoBlock("ADD FX TO PAD")
         elseif not Pad[a] then   -- create target and add fx to it
           CountPads()
           AddPad(note_name, a) -- dst
@@ -91,7 +93,7 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
-          EndUndoBlock("MOVE FX TO PAD")
+          GF.EndUndoBlock("MOVE FX TO PAD")
         end
     end
   end
@@ -134,7 +136,7 @@ local function ButtonDrawlist(splitter, name, color, a)
 
   if FxdCtx.FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
-    Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
+    gui_helpers.Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
   end
 end
 
@@ -174,13 +176,13 @@ local function OpenFXInsidePad(a)
     local FX_Id = ConvertPathToNestedPath(pad_id, f)
     local FX_Id_next = ConvertPathToNestedPath(pad_id, f + 1)
     local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-    Spc = AddSpaceBtwnFXs(FX_Id)
+    Spc = GF.AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
-    createFXWindow(FX_Id)
-    SL(nil, 0)
+    GF.createFXWindow(FX_Id)
+    gui_helpers.SL(nil, 0)
     local w = r.ImGui_GetItemRectSize(ctx)
     if f == tonumber(padfx_idx) then
-    LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
+    LastSpc = GF.AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id)
     end 
     FxdCtx.FX[FxGUID].Width = (FxdCtx.FX[FxGUID].Width or 0) + w + (Spc or 0)
     if r.ImGui_IsItemHovered(ctx) then DisableScroll = false end
@@ -223,7 +225,7 @@ local function DrawPads(loopmin, loopmax)
     if ret then 
       ClickPadActions(a)
     elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
-      FxdCtx.FX[FxGUID].OPEN_PAD = toggle2(FxdCtx.FX[FxGUID].OPEN_PAD, a)
+      FxdCtx.FX[FxGUID].OPEN_PAD = state_helpers.toggle2(FxdCtx.FX[FxGUID].OPEN_PAD, a)
     -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
     --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
     --   r.ShowConsoleMsg(table.unpack(value_raw))
@@ -370,10 +372,10 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.FX[FxGUID].LAST_MENU = i
         r.SetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU", i)
       end
-      HighlightHvredItem()
+      GF.HighlightHvredItem()
       if FxdCtx.FX[FxGUID].LAST_MENU == i then 
         r.ImGui_DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
-        Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
+        gui_helpers.Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
     end
     r.ImGui_EndChild(ctx)

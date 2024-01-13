@@ -1,4 +1,6 @@
 -- @noindex
+local GF = require("src.Functions.General Functions")
+local gui_helpers = require("src.Components.Gui_Helpers")
 
 
 
@@ -13,13 +15,13 @@ local FxGUID = PluginScript.Guid
 FxdCtx.FX[FxGUID].TitleWidth = 50 -- Use this to set title bar width 
 FxdCtx.FX[FxGUID].Width = 200   -- use this to set the device's width
 
-SL()
+gui_helpers.SL()
 r.ImGui_Text(ctx, 'title area')
-SL()
+gui_helpers.SL()
 
 
 
-ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, FxdCtx.Wet.Active, FxdCtx.Wet.Val[FX_Idx] = GF.Add_WetDryKnob(ctx, 'a', '', FxdCtx.Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 
 
 
@@ -43,9 +45,6 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
         FxdCtx.Prm.InstAdded[FxdCtx.FXGUID[FX_Idx]] = true
         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxdCtx.FXGUID[FX_Idx] .. 'Params Added','true') --- this line is needed so the parameters will only be added once.
     end
-    function F_Tp(FX_P)
-        return FxdCtx.FX.Prm.ToTrkPrm[FxGUID .. FX_P]
-    end
 
 
 
@@ -57,7 +56,7 @@ if not FxdCtx.FX[FxdCtx.FXGUID[FX_Idx]].Collapse then
     --[[AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
                 item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)]]
 
-    AddSpacing(5)
+    GF.AddSpacing(5)
 
     AddSlider(ctx, '##Pan', 'Pan', FxdCtx.FX[FxGUID][2--[[Prm table index]]].V or 0, 0, 1, 2, FX_Idx, 1, SliderStyle, 120 --[[Sldr width]],
         item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)

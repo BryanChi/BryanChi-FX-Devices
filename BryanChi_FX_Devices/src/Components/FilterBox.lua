@@ -1,3 +1,5 @@
+local gui_helpers = require("src.Components.Gui_Helpers")
+local math_helpers = require("src.helpers.math_helpers")
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
 ---@param s string
 local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
@@ -23,7 +25,9 @@ local function Filter_actions(filter_text)
     return t
 end
 
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+local FilterBox = {}
+function FilterBox.displayFilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost,
+                                    SpcIDinPost)
     ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
@@ -73,14 +77,15 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             table.insert(FxdCtx.Trk[TrkID].PostFX, SpcIDinPost + Offset + 1, FxID)
             -- InsertToPost_Src = FX_Idx + offset+2
             for i = 1, #FxdCtx.Trk[TrkID].PostFX + 1, 1 do
-                reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '', true)
+                reaper.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, FxdCtx.Trk[TrkID].PostFX[i] or '',
+                    true)
             end
         end
 
         ADDFX_FILTER = nil
     end
     if ADDFX_FILTER ~= '' and ADDFX_FILTER then
-        SL()
+        gui_helpers.SL()
         reaper.ImGui_SetNextWindowSize(ctx, MAX_FX_SIZE, filter_h + 20)
         local x, y = reaper.ImGui_GetCursorScreenPos(ctx)
 
@@ -90,7 +95,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
 
         reaper.ImGui_SetNextWindowPos(ctx, x, y - filter_h / 2)
         if reaper.ImGui_BeginPopup(ctx, "##popupp", r.ImGui_WindowFlags_NoFocusOnAppearing() --[[ MAX_FX_SIZE, filter_h ]]) then
-            ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
+            ADDFX_Sel_Entry = math_helpers.SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
             for i = 1, #filtered_fx do
                 local ShownName
                 if filtered_fx[i]:find('VST:') then
@@ -100,44 +105,44 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                         CustomColorsDefault
                         .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
                     ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
-                    MyText('VST', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('VST', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('VST3:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6) .. '##vst3'
                     local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('VST3', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('JS:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    MyText('JS', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('JS', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('AU:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(4)
                     local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    MyText('AU', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('AU', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('CLAP:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(6)
                     local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAP', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('CLAP', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 elseif filtered_fx[i]:find('LV2:') then
                     local fx = filtered_fx[i]
                     ShownName = fx:sub(5)
                     local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    MyText('LV2', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.MyText('LV2', nil, clr)
+                    gui_helpers.SL()
+                    gui_helpers.HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
 
                 if reaper.ImGui_Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
@@ -148,13 +153,13 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     end
                 end
                 if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
+                    gui_helpers.HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, W, 1, 1, 'GetItemRect')
                 end
                 -- DRAG AND DROP
                 if reaper.ImGui_IsItemActive(ctx) and r.ImGui_IsMouseDragging(ctx, 0) then
                     -- HIGHLIGHT DRAGGED FX
                     DRAG_FX = i
-                    DndAddFX_SRC(filtered_fx[i])
+                    gui_helpers.DndAddFX_SRC(filtered_fx[i])
                     --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
                 end
             end
@@ -189,3 +194,5 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     end
     return close
 end
+
+return FilterBox
