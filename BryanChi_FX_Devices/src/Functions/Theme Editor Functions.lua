@@ -1,12 +1,4 @@
 r = reaper
-local GF = require("src.Functions.General Functions")
-local fs_utils = require("src.Functions.Filesystem_utils")
-local customcolors = require("src.helpers.custom_colors")
-local CustomColors = customcolors.CustomColors
-local CustomColorsDefault = customcolors.CustomColorsDefault
-local gui_helpers = require("src.Components.Gui_Helpers")
-local layout_editor_helpers = require("src.helpers.layout_editor_helpers")
-local table_helpers = require("src.helpers.table_helpers")
 demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
@@ -22,9 +14,9 @@ function demo.HelpMarker(desc)
 end
 
 function demo.PopStyle()
-    if FxdCtx.app.style_editor and FxdCtx.app.style_editor.push_count > 0 then
-        FxdCtx.app.style_editor.push_count = FxdCtx.app.style_editor.push_count - 1
-        r.ImGui_PopStyleColor(ctx, #FxdCtx.Cache['Col'])
+    if app.style_editor and app.style_editor.push_count > 0 then
+        app.style_editor.push_count = app.style_editor.push_count - 1
+        r.ImGui_PopStyleColor(ctx, #cache['Col'])
         --r.ImGui_PopStyleVar(ctx, #cache['StyleVar'])
     elseif NeedtoPopStyle then
         for i in demo.EachEnum('Col') do
@@ -36,8 +28,8 @@ function demo.PopStyle()
 end
 
 function demo.PushStyle()
-    if FxdCtx.app.style_editor then
-        FxdCtx.app.style_editor.push_count = FxdCtx.app.style_editor.push_count + 1
+    if app.style_editor then
+        app.style_editor.push_count = app.style_editor.push_count + 1
         --[[ for i, value in pairs(app.style_editor.style.vars) do
                     if type(value) == 'table' then
                         r.ImGui_PushStyleVar(ctx, i, table.unpack(value))
@@ -45,11 +37,11 @@ function demo.PushStyle()
                         r.ImGui_PushStyleVar(ctx, i, value)
                     end
             end ]]
-        for i, value in pairs(FxdCtx.app.style_editor.style.colors) do
+        for i, value in pairs(app.style_editor.style.colors) do
             r.ImGui_PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = fs_utils.ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
+        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
             'src', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 
@@ -62,7 +54,7 @@ function demo.PushStyle()
 
 
             for i, v in pairs(CustomColors) do
-                _G[v] = layout_editor_helpers.RecallGlobInfo(content, v .. ' = ', 'Num')
+                _G[v] = RecallGlobInfo(content, v .. ' = ', 'Num')
             end
         end
         DefaultThemeActive = true
@@ -83,10 +75,10 @@ end
 ---@param enum string
 ---@return function
 function demo.EachEnum(enum)
-    local enum_cache = FxdCtx.Cache[enum]
+    local enum_cache = cache[enum]
     if not enum_cache then
         enum_cache = {}
-        FxdCtx.Cache[enum] = enum_cache
+        cache[enum] = enum_cache
 
         for func_name, func in pairs(reaper) do
             local enum_name = func_name:match(('^ImGui_%s_(.+)$'):format(enum))
@@ -104,6 +96,42 @@ function demo.EachEnum(enum)
         return table.unpack(enum_cache[i])
     end
 end
+
+---@param mode openmode
+---@param filename string
+---@param folder? string
+---@return file*?
+---@return string
+function CallFile(mode, filename, folder)
+    local dir_path
+    if folder then
+        dir_path = ConcatPath(CurrentDirectory, 'src', folder)
+    else
+        dir_path = ConcatPath(CurrentDirectory, 'src')
+    end
+    local file_path = ConcatPath(dir_path, filename)
+
+    -- Create directory for file if it doesn't exist
+    r.RecursiveCreateDirectory(dir_path, 0)
+    local file = io.open(file_path, mode)
+    return file, file_path
+end
+
+function PushStyle_AtScriptStart()
+    local file, file_path = CallFile('r', 'ThemeColors.ini')
+    if file then
+        local Lines = get_lines(file_path)
+        for i in demo.EachEnum('Col') do
+            r.ImGui_PushStyleColor(ctx, 1, 0x372837ff)
+        end
+    else
+        ----- Default Color theme ---------------
+    end
+end
+
+--PushStyle_AtScriptStart()
+
+
 
 function demo.GetStyleData()
     local data = { vars = {}, colors = {} }
@@ -156,8 +184,8 @@ function ShowStyleEditor()
 
     if open then
         styleEditorIsOpen = true
-        if not FxdCtx.app.style_editor then
-            FxdCtx.app.style_editor = {
+        if not app.style_editor then
+            app.style_editor = {
                 style                = demo.GetStyleData(),
                 ref                  = demo.GetStyleData(),
                 output_dest          = 0,
@@ -178,11 +206,11 @@ function ShowStyleEditor()
         r.ImGui_PushItemWidth(ctx, r.ImGui_GetFontSize(ctx) * 8)
 
         local Alpha, DisabledAlpha = r.ImGui_StyleVar_Alpha(), r.ImGui_StyleVar_DisabledAlpha()
-        rv, FxdCtx.app.style_editor.style.vars[Alpha] = r.ImGui_DragDouble(ctx, 'Global Alpha',
-            FxdCtx.app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
+        rv, app.style_editor.style.vars[Alpha] = r.ImGui_DragDouble(ctx, 'Global Alpha',
+            app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
         r.ImGui_SameLine(ctx)
-        rv, FxdCtx.app.style_editor.style.vars[DisabledAlpha] = r.ImGui_DragDouble(ctx, 'Disabled Alpha',
-            FxdCtx.app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); r.ImGui_SameLine(ctx); demo
+        rv, app.style_editor.style.vars[DisabledAlpha] = r.ImGui_DragDouble(ctx, 'Disabled Alpha',
+            app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); r.ImGui_SameLine(ctx); demo
             .HelpMarker('Additional alpha multiplier for disabled items (multiply over current value of Alpha).')
         r.ImGui_PopItemWidth(ctx)
 
@@ -195,10 +223,10 @@ function ShowStyleEditor()
         local borders = { 'WindowBorder', 'FrameBorder', 'PopupBorder' }
         for i, name in ipairs(borders) do
             local var = r[('ImGui_StyleVar_%sSize'):format(name)]()
-            local enable = FxdCtx.app.style_editor.style.vars[var] > 0
+            local enable = app.style_editor.style.vars[var] > 0
             if i > 1 then r.ImGui_SameLine(ctx) end
             rv, enable = r.ImGui_Checkbox(ctx, name, enable)
-            if rv then FxdCtx.app.style_editor.style.vars[var] = enable and 1 or 0 end
+            if rv then app.style_editor.style.vars[var] = enable and 1 or 0 end
         end
 
         -- Save/Revert button
@@ -235,13 +263,13 @@ function ShowStyleEditor()
         local export = function(enumName, funcSuffix, curTable, refTable, isEqual, formatValue)
             local lines, name_maxlen = {}, 0
             for i, name in demo.EachEnum(enumName) do
-                if not FxdCtx.app.style_editor.output_only_modified or not isEqual(curTable[i], refTable[i]) then
+                if not app.style_editor.output_only_modified or not isEqual(curTable[i], refTable[i]) then
                     table.insert(lines, { name, curTable[i] })
                     name_maxlen = math.max(name_maxlen, name:len())
                 end
             end
 
-            if FxdCtx.app.style_editor.output_dest == 0 then
+            if app.style_editor.output_dest == 0 then
                 r.ImGui_LogToClipboard(ctx)
             else
                 r.ImGui_LogToTTY(ctx)
@@ -268,7 +296,7 @@ function ShowStyleEditor()
             r.ImGui_SameLine(ctx) ]]
         if r.ImGui_Button(ctx, 'Save Color Settings') then
             -- for each enum
-            local file = fs_utils.CallFile('w', 'ThemeColors.ini')
+            local file = CallFile('w', 'ThemeColors.ini')
 
             if file then
                 --[[ for i, name in demo.EachEnum('Col') do
@@ -277,7 +305,7 @@ function ShowStyleEditor()
                         end
                     end ]]
 
-                for i, value in pairs(FxdCtx.app.style_editor.style.colors) do
+                for i, value in pairs(app.style_editor.style.colors) do
                     --[[ if i == 0 then
                             file:write(55, ' = ', r.ImGui_GetStyleColor(ctx,r.ImGui_Col_ModalWindowDimBg() ),'\n')
                         elseif i > 0 then
@@ -366,8 +394,8 @@ function ShowStyleEditor()
             end ]]
 
         --[[ if r.ImGui_BeginTabItem(ctx, 'Colors') then ]]
-        if not FxdCtx.app.style_editor.colors then
-            FxdCtx.app.style_editor.colors = {
+        if not app.style_editor.colors then
+            app.style_editor.colors = {
                 filter = { inst = nil, text = '' },
                 alpha_flags = r.ImGui_ColorEditFlags_AlphaPreviewHalf(),
             }
@@ -378,24 +406,24 @@ function ShowStyleEditor()
 
 
         -- the filter object is destroyed once unused for one or more frames
-        if not r.ImGui_ValidatePtr(FxdCtx.app.style_editor.colors.filter.inst, 'ImGui_TextFilter*') then
-            FxdCtx.app.style_editor.colors.filter.inst = r.ImGui_CreateTextFilter(FxdCtx.app.style_editor.colors.filter.text)
+        if not r.ImGui_ValidatePtr(app.style_editor.colors.filter.inst, 'ImGui_TextFilter*') then
+            app.style_editor.colors.filter.inst = r.ImGui_CreateTextFilter(app.style_editor.colors.filter.text)
         end
 
-        if r.ImGui_TextFilter_Draw(FxdCtx.app.style_editor.colors.filter.inst, ctx, 'Filter colors', r.ImGui_GetFontSize(ctx) * 16) then
-            FxdCtx.app.style_editor.colors.filter.text = r.ImGui_TextFilter_Get(FxdCtx.app.style_editor.colors.filter.inst)
+        if r.ImGui_TextFilter_Draw(app.style_editor.colors.filter.inst, ctx, 'Filter colors', r.ImGui_GetFontSize(ctx) * 16) then
+            app.style_editor.colors.filter.text = r.ImGui_TextFilter_Get(app.style_editor.colors.filter.inst)
         end
 
-        if r.ImGui_RadioButton(ctx, 'Opaque', FxdCtx.app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_None()) then
-            FxdCtx.app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_None()
+        if r.ImGui_RadioButton(ctx, 'Opaque', app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_None()) then
+            app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_None()
         end
         r.ImGui_SameLine(ctx)
-        if r.ImGui_RadioButton(ctx, 'Alpha', FxdCtx.app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_AlphaPreview()) then
-            FxdCtx.app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_AlphaPreview()
+        if r.ImGui_RadioButton(ctx, 'Alpha', app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_AlphaPreview()) then
+            app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_AlphaPreview()
         end
         r.ImGui_SameLine(ctx)
-        if r.ImGui_RadioButton(ctx, 'Both', FxdCtx.app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_AlphaPreviewHalf()) then
-            FxdCtx.app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_AlphaPreviewHalf()
+        if r.ImGui_RadioButton(ctx, 'Both', app.style_editor.colors.alpha_flags == r.ImGui_ColorEditFlags_AlphaPreviewHalf()) then
+            app.style_editor.colors.alpha_flags = r.ImGui_ColorEditFlags_AlphaPreviewHalf()
         end
         r.ImGui_SameLine(ctx)
         demo.HelpMarker(
@@ -414,18 +442,18 @@ function ShowStyleEditor()
             -- @todo  add custom colors here
             function addClr(str)
                 rv, _G[str] = r.ImGui_ColorEdit4(ctx, '##' .. str, _G[str],
-                    r.ImGui_ColorEditFlags_AlphaBar() | FxdCtx.app.style_editor.colors.alpha_flags)
+                    r.ImGui_ColorEditFlags_AlphaBar() | app.style_editor.colors.alpha_flags)
                 r.ImGui_SameLine(ctx, 0.0, inner_spacing)
                 r.ImGui_Text(ctx, str)
             end
 
             r.ImGui_Text(ctx, 'Specific Colors')
-            GF.AddSpacing(2)
+            AddSpacing(2)
 
             for i, v in pairs(CustomColors) do
-                if r.ImGui_TextFilter_PassFilter(FxdCtx.app.style_editor.colors.filter.inst, v) then
+                if r.ImGui_TextFilter_PassFilter(app.style_editor.colors.filter.inst, v) then
                     rv, _G[v] = r.ImGui_ColorEdit4(ctx, '##' .. v, _G[v] or CustomColorsDefault[v],
-                        r.ImGui_ColorEditFlags_AlphaBar() | FxdCtx.app.style_editor.colors.alpha_flags)
+                        r.ImGui_ColorEditFlags_AlphaBar() | app.style_editor.colors.alpha_flags)
                     r.ImGui_SameLine(ctx, 0.0, inner_spacing)
                     local name = string.gsub(v, '_', ' ')
                     r.ImGui_Text(ctx, name)
@@ -506,20 +534,20 @@ function Show_KBShortcutEditor()
             r.ImGui_SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
             r.ImGui_OpenPopup(ctx, '##Type Key Popup')
         end
-        gui_helpers.SL()
+        SL()
 
         if r.ImGui_Button(ctx, 'Save') then
-            local file = fs_utils.CallFile('w', 'Keyboard Shortcuts.ini')
-            for i, v in pairs(FxdCtx.KB_Shortcut) do
-                file:write(v, ' = ', FxdCtx.Command_ID[i], '\n')
+            local file = CallFile('w', 'Keyboard Shortcuts.ini')
+            for i, v in pairs(KB_Shortcut) do
+                file:write(v, ' = ', Command_ID[i], '\n')
             end
         end
 
 
-        gui_helpers.SL()
-        gui_helpers.MyText('(?)', nil, 0xffffff66)
+        SL()
+        MyText('(?)', nil, 0xffffff66)
         if r.ImGui_IsItemHovered(ctx) then
-            gui_helpers.HintToolTip(
+            HintToolTip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
         end
 
@@ -558,16 +586,16 @@ function Show_KBShortcutEditor()
                     end
 
                     if ShortCutKeyToSwitch then
-                        if not table_helpers.tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
-                            FxdCtx.KB_Shortcut[ShortCutKeyIndex] = GetFinalTxt(i)
+                        if not tablefind(KB_Shortcut, GetFinalTxt(i)) then
+                            KB_Shortcut[ShortCutKeyIndex] = GetFinalTxt(i)
                         end
 
                         AlreadyAddedKey = GetFinalTxt(i)
 
                         ShortCutKeyToSwitch = nil
                         ShortCutKeyIndex = nil
-                    elseif not table_helpers.tablefind(FxdCtx.KB_Shortcut, GetFinalTxt(i)) then
-                        table.insert(FxdCtx.KB_Shortcut, GetFinalTxt(i))
+                    elseif not tablefind(KB_Shortcut, GetFinalTxt(i)) then
+                        table.insert(KB_Shortcut, GetFinalTxt(i))
                     end
 
 
@@ -584,7 +612,7 @@ function Show_KBShortcutEditor()
         end
 
 
-        for i, v in ipairs(FxdCtx.KB_Shortcut) do
+        for i, v in ipairs(KB_Shortcut) do
             if r.ImGui_Button(ctx, v) then
                 ShortCutKeyToSwitch = v
                 ShortCutKeyIndex = i
@@ -592,34 +620,34 @@ function Show_KBShortcutEditor()
             end
 
             if r.ImGui_IsItemClicked(ctx) and Mods == Alt then
-                table.remove(FxdCtx.KB_Shortcut, i)
+                table.remove(KB_Shortcut, i)
             end
 
 
             if AlreadyAddedKey == v then
                 r.ImGui_SetScrollHereY(ctx)
-                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
+                _, stop = BlinkItem(0.3, 3.5)
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
-            gui_helpers.SL()
+            SL()
             r.ImGui_Text(ctx, ' : ')
-            gui_helpers.SL()
+            SL()
             local CmdTxt, commandID
 
 
-            if FxdCtx.Command_ID[i] then
-                commandID = r.NamedCommandLookup(FxdCtx.Command_ID[i])
+            if Command_ID[i] then
+                commandID = r.NamedCommandLookup(Command_ID[i])
                 CmdTxt = r.CF_GetCommandText(0, commandID)
             end
             if CmtTxt == '' then CmdTxt = nil end
 
             if r.ImGui_Button(ctx, (CmdTxt or ' Click to Paste Command ID') .. '##' .. i) then
-                FxdCtx.Command_ID[i] = r.ImGui_GetClipboardText(ctx)
+                Command_ID[i] = r.ImGui_GetClipboardText(ctx)
             end
 
             if AlreadyAddedKey == v then
-                _, stop = gui_helpers.BlinkItem(0.3, 3.5)
+                _, stop = BlinkItem(0.3, 3.5)
             end
 
 

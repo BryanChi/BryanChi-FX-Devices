@@ -33,6 +33,41 @@ MIN_Q = 0.15;
 freq_log_max = math.log(max_freq / min_freq);
 NodeFreq = {}
 
+
+
+
+ProQ3 = { LT_EQBand = {}, GainDrag = {}, Band_UseState = {}, DspRange = {}, SpectrumExist = {}, }
+ProQ3.Width = 340
+ProQ3.SpecWait = 0
+FreqValueDrag = {}
+fftsize = 4096
+xscale = 300 / (fftsize - 4)
+wsc = ProQ3.Width / math.log(900) --- 340 = width of pro q window
+SpectrumX = 0
+SpectrumY = 0
+OUTPUT = 0
+
+NodeDrag = {}
+XposNode = {}
+ONE_OVER_SAMPLE_RATE = 1 / (30000 * 2)
+Euler = 2.71828182845904523
+Hz = 6
+A = 2
+Q = 0.5
+
+MAX_FREQ = 30000
+max_freq = 30000
+min_freq = 10;
+MIN_FREQ = 10;
+FREQ_LOG_MAX = math.log(MAX_FREQ / MIN_FREQ);
+
+MAX_Q = 40;
+MIN_Q = 0.15;
+freq_log_max = math.log(max_freq / min_freq);
+NodeFreq = {}
+
+
+
 -- for pro q 3
 ---@param Band number
 ---@return integer Clr_HalfAlpha
@@ -567,14 +602,14 @@ function magnitude(freq)
     ddr    = a;
 
     -- abs(m0_ + (Numerator / Denominator)
-    X      = m0 + ddr;
+    x      = m0 + ddr;
     y      = ddi;
-    s      = math.max(math.abs(X), math.abs(y));
-    X      = X / s;
+    s      = math.max(math.abs(x), math.abs(y));
+    x      = x / s;
     y      = y / s;
 
     -- Return magnitude
-    return s * math.sqrt(X * X + y * y);
+    return s * math.sqrt(x * x + y * y);
 end
 
 function zdf_magnitude(freq)

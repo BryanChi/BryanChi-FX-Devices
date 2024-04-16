@@ -95,49 +95,7 @@ AllAvailableKeys = {
     PadSubtract = r.ImGui_Key_KeypadSubtract(),
 }
 
-------- ==  Colors ----------
+FX_To_Delete_At_Close = {
 
-Clr = {
-    SliderGrab = 0x309D89ff,
-    Dvdr = {
-        Active = 0x777777aa,
-        In_Layer = 0x131313ff,
-        outline = 0x444444ff
-    }
-
+    'JS: FXD ReSpectrum', 'JS: FXD Gain Reduction Scope', 'JS: FXD Split to 4 channels'
 }
-
-CLR_BtwnFXs_Btn_Hover = 0x77777744
-CLR_BtwnFXs_Btn_Active = 0x777777aa
-FX_Window_Clr_When_Dragging = 0x44444433
-FX_Window_Clr_Default = 0x262626ff
-Btns_Hover_DefaultColor = 0x2d3b3aff
-
-Btns_DefaultColor = 0x333333ff
-Btns_ClickedColor = 0x358f8fff
-BGColor_FXLayeringWindow = 0x262626ff
-
-Macro1Color = 0xff2121ff
-Macro2Color = 0xff5521ff
-Macro3Color = 0xff8921ff
-Macro4Color = 0xffd321ff
-Macro5Color = 0xf4ff21ff
-Macro6Color = 0xb9ff21ff
-Macro7Color = 0x6fff21ff
-Macro8Color = 0x21ff6bff
-
-
-FX_Add_Del_WaitTime = 2
-
-Default_FX_Width = 200
-
-GapBtwnPrmColumns = 10
-
---Sequencer -----
-StepSEQ_W = 20
-StepSEQ_H = 100
-SEQ_Default_Num_of_Steps = 8
-SEQ_Default_Denom = 1
-
-Knob_DefaultFontSize = 10
-LBL_DefaultFontSize = 10
