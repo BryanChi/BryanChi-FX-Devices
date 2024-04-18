@@ -4,10 +4,10 @@ r = reaper
 local function GetPayload()
     local retval, dndtype, payload = r.ImGui_GetDragDropPayload(ctx)
     if retval then
-      return dndtype, payload
+        return dndtype, payload
     end
-  end
-  
+end
+
 function CheckDnDType()
     local dnd_type = GetPayload()
     DND_ADD_FX = dnd_type == "DND ADD FX"
@@ -19,19 +19,19 @@ end
 local min, max = math.min, math.max
 function IncreaseDecreaseBrightness(color, amt, no_alpha)
     function AdjustBrightness(channel, delta)
-      return min(255, max(0, channel + delta))
+        return min(255, max(0, channel + delta))
     end
-  
+
     local alpha = color & 0xFF
     local blue = (color >> 8) & 0xFF
     local green = (color >> 16) & 0xFF
     local red = (color >> 24) & 0xFF
-  
+
     red = AdjustBrightness(red, amt)
     green = AdjustBrightness(green, amt)
     blue = AdjustBrightness(blue, amt)
     alpha = no_alpha and alpha or AdjustBrightness(alpha, amt)
-  
+
     return (alpha) | (blue << 8) | (green << 16) | (red << 24)
 end
 
@@ -40,9 +40,10 @@ function CalculateColor(color)
     local blue = (color >> 8) & 0xFF
     local green = (color >> 16) & 0xFF
     local red = (color >> 24) & 0xFF
-  
+
     local luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255
-    return luminance > 0.5 and (PLink_Edge_LightBG or CustomColorsDefault.PLink_Edge_LightBG) or (PLink_Edge_DarkBG or CustomColorsDefault.PLink_Edge_DarkBG)
+    return luminance > 0.5 and (PLink_Edge_LightBG or CustomColorsDefault.PLink_Edge_LightBG) or
+        (PLink_Edge_DarkBG or CustomColorsDefault.PLink_Edge_DarkBG)
 end
 
 function ButtonDraw(splitter, color, center, radius_outer) -- for drawing to clarify which destination (target) DND goes to
@@ -54,22 +55,24 @@ function ButtonDraw(splitter, color, center, radius_outer) -- for drawing to cla
     local xe, ye = r.ImGui_GetItemRectMax(ctx)
 
     local edge_color = CalculateColor(color)
-  
-    if FX_PLINK and r.ImGui_IsMouseHoveringRect(ctx,xs,ys,xe,ye) then
+
+    if FX_PLINK and r.ImGui_IsMouseHoveringRect(ctx, xs, ys, xe, ye) then
         if KNOB then
-            r.ImGui_DrawList_AddCircle(f_draw_list, center[1], center[2], radius_outer, r.ImGui_GetColorEx(ctx, edge_color), 16, 5)
+            r.ImGui_DrawList_AddCircle(f_draw_list, center[1], center[2], radius_outer,
+                r.ImGui_GetColorEx(ctx, edge_color), 16, 5)
         else
             local x_offset = 2
-            r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, r.ImGui_GetColorEx(ctx, edge_color), 2, nil, 5)
+            r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset,
+                r.ImGui_GetColorEx(ctx, edge_color), 2, nil, 5)
         end
     end
 end
 
 local function WhichClick() -- to alternate left and right click flags for InvisibleButton
     if r.ImGui_IsMouseClicked(ctx, 0) then
-        ClickButton =  r.ImGui_ButtonFlags_MouseButtonLeft()
+        ClickButton = r.ImGui_ButtonFlags_MouseButtonLeft()
     elseif r.ImGui_IsMouseClicked(ctx, 1) then
-        ClickButton =  r.ImGui_ButtonFlags_MouseButtonRight()
+        ClickButton = r.ImGui_ButtonFlags_MouseButtonRight()
     end
     return ClickButton
 end
@@ -81,21 +84,25 @@ local function DnD_PLink_SOURCE(FX_Idx, P_Num)
         local draw_list = r.ImGui_GetForegroundDrawList(ctx)
         local mouse_pos = { r.ImGui_GetMousePos(ctx) }
         local click_pos = { r.ImGui_GetMouseClickedPos(ctx, 1) }
-        r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2], PLink or CustomColorsDefault.PLink, 4.0)  -- Draw a line between the button and the mouse cursor                                             
-        lead_fxid = FX_Idx -- storing the original fx id
-        fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
-        lead_paramnumber = P_Num      
-        local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container") 
-        local rev = ret                       
+        r.ImGui_DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2],
+            PLink or CustomColorsDefault.PLink, 4.0) -- Draw a line between the button and the mouse cursor
+        lead_fxid =
+            FX_Idx                                   -- storing the original fx id
+        fxidx =
+            FX_Idx                                   -- to prevent an error in layout editor function by not changing FX_Idx itself
+        lead_paramnumber = P_Num
+        local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container")
+        local rev = ret
         while rev do -- to get root parent container id
-        root_container = fxidx
-        rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
-        end     
-        if ret then       -- new fx and parameter                   
-            local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
+            root_container = fxidx
+            rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+        end
+        if ret then -- new fx and parameter
+            local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                "container_map.add." .. lead_fxid .. "." .. lead_paramnumber)
             lead_fxid = root_container
             lead_paramnumber = buf
-        end 
+        end
         local data = lead_fxid .. "," .. lead_paramnumber
         r.ImGui_SetDragDropPayload(ctx, 'FX PLINK', data)
         local _, param_name = r.TrackFX_GetParamName(LT_Track, lead_fxid, lead_paramnumber)
@@ -115,66 +122,107 @@ local function DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
         local rv, payload = r.ImGui_AcceptDragDropPayload(ctx, 'FX PLINK')
         local lead_fxid, lead_paramnumber = payload:match("(.+),(.+)")
         if rv then
-            local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param.".. P_Num..".plink.midi_bus")
-            if bf == "15" then -- reset FX Devices' modulation bus/chan                                  
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 1) 
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -1) 
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 0)
+            local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus")
+            if bf == "15" then                                                                            -- reset FX Devices' modulation bus/chan
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 0) -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 1)
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -1)
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0)
                 if FX[FxGUID][Fx_P].ModAMT then
                     for Mc = 1, 8, 1 do
                         if FX[FxGUID][Fx_P].ModAMT[Mc] then
                             FX[FxGUID][Fx_P].ModAMT[Mc] = 0
                         end
                     end
-                end                                                    
-            end
-            if lead_fxid ~= nil then   
-                follow_fxid = FX_Idx -- storing the original fx id
-                fxidx = FX_Idx -- to prevent an error in layout editor function by not changing FX_Idx itself
-                follow_paramnumber = P_Num      
-                ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
-                local rev = ret                            
-                while rev do -- to get root parent container id
-                root_container = fxidx
-                rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
                 end
-                if ret then  -- fx inside container                        
-                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)                  
+            end
+            if lead_fxid ~= nil then
+                follow_fxid = FX_Idx -- storing the original fx id
+                fxidx = FX_Idx       -- to prevent an error in layout editor function by not changing FX_Idx itself
+                follow_paramnumber = P_Num
+                ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
+                local rev = ret
+                while rev do -- to get root parent container id
+                    root_container = fxidx
+                    rev, fxidx = r.TrackFX_GetNamedConfigParm(LT_Track, fxidx, "parent_container")
+                end
+                if ret then -- fx inside container
+                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                        "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
                     if retval then -- toggle off and remove map
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 0)
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", -1) 
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", -1) 
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.active", 0)
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.effect", -1)
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.param", -1)
                         local rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "parent_container")
                         while rv do -- removing map
-                        _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
-                        r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "param." .. buf .. ".container_map.delete")
-                        rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
+                            _, buf = r.TrackFX_GetNamedConfigParm(LT_Track, container_id,
+                                "container_map.get." .. follow_fxid .. "." .. follow_paramnumber)
+                            r.TrackFX_GetNamedConfigParm(LT_Track, container_id,
+                                "param." .. buf .. ".container_map.delete")
+                            rv, container_id = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
                         end
-                    else  -- new fx and parameter             
-                        local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container, "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.active", 1)
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.effect", lead_fxid) -- Link (root container + new mapped container parameter) to lead FX
-                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param."..buf..".plink.param", lead_paramnumber) 
+                    else                                                                      -- new fx and parameter
+                        local rv, buf = r.TrackFX_GetNamedConfigParm(LT_Track, root_container,
+                            "container_map.add." .. follow_fxid .. "." .. follow_paramnumber) -- map to the root
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.active", 1)
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.effect",
+                            lead_fxid) -- Link (root container + new mapped container parameter) to lead FX
+                        r.TrackFX_SetNamedConfigParm(LT_Track, root_container, "param." .. buf .. ".plink.param",
+                            lead_paramnumber)
                     end
-                else -- not inside container
-                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
-                    if retval and buf == "1" then -- toggle off
+                else                                                       -- not inside container
+                    local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, follow_fxid,
+                        "param." .. follow_paramnumber .. ".plink.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
+                    if retval and buf == "1" then                          -- toggle off
                         value = 0
                         lead_fxid = -1
                         lead_paramnumber = -1
                     else
                         value = 1
                     end
-                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.active", value)
-                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.effect", lead_fxid) 
-                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param."..follow_paramnumber..".plink.param", lead_paramnumber) 
+                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param." .. follow_paramnumber .. ".plink.active",
+                        value)
+                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param." .. follow_paramnumber .. ".plink.effect",
+                        lead_fxid)
+                    r.TrackFX_SetNamedConfigParm(LT_Track, follow_fxid, "param." .. follow_paramnumber .. ".plink.param",
+                        lead_paramnumber)
                 end
-            end  
+            end
         end
         r.ImGui_EndDragDropTarget(ctx)
     end
     r.ImGui_PopStyleColor(ctx)
+end
+
+local function GetSetParamValues(track, fxidx, parm, drag_delta, step)
+    local p_value = r.TrackFX_GetParamNormalized(track, fxidx, parm)
+    local p_value = p_value + (drag_delta * step)
+    if p_value < 0 then p_value = 0 end
+    if p_value > 1 then p_value = 1 end
+    r.TrackFX_SetParamNormalized(track, fxidx, parm, p_value)
+end
+
+local function AdjustParamValue(LT_Track, FX_Idx, P_Num, stepscale)
+    local step = (1 - 0) / (200.0 * stepscale)
+    GetSetParamValues(LT_Track, FX_Idx, P_Num, (4 * Wheel_V), step)
+end
+
+local function AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+    if Ctrl_Scroll then
+        if r.ImGui_IsItemHovered(ctx) and Mods == 0 and not r.ImGui_IsItemActive(ctx) then -- mousewheel to change values
+            AdjustParamValue(LT_Track, FX_Idx, P_Num, 1)
+            --ParameterTooltip(FX_Idx, P_Num)
+        elseif r.ImGui_IsItemHovered(ctx) and Mods == Shift and not r.ImGui_IsItemActive(ctx) then -- mousewheel to change values slightly
+            AdjustParamValue(LT_Track, FX_Idx, P_Num, 6)
+        end
+    else
+        if r.ImGui_IsItemHovered(ctx) and Mods == Ctrl and not r.ImGui_IsItemActive(ctx) then -- mousewheel to change values
+            AdjustParamValue(LT_Track, FX_Idx, P_Num, 1)
+            --ParameterTooltip(FX_Idx, P_Num)
+        elseif r.ImGui_IsItemHovered(ctx) and Mods == Ctrl + Shift and not r.ImGui_IsItemActive(ctx) then -- mousewheel to change values slightly
+            AdjustParamValue(LT_Track, FX_Idx, P_Num, 6)
+        end
+    end
 end
 
 ---@param ctx ImGui_Context
@@ -199,12 +247,12 @@ end
 function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
                  item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)
     if Style == 'Pro C' then r.gmem_attach('ParamValues') end
-    local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+    local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     if not FxGUID then return end
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
-    if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then r.ImGui_BeginDisabled(ctx) end    
+    if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then r.ImGui_BeginDisabled(ctx) end
     local p_value = p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
     local FP = FX[FxGUID][Fx_P]
@@ -248,40 +296,46 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
     local BtnOffset
-    
+
     if Lbl_Pos == 'Top' then BtnOffset = -line_height end
 
     WhichClick()
     r.ImGui_InvisibleButton(ctx, label, radius_outer * 2,
         radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), ClickButton) -- ClickButton to alternate left/right dragging
-        if ClickButton == r.ImGui_ButtonFlags_MouseButtonLeft() then -- left drag to adjust parameters
-            if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_SourceNoPreviewTooltip()) then
-                r.ImGui_SetDragDropPayload(ctx, 'my_type', 'my_data')
-                Knob_Active  = true
-                Clr_SldrGrab = getClr(r.ImGui_Col_Text())
+    if ClickButton == r.ImGui_ButtonFlags_MouseButtonLeft() then                                -- left drag to adjust parameters
+        if r.ImGui_BeginDragDropSource(ctx, r.ImGui_DragDropFlags_SourceNoPreviewTooltip()) then
+            r.ImGui_SetDragDropPayload(ctx, 'my_type', 'my_data')
+            Knob_Active  = true
+            Clr_SldrGrab = getClr(r.ImGui_Col_Text())
 
-                HideCursorTillMouseUp(0)
-                r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
-                if -mouse_delta[2] ~= 0.0 then
-                    local stepscale = 1
-                    if Mods == Shift then stepscale = 3 end
-                    local step = (v_max - v_min) / (200.0 * stepscale)
-                    p_value = p_value + (-mouse_delta[2] * step)
-                    if p_value < v_min then p_value = v_min end
-                    if p_value > v_max then p_value = v_max end
-                    value_changed = true
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                    MvingP_Idx = F_Tp
-                    Tweaking = P_Num .. FxGUID
-                end
-                r.ImGui_EndDragDropSource(ctx)
+            HideCursorTillMouseUp(0)
+            r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
+            if -mouse_delta[2] ~= 0.0 then
+                local stepscale = 1
+                if Mods == Shift then stepscale = 3 end
+                local step = (v_max - v_min) / (200.0 * stepscale)
+                p_value = p_value + (-mouse_delta[2] * step)
+                if p_value < v_min then p_value = v_min end
+                if p_value > v_max then p_value = v_max end
+                value_changed = true
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                MvingP_Idx = F_Tp
+                Tweaking = P_Num .. FxGUID
             end
-        elseif ClickButton ==  r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then -- right drag to link parameters
-            DnD_PLink_SOURCE(FX_Idx, P_Num)
+            r.ImGui_EndDragDropSource(ctx)
         end
-        KNOB = true
-        DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
-        ButtonDraw(SPLITTER, FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
+    elseif ClickButton == r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then -- right drag to link parameters
+        DnD_PLink_SOURCE(FX_Idx, P_Num)
+    end
+    KNOB = true
+    DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
+    ButtonDraw(SPLITTER, FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
+    local focused_window, hwnd = GetFocusedWindow()
+    if focused_window == "FX Devices" then
+        r.JS_Window_SetFocus(hwnd)
+        AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+    end
+
     if V_Pos == 'Free' then
         local Ox, Oy = r.ImGui_GetCursorScreenPos(ctx)
         r.ImGui_DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
@@ -536,7 +590,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if r.ImGui_IsItemClicked(ctx) or r.ImGui_IsItemClicked(ctx, 1) then
                 if IsLBtnClicked or IsRBtnClicked then
                     FP.TweakingAB_Val = P_Num
-                    retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                    retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                        "param." .. P_Num .. ".mod.baseline")
                 end
                 if not FP.TweakingAB_Val then
                     local offsetA, offsetB
@@ -555,29 +610,33 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                         local A = (MsY - BtnT) / sizeY
                         local Scale = FX[FxGUID].MorphB[P_Num] - A
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", Scale)   -- Scale
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", A) -- Baseline
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale", Scale)  -- Scale
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                            FX[FxGUID].Morph_ID)                                                                    -- CC value
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", A)     -- Baseline
                     end
                 elseif IsRBtnHeld then
                     local drag = FX[FxGUID].MorphB[P_Num] + select(2, r.ImGui_GetMouseDelta(ctx, 1)) * -0.01
                     FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
-                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])   -- Scale
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", Orig_Baseline) -- Baseline
+                    if FX[FxGUID].Morph_ID then                                                                     -- if Morph Sldr is linked to a CC
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale",
+                            FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])                                    -- Scale
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                            FX[FxGUID].Morph_ID)                                                                    -- CC value
+                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
+                            Orig_Baseline)                                                                          -- Baseline
                     end
                 end
                 if IsLBtnHeld then
@@ -682,7 +741,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if not FP.WhichCC then
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
         else
-            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
+            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
         end
     end
@@ -734,11 +793,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FP.ModAMT then -- Draw modlines  circular
         local offset = 0
         local BipOfs = 0
-        FP.ModBipolar= FP.ModBipolar or {}
+        FP.ModBipolar = FP.ModBipolar or {}
 
-        
+
         for Macro, v in ipairs(MacroNums) do
-            
             if FP.ModAMT[Macro] then
                 --if Modulation has been assigned to params
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
@@ -746,28 +804,27 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 --- indicator of where the param is currently
                 local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
 
-                    if FP.ModBipolar[Macro] then 
-                        BipOfs =  - FP.ModAMT[Macro]
-                    end
+                if FP.ModBipolar[Macro] then
+                    BipOfs = -FP.ModAMT[Macro]
+                end
 
-                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod )
+                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
 
                 r.ImGui_DrawList_PathStroke(draw_list, EightColors.Bright[Macro], nil, radius_outer / 2)
                 r.ImGui_DrawList_PathClear(draw_list)
 
                 --- shows modulation range
-                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro],ANGLE_MIN, ANGLE_MAX)
-                local angle = angle 
-                if BipOfs ~=0 then 
-
-                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(  FP.ModAMT[Macro]   ) ,ANGLE_MIN, ANGLE_MAX) 
-                    r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle,Range )
+                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro], ANGLE_MIN, ANGLE_MAX)
+                local angle = angle
+                if BipOfs ~= 0 then
+                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(FP.ModAMT[Macro]), ANGLE_MIN, ANGLE_MAX)
+                    r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
                     r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
-                    radius_outer * 0.1)
+                        radius_outer * 0.1)
                     r.ImGui_DrawList_PathClear(draw_list)
-                end 
-                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range )
-           
+                end
+                r.ImGui_DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
+
                 r.ImGui_DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
                     radius_outer * 0.1)
                 r.ImGui_DrawList_PathClear(draw_list)
@@ -789,19 +846,21 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
         if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
 
-        local BipolarOut 
-        if Mods == Alt then 
-            FP.ModAMT[M] = math.abs( FP.ModAMT[M])
-            BipolarOut = FP.ModAMT[M]  + 100
+        local BipolarOut
+        if Mods == Alt then
+            FP.ModAMT[M] = math.abs(FP.ModAMT[M])
+            BipolarOut = FP.ModAMT[M] + 100
 
-            FP.ModBipolar[M] = true 
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','True', true)
-        else 
+            FP.ModBipolar[M] = true
+            r.GetSetMediaTrackInfo_String(LT_Track,
+                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', 'True', true)
+        else
             FP.ModBipolar[M] = nil
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
+            r.GetSetMediaTrackInfo_String(LT_Track,
+                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', '', true)
         end
 
-       
+
         r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
         r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or FP.ModAMT[M])
         r.ImGui_ResetMouseDragDelta(ctx, 1)
@@ -866,9 +925,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
+    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3)
 
-    
+
 
 
     if FP.Lbl_Pos == 'Left' then
@@ -938,9 +997,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or r.ImGui_GetColor(ctx, r.ImGui_Col_Text())) end
             end
         end
-        
 
-        FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track,FX_Idx,P_Num)
+
+        FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
         if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
 
@@ -957,7 +1016,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         r.ImGui_PopStyleColor(ctx, ClrPop)
 
         RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-        
+
         local SldrR, SldrB = r.ImGui_GetItemRectMax(ctx)
         local SldrL, SldrT = r.ImGui_GetItemRectMin(ctx)
 
@@ -966,12 +1025,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         local is_active = r.ImGui_IsItemActive(ctx)
         local is_hovered = r.ImGui_IsItemHovered(ctx)
 
-        
+
         local button_x, button_y = r.ImGui_GetCursorPos(ctx)
         r.ImGui_SetCursorPosY(ctx, button_y - (PosB - PosT))
         WhichClick()
         r.ImGui_InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
-        if ClickButton ==  r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then -- right drag to link parameters
+        if ClickButton == r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then    -- right drag to link parameters
             DnD_PLink_SOURCE(FX_Idx, P_Num)
         end
 
@@ -997,7 +1056,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         if Disable == 'Disabled' then
             r.ImGui_DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB, 0x000000cc, Rounding)
         end
-        
+
         if is_active then
             p_value = SetMinMax(p_value, v_min, v_max)
             value_changed = true
@@ -1052,7 +1111,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             if Trk.Prm.WhichMcros[CC .. TrkID] == nil then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             elseif Trk.Prm.WhichMcros[CC .. TrkID] ~= nil then
-                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
             end
         end
@@ -1112,7 +1171,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 if r.ImGui_IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and not MorphingMenuOpen then
                     if IsLBtnClicked or IsRBtnClicked then
                         FP.TweakingAB_Val = P_Num
-                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                            "param." .. P_Num .. ".mod.baseline")
                     end
                     if not FP.TweakingAB_Val then
                         local offsetA, offsetB
@@ -1135,28 +1195,32 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                         if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FX[FxGUID].MorphB[P_Num] - A
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", Scale)   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", A) -- Baseline  
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale", Scale)  -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", A)     -- Baseline
                         end
                     elseif IsRBtnHeld then
                         FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                        if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", Orig_Baseline) -- Baseline 
+                        if FX[FxGUID].Morph_ID then                                                                     -- if Morph Sldr is linked to a CC
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale",
+                                FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])                                    -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
+                                Orig_Baseline)                                                                          -- Baseline
                         end
                     end
                     if IsLBtnHeld then
@@ -1295,7 +1359,6 @@ end
 ---@param Lbl_Pos? Position
 function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
                   LabelOveride, CustomLbl, Lbl_Pos)
-
     LabelValue = Label .. 'Value'
     local FP
     FX[FxGUID or ''][Fx_P or ''] = FX[FxGUID or ''][Fx_P or ''] or {}
@@ -1303,7 +1366,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     if Fx_P then FP = FX[FxGUID][Fx_P] end
     local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    
+
     if Fx_P and FP then
         if (FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl') or FP.Lbl_Pos == 'Top' then
             local name
@@ -1318,8 +1381,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 SL()
             end
         end
-        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
-
+        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3)
     end
 
     if LabelOveride then _G[LabelValue] = LabelOveride end
@@ -1499,7 +1561,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     r.ImGui_PopStyleVar(ctx)
     r.ImGui_EndGroup(ctx)
     r.ImGui_PopStyleColor(ctx, PopClr or 0)
-   if rv then return rv, v_format end
+    if rv then return rv, v_format end
 end
 
 ---@param LT_Track MediaTrack
@@ -1514,12 +1576,11 @@ end
 ---@param FxGUID string
 ---@return integer
 function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, FontSize, FxGUID)
-
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
+    r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3)
 
     if FontSize then
         Font = 'Font_Andale_Mono_' .. roundUp(FontSize, 1); r.ImGui_PushFont(ctx, _G[Font])
@@ -1697,12 +1758,12 @@ end
 function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Sldr_Width,
                  item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
     local FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-    if FxGUID then 
+    if FxGUID then
         FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
         --local FxGUID = FXGUID[FX_Idx]
         local FP = FX[FxGUID][Fx_P]
-        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3 )
+        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FramePadding(), 0, FP.Height or 3)
 
 
         if FX[FxGUID].Morph_Value_Edit or (Mods == Alt + Ctrl and is_hovered) then r.ImGui_BeginDisabled(ctx) end
@@ -1777,7 +1838,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local value_changed = false
         local is_active = r.ImGui_IsItemActive(ctx)
         local is_hovered = r.ImGui_IsItemHovered(ctx)
-        
+
         if is_active == true then Knob_Active = true end
         if Knob_Active == true then
             if IsLBtnHeld == false then Knob_Active = false end
@@ -1806,7 +1867,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if r.ImGui_IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and not MorphingMenuOpen then
                     if IsLBtnClicked or IsRBtnClicked then
                         FP.TweakingAB_Val = P_Num
-                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline") 
+                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                            "param." .. P_Num .. ".mod.baseline")
                     end
                     if not FP.TweakingAB_Val then
                         local offsetA, offsetB
@@ -1827,28 +1889,32 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                         if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
                             local A = (MsX - PosL) / sizeX
                             local Scale = FX[FxGUID].MorphB[P_Num] - A
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", Scale)   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", A) -- Baseline  
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale", Scale)  -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", A)     -- Baseline
                         end
                     elseif IsRBtnHeld then
                         FX[FxGUID].MorphB[P_Num] = SetMinMax((MsX - PosL) / sizeX, 0, 1)
-                        if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", 1)   -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.scale", FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", -100) -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", -1)   -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", 160)   -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", FX[FxGUID].Morph_ID) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".mod.baseline", Orig_Baseline) -- Baseline 
+                        if FX[FxGUID].Morph_ID then                                                                     -- if Morph Sldr is linked to a CC
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale",
+                                FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])                                    -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
+                                Orig_Baseline)                                                                          -- Baseline
                         end
                     end
                     if IsLBtnHeld then
@@ -1948,7 +2014,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         r.ImGui_SetCursorPosY(ctx, button_y - (PosB - PosT))
         WhichClick()
         r.ImGui_InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
-        if ClickButton ==  r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then -- right drag to link parameters
+        if ClickButton == r.ImGui_ButtonFlags_MouseButtonRight() and not AssigningMacro then    -- right drag to link parameters
             DnD_PLink_SOURCE(FX_Idx, P_Num)
         end
 
@@ -1988,7 +2054,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if not FP.WhichCC then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             else
-                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..P_Num..".plink.active", 0)   -- 1 active, 0 inactive
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
             end
         end
@@ -2205,12 +2271,10 @@ end
 
 ---@param Sel_Track_FX_Count integer
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-
     if LT_Track then
         TREE = BuildFXTree(LT_Track or tr)
 
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-            
             local PrmInst, Line, FX_Name
             local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             --local file = CallFile('r', FX_Name..'.ini', 'FX Layouts')
@@ -2222,8 +2286,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
                     local FX_Name = ChangeFX_Name(FX_Name)
 
-                    if LO[FX_Name] then 
-
+                    if LO[FX_Name] then
                         FX[FxGUID] = FX[FxGUID] or {}
                         local T = LO[FX_Name]
                         FX[FxGUID].MorphHide = T.MorphHide
@@ -2235,51 +2298,51 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         FX[FxGUID].TitleClr = T.TitleClr
                         FX[FxGUID].CustomTitle = T.CustomTitle
 
-                        for i, v in ipairs(T) do 
-                            FX[FxGUID][i] = FX[FxGUID][i] or {}
-                            local FP = FX[FxGUID][i]
-                            FP.Name         =  v.Name       
-                            FP.Num          =  v.Num        
-                            FP.Sldr_W       =  v.Sldr_W     
-                            FP.Type         =  v.Type       
-                            FP.PosX         =  v.PosX       
-                            FP.PosY         =  v.PosY       
-                            FP.Style        =  v.Style      
-                            FP.V_FontSize   =  v.V_FontSize 
-                            FP.CustomLbl    =  v.CustomLbl  
-                            FP.FontSize     =  v.FontSize
-                            FP.Height       =  v.Height
-                            FP.BgClr        =  v.BgClr
-                            FP.GrbClr       =  v.GrbClr
-                            FP.Lbl_Pos      =  v.Lbl_Pos
-                            FP.V_Pos        =  v.V_Pos 
-                            FP.Lbl_Clr      =  v.Lbl_Clr
-                            FP.V_Clr        =  v.V_Clr
-                            FP.DragDir      =  v.DragDir
-                            FP.Value_Thick  =  v.Value_Thick
-                            FP.V_Pos_X      =  v.V_Pos_X
-                            FP.V_Pos_Y      =  v.V_Pos_Y
-                            FP.Lbl_Pos_X    =  v.Lbl_Pos_X
-                            FP.Lbl_Pos_Y    =  v.Lbl_Pos_Y 
-                            FP.Image        =  v.Image
-                            FP.ImagePath    =  v.ImagePath
-                            FP.ConditionPrm =  v.ConditionPrm
-                            FP.ConditionPrm_V = v.ConditionPrm_V
+                        for i, v in ipairs(T) do
+                            FX[FxGUID][i]          = FX[FxGUID][i] or {}
+                            local FP               = FX[FxGUID][i]
+                            FP.Name                = v.Name
+                            FP.Num                 = v.Num
+                            FP.Sldr_W              = v.Sldr_W
+                            FP.Type                = v.Type
+                            FP.PosX                = v.PosX
+                            FP.PosY                = v.PosY
+                            FP.Style               = v.Style
+                            FP.V_FontSize          = v.V_FontSize
+                            FP.CustomLbl           = v.CustomLbl
+                            FP.FontSize            = v.FontSize
+                            FP.Height              = v.Height
+                            FP.BgClr               = v.BgClr
+                            FP.GrbClr              = v.GrbClr
+                            FP.Lbl_Pos             = v.Lbl_Pos
+                            FP.V_Pos               = v.V_Pos
+                            FP.Lbl_Clr             = v.Lbl_Clr
+                            FP.V_Clr               = v.V_Clr
+                            FP.DragDir             = v.DragDir
+                            FP.Value_Thick         = v.Value_Thick
+                            FP.V_Pos_X             = v.V_Pos_X
+                            FP.V_Pos_Y             = v.V_Pos_Y
+                            FP.Lbl_Pos_X           = v.Lbl_Pos_X
+                            FP.Lbl_Pos_Y           = v.Lbl_Pos_Y
+                            FP.Image               = v.Image
+                            FP.ImagePath           = v.ImagePath
+                            FP.ConditionPrm        = v.ConditionPrm
+                            FP.ConditionPrm_V      = v.ConditionPrm_V
                             FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
-                            FP.Switch_On_Clr = v.Switch_On_Clr
+                            FP.Switch_On_Clr       = v.Switch_On_Clr
                             for i = 2, 5, 1 do
-                                FP['ConditionPrm'..i]  = v['ConditionPrm'..i]
-                                FP['ConditionPrm_V'..i]  = v['ConditionPrm_V'..i]
-                                FP['ConditionPrm_V_Norm'..i]  = v['ConditionPrm_V_Norm'..i]
+                                FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
+                                FP['ConditionPrm_V' .. i]      = v['ConditionPrm_V' .. i]
+                                FP['ConditionPrm_V_Norm' .. i] = v['ConditionPrm_V_Norm' .. i]
                             end
                             FP.ManualValues = v.ManualValues
                             FP.ManualValuesFormat = v.ManualValuesFormat
                             FP.Draw = v.Draw
                         end
-                        FX[FxGUID].Draw =  T.Draw
-                        
+                        FX[FxGUID].Draw = T.Draw
                     else
-                        local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+                        local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
+                            'src', 'FX Layouts')
                         local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
 
                         -- Create directory for file if it doesn't exist
@@ -2290,15 +2353,15 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         LO[FX_Name] = LO[FX_Name] or {}
                         local T = LO[FX_Name]
                         if file then
-
                             Line = get_lines(file_path)
                             FX[FxGUID].FileLine = Line
                             Content = file:read('*a')
                             local Ct = Content
 
-                            
 
-                            T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
+
+                            T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
+                                'true', true)
                             T.Round = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
                             T.GrbRound = RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
                             T.BgClr = RecallGlobInfo(Ct, 'BgClr = ', 'Num')
@@ -2339,39 +2402,39 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     local function L(n)
                                         return Line[n + (40 - 14) * (Fx_P - 1)]
                                     end
-                                    FX[FxGUID]       = FX[FxGUID] or {}
-                                    T[Fx_P] = T[Fx_P] or {}
+                                    FX[FxGUID]    = FX[FxGUID] or {}
+                                    T[Fx_P]       = T[Fx_P] or {}
 
-                                    local FP         = T[Fx_P]
-                                    local ID         = FxGUID .. Fx_P
+                                    local FP      = T[Fx_P]
+                                    local ID      = FxGUID .. Fx_P
 
-                                    FP.Name          = RecallInfo(Ct, 'Name', Fx_P)
-                                    FP.Num           = RecallInfo(Ct, 'Num', Fx_P, 'Num')
-                                    FP.Sldr_W        = RecallInfo(Ct, 'Width', Fx_P, 'Num')
-                                    FP.Type          = RecallInfo(Ct, 'Type', Fx_P)
-                                    FP.PosX          = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
-                                    FP.PosY          = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
-                                    FP.Style         = RecallInfo(Ct, 'Style', Fx_P)
-                                    FP.V_FontSize    = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
-                                    FP.CustomLbl     = RecallInfo(Ct, 'Custom Label', Fx_P)
+                                    FP.Name       = RecallInfo(Ct, 'Name', Fx_P)
+                                    FP.Num        = RecallInfo(Ct, 'Num', Fx_P, 'Num')
+                                    FP.Sldr_W     = RecallInfo(Ct, 'Width', Fx_P, 'Num')
+                                    FP.Type       = RecallInfo(Ct, 'Type', Fx_P)
+                                    FP.PosX       = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
+                                    FP.PosY       = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
+                                    FP.Style      = RecallInfo(Ct, 'Style', Fx_P)
+                                    FP.V_FontSize = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
+                                    FP.CustomLbl  = RecallInfo(Ct, 'Custom Label', Fx_P)
                                     if FP.CustomLbl == '' then FP.CustomLbl = nil end
-                                    FP.FontSize     = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
-                                    FP.Height       = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
-                                    FP.BgClr        = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
-                                    FP.GrbClr       = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
-                                    FP.Lbl_Pos      = RecallInfo(Ct, 'Label Pos', Fx_P)
-                                    FP.V_Pos        = RecallInfo(Ct, 'Value Pos', Fx_P)
-                                    FP.Lbl_Clr      = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
-                                    FP.V_Clr        = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
-                                    FP.DragDir      = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
-                                    FP.Value_Thick  = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
-                                    FP.V_Pos_X      = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
-                                    FP.V_Pos_Y      = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
-                                    FP.Lbl_Pos_X    = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
-                                    FP.Lbl_Pos_Y    = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
-                                    FP.Switch_On_Clr= RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
+                                    FP.FontSize      = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
+                                    FP.Height        = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
+                                    FP.BgClr         = RecallInfo(Ct, 'BgClr', Fx_P, 'Num')
+                                    FP.GrbClr        = RecallInfo(Ct, 'GrbClr', Fx_P, 'Num')
+                                    FP.Lbl_Pos       = RecallInfo(Ct, 'Label Pos', Fx_P)
+                                    FP.V_Pos         = RecallInfo(Ct, 'Value Pos', Fx_P)
+                                    FP.Lbl_Clr       = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
+                                    FP.V_Clr         = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
+                                    FP.DragDir       = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
+                                    FP.Value_Thick   = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
+                                    FP.V_Pos_X       = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
+                                    FP.V_Pos_Y       = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
+                                    FP.Lbl_Pos_X     = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
+                                    FP.Lbl_Pos_Y     = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
+                                    FP.Switch_On_Clr = RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
 
-                                    local path = RecallInfo(Ct, 'Custom Image', Fx_P)
+                                    local path       = RecallInfo(Ct, 'Custom Image', Fx_P)
 
                                     if path then
                                         FP.ImagePath = path
@@ -2381,7 +2444,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     end
 
 
-                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', '\n'..Fx_P , 'Num', '|')
+                                    FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', '\n' .. Fx_P, 'Num', '|')
                                     for i = 2, 5, 1 do
                                         FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
                                     end
@@ -2394,8 +2457,10 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
                                     if FP.ConditionPrm then
-                                        FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=', Fx_P, nil)
-                                        FP.ConditionPrm_V_Norm = RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm = |1=', Fx_P,'Num')
+                                        FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=',
+                                            Fx_P, nil)
+                                        FP.ConditionPrm_V_Norm = RecallIntoTable(Ct,
+                                            Fx_P .. '. Condition Param Norm = |1=', Fx_P, 'Num')
                                     end
                                     for i = 2, 5, 1 do
                                         FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P ..
@@ -2405,7 +2470,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     end
 
                                     if Prm.InstAdded[FxGUID] ~= true then
-                                        StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState',
+                                        StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable',
+                                            'AddingFromExtState',
                                             Fx_P, FX_Idx, TrkID)
                                         r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
                                     end
@@ -2466,7 +2532,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                             d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
                                             d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
                                             d.RPT_Clr = RC('RPT_Clr', 'Num')
-                                            
+
 
                                             local path = RC('Image_Path')
                                             if path then
@@ -2527,7 +2593,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             if Top then
                                 local Ct = Content
 
-                                
+
                                 local DrawInst = RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
 
 
@@ -2584,39 +2650,30 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
 
-            local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
-           
-            if rv  then     -- if iterated fx is a container
+            local rv, FX_Count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
+
+            if rv then -- if iterated fx is a container
                 local Upcoming_Container
-                if TREE[FX_Idx+1] then 
-                    if TREE[FX_Idx+1].children then 
-
-                        local function get_Container_Info ()
-                            
-                            for i, v in ipairs(Upcoming_Container or TREE[FX_Idx+1].children) do 
-
+                if TREE[FX_Idx + 1] then
+                    if TREE[FX_Idx + 1].children then
+                        local function get_Container_Info()
+                            for i, v in ipairs(Upcoming_Container or TREE[FX_Idx + 1].children) do
                                 local FX_Id = v.addr_fxid
                                 local GUID = v.GUID
                                 GetInfo(GUID, FX_Id)
-                                if v.children then 
+                                if v.children then
                                     Upcoming_Container = v.children
-                                    get_Container_Info ()
-
+                                    get_Container_Info()
                                 end
-                                
-                                
                             end
                         end
 
-                        
-                            get_Container_Info ()
 
-                        
+                        get_Container_Info()
                     end
                 end
-
-            else 
-                GetInfo(FxGUID,FX_Idx)
+            else
+                GetInfo(FxGUID, FX_Idx)
             end
         end
     end
@@ -2741,21 +2798,21 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     local SizeX, SizeY = r.ImGui_GetItemRectSize(ctx)
     MacroModLineOffset = 0
 
-    
-    
-    local ModAmt , BipOfs  = FP.ModAMT[Macro] , 0 
-    if FP then 
+
+
+    local ModAmt, BipOfs = FP.ModAMT[Macro], 0
+    if FP then
         FP.ModBipolar = FP.ModBipolar or {}
-        if FP.ModBipolar[Macro] then 
-            ModAmt = FP.ModAMT[Macro] 
-            BipOfs =  - FP.ModAMT[Macro]
+        if FP.ModBipolar[Macro] then
+            ModAmt = FP.ModAMT[Macro]
+            BipOfs = -FP.ModAMT[Macro]
         end
-    end 
+    end
 
     if Vertical ~= 'Vert' then
         PosX_End_Of_Slider = (Sldr_Width) + L
         SldrGrabPos = SizeX * P_V
-        SliderCurPos = L + SldrGrabPos 
+        SliderCurPos = L + SldrGrabPos
         SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
         SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
     elseif Vertical == 'Vert' then
@@ -2783,18 +2840,21 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
             r.gmem_attach('ParamValues')
             MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
         end
-        
 
-        if MOD then 
 
-            local ModAmt = ModAmt 
-            if BipOfs~= 0  then  ModAmt = ModAmt*2  end 
-            if Vertical == 'Vert'   then
-                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs*Sldr_Width or 0, PosX_End_Of_Slider)
-                r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
+        if MOD then
+            local ModAmt = ModAmt
+            if BipOfs ~= 0 then ModAmt = ModAmt * 2 end
+            if Vertical == 'Vert' then
+                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs * Sldr_Width or 0,
+                    PosX_End_Of_Slider)
+                r.ImGui_DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,
+                    Rounding)
             else
-                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs*Sldr_Width or 0, PosX_End_Of_Slider)
-                r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B,Midsat, Rounding)
+                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs * Sldr_Width or 0,
+                    PosX_End_Of_Slider)
+                r.ImGui_DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,
+                    Rounding)
             end
         end
     end
@@ -2802,10 +2862,10 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     --- mod range indicator line
     if Vertical == 'Vert' then
         local SliderCurPos = SliderCurPos - BipOfs * Sldr_Width
-        r.ImGui_DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright,Rounding)
+        r.ImGui_DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright, Rounding)
     else
         local SliderCurPos = SliderCurPos + BipOfs * Sldr_Width
-        r.ImGui_DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset,MidBright, 2)
+        r.ImGui_DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset, MidBright, 2)
     end
 end
 
@@ -2906,7 +2966,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Label Free Pos X', FP.Lbl_Pos_X)
             write('Label Free Pos Y', FP.Lbl_Pos_Y)
             write('Custom Image', FP.ImagePath)
-            
+
 
 
 
@@ -3367,7 +3427,7 @@ end
 ---@return number w
 ---@return number h
 function Calc_strip_uv(img, V)
-    local V = V or 0 
+    local V = V or 0
     local w, h = r.ImGui_Image_GetSize(img)
     local FrameNum = h / w
 
