@@ -25,7 +25,7 @@ function Delete_All_FXD_AnalyzerFX(trk)
     local  ct = r.TrackFX_GetCount(trk)
     for i= 0 , ct,  1 do 
         local rv, name =  r.TrackFX_GetFXName(trk, i )
-        msg(name)
+
         if FindStringInTable(FX_To_Delete_At_Close, name) then 
             r.TrackFX_Delete(trk, i )
         end
@@ -230,11 +230,7 @@ function SetMinMax(Input, Min, Max)
     return Input
 end
 
----TODO do we need this function? It’s unused
----@param str string|number|nil
-function ToNum(str)
-    str = tonumber(str)
-end
+
 
 ---@generic T
 ---@param v? T
@@ -3803,15 +3799,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 end
     
                                 if ToDef.ID and ToDef.V then
-                                    r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P,
-                                        ToDef
-                                        .V)
+                                    r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P,ToDef.V)
                                     if Prm.WhichCC then
                                         if Trk.Prm.WhichMcros[Prm.WhichCC .. TrkID] then
                                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param."..ToDef.P..".plink.active", 0)   -- 1 active, 0 inactive
-                                            r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID,
-                                                ToDef.P,
-                                                ToDef.V)
+                                            r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID,ToDef.P,ToDef.V)
                                             r.GetSetMediaTrackInfo_String(LT_Track,
                                                 'P_EXT: FX' ..
                                                 FxGUID ..
@@ -4869,7 +4861,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 ----------- Add FX ---------------
                 if Payload_Type == 'DND ADD FX' then
                     DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
-                    msg('ansjdk')
+
                 end
 
                 

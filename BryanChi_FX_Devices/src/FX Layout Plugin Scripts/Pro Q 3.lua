@@ -10,6 +10,28 @@ FX[FxGUID].BgClr  = 0x000000ff
 FX[FxGUID].Width = 340
 
 
+
+
+-------- Add params-----------
+if Prm.InstAdded[PluginScript.Guid] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-Q 3') then
+    for Band = 1, 24, 1 do
+        local gain_P_num =  ((Band - 1) * 13) + 3
+        local freq_P_num =  ((Band - 1) * 13) + 2
+
+        local Fx_P_Freq = 24+Band
+
+        StoreNewParam(FXGUID[FX_Idx], 'Band '.. Band..'Gain', gain_P_num, FX_Idx, false, 'AddingFromExtState', Band, FX_Idx)  -- Bands gain
+        StoreNewParam(FXGUID[FX_Idx], 'Band '.. Band..'Frequency', freq_P_num, FX_Idx, false, 'AddingFromExtState',Fx_P_Freq, FX_Idx)  -- Bands gain
+    end
+
+   -- FX.Prm.Count[FxGUID]= 28
+    --- number in green represents FX Prm Index
+
+    Prm.InstAdded[FXGUID[FX_Idx]] = true
+    r.SetProjExtState(0, 'FX Devices', 'FX' .. FXGUID[FX_Idx] .. 'Params Added','true')
+end
+
+
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
@@ -287,10 +309,8 @@ if not FX[FxGUID].Collapse then
             paramOfUsed = 13 * (Band - 1)
             paramOfEnabled = 13 * (Band - 1) + 1
             if FXGUID_ProQ == nil then FXGUID_ProQ = 0 end
-            ProQ3.Band_UseState[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                paramOfUsed)
-            Band_Enabled[Band .. FXGUID_ProQ] = r.TrackFX_GetParamNormalized(
-                LT_Track, FX_Idx, paramOfEnabled)
+            ProQ3.Band_UseState[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed)
+            Band_Enabled[Band .. FXGUID_ProQ] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfEnabled)
             local x = ProQ_Xpos_L
             local y = Y_Mid
             if ProQ3.Band_UseState[Band] == 1 then
@@ -347,9 +367,7 @@ if not FX[FxGUID].Collapse then
                     BandColor = determineBandColor(ProQ3.LT_EQBand[FXGUID_ProQ])
                     i = iteration
                     if i ~= 1 then
-                        r.ImGui_DrawList_AddLine(Foreground, x, y1, X2,
-                            Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,
-                            1.7)
+                        r.ImGui_DrawList_AddLine(Foreground, x, y1, X2,Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
                     end
                     x = X2
                 end
@@ -398,8 +416,7 @@ if not FX[FxGUID].Collapse then
                             if i ~= 1 then
                                 r.ImGui_DrawList_AddLine(Foreground, x,
                                     Y_Mid, X2, Y_Mid -
-                                    pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,
-                                    1.7)
+                                    pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
                             end
                             x = X2
                         end
@@ -703,10 +720,10 @@ if not FX[FxGUID].Collapse then
             pts[i .. FXGUID_ProQ] = 0
             for Band = 1, 24, 1 do --Add up the sum of all eq
                 if ProQ3.Band_UseState[Band] == 1 then
-                    if pts[i .. 'B-' .. Band .. FXGUID_ProQ] ~= nil and Band_Enabled[Band .. FXGUID_ProQ] == 1 then
-                        pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ] +
-                            pts[i .. 'B-' .. Band .. FXGUID_ProQ]
+                    if pts[i .. 'B-' .. Band .. FXGUID_ProQ] and Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                        pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ] + pts[i .. 'B-' .. Band .. FXGUID_ProQ]
                     end
+                    
                 end
             end
             pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ]
@@ -834,21 +851,54 @@ if not FX[FxGUID].Collapse then
         NodeHasbeenHovered = nil
         MousePosX, MousePosY = r.ImGui_GetMousePos(ctx)
 
+
         for Band = 1, 24, 1 do
+            local gain_P_num =  ((Band - 1) * 13) + 3
+            local freq_P_num =  ((Band - 1) * 13) + 2
+            
+            --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
+            local FP_gain = FX[FxGUID][Band]
+
+
+            
+            
+            --FX[FxGUID][Band].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
             if ProQ3.Band_UseState[Band] == 1 then
-                NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ] = x_to_freq(Freq
-                    [Band] * ProQ3.Width)
-                XposNode[Band] = freq_to_scx(NodeFreq
-                    ['B-' .. Band .. 'GUID-' .. FXGUID_ProQ])
-                _, ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] = r
-                    .TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
-                        8 + 13 * (Band - 1))
+                NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ] = x_to_freq(Freq[Band] * ProQ3.Width)
+                XposNode[Band] = freq_to_scx(NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ])_, ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,8 + 13 * (Band - 1))
+
+
+                ----- Draw Modulation indicator 
+                if FP_gain.WhichCC then 
+                    for M, v in ipairs(MacroNums) do
+
+                        if FP_gain.ModAMT[M] and  FP_gain.ModAMT[M] ~= 0 then 
+                            local X = ProQ_Xpos_L + XposNode[Band] 
+
+                            local gain = -30 + FP_gain.V * 60
+                            local Y = Y_Mid - (gain * 3.2) * ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]];
+                            local MOD = Trk[TrkID].Mod[M].Val
+                            if Trk[TrkID].Mod[M].Type~='Macro' then
+                                r.gmem_attach('ParamValues')
+                                MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
+                            end
+                            --ttp(FP_gain.ModAMT[M])
+                            --msg(FP_gain.V )
+                            r.ImGui_DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
+                            r.ImGui_DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
+                            r.ImGui_DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])
+
+                        end
+                    end
+                end
+
+
+
+
 
                 determineBandColor(Band)
                 if ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] == 'Bell' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (Gain[Band] * 3.2) *
-                        ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]];
+                    NodeY_Pos[Band] = Y_Mid - (Gain[Band] * 3.2) * ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]];
                 elseif ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] == 'Low Cut' then
                     NodeY_Pos[Band] = Y_Mid -
                         (Q_Node[Band]) * ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
@@ -870,8 +920,7 @@ if not FX[FxGUID].Collapse then
                         (Gain[Band] * 1.4) *
                         ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
                 elseif ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] == 'Flat Tilt' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (0.08 * 1.4) * ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
+                    NodeY_Pos[Band] = Y_Mid -(0.08 * 1.4) * ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
                 end
 
 
@@ -926,9 +975,7 @@ if not FX[FxGUID].Collapse then
                         BandforQadjusting = Band
                     end
                     if IsLBtnClicked and Mods == Alt then -- delete node
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13),
-                            0)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13),0)
                         ProQ3['NodeHvr' .. Band .. 'FXID-' .. FXGUID[FX_Idx]] = false
                         HvringNode = nil
                     end
@@ -945,9 +992,14 @@ if not FX[FxGUID].Collapse then
                                 ((Band - 1) * 13) + 1, 1)
                         end
                     end
-                    if IsRBtnClicked == true then
+                    if IsRBtnClicked == true and Mods == Ctrl then
                         r.ImGui_OpenPopup(ctx, 'Pro-Q R Click')
                     end
+
+                    AssignMod(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][gain_P_num].V, Sldr_Width, 'Pro-Q', 'No Item Trigger')
+                
+                
+                
                 else
                     FX_DeviceWindow_NoScroll = 0
                 end
@@ -967,8 +1019,7 @@ if not FX[FxGUID].Collapse then
                         local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                             ((BandforQadjusting - 1) * 13) + 7)
 
-                        Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,
-                            1)
+                        Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,1)
 
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                             ((BandforQadjusting - 1) * 13) + 7, Q_Output)
@@ -980,12 +1031,9 @@ if not FX[FxGUID].Collapse then
 
                 if ProQ3['NodeDrag' .. Band .. ' ID-' .. FXGUID[FX_Idx]] == true then
                     MouseDeltaX, MouseDeltaY = r.ImGui_GetMouseDelta(ctx)
-                    local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        ((Band - 1) * 13) + 2)
-                    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        ((Band - 1) * 13) + 3)
-                    local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        ((Band - 1) * 13) + 7)
+                    local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,((Band - 1) * 13) + 2)
+                    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
+                    local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 7)
 
                     if IsLBtnHeld == false then
                         ProQ3['NodeDrag' .. Band .. ' ID-' .. FXGUID[FX_Idx]] = false
@@ -1016,17 +1064,34 @@ if not FX[FxGUID].Collapse then
                         else
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13) + 2, FreqOutput)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 2, FreqOutput)
                     else
                         if Gain > 1 and MouseDeltaY < 0 then
                             GainOutput = 1
                         elseif Gain < 0 and MouseDeltaY > 0 then
                             GainOutput = 0
                         else
-                            GainOutput = Gain +
-                                (-MouseDeltaY / 270) *
-                                (ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] / ProQ3['DragGainScale' .. ' ID' .. FXGUID[FX_Idx]])
+                            GainOutput = Gain +(-MouseDeltaY / 270) *(ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] / ProQ3['DragGainScale' .. ' ID' .. FXGUID[FX_Idx]])
+                        end
+
+                        if not FP_gain.WhichCC then
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3,GainOutput)
+                        elseif FP_gain.WhichCC then 
+                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
+                            FP_gain.V = GainOutput
+                            for M, v in ipairs(MacroNums) do
+                                local MOD = Trk[TrkID].Mod[M].Val
+                                if Trk[TrkID].Mod[M].Type~='Macro' then
+                                    r.gmem_attach('ParamValues')
+                                    MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
+                                    
+                                end
+                                if MOD~=0 and MOD then 
+                                    FP_gain.V = GainOutput - FP_gain.ModAMT[M] *MOD
+                                end
+                            end
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
+                            Tweaking = gain_P_num .. FxGUID
                         end
 
                         if Freq > 1 and MouseDeltaX > 0 then
@@ -1037,15 +1102,15 @@ if not FX[FxGUID].Collapse then
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
 
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13) + 2, FreqOutput)
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13) + 3, GainOutput)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 2, FreqOutput)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, GainOutput)
                     end
                 end
 
 
 
+
+               
 
 
 
@@ -1081,9 +1146,15 @@ if not FX[FxGUID].Collapse then
                                 (-MouseDeltaY / 270) *
                                 (ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] / ProQ3['DragGainScale' .. ' ID' .. FXGUID[FX_Idx]])
                         end
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3,
-                            GainOutput)
+                        
+                        if not FP_gain.WhichCC then
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3,GainOutput)
+                        elseif FP_gain.WhichCC then 
+                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
+                            FP_gain.V = GainOutput
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
+                            Tweaking = gain_P_num .. FxGUID
+                        end
                     end
                     if ProQ3.FreqDragging == true then
                         MouseDeltaX, MouseDeltaY = r.ImGui_GetMouseDelta(ctx)
@@ -1103,11 +1174,23 @@ if not FX[FxGUID].Collapse then
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 2,
-                            FreqOutput)
+                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 2,FreqOutput)
                     end
                 end
+
+
+
+
+                
+                TweakingNodeGain = MakeModulationPossible(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][Band].V, 10, 'Pro-Q', 'No Item Trigger')
+
             end --end for repeat every active  band
+
+
+
+
+
+
         end     --end for repeat every band
         if NodeHasbeenHovered then HoverOnScrollItem = true end
 
@@ -1116,8 +1199,7 @@ if not FX[FxGUID].Collapse then
         if r.ImGui_BeginPopup(ctx, 'Pro-Q R Click') then
             local LTBand = ProQ3.LT_EQBand[FXGUID[FX_Idx]]
             if r.ImGui_Button(ctx, 'Bell') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
-                    0)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,0)
                 r.ImGui_CloseCurrentPopup(ctx)
             end
             if r.ImGui_Button(ctx, 'Low Shelf') then
@@ -1221,48 +1303,48 @@ if not FX[FxGUID].Collapse then
             ProQ_Xpos_L + ProQ3.Width, ProQ_Ypos_T + ProQ3.H, 0x00000077)
     end
 
-
-    if FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('FXD ReSpectrum') then
-        r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
-        if tablefind(Trk[TrkID].PreFX, FxGUID) then
-            r.TrackFX_Delete(LT_Track,
-                FX_Idx - 1)
-        end
-        SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
-            FX.Win_Name[math.max(FX_Idx - 1, 0)])
-    else -- if no spectrum is before pro-Q 3
-        FX[FxGUID].AddEQSpectrumWait = (FX[FxGUID].AddEQSpectrumWait or 0) + 1
-        if FX[FxGUID].AddEQSpectrumWait > FX_Add_Del_WaitTime then
-            r.gmem_attach('gmemReEQ_Spectrum')
-            r.gmem_write(1, PM.DIY_TrkID[TrkID])
-            FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or math.random(1000000, 9999999)
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProQ_ID ' .. FxGUID,
-                FX[FxGUID].ProQ_ID, true)
-            r.gmem_write(2, FX[FxGUID].ProQ_ID)
-            local AnyPopupOpen
-            if r.ImGui_IsPopupOpen(ctx, 'Delete FX Layer ', r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel()) then AnyPopupOpen = true end
-
-            if not tablefind(Trk[TrkID].PostFX, FxGUID) and not tablefind(Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
+    if ProQ.Analyzer then 
+        if FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('FXD ReSpectrum') then
+            r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
+            if tablefind(Trk[TrkID].PreFX, FxGUID) then
+                r.TrackFX_Delete(LT_Track,FX_Idx - 1)
+            end
+            SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
+                FX.Win_Name[math.max(FX_Idx - 1, 0)])
+        else -- if no spectrum is before pro-Q 3
+            FX[FxGUID].AddEQSpectrumWait = (FX[FxGUID].AddEQSpectrumWait or 0) + 1
+            if FX[FxGUID].AddEQSpectrumWait > FX_Add_Del_WaitTime then
                 r.gmem_attach('gmemReEQ_Spectrum')
                 r.gmem_write(1, PM.DIY_TrkID[TrkID])
-                FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or
-                    math.random(1000000, 9999999)
+                FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or math.random(1000000, 9999999)
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProQ_ID ' .. FxGUID,
                     FX[FxGUID].ProQ_ID, true)
                 r.gmem_write(2, FX[FxGUID].ProQ_ID)
-                rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 -
-                    FX_Idx)
-            end
-            FX[FxGUID].AddEQSpectrumWait = 0
-            r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
-            for i = 0, 16, 1 do
-                --r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, i,0,0)
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, i, 0, 0)
+                local AnyPopupOpen
+                if r.ImGui_IsPopupOpen(ctx, 'Delete FX Layer ', r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel()) then AnyPopupOpen = true end
+
+                if not tablefind(Trk[TrkID].PostFX, FxGUID) and not tablefind(Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
+                    r.gmem_attach('gmemReEQ_Spectrum')
+                    r.gmem_write(1, PM.DIY_TrkID[TrkID])
+                    FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or
+                        math.random(1000000, 9999999)
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProQ_ID ' .. FxGUID,
+                        FX[FxGUID].ProQ_ID, true)
+                    r.gmem_write(2, FX[FxGUID].ProQ_ID)
+                    rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 -
+                        FX_Idx)
+                end
+                FX[FxGUID].AddEQSpectrumWait = 0
+                r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
+                for i = 0, 16, 1 do
+                    --r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, i,0,0)
+                    r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, i, 0, 0)
+                end
             end
         end
-    end
 
-    r.gmem_attach('gmemReEQ_Spectrum')
-    r.gmem_write(1, PM.DIY_TrkID[TrkID])
+        r.gmem_attach('gmemReEQ_Spectrum')
+        r.gmem_write(1, PM.DIY_TrkID[TrkID])
+    end
     --  r.gmem_write(0, FX_Idx)
 end

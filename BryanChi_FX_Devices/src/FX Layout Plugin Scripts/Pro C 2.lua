@@ -17,14 +17,13 @@ FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
 
-PRO_C_GR_NATIVE = true  
+
 
 Rounding = 3
 r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
 if not FX[FXGUID[FX_Idx]].Collapse then
     if not OverSampleValue then
-        _, OverSampleValue = r
-            .TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 40)
+        _, OverSampleValue = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 40)
     end
     r.ImGui_SetNextItemWidth(ctx, 10)
     r.ImGui_PushFont(ctx, Font_Andale_Mono_10)
@@ -35,8 +34,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     r.ImGui_SetNextItemWidth(ctx, 27)
     local Oversampling_Options = { 'Off', '2x', '4x' }
     local OS_V = { 0, 0.5, 1 }
-    AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,
-        'Pro C 2', FxGUID, Fx_P or 1, OS_V)
+    AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,'Pro C 2', FxGUID, Fx_P or 1, OS_V)
     --r.ImGui_SameLine(ctx)
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or '', Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
 
@@ -192,7 +190,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
         MousePosX, MousePosY = r.ImGui_GetMousePos(ctx)
 
-        if PRO_C_GR_NATIVE then 
+        if ProC.GR_NATIVE then 
                 
             local  rv, GR = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "GainReduction_dB");
             if rv then 
@@ -528,7 +526,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         r.ImGui_PopFont(ctx)
         r.ImGui_PopStyleVar(ctx, 2)
 
-        if not PRO_C_GR_NATIVE then 
+        if not ProC.GR_NATIVE then 
             if not FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
                 table.insert(AddFX.Pos, FX_Idx)
                 table.insert(AddFX.Name, 'FXD Split to 4 channels')

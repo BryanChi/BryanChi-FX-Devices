@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta11.1
+-- @version 1.0beta12
 -- @changelog
---  - +Added custom color tweak for RDM by user's request
---  - Fixed opening Pad when Ctrl+right clicking pad (opening menu)
---  - Fixed PLink bug when RDM is inserted
---  - Made the vertical tab scrollable by left dragging it
+--  - Add option to use native gain reduction values for Pro-C
+--  - Add option to disable using Respectrum on Pro-Q 
+
 -- @provides
 --   [effect] FXD JSFXs/FXD (Mix)RackMixer.jsfx
 --   [effect] FXD JSFXs/FXD Band Joiner.jsfx
@@ -422,10 +421,13 @@ Command_ID = {}
 --------Pro C ------------------------
 ProC = { Width = 280, Pt = { R = { m = {}, M = {} }, L = { m = {}, M = {} } } }
 
+ProC.GR_NATIVE = StringToBool[ r.GetExtState('FXD', 'Use Native Gain Reduction for Pro-C' )]
 
 
 
-
+------- Pro Q -------------------------
+ProQ={}
+ProQ.Analyzer = StringToBool[ r.GetExtState('FXD', 'Use analyzer for Pro-Q' )]
 
 
 
@@ -1115,10 +1117,10 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
 
-            for Fx_P = 1, #FX[FxGUID] or 0, 1 do
-                FX[FxGUID][Fx_P].V = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..
-                        Fx_P .. 'Value before modulation', '', false)))
+            --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
+            for Fx_P in pairs(FX[FxGUID]) do 
+
+                FX[FxGUID][Fx_P].V = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..Fx_P .. 'Value before modulation', '', false)))
 
 
                 local ParamX_Value = 'Param' ..
@@ -1162,10 +1164,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                     FP.ModBipolar = FP.ModBipolar or {}
                     FP.ModBipolar[m] = StringToBool[ select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m.. 'Mod Bipolar', '',false))]
 
-                    if Prm.McroModAmt[IdM] ~= nil then
-                        local width = FX[FxGUID].Width or DefaultWidth or 270
-                        Prm.McroModAmt_Norm[IdM] = Prm.McroModAmt --[[ [IdM]/(width*0.65) ]]
-                    end
+
                 end
 
 
@@ -1400,8 +1399,7 @@ function loop()
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
                 if not IsPrmAlreadyAdded(true) then
-                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
-                        true)
+                    StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,true)
                 end
                 r.SetExtState('FXD', 'Record last touch', '', false)
             end
@@ -1649,8 +1647,18 @@ function loop()
                     FX_LIST, CAT = MakeFXFiles()
                 end
 
-                rv , boolean = r.ImGui_Checkbox( ctx, string, boolean)
+                if r.ImGui_Checkbox( ctx, 'Use Native Gain Reduction for Pro-C', ProC.GR_NATIVE) then 
+                    ProC.GR_NATIVE = toggle(ProC.GR_NATIVE)
+                    r.SetExtState('FXD', 'Use Native Gain Reduction for Pro-C', tostring(ProC.GR_NATIVE) , true )
+                end
+
                
+
+                if r.ImGui_Checkbox( ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer) then 
+                    ProQ.Analyzer = toggle(ProQ.Analyzer)
+                    r.SetExtState('FXD', 'Use analyzer for Pro-Q', tostring(ProQ.Analyzer) , true )
+
+                end
 
                 MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
                 r.ImGui_EndMenu(ctx)

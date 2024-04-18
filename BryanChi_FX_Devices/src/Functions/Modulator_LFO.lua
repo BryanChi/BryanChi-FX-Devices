@@ -1,5 +1,5 @@
 -- @noindex
-msg('asdfasfassa')
+
 local function ChangeLFO(mode, V, gmem, StrName)
     r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
     r.gmem_write(5, i)    -- Tells jsfx which macro
