@@ -1012,6 +1012,11 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         KNOB = false
         DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
         ButtonDraw(SPLITTER, FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, nil, nil)
+        local focused_window, hwnd = GetFocusedWindow()
+        if focused_window == "FX Devices" then
+            r.JS_Window_SetFocus(hwnd)
+            AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+        end
         if GrabSize then r.ImGui_PopStyleVar(ctx) end
         r.ImGui_PopStyleColor(ctx, ClrPop)
 
@@ -1830,6 +1835,11 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         KNOB = false
         DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
         ButtonDraw(SPLITTER, FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, nil, nil)
+        local focused_window, hwnd = GetFocusedWindow()
+        if focused_window == "FX Devices" then
+            r.JS_Window_SetFocus(hwnd)
+            AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+        end
         if Style == 'FX Layering' then r.ImGui_PopStyleVar(ctx) end
 
         r.ImGui_PopStyleColor(ctx, 3)
