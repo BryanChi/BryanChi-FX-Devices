@@ -215,7 +215,7 @@ if not FX[FxGUID].Collapse then
     r.ImGui_SetNextWindowPos(ctx, L, T-28)
 
 
-    if r.ImGui_BeginChildFrame(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
+    if r.ImGui_BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
         if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == nil then ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 2.5 end
         if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 10 then
             ProQ3['DragGainScale' .. ' ID' .. FXGUID[FX_Idx]] = 100
@@ -1289,7 +1289,7 @@ if not FX[FxGUID].Collapse then
 
 
 
-        r.ImGui_EndChildFrame(ctx)
+        r.ImGui_EndChild(ctx)
     end ---- End of if begin pro-Q frame then
 
     ProQ3['HvrGUI' .. FXGUID[FX_Idx]] = r.ImGui_IsItemHovered(ctx)
