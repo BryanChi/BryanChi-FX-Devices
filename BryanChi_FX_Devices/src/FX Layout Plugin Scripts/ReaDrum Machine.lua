@@ -1,12 +1,10 @@
 -- @noindex
 -- @author Suzuki
 -- @link https://forum.cockos.com/showthread.php?t=284566
--- @version 1.2
+-- @version 1.4.4
 -- @changelog
--- + Added color tweak option
--- + Made each instance remember the state of vertical menu (which is open or closed)
--- + You can sweep vertical tabs to open the menu
--- # Fixed the PLink bug
+-- + Added midi octave name display ofsset support
+-- + Added volume adjustment for each pad (SHIFT + Left drag)
 -- @about ReaDrum Machine is a script which loads samples and FX from browser/arrange into subcontainers inside a container named ReaDrum Machine. 
 
 r = reaper
@@ -53,15 +51,16 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
     r.ImGui_EndDragDropTarget(ctx)
     r.Undo_BeginBlock()
     r.PreventUIRefresh(1)
-    GetDrumMachineIdx()
+    GetDrumMachineIdx(track)
     if FX_Drag and Mods == 0 then
         if Pad[a] then   -- add fx to target
           local dst_pad = Pad[a].Pad_ID
           local dst_num = Pad[a].Pad_Num
           -- dst_guid = Pad[a].Pad_GUID
           local dstfx_idx = CountPadFX(dst_num)
-          dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-          local dst_last = get_fx_id_from_container_path(track, parent_id, dst_num, dstfx_idx)
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local dst_id = ConvertPathToNestedPath(parent_id, dst_num)
+          local dst_last = ConvertPathToNestedPath(dst_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
           EndUndoBlock("ADD FX TO PAD")
@@ -69,8 +68,8 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
           CountPads()
           AddPad(note_name, a) -- dst
           AddNoteFilter(notenum, pad_num)
-          local previous_pad_id = get_fx_id_from_container_path(track, parent_id, pad_num - 1)
-          local next_pad_id = get_fx_id_from_container_path(track, parent_id, pad_num + 1)
+          local previous_pad_id = ConvertPathToNestedPath(parent_id, pad_num - 1)
+          local next_pad_id = ConvertPathToNestedPath(parent_id, pad_num + 1)
           Pad[a] = { -- dst
             Previous_Pad_ID = previous_pad_id,
             Pad_ID = pad_id,
@@ -80,8 +79,9 @@ local function DndMoveFXtoPad_TARGET_SWAP(a)
             Note_Num = notenum
           }
           local dstfx_idx = CountPadFX(pad_num) 
-          dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
-          local dst_last = get_fx_id_from_container_path(track, parent_id, pad_num, dstfx_idx)
+          local dstfx_idx = dstfx_idx + 1 -- the last slot being offset by 1
+          local pad_id = ConvertPathToNestedPath(parent_id, pad_num)
+          local dst_last = ConvertPathToNestedPath(pad_id, dstfx_idx)
           r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, dst_last, true) -- true = move
           r.PreventUIRefresh(-1)
           EndUndoBlock("MOVE FX TO PAD")
@@ -116,6 +116,11 @@ local function ButtonDrawlist(splitter, name, color, a)
     r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, (RDM_DnDFX or CustomColorsDefault.RDM_DnDFX), 2,
         nil, 2)
   end
+  if SELECTED and SELECTED[tostring(a)] then
+    local x_offset = 1
+    r.ImGui_DrawList_AddRect(f_draw_list, xs - x_offset, ys - x_offset, xe + x_offset, ye + x_offset, 0x9400d3ff, 2,
+      nil, 1)
+  end
 
   local font_size = r.ImGui_GetFontSize(ctx)
   local char_size_w,char_size_h = r.ImGui_CalcTextSize(ctx, "A")
@@ -128,6 +133,14 @@ local function ButtonDrawlist(splitter, name, color, a)
   if FX[FxGUID].OPEN_PAD == a then
     if not Pad[a] then return end
     Highlight_Itm(WDL, (RDM_Pad_Highlight or CustomColorsDefault.RDM_Pad_Highlight), 0x256BB1ff)
+  end
+  if Pad[a] and Pad[a].Filter_ID then
+    local rv = r.TrackFX_GetParam(track, Pad[a].Filter_ID, 1)
+    if rv == 1 then   
+      local L, T = r.ImGui_GetItemRectMin(ctx)
+      local R, B = r.ImGui_GetItemRectMax(ctx)
+      r.ImGui_DrawList_AddRectFilled(f_draw_list, L, T, R, B + 15, 0xfde58372, rounding)
+    end
   end
 end
 
@@ -163,8 +176,9 @@ local function OpenFXInsidePad(a)
   if not Pad[a] then return end 
   CountPadFX(Pad[a].Pad_Num) -- padfx_idx
   for f = 1, padfx_idx do
-    FX_Id = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f)
-    FX_Id_next = get_fx_id_from_container_path(track, parent_id, Pad[a].Pad_Num, f + 1)
+    local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. Pad[a].Pad_Num - 1) -- 0 based
+    local FX_Id = ConvertPathToNestedPath(pad_id, f)
+    local FX_Id_next = ConvertPathToNestedPath(pad_id, f + 1)
     local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
     Spc = AddSpaceBtwnFXs(FX_Id)
     r.ImGui_SameLine(ctx, nil, 0)
@@ -184,10 +198,13 @@ local function DrawPads(loopmin, loopmax)
   local RETURN 
   r.ImGui_DrawListSplitter_Split(SPLITTER, 2)
   CheckDNDType()
+  DoubleClickActions(loopmin, loopmax)
 
   for a = loopmin, loopmax do
+    local midi_octave_offset = r.SNM_GetIntConfigVar("midioctoffs", 0)
+    midi_oct_offs = (midi_octave_offset - 1) * 12
     notenum = a - 1
-    note_name = getNoteName(notenum)
+    note_name = getNoteName(notenum + midi_oct_offs)
 
     if Pad[a] then
       if Pad[a].Rename then
@@ -216,9 +233,8 @@ local function DrawPads(loopmin, loopmax)
       ClickPadActions(a)
     elseif r.ImGui_IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
       FX[FxGUID].OPEN_PAD = toggle2(FX[FxGUID].OPEN_PAD, a)
-    -- elseif r.ImGui_IsItemActive(ctx) and Pad[a] and Mods == Shift then
-    --   local value_raw = { r.ImGui_GetMouseDragDelta(ctx, 0, 0, r.ImGui_MouseButton_Left(), 0.0) }
-    --   r.ShowConsoleMsg(table.unpack(value_raw))
+    elseif SHIFT and r.ImGui_IsMouseDragging(ctx, 0) and r.ImGui_IsItemActive(ctx) then
+      AdjustPadVolume(a)
     else
       DndMoveFX_SRC(a)
     end
@@ -230,25 +246,69 @@ local function DrawPads(loopmin, loopmax)
 
     r.ImGui_SetCursorPos(ctx, x + 25, y + 30)
     if r.ImGui_InvisibleButton(ctx, "S##solo" .. a, 25, 15) then
-      if Pad[a] then
-        CountPads() -- pads_idx
-        if Pad[a].Pad_Num == 1 then
-          retval1 = false
-        else
-          retval1 = r.TrackFX_GetEnabled(track, Pad[a].Previous_Pad_ID)
+      if SELECTED then
+        Unmuted = 0
+        CountSelected = 0
+        for k, v in pairs(SELECTED) do
+          local k = tonumber(k)
+          if Pad[k] then
+          CountSelected = CountSelected + 1
+            if r.TrackFX_GetEnabled(track, Pad[k].Pad_ID) then
+              Unmuted = Unmuted + 1
+            end
+          end
         end
-        local retval2 = r.TrackFX_GetEnabled(track, Pad[a].Next_Pad_ID)
-        if retval1 == false and retval2 == false then -- unsolo
-          for i = 1, pads_idx do
-            local pad_id = get_fx_id_from_container_path(track, parent_id, i)
+        if CountSelected == Unmuted then
+          AllUnmuted = true
+        end
+        CountPads() -- pads_idx
+        HowManyMuted = 0
+        for i = 1, pads_idx do
+          local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1)
+          local rv = r.TrackFX_GetEnabled(track, pad_id)
+          if not rv then
+            HowManyMuted = HowManyMuted + 1
+          end
+        end
+        if AllUnmuted and pads_idx - HowManyMuted == CountSelected then
+          for i = 1, pads_idx do -- unmute all
+            local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
             r.TrackFX_SetEnabled(track, pad_id, true)
           end
-        else -- solo
-          for i = 1, pads_idx do
-            local pad_id = get_fx_id_from_container_path(track, parent_id, i)
+        else
+          for i = 1, pads_idx do -- mute all
+            local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
             r.TrackFX_SetEnabled(track, pad_id, false)
           end
-          r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, true)
+          for k, v in pairs(SELECTED) do
+            local k = tonumber(k)
+            if Pad[k] then
+              r.TrackFX_SetEnabled(track, Pad[k].Pad_ID, true)
+            end
+          end
+        end
+        SELECTED = nil
+      else
+        if Pad[a] then
+          CountPads() -- pads_idx
+          if Pad[a].Pad_Num == 1 then
+            retval1 = false
+          else
+            retval1 = r.TrackFX_GetEnabled(track, Pad[a].Previous_Pad_ID)
+          end
+          local retval2 = r.TrackFX_GetEnabled(track, Pad[a].Next_Pad_ID)
+          if retval1 == false and retval2 == false then -- unsolo
+            for i = 1, pads_idx do
+              local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
+              r.TrackFX_SetEnabled(track, pad_id, true)
+            end
+          else -- solo
+            for i = 1, pads_idx do
+              local _, pad_id = r.TrackFX_GetNamedConfigParm(track, parent_id, "container_item." .. i - 1) -- 0 based
+              r.TrackFX_SetEnabled(track, pad_id, false)
+            end
+            r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, true)
+          end
         end
       end
     end
@@ -261,12 +321,27 @@ local function DrawPads(loopmin, loopmax)
 
     r.ImGui_SetCursorPos(ctx, x + 50, y + 30)
     if r.ImGui_InvisibleButton(ctx, "M##mute" .. a, 25, 15) then
-      if Pad[a] then
+      if SELECTED then
+        for k, v in pairs(SELECTED) do
+          local k = tonumber(k)
+          if Pad[k] and Pad[k].RS5k_ID then 
+            local retval = r.TrackFX_GetEnabled(track, Pad[k].Pad_ID)
+            if retval == true then
+              r.TrackFX_SetEnabled(track, Pad[k].Pad_ID, false)
+            else
+              r.TrackFX_SetEnabled(track, Pad[k].Pad_ID, true)
+            end
+          end
+        end
+        SELECTED = nil
+      else
+        if Pad[a] then
         local retval = r.TrackFX_GetEnabled(track, Pad[a].Pad_ID)
-        if retval == true then
-          r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, false)
-        else
-          r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, true)
+          if retval == true then
+            r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, false)
+          else
+            r.TrackFX_SetEnabled(track, Pad[a].Pad_ID, true)
+          end
         end
       end
     end
