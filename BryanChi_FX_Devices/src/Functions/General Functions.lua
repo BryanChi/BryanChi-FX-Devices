@@ -2472,7 +2472,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-            if ImGui.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil) and not Hide then ----START CHILD WINDOW------
+            if ImGui.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, ImGui.WindowFlags_NoScrollbar+ ImGui.WindowFlags_NoScrollWithMouse) and not Hide then ----START CHILD WINDOW------
                 if Draw[FxNameS] ~= nil then
                     local D = Draw[FxNameS]
                 end
