@@ -1,6 +1,5 @@
 -- @noindex
 
-r = reaper
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
@@ -40,7 +39,7 @@ end
 if BandColor == nil then BandColor = 0x69B45D55 end
 _, _, color = determineBandColor(ProQ3.LT_EQBand[FXGUID[FX_Idx]])
 if color == nil then color = 0xffffffff end
-r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), color)
+ImGui.PushStyleColor(ctx, ImGui.Col_Text, color)
 
 if ProQ3.LT_EQBand[FXGUID[FX_Idx]] ~= nil then
     Freq_LTBandNorm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
@@ -59,7 +58,7 @@ end
 
 
 
-r.ImGui_SetNextItemWidth(ctx, 60)
+ImGui.SetNextItemWidth(ctx, 60)
 if ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] < 1000 then
     FreqLbl = ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] .. ' Hz'
 elseif ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] > 1000 then
@@ -68,28 +67,28 @@ elseif ProQ3['Freq_LTBand - ' .. FXGUID[FX_Idx]] ~= nil and ProQ3['Freq_LTBand -
 end
 
 
-r.ImGui_SameLine(ctx)
-r.ImGui_SetNextItemWidth(ctx, 60)
+ImGui.SameLine(ctx)
+ImGui.SetNextItemWidth(ctx, 60)
 if ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] ~= nil then
-    _, ProQ3.GainDrag[FX_Idx] = r.ImGui_DragDouble(ctx, '##GainDrag',
+    _, ProQ3.GainDrag[FX_Idx] = ImGui.DragDouble(ctx, '##GainDrag',
         ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1,
         ProQ3['Gain_LTBand - ' .. FXGUID[FX_Idx]] .. 'dB')
-    ProQ3.GainDragging = r.ImGui_IsItemActive(ctx)
+    ProQ3.GainDragging = ImGui.IsItemActive(ctx)
 end
 
-r.ImGui_SameLine(ctx, 340 - 130)
-r.ImGui_SetNextItemWidth(ctx, 50)
+ImGui.SameLine(ctx, 340 - 130)
+ImGui.SetNextItemWidth(ctx, 50)
 if ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] ~= nil then
-    DispRangeBtnClicked = r.ImGui_Button(ctx,
+    DispRangeBtnClicked = ImGui.Button(ctx,
         '±' .. ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] .. 'dB##' ..
         FX_Idx, 50, 20)
 end
 if DispRangeBtnClicked then
-    r.ImGui_OpenPopup(ctx, 'ProQ Display Range ##' .. FX_Idx)
-    local L, T = r.ImGui_GetItemRectMin(ctx)
-    local W, H = r.ImGui_GetItemRectSize(ctx)
-    r.ImGui_SetNextWindowPos(ctx, L, T + H)
-    r.ImGui_SetNextWindowSize(ctx, W, H)
+    ImGui.OpenPopup(ctx, 'ProQ Display Range ##' .. FX_Idx)
+    local L, T = ImGui.GetItemRectMin(ctx)
+    local W, H = ImGui.GetItemRectSize(ctx)
+    ImGui.SetNextWindowPos(ctx, L, T + H)
+    ImGui.SetNextWindowSize(ctx, W, H)
 end
 
 if focusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
@@ -104,29 +103,29 @@ end
 
 
 
-if r.ImGui_BeginPopup(ctx, 'ProQ Display Range ##' .. FX_Idx) then
-    if r.ImGui_Selectable(ctx, '±30dB') then
+if ImGui.BeginPopup(ctx, 'ProQ Display Range ##' .. FX_Idx) then
+    if ImGui.Selectable(ctx, '±30dB') then
         ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 1
         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 1)
-        r.ImGui_CloseCurrentPopup(ctx)
+        ImGui.CloseCurrentPopup(ctx)
     end
-    if r.ImGui_Selectable(ctx, '±12dB') then
+    if ImGui.Selectable(ctx, '±12dB') then
         ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 2.5
         r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.7)
-        r.ImGui_CloseCurrentPopup(ctx)
+        ImGui.CloseCurrentPopup(ctx)
     end
-    if r.ImGui_Selectable(ctx, '±6 dB') then
+    if ImGui.Selectable(ctx, '±6 dB') then
         ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 5
         r.TrackFX_SetParam(LT_Track, FX_Idx, 331, 0.3)
-        r.ImGui_CloseCurrentPopup(ctx)
+        ImGui.CloseCurrentPopup(ctx)
     end
-    if r.ImGui_Selectable(ctx, '±3 dB') then
+    if ImGui.Selectable(ctx, '±3 dB') then
         ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 10
         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 331, 0)
-        r.ImGui_CloseCurrentPopup(ctx)
+        ImGui.CloseCurrentPopup(ctx)
     end
 
-    r.ImGui_EndPopup(ctx)
+    ImGui.EndPopup(ctx)
 end
 if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 1 then
     ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] = 30
@@ -147,16 +146,16 @@ FX.Round[FxGUID] = 100
 
 
 Rounding = 10
-r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_FrameRounding(), Rounding)
+ImGui.PushStyleVar(ctx, ImGui.StyleVar_FrameRounding, Rounding)
 AddDrag(ctx, '##GainScale' .. FxGUID, '', GainScale, 0, 1, 0 --[[FX_P]], FX_Idx, 314, 'Pro C', 60,
     item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
 
-if r.ImGui_IsItemActivated(ctx) and r.ImGui_IsMouseDoubleClicked(ctx, 0) then
+if ImGui.IsItemActivated(ctx) and ImGui.IsMouseDoubleClicked(ctx, 0) then
     r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 314, 0.5)
 end
-r.ImGui_PopStyleVar(ctx)
+ImGui.PopStyleVar(ctx)
 
-r.ImGui_PopStyleColor(ctx)
+ImGui.PopStyleColor(ctx)
 
 
 
@@ -207,15 +206,15 @@ if not FX[FxGUID].Collapse then
 
     _, ProQ3.Format = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_type')
 
-    r.ImGui_PushStyleColor(ctx, r.ImGui_Col_FrameBg(), 0x090909ff)
+    ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, 0x090909ff)
 
     ProQ3.H = 200
-    local L , T = r.ImGui_GetCursorScreenPos(ctx)
+    local L , T = ImGui.GetCursorScreenPos(ctx)
 
-    r.ImGui_SetNextWindowPos(ctx, L, T-28)
+    ImGui.SetNextWindowPos(ctx, L, T-28)
 
 
-    if r.ImGui_BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
+    if ImGui.BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
         if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == nil then ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] = 2.5 end
         if ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]] == 10 then
             ProQ3['DragGainScale' .. ' ID' .. FXGUID[FX_Idx]] = 100
@@ -234,15 +233,15 @@ if not FX[FxGUID].Collapse then
         local ShelfGain_Node = 0
         local Q_Node = {}
         local E = 2.71828182845904523
-        ProQ_Xpos_L, ProQ_Ypos_T = r.ImGui_GetItemRectMin(ctx)
-        ProQ_Xpos_R, ProQ_Ypos_B = r.ImGui_GetItemRectMax(ctx)
+        ProQ_Xpos_L, ProQ_Ypos_T = ImGui.GetItemRectMin(ctx)
+        ProQ_Xpos_R, ProQ_Ypos_B = ImGui.GetItemRectMax(ctx)
         --ProQ_Ypos_B= ProQ_Ypos_T+340
         local B = ProQ_Ypos_B + 340
         floor = -80; ly = 0; lx = -1;
 
         sc = (ProQ3.Width - 20) * 20 /
             (floor * math.log(10)) --      200 = width of window
-        Foreground = r.ImGui_GetWindowDrawList(ctx)
+        Foreground = ImGui.GetWindowDrawList(ctx)
         SpectrumX = 0
         SpectrumY = 0
         r.gmem_attach('gmemReEQ_Spectrum')
@@ -279,10 +278,10 @@ if not FX[FxGUID].Collapse then
 
 
             if lx ~= tx and i ~= 2 then
-                r.ImGui_DrawList_AddQuadFilled(Foreground, lx, B, lx, ly, tx, ty, tx,
+                ImGui.DrawList_AddQuadFilled(Foreground, lx, B, lx, ly, tx, ty, tx,
                     B, 0x003535ff)
             elseif i == 2 then
-                r.ImGui_DrawList_AddQuadFilled(Foreground, lx, B, lx, ty, tx, ty, tx,
+                ImGui.DrawList_AddQuadFilled(Foreground, lx, B, lx, ty, tx, ty, tx,
                     B, 0x003535ff)
             end
 
@@ -367,7 +366,7 @@ if not FX[FxGUID].Collapse then
                     BandColor = determineBandColor(ProQ3.LT_EQBand[FXGUID_ProQ])
                     i = iteration
                     if i ~= 1 then
-                        r.ImGui_DrawList_AddLine(Foreground, x, y1, X2,Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
+                        ImGui.DrawList_AddLine(Foreground, x, y1, X2,Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
                     end
                     x = X2
                 end
@@ -414,7 +413,7 @@ if not FX[FxGUID].Collapse then
                             BandColor = determineBandColor(ProQ3.LT_EQBand
                                 [FXGUID_ProQ])
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x,
+                                ImGui.DrawList_AddLine(Foreground, x,
                                     Y_Mid, X2, Y_Mid -
                                     pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
                             end
@@ -443,7 +442,7 @@ if not FX[FxGUID].Collapse then
                         FillClr_LT_Band(i, Y_Mid)
                     end
 
-                    r.ImGui_DrawList_PathFillConvex(Foreground, 0xffffffff)
+                    ImGui.DrawList_PathFillConvex(Foreground, 0xffffffff)
                 end
             elseif ProQ3.Band_UseState[Band] == 1.0 and ProQ3['Shape of Band' .. Band .. 'ID' .. FXGUID_ProQ] == 'High Cut' then
                 if Slope[Band] < 0.2 then
@@ -506,7 +505,7 @@ if not FX[FxGUID].Collapse then
                                 [FXGUID_ProQ])
                             local X2 = x + 2
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x,
+                                ImGui.DrawList_AddLine(Foreground, x,
                                     Y_Mid + 100, X2,
                                     Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor, 2)
@@ -577,7 +576,7 @@ if not FX[FxGUID].Collapse then
                                 [FXGUID_ProQ])
                             local X2 = x + 1
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x,
+                                ImGui.DrawList_AddLine(Foreground, x,
                                     Y_Mid + 100, X2,
                                     Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor, 2)
@@ -609,7 +608,7 @@ if not FX[FxGUID].Collapse then
                             BandColor = determineBandColor(ProQ3.LT_EQBand
                                 [FXGUID_ProQ])
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x, y,
+                                ImGui.DrawList_AddLine(Foreground, x, y,
                                     X2, Y_Mid - pts
                                     [i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor)
@@ -638,7 +637,7 @@ if not FX[FxGUID].Collapse then
                             BandColor = determineBandColor(ProQ3.LT_EQBand
                                 [FXGUID_ProQ])
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x, y,
+                                ImGui.DrawList_AddLine(Foreground, x, y,
                                     X2, Y_Mid - pts
                                     [i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor)
@@ -666,7 +665,7 @@ if not FX[FxGUID].Collapse then
                             BandColor = determineBandColor(ProQ3.LT_EQBand
                                 [FXGUID_ProQ])
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x,
+                                ImGui.DrawList_AddLine(Foreground, x,
                                     Y_Mid + 100, X2,
                                     Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor)
@@ -694,7 +693,7 @@ if not FX[FxGUID].Collapse then
                             BandColor = determineBandColor(ProQ3.LT_EQBand
                                 [FXGUID_ProQ])
                             if i ~= 1 then
-                                r.ImGui_DrawList_AddLine(Foreground, x, y,
+                                ImGui.DrawList_AddLine(Foreground, x, y,
                                     X2, Y_Mid - pts
                                     [i .. 'B-' .. Band .. FXGUID_ProQ],
                                     BandColor)
@@ -732,7 +731,7 @@ if not FX[FxGUID].Collapse then
                 local y1 = Y_Mid - pts[(math.max(i - 2, 3)) .. FXGUID_ProQ] * (GainScale * 2)
                 local y2 = Y_Mid - pts[i .. FXGUID_ProQ] * (GainScale * 2)
 
-                r.ImGui_DrawList_AddLine(Foreground, x, y1, X2, y2, 0xFFC43488, 2.5)
+                ImGui.DrawList_AddLine(Foreground, x, y1, X2, y2, 0xFFC43488, 2.5)
             end
 
 
@@ -743,41 +742,41 @@ if not FX[FxGUID].Collapse then
 
 
 
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos50 - 3, Y_Mid + 86, 0x78787899, '50')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos100 - 5, Y_Mid + 86, 0x78787899, '100')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos200 - 5, Y_Mid + 86, 0x78787899, '200')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos500 - 5, Y_Mid + 86, 0x78787899, '500')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos1k - 5, Y_Mid + 86, 0x78787899, '1k')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos2k - 5, Y_Mid + 86, 0x78787899, '2k')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos5k - 5, Y_Mid + 86, 0x78787899, '5k')
-        r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
+        ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
             ProQ_Xpos_L + iPos10k - 5, Y_Mid + 86, 0x78787899, '10k')
 
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos50, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos50, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos50, ProQ_Ypos_T + 300, 0x78787822)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos100, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos100, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos100, ProQ_Ypos_T + 300, 0x78787844)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos200, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos200, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos200, ProQ_Ypos_T + 300, 0x78787822)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos500, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos500, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos500, ProQ_Ypos_T + 300, 0x78787822)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos1k, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos1k, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos1k, ProQ_Ypos_T + 300, 0x78787844)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos2k, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos2k, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos2k, ProQ_Ypos_T + 300, 0x78787822)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos5k, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos5k, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos5k, ProQ_Ypos_T + 300, 0x78787822)
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos10k, ProQ_Ypos_B,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos10k, ProQ_Ypos_B,
             ProQ_Xpos_L + iPos10k, ProQ_Ypos_T + 300, 0x78787844)
 
-        r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid, ProQ_Xpos_R, Y_Mid,
+        ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid, ProQ_Xpos_R, Y_Mid,
             0x78787844)
 
         if ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] == 30 or ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] == 3 then
@@ -786,30 +785,30 @@ if not FX[FxGUID].Collapse then
             local GainMinus10 = Y_Mid - (ProQ_Ypos_T - Y_Mid) / 3
             local GainMinus20 = Y_Mid - ((ProQ_Ypos_T - Y_Mid) / 3) * 2
 
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain10, ProQ_Xpos_R,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain10, ProQ_Xpos_R,
                 Gain10, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain20, ProQ_Xpos_R,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain20, ProQ_Xpos_R,
                 Gain20, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus10,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus10,
                 ProQ_Xpos_R, GainMinus10, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus20,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus20,
                 ProQ_Xpos_R, GainMinus20, 0x78787822)
         elseif ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] == 12 then
             local Gain3 = (ProQ_Ypos_T - Y_Mid) / 4
             local Gain6 = ((ProQ_Ypos_T - Y_Mid) / 4) * 2
             local Gain9 = ((ProQ_Ypos_T - Y_Mid) / 4) * 3
 
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
                 ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain6,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain6,
                 ProQ_Xpos_R, Y_Mid + Gain6, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain9,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain9,
                 ProQ_Xpos_R, Y_Mid + Gain9, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
                 ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain6,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain6,
                 ProQ_Xpos_R, Y_Mid - Gain6, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain9,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain9,
                 ProQ_Xpos_R, Y_Mid - Gain9, 0x78787822)
         elseif ProQ3['scaleLabel' .. ' ID' .. FXGUID[FX_Idx]] == 6 then
             local Gain1 = (ProQ_Ypos_T - Y_Mid) / 6
@@ -818,27 +817,27 @@ if not FX[FxGUID].Collapse then
             local Gain4 = Gain1 * 4
             local Gain5 = Gain1 * 5
 
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain1,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain1,
                 ProQ_Xpos_R, Y_Mid + Gain1, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain2,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain2,
                 ProQ_Xpos_R, Y_Mid + Gain2, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
                 ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain4,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain4,
                 ProQ_Xpos_R, Y_Mid + Gain4, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain5,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain5,
                 ProQ_Xpos_R, Y_Mid + Gain5, 0x78787822)
 
 
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1,
                 ProQ_Xpos_R, Y_Mid - Gain1, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2,
                 ProQ_Xpos_R, Y_Mid - Gain2, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
                 ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4,
                 ProQ_Xpos_R, Y_Mid - Gain4, 0x78787822)
-            r.ImGui_DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5,
+            ImGui.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5,
                 ProQ_Xpos_R, Y_Mid - Gain5, 0x78787822)
         end
 
@@ -849,7 +848,7 @@ if not FX[FxGUID].Collapse then
         NodeY_Pos = {}
         NodeHvr = {}
         NodeHasbeenHovered = nil
-        MousePosX, MousePosY = r.ImGui_GetMousePos(ctx)
+        MousePosX, MousePosY = ImGui.GetMousePos(ctx)
 
 
         for Band = 1, 24, 1 do
@@ -884,9 +883,9 @@ if not FX[FxGUID].Collapse then
                             end
                             --ttp(FP_gain.ModAMT[M])
                             --msg(FP_gain.V )
-                            r.ImGui_DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
-                            r.ImGui_DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
-                            r.ImGui_DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])
+                            ImGui.DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
+                            ImGui.DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
+                            ImGui.DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])
 
                         end
                     end
@@ -925,22 +924,22 @@ if not FX[FxGUID].Collapse then
 
 
                 if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
-                    r.ImGui_DrawList_AddCircleFilled(Foreground,
+                    ImGui.DrawList_AddCircleFilled(Foreground,
                         ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 6,
                         Clr_FullAlpha)
                 else
-                    r.ImGui_DrawList_AddCircleFilled(Foreground,
+                    ImGui.DrawList_AddCircleFilled(Foreground,
                         ProQ_Xpos_L + (XposNode[Band] or 0), NodeY_Pos[Band] or 0, 6,
                         Clr_HalfAlpha)
                 end
                 if ProQ_Xpos_L and XposNode[Band] and NodeY_Pos[Band] then
                     if Band <= 9 then
-                        r.ImGui_DrawList_AddTextEx(Foreground,
+                        ImGui.DrawList_AddTextEx(Foreground,
                             Font_Andale_Mono, 12, ProQ_Xpos_L + XposNode[Band] - 2.5,
                             NodeY_Pos[Band] - 4.5, 0x000000ff, Band)
                     end
                     if Band > 9 then
-                        r.ImGui_DrawList_AddTextEx(Foreground,
+                        ImGui.DrawList_AddTextEx(Foreground,
                             Font_Andale_Mono, 10, ProQ_Xpos_L + XposNode[Band] - 5,
                             NodeY_Pos[Band] - 4, 0x000000ff, Band)
                     end
@@ -956,11 +955,11 @@ if not FX[FxGUID].Collapse then
 
                 if ProQ3['NodeHvr' .. Band .. 'FXID-' .. FXGUID[FX_Idx]] == true then
                     NodeHasbeenHovered = true
-                    FX_DeviceWindow_NoScroll = r.ImGui_WindowFlags_NoScrollWithMouse()
-                    r.ImGui_DrawList_AddCircle(Foreground, ProQ_Xpos_L +
+                    FX_DeviceWindow_NoScroll = ImGui.WindowFlags_NoScrollWithMouse
+                    ImGui.DrawList_AddCircle(Foreground, ProQ_Xpos_L +
                         XposNode[Band], NodeY_Pos[Band], 7.7, 0xf0f0f0ff)
                     if IsLBtnHeld then
-                        r.ImGui_DrawList_AddCircleFilled(Foreground,
+                        ImGui.DrawList_AddCircleFilled(Foreground,
                             ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7,
                             Clr_HalfAlpha)
                         if IsLBtnClicked then ProQ3['NodeDrag' .. Band .. ' ID-' .. FXGUID[FX_Idx]] = true end
@@ -993,7 +992,7 @@ if not FX[FxGUID].Collapse then
                         end
                     end
                     if IsRBtnClicked == true and Mods == Ctrl then
-                        r.ImGui_OpenPopup(ctx, 'Pro-Q R Click')
+                        ImGui.OpenPopup(ctx, 'Pro-Q R Click')
                     end
 
                     AssignMod(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][gain_P_num].V, Sldr_Width, 'Pro-Q', 'No Item Trigger')
@@ -1030,7 +1029,7 @@ if not FX[FxGUID].Collapse then
 
 
                 if ProQ3['NodeDrag' .. Band .. ' ID-' .. FXGUID[FX_Idx]] == true then
-                    MouseDeltaX, MouseDeltaY = r.ImGui_GetMouseDelta(ctx)
+                    MouseDeltaX, MouseDeltaY = ImGui.GetMouseDelta(ctx)
                     local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,((Band - 1) * 13) + 2)
                     local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
                     local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 7)
@@ -1115,7 +1114,7 @@ if not FX[FxGUID].Collapse then
 
 
 
-                -- if i == iPos10k then r.ImGui_DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
+                -- if i == iPos10k then ImGui.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
                 if LT_ParamNum ~= nil then
                     local m = m;
                     _, tracknumber, fxnumber, paramnumber = r.GetLastTouchedFX()
@@ -1132,7 +1131,7 @@ if not FX[FxGUID].Collapse then
                         end
                     end
                     if ProQ3.GainDragging == true then
-                        MouseDeltaX, MouseDeltaY = r.ImGui_GetMouseDelta(ctx)
+                        MouseDeltaX, MouseDeltaY = ImGui.GetMouseDelta(ctx)
 
                         local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                             ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3)
@@ -1157,7 +1156,7 @@ if not FX[FxGUID].Collapse then
                         end
                     end
                     if ProQ3.FreqDragging == true then
-                        MouseDeltaX, MouseDeltaY = r.ImGui_GetMouseDelta(ctx)
+                        MouseDeltaX, MouseDeltaY = ImGui.GetMouseDelta(ctx)
                         if Mods == Shift then
                             HorizDragScale = 1300
                         else
@@ -1196,49 +1195,49 @@ if not FX[FxGUID].Collapse then
 
 
 
-        if r.ImGui_BeginPopup(ctx, 'Pro-Q R Click') then
+        if ImGui.BeginPopup(ctx, 'Pro-Q R Click') then
             local LTBand = ProQ3.LT_EQBand[FXGUID[FX_Idx]]
-            if r.ImGui_Button(ctx, 'Bell') then
+            if ImGui.Button(ctx, 'Bell') then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,0)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Low Shelf') then
+            if ImGui.Button(ctx, 'Low Shelf') then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
                     0.11)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Low Cut') then
+            if ImGui.Button(ctx, 'Low Cut') then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
                     0.22)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'High Shelf') then
+            if ImGui.Button(ctx, 'High Shelf') then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
                     0.33)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'High Cut') then
+            if ImGui.Button(ctx, 'High Cut') then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
                     0.44)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Notch') then
+            if ImGui.Button(ctx, 'Notch') then
                 r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.60)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Band Pass') then
+            if ImGui.Button(ctx, 'Band Pass') then
                 r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.72)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Tilt Shelf') then
+            if ImGui.Button(ctx, 'Tilt Shelf') then
                 r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.86)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            if r.ImGui_Button(ctx, 'Flat Tilt') then
+            if ImGui.Button(ctx, 'Flat Tilt') then
                 r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 1)
-                r.ImGui_CloseCurrentPopup(ctx)
+                ImGui.CloseCurrentPopup(ctx)
             end
-            r.ImGui_EndPopup(ctx)
+            ImGui.EndPopup(ctx)
         end
 
 
@@ -1259,7 +1258,7 @@ if not FX[FxGUID].Collapse then
                 end
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
                     13 * (BandNotInUse - 1), 1)
-                MouseX_AddNode, MouseY_AddNode = r.ImGui_GetMousePos(ctx)
+                MouseX_AddNode, MouseY_AddNode = ImGui.GetMousePos(ctx)
 
                 local FreqToAddNode = (MouseX_AddNode - ProQ_Xpos_L) / ProQ3.Width
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
@@ -1285,21 +1284,21 @@ if not FX[FxGUID].Collapse then
 
         step = ProQ3.Width / 200
 
-        r.ImGui_DrawList_PathStroke(Foreground, 0x99999988, nil, 3)
+        ImGui.DrawList_PathStroke(Foreground, 0x99999988, nil, 3)
 
 
 
-        r.ImGui_EndChild(ctx)
+        ImGui.EndChild(ctx)
     end ---- End of if begin pro-Q frame then
 
-    ProQ3['HvrGUI' .. FXGUID[FX_Idx]] = r.ImGui_IsItemHovered(ctx)
-    --if ProQ3['HvrGUI'..FXGUID[FX_Idx]] then FX_DeviceWindow_NoScroll= 0--[[ r.ImGui_WindowFlags_NoScrollWithMouse() ]] end
+    ProQ3['HvrGUI' .. FXGUID[FX_Idx]] = ImGui.IsItemHovered(ctx)
+    --if ProQ3['HvrGUI'..FXGUID[FX_Idx]] then FX_DeviceWindow_NoScroll= 0--[[ ImGui.WindowFlags_NoScrollWithMouse ]] end
 
-    r.ImGui_PopStyleColor(ctx, 1)
+    ImGui.PopStyleColor(ctx, 1)
 
     if FX.Enable[FX_Idx] == false then
-        local drawlist = r.ImGui_GetForegroundDrawList(ctx)
-        r.ImGui_DrawList_AddRectFilled(drawlist, ProQ_Xpos_L, ProQ_Ypos_T - 20,
+        local drawlist = ImGui.GetForegroundDrawList(ctx)
+        ImGui.DrawList_AddRectFilled(drawlist, ProQ_Xpos_L, ProQ_Ypos_T - 20,
             ProQ_Xpos_L + ProQ3.Width, ProQ_Ypos_T + ProQ3.H, 0x00000077)
     end
 
@@ -1321,7 +1320,7 @@ if not FX[FxGUID].Collapse then
                     FX[FxGUID].ProQ_ID, true)
                 r.gmem_write(2, FX[FxGUID].ProQ_ID)
                 local AnyPopupOpen
-                if r.ImGui_IsPopupOpen(ctx, 'Delete FX Layer ', r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel()) then AnyPopupOpen = true end
+                if ImGui.IsPopupOpen(ctx, 'Delete FX Layer ', ImGui.PopupFlags_AnyPopupId + ImGui.PopupFlags_AnyPopupLevel) then AnyPopupOpen = true end
 
                 if not tablefind(Trk[TrkID].PostFX, FxGUID) and not tablefind(Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
                     r.gmem_attach('gmemReEQ_Spectrum')

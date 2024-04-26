@@ -1,5 +1,4 @@
 -- @noindex
-r = reaper
 
 ---@param FXGUID_RackMixer string
 ---@param LayerNum integer

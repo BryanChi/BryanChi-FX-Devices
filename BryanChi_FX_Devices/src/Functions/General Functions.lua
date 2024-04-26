@@ -1,8 +1,6 @@
 -------------General Functions ------------------------------
 -- @version 1.0Beta 1
 
-r = reaper
-
 ---General functions list
 function msg(...)
     for i, v in ipairs({ ... }) do
@@ -1239,8 +1237,8 @@ end
 ---@param center? string
 ---@param Identifier? string
 ---@return boolean|nil
-function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
-    ImGui.PushFont(ctx, FontAwesome)
+function IconBtn(w, h, icon, BGClr, center, Identifier)
+    ImGui.PushFont(ctx, icon1)
     if ImGui.InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
     end
     local FillClr
@@ -1266,6 +1264,35 @@ function IconBtn(w, h, icon, BGClr, center, Identifier) -- Y = wrench
     end
     ImGui.PopFont(ctx)
     if ImGui.IsItemActivated(ctx) then return true end
+end
+
+dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/Drawing.lua") -- DrawListButton function
+
+function DrawListButton(name, color, round_side, icon, iconfile, edging, hover, offset)
+    local multi_color = IS_DRAGGING_RIGHT_CANVAS and color or ColorToHex(color, hover and 50 or 0)
+    local xs, ys = ImGui.GetItemRectMin(ctx)
+    local xe, ye = ImGui.GetItemRectMax(ctx)
+    local w = xe - xs
+    local h = ye - ys
+  
+    local round_flag = round_side and ROUND_FLAG[round_side] or nil
+    local round_amt = round_flag and ROUND_CORNER or 0
+  
+    ImGui.DrawList_AddRectFilled(WDL, xs, ys, xe, ye, ImGui.GetColorEx(ctx, multi_color), round_amt,
+      round_flag)
+    if ImGui.IsItemActive(ctx) and edging then
+        ImGui.DrawList_AddRect(WDL, xs - 2, ys - 2, xe + 2, ye + 2, 0x22FF44FF, 3, nil, 2)
+    end
+  
+    if icon then ImGui.PushFont(ctx, iconfile) end
+  
+    local label_size = ImGui.CalcTextSize(ctx, name)
+    local font_size = ImGui.GetFontSize(ctx)
+    local font_color = CalculateFontColor(color)
+  
+    ImGui.DrawList_AddTextEx(WDL, nil, font_size, xs + (w / 2) - (label_size / 2) + (offset or 0),
+      ys + ((h / 2)) - font_size / 2, ImGui.GetColorEx(ctx, font_color), name)
+    if icon then ImGui.PopFont(ctx) end
 end
 
 ---@param f integer
@@ -2472,7 +2499,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-            if ImGui.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, ImGui.WindowFlags_NoScrollbar+ ImGui.WindowFlags_NoScrollWithMouse) and not Hide then ----START CHILD WINDOW------
+
+            if ImGui.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, ImGui.WindowFlags_NoScrollbar | ImGui.WindowFlags_NoScrollWithMouse) and not Hide then ----START CHILD WINDOW------
                 if Draw[FxNameS] ~= nil then
                     local D = Draw[FxNameS]
                 end
@@ -3005,7 +3033,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         ImGui.PushStyleColor(ctx, ImGui.Col_Text,
                             getClr(ImGui.Col_TextDisabled))
                     end
-                    if IconBtn(20, 20, 'Y') then -- settings icon
+                    local rv = ImGui.Button(ctx, '##g', 20, 20) -- settings icon
+                    DrawListButton('g', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false)
+                    if rv then 
                         if OpenMorphSettings then
                             OpenMorphSettings = FxGUID
                         else
@@ -3129,13 +3159,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
                 if OpenMorphSettings then
+                    ImGui.SetNextWindowSizeConstraints(ctx, 500, 500, FLT_MAX, FLT_MAX)
                     Open, Oms = ImGui.Begin(ctx, 'Preset Morph Settings ', Oms,
-                        ImGui.WindowFlags_NoCollapse + ImGui.WindowFlags_NoDocking)
+                        ImGui.WindowFlags_NoCollapse | ImGui.WindowFlags_NoDocking)
                     if Oms then
                         if FxGUID == OpenMorphSettings then
                             ImGui.Text(ctx, 'Set blacklist parameters here: ')
                             local SpaceForBtn
-                            Filter = ImGui.CreateTextFilter(FilterTxt)
+                            if not ImGui.ValidatePtr(Filter, "ImGui_TextFilter*") then
+                                Filter = ImGui.CreateTextFilter(FilterTxt)
+                            end
                             ImGui.Text(ctx, 'Filter :')
                             ImGui.SameLine(ctx)
                             if FilterTxt then SpaceForBtn = 170 end
@@ -3214,8 +3247,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 ImGui.SetNextItemWidth(ctx, 20)
                                 ImGui.TableSetColumnIndex(ctx, 0)
 
-                                IconBtn(20, 20, 'M', 0x00000000)
-
+                                local rv = ImGui.InvisibleButton(ctx, '##M', 20, 20) -- (/) icon
+                                DrawListButton('M', 0x00000000, nil, true, icon1_middle, false)
                                 ImGui.TableSetColumnIndex(ctx, 1)
                                 ImGui.AlignTextToFramePadding(ctx)
                                 ImGui.Text(ctx, 'Parameter Name ')

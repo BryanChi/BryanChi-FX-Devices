@@ -2,7 +2,6 @@
 
 -- @noindex
 
-r = reaper
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
@@ -42,7 +41,7 @@ end
 ---@param P_Num number
 ---@param FX_Idx integer
 function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-    if r.ImGui_IsMouseDoubleClicked(ctx, 1) and r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
+    if ImGui.IsMouseDoubleClicked(ctx, 1) and ImGui.IsItemClicked(ctx, 1) and Mods == 0 then
         if FX[FxGUID][Fx_P].ModAMT then
             for Mc = 1, 8, 1 do
                 if FX[FxGUID][Fx_P].ModAMT[Mc] then
@@ -68,11 +67,11 @@ MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 
 function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trigger)
     local FP = FX[FxGUID][Fx_P]
-    local RC = r.ImGui_IsItemClicked(ctx, 1)
+    local RC = ImGui.IsItemClicked(ctx, 1)
     if FP then  FP.ModBipolar = FP.ModBipolar or {} end 
 
 
-    if trigger == 'No Item Trigger' then RC = r.ImGui_IsMouseClicked(ctx, 1) end 
+    if trigger == 'No Item Trigger' then RC = ImGui.IsMouseClicked(ctx, 1) end 
     if --[[Assign Mod]] AssigningMacro and RC then
         local _, ValBeforeMod
         r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
@@ -152,7 +151,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     local RC = ImGui.IsItemClicked(ctx, 1)
     r.gmem_attach('ParamValues')
 
-    if trigger == 'No Item Trigger' then RC = r.ImGui_IsMouseClicked(ctx, 1) end 
+    if trigger == 'No Item Trigger' then RC = ImGui.IsMouseClicked(ctx, 1) end 
 
     if --[[Link CC back when mouse is up]] Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
         if FX[FxGUID][Fx_P].WhichCC then
@@ -201,13 +200,13 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             end
         end
         DecideShortOrLongClick = FP
-        Dur = r.ImGui_GetMouseDownDuration(ctx, 1)
+        Dur = ImGui.GetMouseDownDuration(ctx, 1)
     --[[ elseif RC and FP.ModAMT and Mods == Alt then
         r.gmem_write(1000 * AssigningMacro + FP.WhichCC, (FP.ModAMT[M] or 0) +100 ) ]]  ---  if amount  is 100 ~ 101 then it's bipolar modulation
     end
 
     if DecideShortOrLongClick == FP and Dur then
-        if r.ImGui_IsMouseReleased(ctx, 1) then
+        if ImGui.IsMouseReleased(ctx, 1) then
             if Dur < 0.14 then
                 ---- if short right click
                 if FP.ModBypass then
@@ -231,7 +230,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
             DecideShortOrLongClick = nil
         end
-        Dur = r.ImGui_GetMouseDownDuration(ctx, 1)
+        Dur = ImGui.GetMouseDownDuration(ctx, 1)
     end
 
 
@@ -240,7 +239,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     end
 
 
-    if PM.DragOnModdedPrm == true and r.ImGui_IsMouseDown(ctx, 1) ~= true then
+    if PM.DragOnModdedPrm == true and ImGui.IsMouseDown(ctx, 1) ~= true then
         AssigningMacro = nil
         PM.DragOnModdedPrm = nil
     end
@@ -263,14 +262,14 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         local IdM = 'Param:' .. tostring(Trk.Prm.Assign) .. 'Macro:' .. AssigningMacro
 
 
-        local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
+        local sizeX, sizeY = ImGui.GetItemRectSize(ctx)
 
         --[[
                 PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
                 Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
                 SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
-        local RightBtnDragX, RightBtnDragY = r.ImGui_GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        local RightBtnDragX, RightBtnDragY = ImGui.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
         if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
         if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
@@ -309,7 +308,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
         --if not IsLBtnHeld then r.gmem_write(4, 1) end --tells jsfx that user is changing Macro Mod Amount
-        r.ImGui_ResetMouseDragDelta(ctx, 1)
+        ImGui.ResetMouseDragDelta(ctx, 1)
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',FP.ModAMT[M], true)
     end
@@ -321,7 +320,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         for M, v in ipairs(MacroNums) do
             if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
                 --if Modulation has been assigned to params
-                local sizeX, sizeY = r.ImGui_GetItemRectSize(ctx)
+                local sizeX, sizeY = ImGui.GetItemRectSize(ctx)
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                 --- indicator of where the param is currently
@@ -406,15 +405,15 @@ end
 
 
 function WhenRightClickOnModulators(Macro)
-    if r.ImGui_IsItemClicked(ctx, 1) and Mods == Ctrl then
-        r.ImGui_OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
+    if ImGui.IsItemClicked(ctx, 1) and Mods == Ctrl then
+        ImGui.OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
     end
-    if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
+    if ImGui.IsItemClicked(ctx, 1) and Mods == 0 then
         if not AssigningMacro then AssigningMacro = Macro
         else AssigningMacro = nil
         end
     end
-    if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
+    if ImGui.IsItemClicked(ctx, 1) and Mods == Alt then
         SetModulationToBipolar(Macro)
     end
     if AssigningMacro==Macro then BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink) end 
@@ -441,7 +440,7 @@ function DrawLFOvalueTrail (MacroTable , x, y, Macro )
 
         elseif i > 2 then 
             local WDL = ImGui.GetWindowDrawList(ctx)
-            r.ImGui_DrawList_AddLine(WDL, v.x , v.y , ls.x, ls.y, 0xffffff55, 8 - 16 / i )
+            ImGui.DrawList_AddLine(WDL, v.x , v.y , ls.x, ls.y, 0xffffff55, 8 - 16 / i )
 
         end 
 
