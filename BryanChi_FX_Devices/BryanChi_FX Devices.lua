@@ -8,6 +8,10 @@
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
+--   src/Constants.lua
+--   src/Fonts/*.ttf
+--   src/Functions/*.lua
+--   src/FX Layout Plugin Scripts/*.lua
 --   src/FX Layouts/ReaComp (Cockos).ini
 --   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
@@ -15,14 +19,15 @@
 --   src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FXChains/ReaDrum Machine.RfxChain
 --   src/Images/Analog Knob 1.png
 --   src/Images/copy.png
+--   src/Images/paste.png
+--   src/Images/pin.png
+--   src/Images/pinned.png
 --   src/Images/sinewave.png
 --   src/Images/save.png
 --   src/Images/trash.png
---   src/Images/pinned.png
---   src/Images/pin.png
---   src/Images/paste.png
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Knobs/FancyBlueKnob_Inverted.png
@@ -32,12 +37,7 @@
 --   src/Images/Knobs/FancyRedKnob.png
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
---   src/FX Layout Plugin Scripts/*.lua
---   src/IconFont1.ttf
 --   [main] src/FXD - Record Last Touch.lua
---   src/Functions/*.lua
---   src/Constants.lua
---   src/FXChains/ReaDrum Machine.RfxChain
 
 -- @about
 --   Please check the forum post for info:
@@ -52,15 +52,6 @@ CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- 
 package.path = CurrentDirectory .. "?.lua;"
 
 r = reaper
-
-local reaimgui_force_version = "0.8.7.6"
-
---[[ if reaimgui_force_version then
-    local reaimgui_shim_file_path = r.GetResourcePath() .. '/Scripts/ReaTeam Extensions/API/imgui.lua'
-    if r.file_exists(reaimgui_shim_file_path) then
-        dofile(reaimgui_shim_file_path)(reaimgui_force_version)
-    end
-end ]]
 
 function ThirdPartyDeps()
     local ultraschall_path = r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
@@ -416,7 +407,7 @@ BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter',
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
-    'FXD Split to 32 Channels', 'JS: RDM MIDI Note Filter'
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility'
 }
 UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
@@ -435,7 +426,8 @@ local function StoreSettings()
             reverse_scroll = Reverse_Scroll,
             ctrl_scroll = Ctrl_Scroll,
             proc_gr_native = ProC.GR_NATIVE,
-            proq_analyzer = ProQ.Analyzer
+            proq_analyzer = ProQ.Analyzer,
+            --use_systemfont = Use_SystemFont
         }
     )
     r.SetExtState("FXDEVICES", "Settings", data, true)
@@ -450,6 +442,7 @@ if r.HasExtState("FXDEVICES", "Settings") then
             Ctrl_Scroll = storedTable.ctrl_scroll
             ProC.GR_NATIVE = storedTable.proc_gr_native
             ProQ.Analyzer = storedTable.proq_analyzer
+            --Use_SystemFont = storedTable.use_systemfont
         end
     end
 end
@@ -888,8 +881,9 @@ end
 
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
 script_folder       = script_folder .. '/src'
-FontAwesome         = ImGui.CreateFont(script_folder .. '/IconFont1.ttf', 30)
-FontAwesome_small   = ImGui.CreateFont(script_folder .. '/IconFont1.ttf', 10)
+icon1         = ImGui.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
+icon1_middle   = ImGui.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
+icon1_small   = ImGui.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
 
 local function attachImagesAndFonts()
     Img = {
@@ -897,21 +891,23 @@ local function attachImagesAndFonts()
         Pin    = ImGui.CreateImage(CurrentDirectory .. '/src/Images/pin.png'),
         Pinned = ImGui.CreateImage(CurrentDirectory .. '/src/Images/pinned.png'),
         Copy   = ImGui.CreateImage(CurrentDirectory .. '/src/Images/copy.png'),
-        Paste  = ImGui.CreateImage(CurrentDirectory .. 'src/Images/paste.png'),
+        Paste  = ImGui.CreateImage(CurrentDirectory .. '/src/Images/paste.png'),
         Save   = ImGui.CreateImage(CurrentDirectory .. '/src/Images/save.png'),
         Sine   = ImGui.CreateImage(CurrentDirectory .. '/src/Images/sinewave.png'),
     }
     for i = 6, 64, 1 do
       _G['Font_Andale_Mono_' .. i] = ImGui.CreateFont('andale mono', i)
     end
-
+    System_Font = ImGui.CreateFont('sans-serif', 14)
+    ImGui.Attach(ctx, System_Font)
     Font_Andale_Mono_20_B = ImGui.CreateFont('andale mono', 20, ImGui.FontFlags_Bold) -- TODO move to constants
     ImGui.Attach(ctx, Font_Andale_Mono_20_B)
     for i = 6, 64, 1 do
         ImGui.Attach(ctx, _G['Font_Andale_Mono_' .. i])
     end
-    ImGui.Attach(ctx, FontAwesome)
-    ImGui.Attach(ctx, FontAwesome_small)
+    ImGui.Attach(ctx, icon1)
+    ImGui.Attach(ctx, icon1_middle)
+    ImGui.Attach(ctx, icon1_small)
     for i, v in pairs(Img) do
         ImGui.Attach(ctx, v)
     end
@@ -1650,7 +1646,12 @@ if not visible then return end
         ImGui.PushStyleColor(ctx, ImGui.Col_SliderGrab, 0x808080ff)
         ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgActive, 0x808080ff) ]]
 
-    ImGui.PushFont(ctx, Font_Andale_Mono)
+        --[[if Use_SystemFont then
+            Font = System_Font
+        else]]
+            Font = Font_Andale_Mono
+        --end
+        ImGui.PushFont(ctx, Font)
 
 
 
@@ -1682,6 +1683,7 @@ if not visible then return end
             _, Ctrl_Scroll = ImGui.Checkbox(ctx, "Ctrl Scroll", Ctrl_Scroll)
             _, ProC.GR_NATIVE = ImGui.Checkbox(ctx, 'Use Native Gain Reduction for Pro-C', ProC.GR_NATIVE)
             _, ProQ.Analyzer = ImGui.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
+            --_, Use_SystemFont = ImGui.Checkbox(ctx, 'Use System Font', Use_SystemFont)
             StoreSettings()
             ImGui.EndMenu(ctx)
         end
@@ -4966,7 +4968,9 @@ if not visible then return end
                                                     FX[FxGUID][Itm].ManualValuesFormat[i])
                                                 SL()
                                                 local LH = ImGui.GetTextLineHeight(ctx)
-                                                if IconBtn(20, 20, 'T', BgClr, 'center', '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i) then
+                                                local rv = ImGui.Button(ctx, '##%', 20, 20) -- bin icon
+                                                DrawListButton('%', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false)
+                                                if rv then
                                                     table.remove(FX[FxGUID][Itm].ManualValuesFormat, i)
                                                     table.remove(FX[FxGUID][Itm].ManualValues, i)
                                                 end

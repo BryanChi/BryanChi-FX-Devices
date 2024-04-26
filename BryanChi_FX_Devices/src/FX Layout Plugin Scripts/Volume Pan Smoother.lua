@@ -1,9 +1,5 @@
 -- @noindex
 
-
-
-r = reaper
-
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
@@ -14,7 +10,7 @@ FX[FxGUID].TitleWidth = 50 -- Use this to set title bar width
 FX[FxGUID].Width = 200   -- use this to set the device's width
 
 SL()
-r.ImGui_Text(ctx, 'title area')
+ImGui.Text(ctx, 'title area')
 SL()
 
 
@@ -64,7 +60,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     --[[AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, SliderStyle, Sldr_Width,
                 item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)]]
 
-    r.ImGui_Text(ctx, 'example text')
+    ImGui.Text(ctx, 'example text')
     AddDrag(ctx, '##Pan Law', 'Pan Law', FX[FxGUID][3--[[Prm table index]]].V or 0, 0, 1, 3, FX_Idx, 2 --[[Prm Num]], Style, 80 --[[width]],
     0, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, 'Left-Right', AllowInput)
 

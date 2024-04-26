@@ -1,5 +1,4 @@
 -- @noindex
-r = reaper
 
 function serializeTable(val, name, skipnewlines, depth)
   skipnewlines = skipnewlines or false
