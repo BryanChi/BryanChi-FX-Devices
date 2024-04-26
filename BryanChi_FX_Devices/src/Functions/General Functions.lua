@@ -2051,6 +2051,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             ContainerX, ContainerY = ImGui.GetCursorScreenPos(ctx)
         end
 
+        local _, fx_ident = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_ident') -- by default \\Plugins\\FX\\reasamplomatic.dll<1920167789 or /Applications/REAPER.app/Contents/Plugins/FX/reasamplomatic.vst.dylib<1920167789
+        if fx_ident:find("1920167789") then
+            FX_Name = 'ReaSamplOmatic5000'
+        end
+
         FX_Name = string.sub(FX_Name, 1, (string.find(FX_Name, '%(') or 30) - 1)
         FX_Name = string.gsub(FX_Name, '-', ' ')
         WDL = FX.DL
@@ -2431,7 +2436,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             local Ct = math.max(math.floor((PrmCount / 6 - 0.01)) + 1, 1)
 
             DefaultWidth = (DF + GapBtwnPrmColumns) * Ct
-            msg()
+
         elseif FX.Def_Type[FxGUID] == 'Knob' then
             local Ct = math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
             DefaultWidth = Df.KnobSize * Ct + GapBtwnPrmColumns
@@ -2457,7 +2462,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local Width = FX.WidthCollapse[FxGUID] or FX[FxGUID].Width or DefaultWidth or 220
            -- local winFlg = ImGui.ChildFlags_NoScrollWithMouse + ImGui.ChildFlags_NoScrollbar
-           ttp(DefaultWidth)
+
             local dummyH = 220
             if FX_Name == 'Container' then
                 winFlg = FX[FxGUID].NoScroll or ImGui.ChildFlags_AlwaysAutoResize

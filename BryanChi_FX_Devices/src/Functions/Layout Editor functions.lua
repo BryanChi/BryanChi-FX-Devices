@@ -1036,11 +1036,11 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         local button_x, button_y = ImGui.GetCursorPos(ctx)
         ImGui.SetCursorPosY(ctx, button_y - (PosB - PosT))
-        WhichClick()
-        ImGui.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
+       -- WhichClick()
+        --[[ ImGui.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
         if ClickButton == ImGui.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
             DnD_PLink_SOURCE(FX_Idx, P_Num)
-        end
+        end ]]
 
         local value_changed = false
 
@@ -2028,11 +2028,11 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         local button_x, button_y = ImGui.GetCursorPos(ctx)
         ImGui.SetCursorPosY(ctx, button_y - (PosB - PosT))
-        WhichClick()
+        --[[ WhichClick()
         ImGui.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
         if ClickButton == ImGui.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
             DnD_PLink_SOURCE(FX_Idx, P_Num)
-        end
+        end ]]
 
         if is_active then
             if p_value < v_min then p_value = v_min end

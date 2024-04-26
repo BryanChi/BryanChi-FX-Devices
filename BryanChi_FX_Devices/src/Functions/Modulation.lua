@@ -149,7 +149,7 @@ end
 function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trigger)
     local FP = FX[FxGUID][Fx_P]
     local CC = FP.WhichCC
-    local RC = r.ImGui_IsItemClicked(ctx, 1)
+    local RC = ImGui.IsItemClicked(ctx, 1)
     r.gmem_attach('ParamValues')
 
     if trigger == 'No Item Trigger' then RC = r.ImGui_IsMouseClicked(ctx, 1) end 
@@ -184,7 +184,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 Trk.Prm.Assign = FP.WhichCC
                 AssigningMacro = M
 
-
+                msg(M)
                 r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
                 r.gmem_write(6, FP.WhichCC)
             end
@@ -440,6 +440,7 @@ function DrawLFOvalueTrail (MacroTable , x, y, Macro )
             
 
         elseif i > 2 then 
+            local WDL = ImGui.GetWindowDrawList(ctx)
             r.ImGui_DrawList_AddLine(WDL, v.x , v.y , ls.x, ls.y, 0xffffff55, 8 - 16 / i )
 
         end 

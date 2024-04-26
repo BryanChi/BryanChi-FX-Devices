@@ -95,13 +95,63 @@ function msg(a)
     r.ShowConsoleMsg(a)
 end
 
+function AddRandomSample(howmany, SampleSlot)
+    
+    for I = 1, howmany , 1 do 
+        local filename = MatchedFiles[math.random(1, #MatchedFiles)]
+        local rv = InsertSample(filename)
+        local TB
+        if SampleSlot then 
+            TB= Added[SampleSlot]
+        else
+            table.insert(Added, {})
+            TB = Added[#Added]
+        end
+        TB.it, TB.tk, TB.src = GetSelectedMediaItemInfo(0)
+        TB.KeyWord = TB.KeyWord or  {}
+        Add_KeyWord_To_Itm_tb(TB.KeyWord, #Added)
+        Match_Itm_Len_and_Src_Len(TB.src, TB.it, TB.tk)
+    end
 
+end
+
+
+
+
+
+function SwapSample( Itm,  MatchedFiles)
+    if #MatchedFiles <=1 then return end 
+
+    local filename = MatchedFiles[math.random(1, #MatchedFiles)]
+    r.BR_SetTakeSourceFromFile(Itm.tk, filename, true )
+    Itm.src = r.GetMediaItemTake_Source(Itm.tk)
+    table.insert(BUILD_PEAK, Itm.src )
+    --BUILD_PEAK = r.PCM_Source_BuildPeaks(v.src, 0)
+    local nm = Remove_Dir_path (filename)
+    retval,  stringNeedBig = r.GetSetMediaItemTakeInfo_String(Itm.tk, 'P_NAME', nm, true )
+    Match_Itm_Len_and_Src_Len(Itm.src, Itm.it, Itm.tk)
+    r.UpdateArrange()
+
+end
+
+
+function Add_KeyWord_To_Itm_tb(keywordTB, idx)
+    Added[idx].KeyWord={}
+    if SearchTxt~='' then 
+        table.insert(Added[idx].KeyWord, SearchTxt)
+    end
+    for i, v in ipairs(KeyWord) do 
+        if not FindStringInTable(Added[idx].KeyWord, v ) then 
+            table.insert(Added[idx].KeyWord, v)
+        end 
+    end 
+end
 
 function Delete_All_FXD_AnalyzerFX(trk)
     local  ct = r.TrackFX_GetCount(trk)
     for i= 0 , ct,  1 do 
         local rv, name =  r.TrackFX_GetFXName(trk, i )
-        msg(name)
+
         if FindStringInTable(FX_To_Delete_At_Close, name) then 
             r.TrackFX_Delete(trk, i )
         end
@@ -665,15 +715,21 @@ end
 ---@param V T
 ---@return boolean|nil
 ---@return T[]|nil
-function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?  -- this one uses string:find whereas exact uses ==
+function FindStringInTable(Table, V, Not_Case_Sensitive) ---TODO isn’t this a duplicate of FindExactStringInTable ?  -- this one uses string:find whereas exact uses ==
     local found = nil
     local Tab = {}
     if V then
         for i, val in pairs(Table) do
-            if string.find(val, V) ~= nil then
+            if Not_Case_Sensitive then 
+                val_low = string.lower(val) 
+                V_low  = string.lower(V) 
+            end
+
+            if val_low and string.find(val_low, V_low) ~= nil then
                 found = true
                 table.insert(Tab, val)
             end
+
         end
         if found == true then return true, Tab, V else return false end
     else
@@ -688,6 +744,31 @@ function Vertical_FX_Name (name)
     local Name_V = Name:gsub("(.)", "%1\n")
     return   Name_V:gsub("%b()", "") 
 end
+
+
+function PreviewSample_Solo(it, tb , Added)
+    if not (it and tb) then  return end 
+
+    r.Main_OnCommand(40769,0) --- Unselect ALL
+    if tb and Added then 
+        for i, v in ipairs(tb) do 
+            r.SetMediaItemInfo_Value(Added[v].it, 'B_UISEL', 1)  --select item 
+        end 
+    else 
+        r.SetMediaItemInfo_Value(it, 'B_UISEL', 1)  --select item 
+    end 
+
+    r.Main_OnCommand(41173,0) -- move cursor to start of item
+
+    r.Main_OnCommand(41558, 0 ) -- solo item 
+    r.Main_OnCommand(1007,0) --play 
+    Solo_Playing_Itm = true 
+
+end 
+
+
+
+
 
 ---@generic T
 ---@param Table table<string, T>
@@ -741,6 +822,9 @@ function has_value(tab, val)
     end
 end
 
+function dBFromVal(val) return 20*math.log(val, 10) end
+function ValFromdB(dB_val) return 10^(dB_val/20) end
+
 ---@generic T
 ---@param t T[]
 ---@return T[]|nil
@@ -790,6 +874,14 @@ function QuestionHelpHint (Str)
             HintToolTip(Str)
         end
     end
+end
+
+function GetSelectedMediaItemInfo(which)
+    it = r.GetSelectedMediaItem(0, which)
+    tk = r.GetMediaItemTake(it, 0)
+    src = r.GetMediaItemTake_Source(tk )
+
+    return it, tk, src
 end
 
 
@@ -844,7 +936,8 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
-function Highlight_Itm(WDL, FillClr, OutlineClr )
+function Highlight_Itm(ctx, WDL, FillClr, OutlineClr )
+    if not WDL then WDL = ImGui.GetWindowDrawList(ctx) end 
     local L, T = r.ImGui_GetItemRectMin(ctx); 
     local R, B = r.ImGui_GetItemRectMax(ctx); 
     
@@ -860,6 +953,32 @@ function PopClr(ctx, time)
     r.ImGui_PopStyleColor(ctx, time)
 end
 
+
+function Save_Search_set_Into_File(Search_Set_Name)
+
+    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'ReaTeam Scripts', 'FX', 'Bryan FX Devices GITHUB', 'Sample Stacker', 'Search Sets')
+    local file_path = ConcatPath(dir_path, Search_Set_Name..'.ini')
+    r.RecursiveCreateDirectory(dir_path, 0)
+    local file = io.open(file_path, 'w')
+    if file then 
+        local content = file:read("*a")
+        file:write('How Many Samples = '..#Added..'\n')
+        for i, v in ipairs(Added) do 
+            if #v.KeyWord>0 then 
+                file:write( 'Sample No.'.. i ..'\n')
+                file:write( 'How Many Keywords = '..#v.KeyWord..'\n' )
+
+                for i, v in ipairs(v.KeyWord) do 
+                    file:write( 'KeyWord '.. i .. ' = '.. v  ..'\n')
+                end 
+            end
+        end 
+    end 
+end 
+
+
+
+
 ---@param FX_Idx integer
 ---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
@@ -871,7 +990,7 @@ function SaveDrawings(FX_Idx, FxGUID)
     r.RecursiveCreateDirectory(dir_path, 0)
     local file = io.open(file_path, 'r+')
 
-    local D = FX[FxGUID].Draw
+    local D = FX[FxGUID].Draw   
 
     if file and D then
         local content = file:read("*a")
@@ -915,9 +1034,22 @@ end
 ---TODO remove this duplicate of tooltip()
 ---@param A string text for tooltip
 function ttp(A)
-    r.ImGui_BeginTooltip(ctx)
-    r.ImGui_SetTooltip(ctx, A)
-    r.ImGui_EndTooltip(ctx)
+    ImGui.BeginTooltip(ctx)
+    ImGui.SetTooltip(ctx, A)
+    ImGui.EndTooltip(ctx)
+end
+
+
+function Convert_Val2Fader(rea_val)
+    if not rea_val then return end
+    local rea_val = SetMinMax(rea_val, 0, 4)
+    local val
+    local gfx_c, coeff = 0.8, 50      -- use coeff to adjust curve
+    local real_dB = 20 * math.log(rea_val, 10)
+    local lin2 = 10 ^ (real_dB / coeff)
+    if lin2 <= 1 then val = lin2 * gfx_c else val = gfx_c + (real_dB / 12) * (1 - gfx_c) end
+    if val > 1 then val = 1 end
+    return SetMinMax(val, 0.0001, 1)
 end
 
 ---@param time number
@@ -978,7 +1110,7 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
     end
 
     if MouseBtn then 
-        if r.ImGui_IsMouseClicked(ctx, MouseBtn)  then
+        if r.ImGui_IsMouseDown(ctx, MouseBtn) and not MousePosX_WhenClick then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
     elseif triggerKey then 
@@ -994,7 +1126,7 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
         r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         local function Hide()
-            if MouseBtn then 
+            if MouseBtn and MousePosX_WhenClick then 
                 if r.ImGui_IsMouseDown(ctx, MouseBtn) then
 
                     r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_None())
@@ -1003,6 +1135,7 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
                     r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
                     if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
                         r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                        MousePosX_WhenClick=nil
                     end
                 end
             elseif triggerKey then 
@@ -1022,6 +1155,63 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
 
         Hide()
     end
+end
+
+
+function DiceButton (label, number, w, h, clr, clr2 , fill, outlineClr)
+    local WDL = WDL or ImGui.GetWindowDrawList(ctx)
+    local x, y = ImGui.GetCursorScreenPos(ctx)
+    local Cx, Cy = x + w/2, y+h/2
+
+    local clr = clr or ImGui.GetStyleColor(ctx,ImGui.Col_Button)
+    local clr2 = clr2 or ImGui.GetStyleColor(ctx,ImGui.Col_Text)
+    local act = ImGui.InvisibleButton(ctx,label, w, h   )
+    ImGui.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , clr, 3 )
+
+    local circle = ImGui.DrawList_AddCircleFilled
+    if fill == 'No Fill' then 
+        circle = ImGui.DrawList_AddCircle
+    end
+    if outlineClr then 
+        ImGui.DrawList_AddRect(WDL, x, y, x+w,y+h , outlineClr, 3 )
+    end
+
+    if number == 1 then 
+        circle(WDL, Cx ,Cy,  w/6, clr2)
+    elseif number == 2 then 
+        circle(WDL, Cx ,Cy - w/4,  w/8, clr2)
+        circle(WDL, Cx ,Cy+ w/4,  w/8, clr2)
+    elseif number == 3 then 
+        circle(WDL, Cx- w/4, Cy- w/4, w/8, clr2)
+        circle(WDL, Cx+ w/4, Cy+ w/4, w/8, clr2)
+        circle(WDL, Cx, Cy   , w/8, clr2)
+    elseif number == 4 then 
+        circle(WDL, Cx- w/4, Cy- w/4, w/8, clr2)
+        circle(WDL, Cx+ w/4, Cy+ w/4, w/8, clr2)
+        circle(WDL, Cx- w/4, Cy+ w/4 , w/8, clr2)
+        circle(WDL, Cx+ w/4, Cy- w/4 , w/8, clr2)
+    elseif number ==5 then 
+        circle(WDL, Cx- w/4, Cy- w/4, w/8, clr2)
+        circle(WDL, Cx+ w/4, Cy+ w/4, w/8, clr2)
+        circle(WDL, Cx- w/4, Cy+ w/4 , w/8, clr2)
+        circle(WDL, Cx+ w/4, Cy- w/4 , w/8, clr2)
+        circle(WDL, Cx, Cy   , w/8, clr2)
+    elseif number ==6 then 
+        circle(WDL, Cx- w/4, Cy- w/4, w/9, clr2)
+        circle(WDL, Cx+ w/4, Cy     , w/9, clr2)
+        circle(WDL, Cx+ w/4, Cy+ w/4, w/9, clr2)
+        circle(WDL, Cx- w/4, Cy+ w/4, w/9, clr2)
+        circle(WDL, Cx+ w/4, Cy- w/4, w/9, clr2)
+        circle(WDL, Cx- w/4, Cy, w/9, clr2)
+    end 
+    if ImGui.IsItemActive(ctx) then 
+        local act  = Generate_Active_And_Hvr_CLRs(clr)
+        ImGui.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , act, 3 )
+    end 
+    if act then 
+        return act
+    end 
+
 end
 
 
@@ -1146,6 +1336,23 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     end
 end
 
+
+function InsertSample(v)
+    r.Main_OnCommand(40769,0) --- Unselect ALL
+    r.Main_OnCommand(r.NamedCommandLookup('_BR_SAVE_CURSOR_POS_SLOT_16'), 0 )
+    local rv = r.InsertMedia(v, 0) --0 is add to current track, 1=add new track, 3=add to selected items as takes
+    r.Main_OnCommand(r.NamedCommandLookup('_BR_RESTORE_CURSOR_POS_SLOT_16'), 0)
+    return rv 
+end 
+
+function Match_Itm_Len_and_Src_Len(src, itm, tk)
+    len = r.GetMediaSourceLength(src)
+    retval,  section,  start,  len,  fade,  reverse = r.BR_GetMediaSourceProperties(tk)
+    rv, rv, len = r.PCM_Source_GetSectionInfo(src)
+
+    r.SetMediaItemInfo_Value(itm, 'D_LENGTH', len)
+    r.UpdateArrange()
+end
 ---@param text string
 ---@param font? ImGui_Font
 ---@param color? number rgba
@@ -1164,6 +1371,30 @@ function MyText(text, font, color, WrapPosX)
     if WrapPosX then r.ImGui_PopTextWrapPos(ctx) end
 end
 
+function Remove_Dir_path (v)
+    if not v then return end 
+    local id = string.find(v, "/[^/]*$")
+    return v:sub((id or 0 )+1)
+end 
+
+
+function FilterFileType (a, tb )
+    local T ={}
+    for i, file in pairs(a) do 
+        local found 
+
+            local id = (string.find(file, "%.[^%.]*$") or 0 )  + 1
+            
+            if  FindExactStringInTable(tb, file:sub(id )) then
+                found = true 
+            end
+
+                
+        if found then table.insert(T, file) end 
+    end
+    return T
+end 
+
 ---@param ctx ImGui_Context
 ---@param label string
 ---@param labeltoShow string
@@ -1175,120 +1406,130 @@ end
 ---@return boolean ActiveAny
 ---@return boolean ValueChanged
 ---@return integer p_value
-function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
-    r.ImGui_SetNextItemWidth(ctx, 40)
-    local radius_outer = 10
+function Add_Pan_Knob(tb, label, labeltoShow, v_min,v_max)
+    --r.ImGui_SetNextItemWidth(ctx, 17)
+    local radius_outer = 17
     local pos = { r.ImGui_GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
     local CircleClr
     local line_height = r.ImGui_GetTextLineHeight(ctx)
     local draw_list = r.ImGui_GetWindowDrawList(ctx)
     local item_inner_spacing = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_ItemInnerSpacing()) }
-    local mouse_delta = { r.ImGui_GetMouseDelta(ctx) }
+    local mouse_delta = { ImGui.GetMouseDelta(ctx) }
 
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
-    local FxGUID = FXGUID[FX_Idx] or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-    local p_value = p_value or 1
-    if FxGUID then 
-        FX[FxGUID] = FX[FxGUID] or {}
 
+    local pan_V =   r.GetMediaItemTakeInfo_Value(tb.tk, "D_PAN")
+    local p_value =  (pan_V + 1) / 2  
 
-        Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx]  or  r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+    r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 + item_inner_spacing[2])
 
-        r.ImGui_InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
-            item_inner_spacing[2])
+    local value_changed = false
+    local is_active = r.ImGui_IsItemActive(ctx)
+    local is_hovered = r.ImGui_IsItemHovered(ctx)
 
-        local value_changed = false
-        local is_active = r.ImGui_IsItemActive(ctx)
-        local is_hovered = r.ImGui_IsItemHovered(ctx)
+    if is_active and mouse_delta[2] ~= 0.0  then
+        local step = (v_max - v_min) / 100
+        --if Mods == Shift then step = 0.001 end
+        local out  = ((pan_V + (-(mouse_delta[2])*step ))) 
 
-        if is_active and mouse_delta[2] ~= 0.0 and FX[FxGUID].DeltaP_V ~= 1 then
-            local step = (v_max - v_min) / 200.0
-            if Mods == Shift then step = 0.001 end
-            p_value = p_value + ((-mouse_delta[2]) * step)
-            if p_value < v_min then p_value = v_min end
-            if p_value > v_max then p_value = v_max end
-        end
-
-        FX[FxGUID].DeltaP_V = FX[FxGUID].DeltaP_V or 0
-        FX[FxGUID].DeltaP   = FX[FxGUID].DeltaP or (r.TrackFX_GetNumParams(LT_Track, LT_FXNum) - 1)
-
-
-        local ClrOverRide , ClrOverRide_Act
-        if FX[FxGUID].BgClr == 0x258551ff then  ClrOverRide = 0xffffff88  ClrOverRide_Act = 0xffffffcc   end 
-
-
-        if is_active then
-            lineClr =  ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
-            CircleClr = ClrOverRide_Act or Change_Clr_A(  getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
-            
-            value_changed = true
-            ActiveAny = true
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num or Wet.P_Num[FX_Idx], p_value)
-        elseif is_hovered or p_value ~= 1 then
-            lineClr = ClrOverRide_Act or Change_Clr_A( getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
-        else
-            lineClr = ClrOverRide or  r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBgHovered())
-        end
-
-
-
-
-        if ActiveAny == true then
-            if IsLBtnHeld == false then ActiveAny = false end
-        end
-
-        local t = (p_value - v_min) / (v_max - v_min)
-        local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-        local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
-        local radius_inner = radius_outer * 0.40
-        if r.ImGui_IsItemClicked(ctx, 1) and Mods == Alt then
-            local Total_P = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
-            local P = Total_P - 1
-            local DeltaV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P)
-            if DeltaV == 1 then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 0)
-                FX[FxGUID].DeltaP_V = 0
-            else
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P, 1)
-                FX[FxGUID].DeltaP_V = 1
-            end
-            FX[FxGUID].DeltaP = P
-        end
-
-
-
-        if FX[FxGUID].DeltaP_V ~= 1 then
-            r.ImGui_DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
-            r.ImGui_DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
-                center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
-            r.ImGui_DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
-                r.ImGui_GetColor(ctx, r.ImGui_Col_Text()), labeltoShow)
-        else
-            local radius_outer = radius_outer
-            r.ImGui_DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
-                center[2] - radius_outer, center[1] + radius_outer, center[2] + radius_outer, 0x999900ff)
-            r.ImGui_DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2, 0xffffffff, 'S')
-        end
-
-        --[[ if is_active or is_hovered and FX[FxGUID].DeltaP_V ~= 1 then
-            local window_padding = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
-            r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
-                pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
-            r.ImGui_BeginTooltip(ctx)
-            if Mods == Shift then
-                r.ImGui_Text(ctx, ('%.1f'):format(p_value * 100) .. '%')
-            else
-                r.ImGui_Text(ctx, ('%.0f'):format(p_value * 100) .. '%')
-            end
-            r.ImGui_EndTooltip(ctx)
-        end ]]
-        if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
-
-        return ActiveAny, value_changed, p_value
+        out = SetMinMax(out, -1, 1)
+        r.SetMediaItemTakeInfo_Value(tb.tk, "D_PAN", out   )
+        r.UpdateArrange()
+        
     end
+    if is_active and ImGui.IsMouseDoubleClicked(ctx,0) then 
+        r.SetMediaItemTakeInfo_Value(tb.tk, "D_PAN", 0   )
+
+    end 
+    
+
+    local ClrOverRide , ClrOverRide_Act
+
+
+    if is_active then
+        HideCursorTillMouseUp(0)
+        lineClr =  ClrOverRide or r.ImGui_GetColor(ctx, r.ImGui_Col_SliderGrabActive())
+        CircleClr = ClrOverRide_Act or Change_Clr_A(  getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+    elseif is_hovered  then
+        lineClr = ClrOverRide_Act or Change_Clr_A( getClr(r.ImGui_Col_SliderGrabActive()), -0.3)
+    else
+        lineClr = ClrOverRide or  r.ImGui_GetColor(ctx, r.ImGui_Col_FrameBgHovered())
+    end
+
+
+
+
+    if ActiveAny == true then
+        if IsLBtnHeld == false then ActiveAny = false end
+    end
+
+    local t = (p_value - v_min) / (v_max - v_min)
+    local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+    local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+    local radius_inner = radius_outer * 0.40
+    
+
+
+
+    
+    local radius_outer = radius_outer
+    
+    r.ImGui_DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
+    r.ImGui_DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
+        center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
+    r.ImGui_DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
+        reaper.ImGui_GetColor(ctx, reaper.ImGui_Col_Text()), labeltoShow)
+
+
+    if is_active or is_hovered --[[ and FX[FxGUID].DeltaP_V ~= 1 ]] then
+        local window_padding = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
+        r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
+            pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
+        ImGui.SetNextWindowSize(ctx, 60, 30)
+        r.ImGui_BeginTooltip(ctx)
+        local L_or_R 
+        if pan_V > 0 then L_or_R = 'R' elseif pan_V < 0 then  L_or_R = 'L' else L_or_R = '' end 
+
+
+        if Mods == Shift then
+            r.ImGui_Text(ctx, ('%.1f'):format(math.abs( (pan_V * 100))).. '% '..L_or_R)
+        else
+            r.ImGui_Text(ctx, ('%.0f'):format(math.abs( (pan_V * 100))).. '% '..L_or_R)
+        end
+        r.ImGui_EndTooltip(ctx)
+    end
+    if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
+    
+    return 
+
 end
+
+
+function MatchFilesFromKeyWords(words, tb)
+    local outTB ={}
+
+    
+
+    for i, v in ipairs(tb) do 
+        local not_found 
+        for I,V in ipairs(words) do 
+
+            if not  string.lower(v):find(string.lower(V)) then 
+                not_found = true 
+            end 
+        end 
+
+        if not not_found then
+            table.insert(outTB, v)
+        end
+
+
+    end 
+
+    return outTB
+end 
 
 ---@param DL ImGui_DrawList
 ---@param CenterX number
@@ -2120,6 +2361,35 @@ function AddFX_Menu(FX_Idx)
     end
 
 end
+
+--[[ function HideCursorTillMouseUp(MouseBtn, ifneedctx)
+    if ifneedctx then ctx = ifneedctx end
+    UserOS = r.GetOS()
+    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+        Invisi_Cursor = reaper.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
+    end
+
+    if r.ImGui_IsMouseClicked(ctx, MouseBtn) then
+        MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
+    end
+
+    if MousePosX_WhenClick then
+        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
+
+        local function Hide()
+            if r.ImGui_IsMouseDown(ctx, MouseBtn) then
+                r.JS_Mouse_SetCursor(Invisi_Cursor)
+                r.defer(Hide)
+            else
+                reaper.JS_WindowMessage_Release(window, "WM_SETCURSOR")
+                if r.ImGui_IsMouseReleased(ctx, MouseBtn) then
+                    r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                end
+            end
+        end
+        Hide()
+    end
+end ]]
 
 
 function createFXWindow(FX_Idx, Cur_X_Ofs)
@@ -4945,7 +5215,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 ----------- Add FX ---------------
                 if Payload_Type == 'DND ADD FX' then
                     DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
-                    msg('ansjdk')
                 end
 
                 
