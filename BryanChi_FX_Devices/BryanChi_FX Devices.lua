@@ -673,7 +673,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
         end
         if SpaceIsBeforeRackMixer == 'SpcInBS' then
-            msg('a')
+
             DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
         end
         if SpcIsInPre then
