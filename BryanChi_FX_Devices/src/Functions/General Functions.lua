@@ -1821,7 +1821,7 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
     ImGui.PopStyleColor(ctx)
 end
 
-function AddFX_Menu(FX_Idx)
+function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
     local function DrawFxChains(tbl, path)
         local extension = ".RfxChain"
         path = path or ""
@@ -1875,7 +1875,7 @@ function AddFX_Menu(FX_Idx)
     if ImGui.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
-
+        msg(SpaceIsBeforeRackMixer)
         if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
             AddedFX = true
             ImGui.CloseCurrentPopup(ctx)
@@ -4741,7 +4741,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
 
-            AddFX_Menu(FX_Idx)
+            AddFX_Menu(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
 
 
             ImGui.EndChild(ctx)
@@ -4752,6 +4752,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
     function MoveFX(DragFX_ID, FX_Idx, isMove, AddLastSpace)
+        if not DragFX_ID then return end 
         local FxGUID_DragFX = FXGUID[DragFX_ID] or r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
 
         local AltDest, AltDestLow, AltDestHigh, DontMove
@@ -5015,7 +5016,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     local InsPos = SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FX[FxGUID_Container].FXsInBS)
 
 
-
+                    msg(FxGUID_DragFX)
                     DropFXintoBS(FxGUID_DragFX, FxGUID_Container, FX[FxGUID_Container].Sel_Band,
                         DragFX_ID, FX_Idx, 'DontMove')
                     Dvdr.Width[TblIdxForSpace] = 0

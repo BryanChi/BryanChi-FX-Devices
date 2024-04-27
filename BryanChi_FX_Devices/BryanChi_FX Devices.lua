@@ -673,6 +673,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
         end
         if SpaceIsBeforeRackMixer == 'SpcInBS' then
+            msg('a')
             DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
         end
         if SpcIsInPre then
@@ -7013,7 +7014,7 @@ if not visible then return end
 
 
                     if ImGui.BeginChild(ctx, 'FXD Saike BandSplitter' .. FxGUID, Width, 220) then
-                        local SpcW = AddSpaceBtwnFXs(FX_Idx, 'SpaceBeforeBS', nil, nil, 1, FxGUID)
+                        local SpcW = AddSpaceBtwnFXs(FX_Idx, 'SpaceBefoeBS', nil, nil, 1, FxGUID)
                         SL(nil, 0)
 
                         local btnTitle = string.gsub('Band Split', "(.)", "%1\n")
@@ -7255,6 +7256,7 @@ if not visible then return end
 
 
                             function DropFXintoBS(FxID, FxGUID_BS, Band, Pl, DropDest, DontMove) --Pl is payload    --!!!! Correct drop dest!!!!
+                                if not FxID then return end 
                                 FX[FxID] = FX[FxID] or {}
 
                                 if FX.InLyr[FxID] then --- move fx out of Layer
