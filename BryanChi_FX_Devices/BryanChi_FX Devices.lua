@@ -7704,7 +7704,7 @@ if not visible then return end
 
                             if ImGui.BeginPopupModal(ctx, 'Delete Band' .. (FX[FxGUID].PromptDeleteBand or '') .. '? ##' .. FxGUID, nil, ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_NoResize) then
                                 ImGui.Text(ctx, 'Delete the FXs in band ' .. FX[FxGUID].PromptDeleteBand .. '?')
-                                if ImGui.Button(ctx, '(y) Yes') or ImGui.IsKeyPressed(ctx, 89) then
+                                if ImGui.Button(ctx, '(y) Yes') or ImGui.IsKeyPressed(ctx, ImGui.Key_Y) then
                                     r.Undo_BeginBlock()
                                     for i = 0, Sel_Track_FX_Count, 1 do
                                         if tablefind(FX[FxGUID].FXsInBS, FXGUID[i]) then
@@ -7727,7 +7727,7 @@ if not visible then return end
                                     ImGui.CloseCurrentPopup(ctx)
                                 end
                                 SL()
-                                if ImGui.Button(ctx, '(n) No') or ImGui.IsKeyPressed(ctx, 78) then
+                                if ImGui.Button(ctx, '(n) No') or ImGui.IsKeyPressed(ctx, ImGui.Key_N) then
                                     ImGui.CloseCurrentPopup(ctx)
                                 end
                                 ImGui.EndPopup(ctx)
