@@ -2862,7 +2862,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     ImGui.SetWindowSize(ctx, 500, 500, condIn)
 
                     local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
-                    if not PrmFilter then PrmFilter = ImGui.CreateTextFilter(PrmFilterTxt) end 
+                    if not ImGui.ValidatePtr(PrmFilter, "ImGui_TextFilter*") then PrmFilter = ImGui.CreateTextFilter(PrmFilterTxt) end 
 
 
 

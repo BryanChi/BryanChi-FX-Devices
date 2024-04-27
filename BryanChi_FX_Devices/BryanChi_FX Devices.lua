@@ -3303,7 +3303,9 @@ if not visible then return end
 
                 if LFO.OpenShapeSelect == Macro then
                     ImGui.SetNextWindowPos(ctx, L + LFO.DummyW + 30, T - LFO.DummyH - 200)
-                    ShapeFilter = ImGui.CreateTextFilter(Shape_Filter_Txt)
+                    if not ImGui.ValidatePtr(ShapeFilter, "ImGui_TextFilter*") then
+                        ShapeFilter = ImGui.CreateTextFilter(Shape_Filter_Txt)
+                    end
                     ImGui.SetNextWindowSizeConstraints(ctx, 220, 150, 240, 700)
                     if ImGui.Begin(ctx, 'Shape Selection Popup', true, ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_AlwaysAutoResize) then
                         local W, H = 150, 75
@@ -5105,7 +5107,9 @@ if not visible then return end
                                             --AddSlider(ctx, '##'..FrstSelItm.Name , 'Default', 0, 0, 1, v,FX_Idx, FrstSelItm.Num ,Style, FrstSelItm.Sldr_W or FX.Def_Sldr_W[FxGUID]  ,0, Disable, Vertical, GrabSize,     FrstSelItm.Lbl, 8)
                                             --AddSlider(ctx, '##'..FrstSelItm.Name , 'Default', 0, 0, 1, v,FX_Idx, FrstSelItm.Num ,Style, FrstSelItm.Sldr_W or FX.Def_Sldr_W[FxGUID]  ,0, Disable, Vertical, GrabSize, FrstSelItm.Lbl, 8)
                                         end
-                                        StyleWinFilter = ImGui.CreateTextFilter(FilterText)
+                                        if not ImGui.ValidatePtr(StyleWinFilter, "ImGui_TextFilter*") then
+                                            StyleWinFilter = ImGui.CreateTextFilter(FilterText)
+                                        end
                                         if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then -- if all selected itms are knobs
                                             StyleWinImg = StyleWinImg or {}
                                             StyleWinImgName = StyleWinImgName or {}
