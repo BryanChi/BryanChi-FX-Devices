@@ -211,7 +211,7 @@ if not FX[FxGUID].Collapse then
     ProQ3.H = 200
     local L , T = ImGui.GetCursorScreenPos(ctx)
 
-    ImGui.SetNextWindowPos(ctx, L, T-28)
+    ImGui.SetNextWindowPos(ctx, L, T)
 
 
     if ImGui.BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
@@ -690,8 +690,7 @@ if not FX[FxGUID].Collapse then
                             ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]
                         if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
                             local X2 = x + 2
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                            BandColor = determineBandColor(ProQ3.LT_EQBand[FXGUID_ProQ])
                             if i ~= 1 then
                                 ImGui.DrawList_AddLine(Foreground, x, y,
                                     X2, Y_Mid - pts
@@ -1074,7 +1073,7 @@ if not FX[FxGUID].Collapse then
                         end
 
                         if not FP_gain.WhichCC then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3,GainOutput)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num,GainOutput)
                         elseif FP_gain.WhichCC then 
                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
                             FP_gain.V = GainOutput

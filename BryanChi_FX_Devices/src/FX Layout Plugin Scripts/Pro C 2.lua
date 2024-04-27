@@ -4,8 +4,9 @@ local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 
 
-FX.TitleWidth[FxGUID]  = 60 
+
 FX[FxGUID].CustomTitle = 'Pro-C 2'
+FX[FxGUID].TitleWidth = 60
 FX[FxGUID].Width = 280
 FX[FxGUID].ProC_GR = FX[FxGUID].ProC_GR or {}
 FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
