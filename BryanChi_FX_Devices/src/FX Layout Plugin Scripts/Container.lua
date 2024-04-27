@@ -84,9 +84,10 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
                 --msg(FX[GUID].parent .. '   id = '..FX_Idx)
                 local Drag_GUID = r.TrackFX_GetFXGUID(LT_Track, Payload)
                 local ofs  = 0 
-                if FX[GUID].parent == FX[Drag_GUID].parent then -- if they're in the same container
+                if FX[FxGUID].parent == FX[Drag_GUID].parent then -- if they're in the same container
                     if Payload < FX_Id then 
-                        ofs = v.scale
+                        if v then ofs = v.scale end 
+                            
                     end
                 end 
 
@@ -192,7 +193,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
 
         
         SL(165)
-        DragDropToCollapseView (FX_Id,CollapseXPos_screen,GUID, v )
+        DragDropToCollapseView (FX_Id, CollapseXPos_screen, GUID, v )
 
         
         --SyncWetValues(FX_Id)
