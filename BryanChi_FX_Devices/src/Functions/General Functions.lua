@@ -1875,7 +1875,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
     if ImGui.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
-        msg(SpaceIsBeforeRackMixer)
+
         if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
             AddedFX = true
             ImGui.CloseCurrentPopup(ctx)
@@ -4752,6 +4752,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
     function MoveFX(DragFX_ID, FX_Idx, isMove, AddLastSpace)
+
         if not DragFX_ID then return end 
         local FxGUID_DragFX = FXGUID[DragFX_ID] or r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
 
@@ -5016,13 +5017,13 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     local InsPos = SetMinMax(FX_Idx - ContainerIdx + 1, 1, #FX[FxGUID_Container].FXsInBS)
 
 
-                    msg(FxGUID_DragFX)
+
                     DropFXintoBS(FxGUID_DragFX, FxGUID_Container, FX[FxGUID_Container].Sel_Band,
                         DragFX_ID, FX_Idx, 'DontMove')
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
 
-                    MoveFX(Glob.Payload, FX_Idx + 1, true)
+                    MoveFX(Payload, FX_Idx + 1, true)
                 elseif dropped and Mods == Apl then
                     DragFX_Src = DragFX_ID
 
@@ -5173,7 +5174,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     end
                 end
             elseif Payload_Type == 'BS_Drag' then
-                local Pl = tonumber(Glob.Payload)
+                local Pl = tonumber(Payload)
 
 
                 if SpaceIsBeforeRackMixer == 'SpcInBS' or FX_Idx == Pl or Pl + (#FX[FXGUID[Pl]].FXsInBS or 0) + 2 == FX_Idx then
@@ -5182,7 +5183,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'BS_Drag')
                     Dvdr.Width[TblIdxForSpace] = 30
                     if dropped then
-                        RepositionFXsInContainer(FX_Idx, Glob.Payload)
+                        RepositionFXsInContainer(FX_Idx, Payload)
                     end
                 end
             elseif Payload_Type == 'DND ADD FX' then
