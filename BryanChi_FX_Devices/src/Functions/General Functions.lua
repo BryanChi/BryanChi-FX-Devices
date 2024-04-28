@@ -1775,7 +1775,7 @@ function DndAddFX_SRC(fx)
     end
 end
 
-function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost)
+function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost, FxGUID_Container)
     --if not DND_ADD_FX then return  end
     ImGui.PushStyleColor(ctx, ImGui.Col_DragDropTarget, 0)
     if ImGui.BeginDragDropTarget(ctx) then
@@ -1813,10 +1813,12 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
                 end
             elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
+                FX[FxGUID_Container] = FX[FxGUID_Container] or {}
                 DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
             FX_Idx_OpenedPopup = nil
         end
+        ImGui.EndDragDropTarget(ctx)
     end
     ImGui.PopStyleColor(ctx)
 end
@@ -4981,9 +4983,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FxDroppingTo = nil
                 end
                 ----------- Add FX ---------------
-                if Payload_Type == 'DND ADD FX' then
-                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
-                end
+                
 
 
 
@@ -4992,6 +4992,9 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 Dvdr.Width[TblIdxForSpace] = 0
                 FxDroppingTo = nil
             end
+        end
+        if Payload_Type == 'DND ADD FX' then
+            DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
         end
         ImGui.SameLine(ctx, 100, 10)
     elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
@@ -5036,16 +5039,18 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
                 end
-                -- Add from Sexan Add FX
-                if Payload_Type == 'DND ADD FX' then
-                    DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- band split
-                end
-
                 ImGui.EndDragDropTarget(ctx)
+                
             else
                 Dvdr.Width[TblIdxForSpace] = 0
                 FxDroppingTo = nil
             end
+
+            -- Add from Sexan Add FX
+            if Payload_Type == 'DND ADD FX' then
+                DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl,  'SpcInBS', nil ,FxGUID_Container) -- band split
+            end
+
         end
     else -- if Space is not in FX Layer
         function MoveFX_Out_Of_BS()
