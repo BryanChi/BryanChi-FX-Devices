@@ -25,16 +25,16 @@ local Accent_Clr = 0x49CC85ff
 if not FX[FxGUID].Collapse then
 
     --[[ local nm = Vertical_FX_Name (FX_Name)
-    WindowBtn = ImGui.Button(ctx, nm, 25, 130) ]]
+    WindowBtn = im.Button(ctx, nm, 25, 130) ]]
 
 
     SyncWetValues(FX_Idx)
-    local x, y = ImGui.GetCursorPos(ctx)
-    ImGui.SetCursorPos(ctx, 3, 135)
+    local x, y = im.GetCursorPos(ctx)
+    im.SetCursorPos(ctx, 3, 135)
         SyncWetValues(FX_Idx)
 
     Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
-    ImGui.SetCursorPos(ctx,x,y)
+    im.SetCursorPos(ctx,x,y)
 
 end
 
@@ -61,11 +61,11 @@ end
 
 function AddTitleBgClr ()
 
-    local x , y = ImGui.GetCursorScreenPos(ctx)
+    local x , y = im.GetCursorScreenPos(ctx)
     local X = x
-    local WDL = ImGui.GetWindowDrawList(ctx)
+    local WDL = im.GetWindowDrawList(ctx)
 
-    ImGui.DrawList_AddRectFilled(WDL, X-25, y , X, y + 220, 0x49CC8544)
+    im.DrawList_AddRectFilled(WDL, X-25, y , X, y + 220, 0x49CC8544)
 
 end
 
@@ -74,13 +74,13 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
     if  (Payload_Type == 'FX_Drag' or Payload_Type == 'DND ADD FX') then 
         
         local W, H = 130, 20
-        local L,T = ImGui.GetCursorScreenPos(ctx)
+        local L,T = im.GetCursorScreenPos(ctx)
         local L = Xpos
         --if FX_Id ~= FX[FxGUID].LastSpc then  L = L-135  end 
 
-        if ImGui.IsMouseHoveringRect(ctx, L, T-H/2, L+W, T+H/2 )  then 
-            ImGui.DrawList_AddLine(Glob.FDL, L, T, L+W , T, Accent_Clr, 3)
-            if ImGui.IsMouseReleased(ctx, 0) then 
+        if im.IsMouseHoveringRect(ctx, L, T-H/2, L+W, T+H/2 )  then 
+            im.DrawList_AddLine(Glob.FDL, L, T, L+W , T, Accent_Clr, 3)
+            if im.IsMouseReleased(ctx, 0) then 
                 --msg(FX[GUID].parent .. '   id = '..FX_Idx)
                 local Drag_GUID = r.TrackFX_GetFXGUID(LT_Track, Payload)
                 local ofs  = 0 
@@ -95,15 +95,15 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
                 if Mods == Apl then  NeedCopyFX=true   DropPos = FX_Id end 
             end
         end
-        --ImGui.DrawList_AddRect(WDL, L , T-H/2, L+W, T+H/(Last or 2), 0xff77ffff)
+        --im.DrawList_AddRect(WDL, L , T-H/2, L+W, T+H/(Last or 2), 0xff77ffff)
     end 
 end
 
 local function DndAddFXtoContainer_TARGET()
-    ImGui.PushStyleColor(ctx, ImGui.Col_DragDropTarget, 0)
-    if ImGui.BeginDragDropTarget(ctx) then
-        local dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'DND ADD FX')
-        ImGui.EndDragDropTarget(ctx)
+    im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
+    if im.BeginDragDropTarget(ctx) then
+        local dropped, payload = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
+        im.EndDragDropTarget(ctx)
         if dropped and Mods == 0  then
             local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
 
@@ -134,13 +134,13 @@ local function DndAddFXtoContainer_TARGET()
             r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Id)
         end
     end
-    ImGui.PopStyleColor(ctx)
+    im.PopStyleColor(ctx)
 end
 
 local function DndMoveFXtoContainer_TARGET()
-    if ImGui.BeginDragDropTarget(ctx) then
-        local rv, payload = ImGui.AcceptDragDropPayload(ctx, 'FX_Drag')
-        ImGui.EndDragDropTarget(ctx)
+    if im.BeginDragDropTarget(ctx) then
+        local rv, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
+        im.EndDragDropTarget(ctx)
         Highlight_Itm(WDL, 0xffffff33)
         if rv and Mods == 0 then 
             local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
@@ -180,12 +180,12 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     FX[FxGUID].BgClr=nil
     
 
-    ImGui.SetCursorPosX(ctx, tonumber( CollapseXPos))
+    im.SetCursorPosX(ctx, tonumber( CollapseXPos))
     --local FX_Id = 0x2000000 + i*(r.TrackFX_GetCount(LT_Track)+1) + (FX_Idx+1)
     local GUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Id)
     FX[FxGUID].Width = 50 + 150
     if GUID then 
-        ImGui.PushStyleVar(ctx, ImGui.StyleVar_ItemSpacing,1 , -3)
+        im.PushStyleVar(ctx, im.StyleVar_ItemSpacing,1 , -3)
 
         FX[GUID] = FX[GUID]  or {}
         local Click = AddWindowBtn (GUID, FX_Id, 130, true , true , true ) 
@@ -212,17 +212,17 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         
 
 
-        ImGui.PopStyleVar(ctx)
+        im.PopStyleVar(ctx)
         if Hover then 
             if tonumber(FX_Count) > 9  then 
-                --FX_DeviceWindow_NoScroll = ImGui.WindowFlags_NoScrollWithMouse
+                --FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
                 DisableScroll = true 
                 FX[FxGUID].NoScroll = nil 
 
             else 
                 FX_DeviceWindow_NoScroll = 0
                 DisableScroll = false 
-                --FX[FxGUID].NoScroll =  ImGui.WindowFlags_NoScrollWithMouse  +  ImGui.WindowFlags_NoScrollbar +  ImGui.WindowFlags_AlwaysAutoResize
+                --FX[FxGUID].NoScroll =  im.WindowFlags_NoScrollWithMouse  +  im.WindowFlags_NoScrollbar +  im.WindowFlags_AlwaysAutoResize
 
             end
         end
@@ -241,7 +241,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     end
     
 end
-local X , Y = ImGui.GetCursorScreenPos(ctx)
+local X , Y = im.GetCursorScreenPos(ctx)
  -- 
  
 
@@ -249,16 +249,16 @@ local TB = Upcoming_Container or TREE[Root_ID+1].children
 
 if tonumber( FX_Count) == 0 then 
 
-    ImGui.SetCursorScreenPos(ctx, X-50 , Y)
-    ImGui.InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
+    im.SetCursorScreenPos(ctx, X-50 , Y)
+    im.InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
 
     --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
     DndMoveFXtoContainer_TARGET()
     DndAddFXtoContainer_TARGET()
 else
-    local CollapseXPos, CollapseYPos  = ImGui.GetCursorPos(ctx)
-     CollapseXPos_screen = ImGui.GetCursorScreenPos(ctx)
+    local CollapseXPos, CollapseYPos  = im.GetCursorPos(ctx)
+     CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
 
     for i, v in ipairs(Upcoming_Container or TREE[Root_ID+1].children) do 
@@ -299,11 +299,11 @@ else
                     FX[GUID].parent =  v.addr_fxid - v.scale * i   
                 end 
             
-                local w = ImGui.GetItemRectSize(ctx)
+                local w = im.GetItemRectSize(ctx)
                 local TB = Upcoming_Container or TREE[Root_ID+1].children
                 local FX_Id_next = FX_Id + (v.scale or 0)
 
-                if ImGui.IsItemHovered(ctx) then Hover = true end 
+                if im.IsItemHovered(ctx) then Hover = true end 
             
                 LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
@@ -324,19 +324,19 @@ else
     local Add_FX_Btn_Ypos
     if FX[FxGUID].Cont_Collapse == 1   and FX[FxGUID].Sel_Preview then 
         SL()
-        Add_FX_Btn_Ypos = ImGui.GetCursorPosY(ctx) + 24
-        ImGui.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
+        Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
+        im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
 
         Hv = createFXWindow(FX[FxGUID].Sel_Preview)
         if Hv then PreviewW = Hv end 
         if PreviewW then FX[FxGUID].Width = 50 + 150 + PreviewW end
     end
     if FX[FxGUID].Cont_Collapse == 1 then
-        if Add_FX_Btn_Ypos then ImGui.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
-        ImGui.SetCursorPosX(ctx,tonumber( CollapseXPos)  )
+        if Add_FX_Btn_Ypos then im.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
+        im.SetCursorPosX(ctx,tonumber( CollapseXPos)  )
         DragDropToCollapseView (FX[FxGUID].LastSpc, CollapseXPos_screen)
-        if ImGui.Button(ctx,'+' , 130) then 
-            ImGui.OpenPopup(ctx, 'Btwn FX Windows' .. FX[FxGUID].LastSpc)
+        if im.Button(ctx,'+' , 130) then 
+            im.OpenPopup(ctx, 'Btwn FX Windows' .. FX[FxGUID].LastSpc)
         end 
         AddFX_Menu(FX[FxGUID].LastSpc)
     end
@@ -358,8 +358,8 @@ else
 
     
     if not FX[FxGUID].Collapse then 
-        local WDL = ImGui.GetWindowDrawList(ctx)
-        --ImGui.DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
+        local WDL = im.GetWindowDrawList(ctx)
+        --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
         HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, rounding, 4)
     end 
 

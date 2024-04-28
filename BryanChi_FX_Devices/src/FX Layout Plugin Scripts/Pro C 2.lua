@@ -16,32 +16,32 @@ FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
 
 
 Rounding = 3
-ImGui.PushStyleVar(ctx, ImGui.StyleVar_FrameRounding, Rounding)
+im.PushStyleVar(ctx, im.StyleVar_FrameRounding, Rounding)
 if not FX[FXGUID[FX_Idx]].Collapse then
     if not OverSampleValue then
         _, OverSampleValue = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 40)
     end
-    ImGui.SetNextItemWidth(ctx, 10)
-    ImGui.PushFont(ctx, Font_Andale_Mono_10)
+    im.SetNextItemWidth(ctx, 10)
+    im.PushFont(ctx, Font_Andale_Mono_10)
     MyText('Over:', nil, 0x818181ff)
 
 
-    ImGui.SameLine(ctx, 210, nil)
-    ImGui.SetNextItemWidth(ctx, 27)
+    im.SameLine(ctx, 210, nil)
+    im.SetNextItemWidth(ctx, 27)
     local Oversampling_Options = { 'Off', '2x', '4x' }
     local OS_V = { 0, 0.5, 1 }
     AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,'Pro C 2', FxGUID, Fx_P or 1, OS_V)
-    --ImGui.SameLine(ctx)
+    --im.SameLine(ctx)
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or '', Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
 
-    ImGui.PopFont(ctx)
-    ImGui.SameLine(ctx, ProC.Width - 25)
+    im.PopFont(ctx)
+    im.SameLine(ctx, ProC.Width - 25)
 
     SyncWetValues()
     Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',
         Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
 end
-ImGui.PopStyleVar(ctx)
+im.PopStyleVar(ctx)
 
 
 
@@ -111,18 +111,18 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     end
 
     if FX[PluginScript.Guid][1].Num and FX[PluginScript.Guid][8] then
-        ImGui.Indent(ctx, 20)
+        im.Indent(ctx, 20)
 
         Rounding = 3
-        ImGui.PushStyleVar(ctx, ImGui.StyleVar_FrameRounding, Rounding)
-        ImGui.PushStyleVar(ctx, ImGui.StyleVar_GrabMinSize, 0)
-        ImGui.PushFont(ctx, Font_Andale_Mono_10)
+        im.PushStyleVar(ctx, im.StyleVar_FrameRounding, Rounding)
+        im.PushStyleVar(ctx, im.StyleVar_GrabMinSize, 0)
+        im.PushFont(ctx, Font_Andale_Mono_10)
         IIS = 2
         r.gmem_attach('CompReductionScope')
-        local SpX, SpY = ImGui.GetCursorScreenPos(ctx)
+        local SpX, SpY = im.GetCursorScreenPos(ctx)
         local Top = SpY - 9; local C = Top + 50; local B = Top + 100
 
-        local Drawlist = ImGui.GetWindowDrawList(ctx)
+        local Drawlist = im.GetWindowDrawList(ctx)
         DspScale = { 2, 4, 6 }; --2=3dB, 4=6dB, 6=9dB, 8=12dB
         --
         if Sel_Scale == 1 then
@@ -133,47 +133,47 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             ScaleLbl = '± 9dB'
         end
 
-        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, 0x444444ff)
-        ImGui.PushStyleColor(ctx, ImGui.Col_Text, 0xffffffff)
-        ImGui.SetNextItemWidth(ctx, 30)
-        if ImGui.BeginCombo(ctx, '##' .. tostring(Label), ScaleLbl, ImGui.ComboFlags_NoArrowButton) then
-            ImGui.PushStyleColor(ctx, ImGui.Col_Header, 0x44444433)
-            local AccentClr = ImGui.GetColor(ctx,
-                ImGui.Col_SliderGrabActive)
-            ImGui.PushStyleColor(ctx, ImGui.Col_HeaderHovered, AccentClr)
-            ImGui.PushStyleColor(ctx, ImGui.Col_Text, 0xbbbbbbff)
+        im.PushStyleColor(ctx, im.Col_FrameBg, 0x444444ff)
+        im.PushStyleColor(ctx, im.Col_Text, 0xffffffff)
+        im.SetNextItemWidth(ctx, 30)
+        if im.BeginCombo(ctx, '##' .. tostring(Label), ScaleLbl, im.ComboFlags_NoArrowButton) then
+            im.PushStyleColor(ctx, im.Col_Header, 0x44444433)
+            local AccentClr = im.GetColor(ctx,
+                im.Col_SliderGrabActive)
+            im.PushStyleColor(ctx, im.Col_HeaderHovered, AccentClr)
+            im.PushStyleColor(ctx, im.Col_Text, 0xbbbbbbff)
 
 
-            if ImGui.Selectable(ctx, '± 3dB', i) then
+            if im.Selectable(ctx, '± 3dB', i) then
                 Sel_Scale = 1
             end
-            if ImGui.Selectable(ctx, '± 6dB', i) then
+            if im.Selectable(ctx, '± 6dB', i) then
                 Sel_Scale = 2
             end
-            if ImGui.Selectable(ctx, '± 9dB', i) then
+            if im.Selectable(ctx, '± 9dB', i) then
                 Sel_Scale = 3
             end
 
 
 
-            ImGui.PopStyleColor(ctx, 3)
+            im.PopStyleColor(ctx, 3)
 
             ScaleActive = true
-            ImGui.EndCombo(ctx)
-            local L, T = ImGui.GetItemRectMin(ctx); local R, B = r
+            im.EndCombo(ctx)
+            local L, T = im.GetItemRectMin(ctx); local R, B = r
                 .ImGui_GetItemRectMax(ctx)
-            local lineheight = ImGui.GetTextLineHeight(ctx)
-            local drawlist = ImGui.GetForegroundDrawList(ctx)
+            local lineheight = im.GetTextLineHeight(ctx)
+            local drawlist = im.GetForegroundDrawList(ctx)
 
-            ImGui.DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R,
+            im.DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R,
                 B - lineheight / 8, 0x88888844, Rounding)
-            ImGui.DrawList_AddRect(drawlist, L, T + lineheight / 8, R,
+            im.DrawList_AddRect(drawlist, L, T + lineheight / 8, R,
                 B - lineheight / 8, 0x88888877, Rounding)
         else
             ScaleActive = nil
         end
-        ImGui.PopStyleColor(ctx, 2)
-        local HvrOnScale = ImGui.IsItemHovered(ctx)
+        im.PopStyleColor(ctx, 2)
+        local HvrOnScale = im.IsItemHovered(ctx)
 
         if not Sel_Scale then Sel_Scale = 3 end
 
@@ -184,7 +184,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
 
-        MousePosX, MousePosY = ImGui.GetMousePos(ctx)
+        MousePosX, MousePosY = im.GetMousePos(ctx)
 
         if ProC.GR_NATIVE then 
                 
@@ -203,9 +203,9 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
                 for i = 1, 180, 1 do -- do once for each pixel
                     if TB[i] and TB[i-1] then 
-                        ImGui.DrawList_AddLine(Drawlist, SpX + i, SetMinMax(TB[i], Top, B), SpX + i + 1, SetMinMax(TB[i-1], Top, B), 0xFF8181cc, 2)
+                        im.DrawList_AddLine(Drawlist, SpX + i, SetMinMax(TB[i], Top, B), SpX + i + 1, SetMinMax(TB[i-1], Top, B), 0xFF8181cc, 2)
                         if B - TB[i] + (Top+50) <= Top or B - TB[i] + (Top+50) >= B then
-                            ImGui.DrawList_AddLine(Drawlist, SpX + i, B, SpX + i + 1, B, 0xff4517cc, 2)
+                            im.DrawList_AddLine(Drawlist, SpX + i, B, SpX + i + 1, B, 0xff4517cc, 2)
                         end
                     end
                 end
@@ -225,9 +225,9 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
 
-                ImGui.DrawList_AddLine(Drawlist, SpX + i, SetMinMax(B- Max, Top, B), SpX + i + 1, SetMinMax(B-MaxNext, Top, B), 0xFF8181cc, 2)
+                im.DrawList_AddLine(Drawlist, SpX + i, SetMinMax(B- Max, Top, B), SpX + i + 1, SetMinMax(B-MaxNext, Top, B), 0xFF8181cc, 2)
                 if B - Max <= Top or B - Max >= B then
-                    ImGui.DrawList_AddLine(Drawlist, SpX + i, math.min(math.max(B - Max, Top), B), SpX + i + 1, math.min(math.max(B - MaxNext, Top), B), 0xff4517cc, 2)
+                    im.DrawList_AddLine(Drawlist, SpX + i, math.min(math.max(B - Max, Top), B), SpX + i + 1, math.min(math.max(B - MaxNext, Top), B), 0xff4517cc, 2)
                 end
 
             end
@@ -235,7 +235,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         end 
 
  
-        ImGui.SameLine(ctx)
+        im.SameLine(ctx)
 
         
 
@@ -246,22 +246,22 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
         -- Change Display scale if mouseclick on spectrum
 
-        MouseX, MouseY = ImGui.GetMousePos(ctx)
+        MouseX, MouseY = im.GetMousePos(ctx)
 
         if MouseX > SpX and MouseX < SpX + 180 and MouseY > Top and MouseY < Top + 100 and not HvrOnScale and not ScaleActive then
-            ImGui.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top + 100,
+            im.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top + 100,
                 0x88888810, nil)
-            local AnyActive = ImGui.IsAnyItemActive(ctx)
+            local AnyActive = im.IsAnyItemActive(ctx)
 
             if IsLBtnClicked and AnyActive == false and not ProC.ChoosingStyle then
-                ImGui.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top +
+                im.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top +
                     100, 0x88888866, nil)
                 ShowDpRange = true
                 TimeNow = r.time_precise()
                 Sel_Scale = math.max(Sel_Scale - 1, 1)
             end
             if IsRBtnClicked then
-                ImGui.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top +
+                im.DrawList_AddRectFilled(Drawlist, SpX, Top, SpX + 180, Top +
                     100, 0x88888866, nil)
                 ShowDpRange = true
                 TimeNow = r.time_precise()
@@ -271,7 +271,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
             if Wheel_V ~= 0 then
                 HoverOnScrollItem = true
-                ImGui.SetScrollX(ctx, 0)
+                im.SetScrollX(ctx, 0)
                 local OV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx + 1, 0)
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx + 1, 0, OV + Wheel_V /
                     50)
@@ -293,7 +293,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         if ShowDpRange then
             TimeAfter = r.time_precise()
             if TimeAfter < TimeNow + 0.5 then
-                ImGui.DrawList_AddTextEx(Drawlist, Font_Andale_Mono_20_B, 20,
+                im.DrawList_AddTextEx(Drawlist, Font_Andale_Mono_20_B, 20,
                     SpX + 90, Top + 40, 0xffffffff, '±' .. Sel_Scale * 3)
             else
                 ShowDpRange = false
@@ -301,7 +301,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         elseif FX[FxGUID].ShowMsecRange then
             TimeAfter = r.time_precise()
             if TimeAfter < TimeNow + 0.5 then
-                ImGui.DrawList_AddTextEx(Drawlist, Font_Andale_Mono_20_B, 20,
+                im.DrawList_AddTextEx(Drawlist, Font_Andale_Mono_20_B, 20,
                     SpX + 70, Top + 40, 0xffffffff, FX[FxGUID].MsecRange)
             else
                 FX[FxGUID].ShowMsecRange = false
@@ -310,33 +310,33 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
         -- Draw Grid
-        ImGui.DrawList_AddLine(Drawlist, SpX, Top + 95, SpX + 180, Top + 95,
+        im.DrawList_AddLine(Drawlist, SpX, Top + 95, SpX + 180, Top + 95,
             0x99999955, 1) --- -3dB
-        ImGui.DrawList_AddText(Drawlist, SpX + 185, Top + 90, 0x999999bb,
+        im.DrawList_AddText(Drawlist, SpX + 185, Top + 90, 0x999999bb,
             '-' .. 3 * Sel_Scale)
-        ImGui.DrawList_AddLine(Drawlist, SpX, Top + 72, SpX + 180, Top + 72,
+        im.DrawList_AddLine(Drawlist, SpX, Top + 72, SpX + 180, Top + 72,
             0x99999933, 1) --- -1.5dB
-        ImGui.DrawList_AddText(Drawlist, SpX + 185, Top + 70, 0x999999aa,
+        im.DrawList_AddText(Drawlist, SpX + 185, Top + 70, 0x999999aa,
             '-' .. 1.5 * Sel_Scale)
 
-        ImGui.DrawList_AddLine(Drawlist, SpX, Top + 50, SpX + 180, Top + 50,
+        im.DrawList_AddLine(Drawlist, SpX, Top + 50, SpX + 180, Top + 50,
             0x99999955, 1) --- 0dB
-        ImGui.DrawList_AddText(Drawlist, SpX + 185, Top + 45, 0x999999bb, ' 0')
+        im.DrawList_AddText(Drawlist, SpX + 185, Top + 45, 0x999999bb, ' 0')
 
-        ImGui.DrawList_AddLine(Drawlist, SpX, Top + 27, SpX + 180, Top + 27,
+        im.DrawList_AddLine(Drawlist, SpX, Top + 27, SpX + 180, Top + 27,
             0x99999933, 1) --- -1.5dB
-        ImGui.DrawList_AddText(Drawlist, SpX + 185, Top + 20, 0x999999aa,
+        im.DrawList_AddText(Drawlist, SpX + 185, Top + 20, 0x999999aa,
             '+' .. 1.5 * Sel_Scale)
 
-        ImGui.DrawList_AddLine(Drawlist, SpX, Top + 4, SpX + 180, Top + 4,
+        im.DrawList_AddLine(Drawlist, SpX, Top + 4, SpX + 180, Top + 4,
             0x99999955, 1) --- +3dB
-        ImGui.DrawList_AddText(Drawlist, SpX + 185, Top - 5, 0x999999bb,
+        im.DrawList_AddText(Drawlist, SpX + 185, Top - 5, 0x999999bb,
             '+' .. 3 * Sel_Scale)
 
-        -- ImGui.DrawList_PathStroke(Drawlist,0xFF8181cc)
+        -- im.DrawList_PathStroke(Drawlist,0xFF8181cc)
 
 
-        ImGui.SameLine(ctx)
+        im.SameLine(ctx)
 
 
 
@@ -344,16 +344,16 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         --for i=1, 13, 1 do FX[FxGUID][i]=FX[FxGUID][i] or {} end
 
 
-        ImGui.Indent(ctx, 210)
+        im.Indent(ctx, 210)
         AddKnob(ctx, '##Gain', 'Gain', FX[FxGUID][8].V or 0, 0, 1, 8, FX_Idx, 10,
             'Pro C', 15, IIS, Disabled, LblTextSize, 'Bottom')
         AddKnob(ctx, '##Dry', 'Dry', FX[FxGUID][9].V or 0, 0, 1, 9, FX_Idx, 12,
             'Pro C', 15, IIS, Disabled, LblTextSize, 'Bottom')
-        local OrigPosX, OrigPosY = ImGui.GetCursorPos(ctx)
-        ImGui.SetCursorScreenPos(ctx, SpX - 20, Top + 20)
+        local OrigPosX, OrigPosY = im.GetCursorPos(ctx)
+        im.SetCursorScreenPos(ctx, SpX - 20, Top + 20)
         AddSlider(ctx, '##Threshold', ' ', FX[FxGUID][10].V or 0, 0, 1, 10, FX_Idx, 1,
             'Pro C Thresh', 18, IIS, nil, 'Vert', 4, nil, nil, 180)
-        ImGui.SetCursorPos(ctx, OrigPosX, OrigPosY)
+        im.SetCursorPos(ctx, OrigPosX, OrigPosY)
 
         ---Meter on the right-----
         r.gmem_attach('CompReductionScope')
@@ -366,46 +366,46 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         local SegL = 0 * ((MtrB - MtrT) / 30)
         local MtrW = 5;
 
-        --ImGui.DrawList_AddRectFilled(Drawlist, SpX+249, MtrT, SpX+267, MtrB , 0x55555544)
+        --im.DrawList_AddRectFilled(Drawlist, SpX+249, MtrT, SpX+267, MtrB , 0x55555544)
 
         local HowManySeg = 63
         for i = 0, HowManySeg, 1 do --do once for every pixel so you can get different color
             local SegL = i * ((MtrB - MtrT) / HowManySeg); local Clr
 
-            local RR, GG, BB = ImGui.ColorConvertHSVtoRGB(0.4 - (0.3 / HowManySeg) * i, 0.6, 0.5)
-            local MtrClr = ImGui.ColorConvertDouble4ToU32(RR, GG, BB, 1)
-            local MtrClrDim = ImGui.ColorConvertDouble4ToU32(RR, GG, BB, 0.4)
+            local RR, GG, BB = im.ColorConvertHSVtoRGB(0.4 - (0.3 / HowManySeg) * i, 0.6, 0.5)
+            local MtrClr = im.ColorConvertDouble4ToU32(RR, GG, BB, 1)
+            local MtrClrDim = im.ColorConvertDouble4ToU32(RR, GG, BB, 0.4)
 
             if MtrT - (20 * MtrPreL) < MtrB - SegL then
-                ImGui.DrawList_AddLine(
+                im.DrawList_AddLine(
                     Drawlist, SpX - 15, MtrB - SegL, SpX - 15, MtrB - SegL - 1,
                     MtrClr,
                     MtrW)
             end
             if MtrT - (20 * MtrPreR) < MtrB - SegL then
-                ImGui.DrawList_AddLine(
+                im.DrawList_AddLine(
                     Drawlist, SpX - 15 + MtrW + 2, MtrB - SegL, SpX - 15 + MtrW + 2,
                     MtrB - SegL - 1, MtrClr, MtrW)
             end
             if MtrT - (20 * MtrPoL) < MtrB - SegL then
-                ImGui.DrawList_AddLine(
+                im.DrawList_AddLine(
                     Drawlist, SpX + 250, MtrB - SegL, SpX + 250, MtrB - SegL - 1,
                     MtrClr,
                     MtrW)
             end
             if MtrT - (20 * MtrPoR) < MtrB - SegL then
-                ImGui.DrawList_AddLine(
+                im.DrawList_AddLine(
                     Drawlist, SpX + 250 + MtrW + 2, MtrB - SegL, SpX + 250 + MtrW + 2,
                     MtrB - SegL - 1, MtrClr, MtrW)
             end
 
-            ImGui.DrawList_AddLine(Drawlist, SpX - 15, MtrB - SegL, SpX - 15,
+            im.DrawList_AddLine(Drawlist, SpX - 15, MtrB - SegL, SpX - 15,
                 MtrB - SegL - 1, MtrClrDim, MtrW)
-            ImGui.DrawList_AddLine(Drawlist, SpX - 15 + MtrW + 2, MtrB - SegL,
+            im.DrawList_AddLine(Drawlist, SpX - 15 + MtrW + 2, MtrB - SegL,
                 SpX - 15 + MtrW + 2, MtrB - SegL - 1, MtrClrDim, MtrW)
-            ImGui.DrawList_AddLine(Drawlist, SpX + 250, MtrB - SegL, SpX + 250,
+            im.DrawList_AddLine(Drawlist, SpX + 250, MtrB - SegL, SpX + 250,
                 MtrB - SegL - 1, MtrClrDim, MtrW)
-            ImGui.DrawList_AddLine(Drawlist, SpX + 250 + MtrW + 2, MtrB - SegL,
+            im.DrawList_AddLine(Drawlist, SpX + 250 + MtrW + 2, MtrB - SegL,
                 SpX + 250 + MtrW + 2, MtrB - SegL - 1, MtrClrDim, MtrW)
         end
 
@@ -423,19 +423,19 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         end
 
         if PreLPeak then
-            ImGui.DrawList_AddRectFilled(Drawlist, SpX - 16, MtrT - 2,
+            im.DrawList_AddRectFilled(Drawlist, SpX - 16, MtrT - 2,
                 SpX - 13, MtrT + 3, 0xf20000ff)
         end
         if PreRPeak then
-            ImGui.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW +
+            im.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW +
                 2, MtrT - 2, SpX + 250 + MtrW + 5, MtrT + 3, 0xf20000ff)
         end
         if PoLPeak then
-            ImGui.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW * 3 +
+            im.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW * 3 +
                 12, MtrT - 2, SpX + 250 + MtrW * 3 + 15, MtrT + 3, 0xf20000ff)
         end
         if PoRPeak then
-            ImGui.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW * 4 +
+            im.DrawList_AddRectFilled(Drawlist, SpX + 250 + MtrW * 4 +
                 14, MtrT - 2, SpX + 250 + MtrW * 4 + 17, MtrT + 3, 0xf20000ff)
         end
 
@@ -453,44 +453,44 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
 
 
-        ImGui.Unindent(ctx, 210)
-        ImGui.Indent(ctx, 5)
+        im.Unindent(ctx, 210)
+        im.Indent(ctx, 5)
 
 
         AddKnob(ctx, '##Ratio', 'RATIO', FX[FxGUID][5].V or 0, 0, 1, 5, FX_Idx, 2,
             'Pro C', 20, IIS, 'Pro C Ratio Disabled', LblTextSize, 'Bottom')
-        local KneePosX, KneePosY = ImGui.GetCursorPos(ctx)
+        local KneePosX, KneePosY = im.GetCursorPos(ctx)
 
-        ImGui.SameLine(ctx)
-        local X, Y = ImGui.GetCursorPos(ctx)
+        im.SameLine(ctx)
+        local X, Y = im.GetCursorPos(ctx)
 
         StyleOptions = { 'Clean', 'Classic', 'Opto', 'Vocal', 'Master', 'Bus',
             'Punch', 'Pump' }
-        ImGui.SetCursorPos(ctx, X + 25, Y + 15)
+        im.SetCursorPos(ctx, X + 25, Y + 15)
 
         AddCombo(ctx, LT_Track, FX_Idx, 'CompStyle##', 0, StyleOptions, 40, 'Pro C 2',
             FxGUID, Fx_P)
-        ImGui.SetCursorPos(ctx, X + 25, Y + 35)
+        im.SetCursorPos(ctx, X + 25, Y + 35)
 
         MyText('STYLE', nil, 0xbbbbbbff)
 
 
-        ImGui.SetCursorPos(ctx, X + 90, Y)
+        im.SetCursorPos(ctx, X + 90, Y)
 
 
         AddKnob(ctx, 'Attack##Attack', 'Attack', FX[FxGUID][6].V or 0, 0, 1, 6,
             FX_Idx, 5, 'Pro C', 20, IIS, Disabled, LblTextSize, 'Bottom')
 
 
-        ImGui.SetCursorPos(ctx, X + 145, Y)
+        im.SetCursorPos(ctx, X + 145, Y)
         AddKnob(ctx, '##Release', 'Release', FX[FxGUID][7].V or 0, 0, 1, 7, FX_Idx, 6,
             'Pro C', 20, IIS, Disabled, 2, 'Bottom')
 
 
 
-        ImGui.SetCursorPos(ctx, KneePosX - 3, KneePosY + 4)
+        im.SetCursorPos(ctx, KneePosX - 3, KneePosY + 4)
         for Fx_p = 1, 4, 1 do
-            ImGui.SetCursorPosY(ctx, KneePosY + 4)
+            im.SetCursorPosY(ctx, KneePosY + 4)
             local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_p]
             local P_Num = FX[FxGUID][Fx_p].Num
             SliderStyle = 'Pro C'
@@ -515,12 +515,12 @@ if not FX[FXGUID[FX_Idx]].Collapse then
                 AddDrag(ctx, '##' .. Fx_p, FX[FxGUID][Fx_p].Name,
                     FX[FxGUID][Fx_p].V or 0, 0, 1, Fx_p, FX_Idx, P_Num, 'Pro C',
                     (ProC.Width - 60) / 4, IIS, nil)
-                --ImGui.SameLine(ctx)
+                --im.SameLine(ctx)
             end
-            ImGui.SameLine(ctx)
+            im.SameLine(ctx)
         end
-        ImGui.PopFont(ctx)
-        ImGui.PopStyleVar(ctx, 2)
+        im.PopFont(ctx)
+        im.PopStyleVar(ctx, 2)
 
         if not ProC.GR_NATIVE then 
             if not FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
