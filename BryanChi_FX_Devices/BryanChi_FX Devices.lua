@@ -3677,7 +3677,7 @@ if not visible then return end
             end
 
 
-            
+
             --[[ if Mc.All_Coord then
                 if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                     for i  , v in ipairs(Mc.All_Coord.X) do
@@ -7001,8 +7001,7 @@ if not visible then return end
                     local WDL = WDL or ImGui.GetWindowDrawList(ctx)
 
                     if BandSplitID and not FX[FxGUID].BandSplitID then
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: BandSplitterID' .. FxGUID, BandSplitID,
-                            true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: BandSplitterID' .. FxGUID, BandSplitID, true)
                         FX[FxGUID].BandSplitID = BandSplitID
                         BandSplitID = nil
                     end
@@ -7416,16 +7415,15 @@ if not visible then return end
                                             end
                                         end
                                     elseif Payload_Type == 'DND ADD FX' then
-                                        ImGui.DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos,
-                                            0xffffff66)
-
+                                        ImGui.DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos,0xffffff66)
+                                        
                                         if ImGui.IsMouseReleased(ctx, 0) then
+
                                             local InsPos = Find_InsPos()
-                                            local rv, type, payload, is_preview, is_delivery = r
-                                                .ImGui_GetDragDropPayload(ctx)
-                                            r.TrackFX_AddByName(LT_Track, payload, false, -1000 - InsPos - 1)
-                                            local FXid = r.TrackFX_GetFXGUID(LT_Track, InsPos + 1)
-                                            DropFXintoBS(FXid, FxGUID, i, InsPos, FX_Idx, 'DontMove')
+                                            local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
+                                            local id = r.TrackFX_AddByName(LT_Track, payload, false, -1000 - InsPos - 1)
+                                            local FXid = r.TrackFX_GetFXGUID(LT_Track, id)
+                                            DropFXintoBS(FXid, FxGUID, i, id, FX_Idx, 'DontMove')
                                         end
                                     end
                                     AnySplitBandHvred = true
@@ -8218,11 +8216,11 @@ if not visible then return end
         end
     end
 
-    if Payload_Type == 'DND ADD FX' then
+    --[[ if Payload_Type == 'DND ADD FX' then
         local SpcIDinPost
         if SpcInPost then SpcIDinPost = math.max(#Trk[TrkID].PostFX, 1) end
         DndAddFXfromBrowser_TARGET(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost) -- post fx
-    end
+    end ]]
 
     PostFX_Width = math.min(
         (MakeSpaceForPostFX or 0) + ((Trk[TrkID].MakeSpcForPostFXchain or 0) + (PostFX_LastSpc or 0)) + 30,
