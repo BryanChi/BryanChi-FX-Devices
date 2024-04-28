@@ -4535,7 +4535,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
                 HoverWindow = ImGui.GetWindowSize(ctx)
-
+                ImGui.Dummy(ctx, 100, 100)
                 ImGui.EndChild(ctx)
             end
 
