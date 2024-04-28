@@ -5006,6 +5006,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 else
                     Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
                 end
+                
+                HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
                 ImGui.SameLine(ctx, 100, 10)
                 local ContainerIdx = tablefind(FXGUID, FxGUID_Container)
@@ -5031,7 +5033,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     DropToLyrID = LyrID
                     DroptoRack = FXGUID_RackMixer
                     --MoveFX(DragFX_Src, DragFX_Dest ,false )
-
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
                 end
@@ -5065,7 +5066,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 local allowDropNext, MoveFromPostToNorm, DontAllowDrop
                 local FX_Idx = FX_Idx
                 if Mods == Apl then allowDropNext = true end
-                if not FxGUID_DragFX then FxGUID_DragFX = DragFxGuid end
+                 FxGUID_DragFX = DragFxGuid 
                 local rv, type, payload, is_preview, is_delivery = ImGui.GetDragDropPayload(ctx)
 
 
@@ -5108,21 +5109,20 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                             MoveFXwith1PreFX(DragFX_ID, FX_Idx, 'Move Pro-Q 3 and it\'s analyzer')
                         else ]]
                         MoveFX(payload, FX_Idx, true, nil)
-                        --[[ end ]]
+
 
                         -- Move FX Out of BandSplit
                         if FX[FxGUID_DragFX].InWhichBand then
+
                             for i = 0, Sel_Track_FX_Count - 1, 1 do
-                                if FX[FXGUID[i]].FXsInBS then -- i is Band Splitter
-                                    table.remove(FX[FXGUID[i]].FXsInBS,
-                                        tablefind(FX[FXGUID[i]].FXsInBS, FxGUID_DragFX))
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxGUID_DragFX,
-                                        '', true)
-                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxGUID_DragFX,
-                                        '', true)
+                                local FxGUID = r.TrackFX_GetFXGUID(LT_Track, i)
+                                if FX[FxGUID].FXsInBS then -- i is Band Splitter
+                                    table.remove(FX[FxGUID].FXsInBS, tablefind(FX[FxGUID].FXsInBS, FxGUID_DragFX))
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which BS' .. FxGUID_DragFX, '', true)
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX is in which Band' .. FxGUID_DragFX, '', true)
                                 end
                             end
-                            FX[FxGUID_DragFX].InWhichBand = nil
+                            FX[FxGUID_DragFX].InWhichBand = nil 
                         end
 
 

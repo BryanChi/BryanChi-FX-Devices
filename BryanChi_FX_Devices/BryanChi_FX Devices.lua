@@ -3676,6 +3676,8 @@ if not visible then return end
                 LFO_MsX_Start, LFO_MsY_Start = nil
             end
 
+
+            
             --[[ if Mc.All_Coord then
                 if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                     for i  , v in ipairs(Mc.All_Coord.X) do
