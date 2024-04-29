@@ -17,11 +17,12 @@ FX[FxGUID].CustomTitle = 'ReaComp'
 
 local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
 
-if GR and GR ~= 0 then 
-    FX[FxGUID][1].CustomLbl = '  '
-    FX[FxGUID].DontShowGR = nil
-elseif GR and GR == 0 then 
-    FX[FxGUID][1].CustomLbl = 'Threshold'
-    FX[FxGUID].DontShowGR = true 
+if FX[FxGUID][1] then 
+    if GR and GR ~= 0 then 
+        FX[FxGUID][1].CustomLbl = '  '
+        FX[FxGUID].DontShowGR = nil
+    elseif GR and GR == 0 then 
+        FX[FxGUID][1].CustomLbl = 'Threshold'
+        FX[FxGUID].DontShowGR = true 
+    end
 end
-    

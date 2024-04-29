@@ -1,7 +1,9 @@
 -- @noindex
 
 local FX_Idx = PluginScript.FX_Idx
-local FxGUID = PluginScript.Guid
+local FxGUID = FxGUID
+local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+
 
 
 
@@ -18,7 +20,7 @@ FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
 
 Rounding = 3
 ImGui.PushStyleVar(ctx, ImGui.StyleVar_FrameRounding, Rounding)
-if not FX[FXGUID[FX_Idx]].Collapse then
+if not FX[FxGUID].Collapse then
     if not OverSampleValue then
         _, OverSampleValue = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 40)
     end
@@ -33,7 +35,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     local OS_V = { 0, 0.5, 1 }
     AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,'Pro C 2', FxGUID, Fx_P or 1, OS_V)
     --ImGui.SameLine(ctx)
-    --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or '', Trk.Prm.V[F_Tp(12,FXGUID[FX_Idx])..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
+    --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or '', Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
 
     ImGui.PopFont(ctx)
     ImGui.SameLine(ctx, ProC.Width - 25)
@@ -61,57 +63,59 @@ ImGui.PopStyleVar(ctx)
 
 
 
+local FXname = select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))
+
+
+local lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx-1))
 
 
 
 
 
-
-
-if not FX[FXGUID[FX_Idx]].Collapse then
-    if Prm.InstAdded[PluginScript.Guid] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-C 2') then
+if not FX[FxGUID].Collapse then
+    if Prm.InstAdded[FxGUID] ~= true and FXname:find('Pro%-C 2') then
         --- number in green represents FX Prm Index
-        StoreNewParam(FXGUID[FX_Idx], 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
             1, FX_Idx)                       --1. Knee
-        StoreNewParam(FXGUID[FX_Idx], 'Range', 4, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Range', 4, FX_Idx, false, 'AddingFromExtState',
             2, FX_Idx)                       --2. Range
-        StoreNewParam(FXGUID[FX_Idx], 'Lookahead', 8, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Lookahead', 8, FX_Idx, false,
             'AddingFromExtState', 3, FX_Idx) --3. Lookahead
-        StoreNewParam(FXGUID[FX_Idx], 'Hold', 9, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Hold', 9, FX_Idx, false, 'AddingFromExtState',
             4, FX_Idx)                       --4. Hold
 
-        StoreNewParam(FXGUID[FX_Idx], 'Ratio', 2, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Ratio', 2, FX_Idx, false, 'AddingFromExtState',
             5, FX_Idx)                       --5. Ratio
-        StoreNewParam(FXGUID[FX_Idx], 'Attack', 5, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Attack', 5, FX_Idx, false,
             'AddingFromExtState', 6, FX_Idx) --6. Attack
-        StoreNewParam(FXGUID[FX_Idx], 'Release', 6, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Release', 6, FX_Idx, false,
             'AddingFromExtState', 7, FX_Idx) --7. release
 
-        StoreNewParam(FXGUID[FX_Idx], 'Gain', 10, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Gain', 10, FX_Idx, false, 'AddingFromExtState',
             8, FX_Idx)                        --8. Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Dry', 12, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Dry', 12, FX_Idx, false, 'AddingFromExtState',
             9, FX_Idx)                        --9. Dry Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Thresh', 1, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Thresh', 1, FX_Idx, false,
             'AddingFromExtState', 10, FX_Idx) -- 10. Thresh
 
-        StoreNewParam(FXGUID[FX_Idx], 'Mix', 34, FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FxGUID, 'Mix', 34, FX_Idx, false, 'AddingFromExtState',
             11, FX_Idx)                       -- 11. Mix
-        StoreNewParam(FXGUID[FX_Idx], 'Input Gain', 35, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Input Gain', 35, FX_Idx, false,
             'AddingFromExtState', 12, FX_Idx) -- 12. Input Gain
-        StoreNewParam(FXGUID[FX_Idx], 'Output Gain', 37, FX_Idx, false,
+        StoreNewParam(FxGUID, 'Output Gain', 37, FX_Idx, false,
             'AddingFromExtState', 13, FX_Idx) -- 13. Output Gain
 
 
 
-        Prm.InstAdded[FXGUID[FX_Idx]] = true
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. FXGUID[FX_Idx] .. 'Params Added',
+        Prm.InstAdded[FxGUID] = true
+        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added',
             'true')
     end
     function F_Tp(FX_P)
         return FX.Prm.ToTrkPrm[FxGUID .. FX_P]
     end
 
-    if FX[PluginScript.Guid][1].Num and FX[PluginScript.Guid][8] then
+    if FX[FxGUID][1].Num and FX[FxGUID][8] then
         ImGui.Indent(ctx, 20)
 
         Rounding = 3
@@ -524,7 +528,14 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         ImGui.PopStyleVar(ctx, 2)
 
         if not ProC.GR_NATIVE then 
-            if not FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
+            local lastFXname
+            if FX_Idx > 0x2000000 then 
+                lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, GetLastFXid_in_Container(FX_Idx)))
+            else 
+                lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx-1))
+            end 
+
+            if not lastFXName:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
                 table.insert(AddFX.Pos, FX_Idx)
                 table.insert(AddFX.Name, 'FXD Split to 4 channels')
                 if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
@@ -537,11 +548,22 @@ if not FX[FXGUID[FX_Idx]].Collapse then
             -- r.TrackFX_Show( LT_Track, FX_Idx-1, 2 ) --hide fx window
 
             local _, NextFX = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
+            local NextFX_id = FX_Idx + 1
+            if FX_Idx > 0x2000000 then -- if in container 
+                local next, this, parent_cont = GetNextFXid_in_Container(FX_Idx)
+                if not next then NextFX = 'no next fx' 
+                else r.TrackFX_GetFXName(LT_Track, next)
+                end 
+
+                NextFX_id = 0x2000000 + (this+1) *(r.TrackFX_GetCount(LT_Track)+1) + (parent_cont+1)
+            end 
+
 
             if not NextFX:find('JS: FXD Gain Reduction Scope') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
-                table.insert(AddFX.Pos, FX_Idx + 1)
+                table.insert(AddFX.Pos, NextFX_id)
                 table.insert(AddFX.Name, 'FXD Gain Reduction Scope')
                 ProC.GainSc_FXGUID = FxGUID
+
 
                 function WriteGmemToGainReductionScope(FxGUID)
 

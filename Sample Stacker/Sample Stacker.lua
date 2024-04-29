@@ -107,7 +107,6 @@ function Show_AddedSamples (MatchedFiles)
     
         
     end
-    
     function Added_Samples_Selection(i)
         local x, y , w , h , WDL    
         w, h = ImGui.GetWindowSize( ctx)
@@ -117,12 +116,10 @@ function Show_AddedSamples (MatchedFiles)
         if ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_ChildWindows) then 
             
 
-            if MODS==ImGui.Mod_Alt then 
+            if MODS==ImGui.Mod_Alt then  
                 ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0x93222266)
             else    
                 ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff11)
-
-
             end 
             if ImGui.IsMouseClicked(ctx,0) and MODS==0   then 
                 ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff55)
@@ -490,9 +487,11 @@ end
 
 function At_beginning_of_Each_Loop()
     for i, v in ipairs(Delete_Itm) do 
-
-        r.DeleteTrackMediaItem(r.GetLastTouchedTrack(), Added[v].it)
+        if Added[v].it then 
+            r.DeleteTrackMediaItem(r.GetLastTouchedTrack(), Added[v].it)
+        end
         table.remove(Added,v )
+
     end
     r.UpdateArrange()
 

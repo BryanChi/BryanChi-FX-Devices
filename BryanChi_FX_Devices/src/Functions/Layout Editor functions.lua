@@ -2286,12 +2286,14 @@ end
 
 ---@param Sel_Track_FX_Count integer
 function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+
     if LT_Track then
         TREE = BuildFXTree(LT_Track or tr)
 
         for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
             local PrmInst, Line, FX_Name
             local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+            
             --local file = CallFile('r', FX_Name..'.ini', 'FX Layouts')
 
             local function GetInfo(FxGUID, FX_Idx)
@@ -2680,6 +2682,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     Upcoming_Container = v.children
                                     get_Container_Info()
                                 end
+
                             end
                         end
 

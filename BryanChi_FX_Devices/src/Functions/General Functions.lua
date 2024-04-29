@@ -33,6 +33,48 @@ function Delete_All_FXD_AnalyzerFX(trk)
     end
 end
 
+function GetLastFXid_in_Container(FX_Idx)
+    local lastid
+    local rv, parent_cont   = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parent_container')
+
+    if rv  then 
+
+        local ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_count')))
+        for i=0 , ct, 1 do 
+
+            local rv, id   = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i)
+
+            if tonumber(id) == FX_Idx then 
+
+                rv, lastid = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i-1)
+            end 
+        end 
+    end
+    return tonumber(lastid)
+end
+
+
+function GetNextFXid_in_Container(FX_Idx)
+    local lastid, thisid
+    local rv, parent_cont   = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parent_container')
+
+    if rv  then 
+
+        local ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_count')))
+        for i=0 , ct, 1 do 
+
+            rv, id   = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i)
+
+            if tonumber(id) == FX_Idx then 
+
+                rv, nextid = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i+1)
+                thisid = id 
+            end 
+        end 
+    end
+    return tonumber(nextid), tonumber(thisid), tonumber(parent_cont)
+end
+
 ------------------------------------------------------------------------------
 function BuildFXTree_item(tr, fxid, scale, oldscale)
     local tr = tr or LT_Track
@@ -5232,6 +5274,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
                     end
                     FX_Idx_OpenedPopup = nil
+                    RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 end
                 ImGui.PopStyleColor(ctx)
 

@@ -7996,7 +7996,6 @@ if not visible then return end
             end
 
 
-
             Create_FX_Window()
 
 
