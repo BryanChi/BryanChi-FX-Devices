@@ -530,7 +530,10 @@ if not FX[FxGUID].Collapse then
         if not ProC.GR_NATIVE then 
             local lastFXname
             if FX_Idx > 0x2000000 then 
-                lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, GetLastFXid_in_Container(FX_Idx)))
+                local lastfx =  GetLastFXid_in_Container(FX_Idx)
+                if lastfx then 
+                    lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, GetLastFXid_in_Container(FX_Idx)))
+                end
             else 
                 lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx-1))
             end 
