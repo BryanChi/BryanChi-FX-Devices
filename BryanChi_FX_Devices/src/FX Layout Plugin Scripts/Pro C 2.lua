@@ -553,12 +553,12 @@ if not FX[FxGUID].Collapse then
             local _, NextFX = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
             local NextFX_id = FX_Idx + 1
             if FX_Idx > 0x2000000 then -- if in container 
-                local next, this, parent_cont = GetNextFXid_in_Container(FX_Idx)
+                local next, this, parent_cont, cont_fx_count = GetNextFXid_in_Container(FX_Idx)
                 if not next then NextFX = 'no next fx' 
                 else r.TrackFX_GetFXName(LT_Track, next)
                 end 
-
-                NextFX_id = 0x2000000 + (this+1) *(r.TrackFX_GetCount(LT_Track)+1) + (parent_cont+1)
+               
+                NextFX_id =  -1000 - FX_Id
             end 
 
 

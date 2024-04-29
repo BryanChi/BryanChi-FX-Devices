@@ -54,13 +54,30 @@ function GetLastFXid_in_Container(FX_Idx)
 end
 
 
+function ConvertPathToNestedPath( path_id, target_pos)
+    local rv, buf = r.TrackFX_GetNamedConfigParm(track, path_id, "parent_container")
+    if rv then
+        NestedPath = get_container_path_from_fx_id(track, tonumber(path_id))
+        
+        target_id = get_fx_id_from_container_path(track, NestedPath, FX_Idx + 1, target_pos) -- parent -> #1 track, #2 child of parent
+    else
+        NestedPath = nil
+        target_id = get_fx_id_from_container_path(track, NestedPath, FX_Idx + 1, target_pos) -- parent -> #1 track, #2 child of parent
+
+    end
+    NestedPath = nil
+
+    return target_id
+  end
+
+
 function GetNextFXid_in_Container(FX_Idx)
-    local lastid, thisid
+    local lastid, thisid,ct
     local rv, parent_cont   = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parent_container')
 
     if rv  then 
 
-        local ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_count')))
+         ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_count')))
         for i=0 , ct, 1 do 
 
             rv, id   = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i)
@@ -72,7 +89,7 @@ function GetNextFXid_in_Container(FX_Idx)
             end 
         end 
     end
-    return tonumber(nextid), tonumber(thisid), tonumber(parent_cont)
+    return tonumber(nextid), tonumber(thisid), tonumber(parent_cont), ct
 end
 
 ------------------------------------------------------------------------------
