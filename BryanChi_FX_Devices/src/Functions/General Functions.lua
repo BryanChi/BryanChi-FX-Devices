@@ -14,9 +14,9 @@ end
 
 function InvisiBtn(ctx, x, y, str, w, h)
     if x and y then
-        ImGui.SetCursorScreenPos(ctx, x, y)
+        im.SetCursorScreenPos(ctx, x, y)
     end
-    local rv = ImGui.InvisibleButton(ctx, str, w, h or w)
+    local rv = im.InvisibleButton(ctx, str, w, h or w)
 
 
     return rv
@@ -32,44 +32,108 @@ function Delete_All_FXD_AnalyzerFX(trk)
         end
     end
 end
+--------------------------- Container Related ------------------------------
+---@param tr MediaTrack
+---@param idx1 number
+---@return integer "fxid"
+function get_fx_id_from_container_path(tr, idx1, ...)
+    local sc, rv = reaper.TrackFX_GetCount(tr) + 1, 0x2000000 + idx1
+    for i, v in ipairs({ ... }) do
+        local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
+        if ccok ~= true then return nil end
+        rv = rv + sc * v
+        sc = sc * (1 + tonumber(cc))
+    end
+    return rv
+end
 
+---@param tr MediaTrack
+---@param NestedPath table
+---@param idx1 number
+---@param target number
+---@return integer "fxid"
+local function GetFXIDinContainer(tr, NestedPath, idx1, target) -- 1based
+    if NestedPath then -- if Container is nested
+        for i, v in ipairs(NestedPath) do
+            if i == 1 then
+                sc, rv = r.TrackFX_GetCount(tr) + 1, 0x2000000 + v
+            else
+                local ccok, cc = r.TrackFX_GetNamedConfigParm(tr, rv, 'container_count')
+                if ccok ~= true then return nil end
+                rv = rv + sc * v
+                sc = sc * (1 + tonumber(cc))
+                if i == #NestedPath then
+                  rv = rv + sc * target
+                end
+            end
+        end
+        path_id = rv
+    else
+        local sc, rv = r.TrackFX_GetCount(tr) + 1, 0x2000000 + idx1
+        rv = rv + sc * target
+        path_id = rv
+    end
+      return path_id
+end
+
+---@param tr MediaTrack
+---@param fxidx integer 0 based or something like 33554455 in container
+---@return table<Index,fxslot> table
+function get_container_path_from_fx_id(tr, fxidx) -- returns a list of 1-based FXIDs as a table from a fx-address, e.g. 1, 2, 4
+    if fxidx & 0x2000000 then
+      local ret = { }
+      local n = reaper.TrackFX_GetCount(tr)
+      local curidx = (fxidx - 0x2000000) % (n+1)
+      local remain = math.floor((fxidx - 0x2000000) / (n+1))
+      if curidx < 1 then return nil end -- bad address
+  
+      local addr, addr_sc = curidx + 0x2000000, n + 1
+      while true do
+        local ccok, cc = reaper.TrackFX_GetNamedConfigParm(tr, addr, 'container_count')
+        if not ccok then return nil end -- not a container
+        ret[#ret+1] = curidx
+        n = tonumber(cc)
+        if remain <= n then if remain > 0 then ret[#ret+1] = remain end return ret end
+        curidx = remain % (n+1)
+        remain = math.floor(remain / (n+1))
+        if curidx < 1 then return nil end -- bad address
+        addr = addr + addr_sc * curidx
+        addr_sc = addr_sc * (n+1)
+      end
+    end
+    return { fxid+1 }
+end
+
+---@param container_id integer 0 based or something like 33554455 in container
+---@param target_pos number 1-based slot number where you want to add FX
+---@return integer "fxid"
+function TrackFX_GetInsertPositionInContainer(container_id, target_pos)
+    local rv, _ = r.TrackFX_GetNamedConfigParm(LT_Track, container_id, "parent_container")
+    if rv then -- Container is nested
+        NestedPath = get_container_path_from_fx_id(LT_Track, tonumber(container_id))
+        target_id = GetFXIDinContainer(LT_Track, NestedPath, nil, target_pos) -- parent -> #1 track, #2 child of parent
+    else -- container is in root
+        target_id = GetFXIDinContainer(LT_Track, nil, container_id + 1, target_pos) -- 1 based
+    end
+    NestedPath = nil
+    return target_id
+end
+
+---@param FX_Idx integer
 function GetLastFXid_in_Container(FX_Idx)
     local lastid
     local rv, parent_cont   = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parent_container')
-
-    if rv  then 
-
+    if rv then -- it's in container
         local ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_count')))
-        for i=0 , ct, 1 do 
-
+        for i = 0, ct do 
             local rv, id   = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i)
-
             if tonumber(id) == FX_Idx then 
-
                 rv, lastid = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'container_item.'..i-1)
             end 
         end 
     end
     return tonumber(lastid)
 end
-
-
-function ConvertPathToNestedPath( path_id, target_pos)
-    local rv, buf = r.TrackFX_GetNamedConfigParm(track, path_id, "parent_container")
-    if rv then
-        NestedPath = get_container_path_from_fx_id(track, tonumber(path_id))
-        
-        target_id = get_fx_id_from_container_path(track, NestedPath, FX_Idx + 1, target_pos) -- parent -> #1 track, #2 child of parent
-    else
-        NestedPath = nil
-        target_id = get_fx_id_from_container_path(track, NestedPath, FX_Idx + 1, target_pos) -- parent -> #1 track, #2 child of parent
-
-    end
-    NestedPath = nil
-
-    return target_id
-  end
-
 
 function GetNextFXid_in_Container(FX_Idx)
     local lastid, thisid,ct
@@ -117,7 +181,7 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
     return ret
 end
 
---------------------------------------------------------------------------
+
 function BuildFXTree(tr)
     -- table with referencing ID tree
     local tr = tr or LT_Track
@@ -147,6 +211,46 @@ function Check_If_Has_Children_Prioritize_Empty_Container(TB)
         return Candidate
     end
 end
+
+function fx_map_parameter(tr, fxidx, parmidx) -- maps a parameter to the top level parent, returns { fxidx, parmidx }
+    local path = get_container_path_from_fx_id(tr, fxidx)
+    if not path then return nil end
+    while #path > 1 do
+        fxidx = path[#path]
+        table.remove(path)
+        local cidx = get_fx_id_from_container_path(tr, table.unpack(path))
+        if cidx == nil then return nil end
+        local i, found = 0, nil
+        while true do
+            local rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx,
+                string.format("param.%d.container_map.fx_index", i))
+            if not rok then break end
+            if tonumber(r) == fxidx - 1 then
+                rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_parm", i))
+                if not rok then break end
+                if tonumber(r) == parmidx then
+                    found = true
+                    parmidx = i
+                    break
+                end
+            end
+            i = i + 1
+        end
+        if not found then
+            -- add a new mapping
+            local rok, r = reaper.TrackFX_GetNamedConfigParm(tr, cidx, "container_map.add")
+            if not rok then return nil end
+            r = tonumber(r)
+            reaper.TrackFX_SetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_index", r),
+                tostring(fxidx - 1))
+            reaper.TrackFX_SetNamedConfigParm(tr, cidx, string.format("param.%d.container_map.fx_parm", r),
+                tostring(parmidx))
+            parmidx = r
+        end
+    end
+    return fxidx, parmidx
+end
+--------------------------------------------------------------------------
 
 local tr = reaper.GetSelectedTrack(0, 0)
 TREE = BuildFXTree(LT_Track or tr)
@@ -734,26 +838,26 @@ end
 --------------ImGUI Related ---------------------
 function PinIcon(PinStatus, PinStr, size, lbl, ClrBG, ClrTint)
     if PinStatus == PinStr then
-        if ImGui.ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
+        if im.ImageButton(ctx, '##' .. lbl, Img.Pinned, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
             PinStatus = nil
         end
     else
-        if ImGui.ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
+        if im.ImageButton(ctx, '##' .. lbl, Img.Pin, size, size, nil, nil, nil, nil, ClrBG, ClrTint) then
             PinStatus = PinStr
         end
     end
 
-    if ImGui.IsItemHovered(ctx) then
+    if im.IsItemHovered(ctx) then
         TintClr = 0xCE1A28ff
     end
     return PinStatus, TintClr
 end
 
 function QuestionHelpHint(Str)
-    if ImGui.IsItemHovered(ctx) then
+    if im.IsItemHovered(ctx) then
         SL()
-        ImGui.TextColored(ctx, 0x99999977, '(?)')
-        if ImGui.IsItemHovered(ctx) then
+        im.TextColored(ctx, 0x99999977, '(?)')
+        if im.IsItemHovered(ctx) then
             HintToolTip(Str)
         end
     end
@@ -782,45 +886,45 @@ end
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
                                Foreground, rounding, thick)
     if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
-        L, T = ImGui.GetItemRectMin(ctx); R, B = ImGui.GetItemRectMax(ctx); w, h = ImGui.GetItemRectSize(ctx)
+        L, T = im.GetItemRectMin(ctx); R, B = im.GetItemRectMax(ctx); w, h = im.GetItemRectSize(ctx)
         --Get item rect
     end
     local P = Padding or 0; local HSC = H_OutlineSc or 4; local VSC = V_OutlineSc or 4
     if Foreground == 'Foreground' then WinDrawList = Glob.FDL else WinDrawList = Foreground end
-    if not WinDrawList then WinDrawList = ImGui.GetWindowDrawList(ctx) end
-    if FillClr then ImGui.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
+    if not WinDrawList then WinDrawList = im.GetWindowDrawList(ctx) end
+    if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
 
     local h = h or B - T
     local w = w or R - L
 
     if OutlineClr and not rounding then
-        ImGui.DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
-        ImGui.DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
     else
-        if FillClr then ImGui.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
-        if OutlineClr then ImGui.DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
+        if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
+        if OutlineClr then im.DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
     end
     if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
 function Highlight_Itm(WDL, FillClr, OutlineClr)
-    local L, T = ImGui.GetItemRectMin(ctx);
-    local R, B = ImGui.GetItemRectMax(ctx);
+    local L, T = im.GetItemRectMin(ctx);
+    local R, B = im.GetItemRectMax(ctx);
 
-    if FillClr then ImGui.DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
-    if OutlineClr then ImGui.DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
+    if FillClr then im.DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
+    if OutlineClr then im.DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
 end
 
 ---@param ctx ImGui_Context
 ---@param time integer count in
 function PopClr(ctx, time)
-    ImGui.PopStyleColor(ctx, time)
+    im.PopStyleColor(ctx, time)
 end
 
 ---@param FX_Idx integer
@@ -878,9 +982,9 @@ end
 ---TODO remove this duplicate of tooltip()
 ---@param A string text for tooltip
 function ttp(A)
-    ImGui.BeginTooltip(ctx)
-    ImGui.SetTooltip(ctx, A)
-    ImGui.EndTooltip(ctx)
+    im.BeginTooltip(ctx)
+    im.SetTooltip(ctx, A)
+    im.EndTooltip(ctx)
 end
 
 ---@param time number
@@ -910,29 +1014,29 @@ function HideCursor(time)
 end
 
 function GetAllInfoNeededEachLoop()
-    TimeEachFrame = ImGui.GetDeltaTime(ctx)
+    TimeEachFrame = im.GetDeltaTime(ctx)
     if ImGUI_Time == nil then ImGUI_Time = 0 end
     ImGUI_Time             = ImGUI_Time + TimeEachFrame
     _, TrkName             = r.GetTrackName(LT_Track)
 
-    Wheel_V, Wheel_H       = ImGui.GetMouseWheel(ctx)
+    Wheel_V, Wheel_H       = im.GetMouseWheel(ctx)
     LT_Track               = r.GetLastTouchedTrack()
-    IsAnyMouseDown         = ImGui.IsAnyMouseDown(ctx)
-    LBtn_MousdDownDuration = ImGui.GetMouseDownDuration(ctx, 0)
-    LBtnRel                = ImGui.IsMouseReleased(ctx, 0)
-    RBtnRel                = ImGui.IsMouseReleased(ctx, 1)
-    IsLBtnClicked          = ImGui.IsMouseClicked(ctx, 0)
-    LBtnClickCount         = ImGui.GetMouseClickedCount(ctx, 0)
-    IsLBtnHeld             = ImGui.IsMouseDown(ctx, 0)
-    IsRBtnHeld             = ImGui.IsMouseDown(ctx, 1)
-    Mods                   = ImGui.GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
-    IsRBtnClicked          = ImGui.IsMouseClicked(ctx, 1)
+    IsAnyMouseDown         = im.IsAnyMouseDown(ctx)
+    LBtn_MousdDownDuration = im.GetMouseDownDuration(ctx, 0)
+    LBtnRel                = im.IsMouseReleased(ctx, 0)
+    RBtnRel                = im.IsMouseReleased(ctx, 1)
+    IsLBtnClicked          = im.IsMouseClicked(ctx, 0)
+    LBtnClickCount         = im.GetMouseClickedCount(ctx, 0)
+    IsLBtnHeld             = im.IsMouseDown(ctx, 0)
+    IsRBtnHeld             = im.IsMouseDown(ctx, 1)
+    Mods                   = im.GetKeyMods(ctx) -- Alt = 4  shift =2  ctrl = 1  Command=8
+    IsRBtnClicked          = im.IsMouseClicked(ctx, 1)
     LT_FXGUID              = r.TrackFX_GetFXGUID(LT_Track or r.GetTrack(0, 0),
         LT_FX_Number or 0)
     TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
     Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
-    LBtnDrag               = ImGui.IsMouseDragging(ctx, 0)
-    LBtnDC                 = ImGui.IsMouseDoubleClicked(ctx, 0)
+    LBtnDrag               = im.IsMouseDragging(ctx, 0)
+    LBtnDC                 = im.IsMouseDoubleClicked(ctx, 0)
 end
 
 function GetFocusedWindow()
@@ -948,11 +1052,11 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
     end
 
     if MouseBtn then
-        if ImGui.IsMouseClicked(ctx, MouseBtn) then
+        if im.IsMouseClicked(ctx, MouseBtn) then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
     elseif triggerKey then
-        if ImGui.IsKeyPressed(ctx, triggerKey, false) then
+        if im.IsKeyPressed(ctx, triggerKey, false) then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
     end
@@ -964,22 +1068,22 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
 
         local function Hide()
             if MouseBtn then
-                if ImGui.IsMouseDown(ctx, MouseBtn) then
-                    ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_None)
+                if im.IsMouseDown(ctx, MouseBtn) then
+                    im.SetMouseCursor(ctx, im.MouseCursor_None)
                     r.defer(Hide)
                 else
                     r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
-                    if ImGui.IsMouseReleased(ctx, MouseBtn) then
+                    if im.IsMouseReleased(ctx, MouseBtn) then
                         r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
                     end
                 end
             elseif triggerKey then
-                if ImGui.IsKeyDown(ctx, triggerKey) then
-                    ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_None)
+                if im.IsKeyDown(ctx, triggerKey) then
+                    im.SetMouseCursor(ctx, im.MouseCursor_None)
                     r.defer(Hide)
                 else
                     r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
-                    if ImGui.IsKeyReleased(ctx, triggerKey) then
+                    if im.IsKeyReleased(ctx, triggerKey) then
                         r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
                     end
                 end
@@ -995,13 +1099,13 @@ function GetMouseDelta(MouseBtn, triggerKey)
     MouseDelta = MouseDelta or {}
     local M = MouseDelta
     if MouseBtn then
-        if ImGui.IsMouseClicked(ctx, MouseBtn) then
+        if im.IsMouseClicked(ctx, MouseBtn) then
             M.StX, M.StY = r.GetMousePosition()
         end
     end
 
     if triggerKey then
-        if ImGui.IsKeyPressed(ctx, triggerKey, false) then
+        if im.IsKeyPressed(ctx, triggerKey, false) then
             M.StX, M.StY = r.GetMousePosition()
         end
     end
@@ -1028,7 +1132,7 @@ end
 ---@param Name string
 ---@param FX_Idx integer
 function CreateWindowBtn_Vertical(Name, FX_Idx)
-    local rv = ImGui.Button(ctx, Name, 25, 220) -- create window name button
+    local rv = im.Button(ctx, Name, 25, 220) -- create window name button
     if rv and Mods == 0 then
         openFXwindow(LT_Track, FX_Idx)
     elseif rv and Mods == Shift then
@@ -1036,21 +1140,21 @@ function CreateWindowBtn_Vertical(Name, FX_Idx)
     elseif rv and Mods == Alt then
         DeleteFX(FX_Idx)
     end
-    if ImGui.IsItemClicked(ctx, 1) and Mods == 0 then
+    if im.IsItemClicked(ctx, 1) and Mods == 0 then
         FX.Collapse[FXGUID[FX_Idx]] = false
     end
 end
 
 function HighlightHvredItem()
-    local DL = ImGui.GetForegroundDrawList(ctx)
-    L, T = ImGui.GetItemRectMin(ctx)
-    R, B = ImGui.GetItemRectMax(ctx)
-    if ImGui.IsMouseHoveringRect(ctx, L, T, R, B) then
-        ImGui.DrawList_AddRect(DL, L, T, R, B, 0x99999999)
-        ImGui.DrawList_AddRectFilled(DL, L, T, R, B, 0x99999933)
+    local DL = im.GetForegroundDrawList(ctx)
+    L, T = im.GetItemRectMin(ctx)
+    R, B = im.GetItemRectMax(ctx)
+    if im.IsMouseHoveringRect(ctx, L, T, R, B) then
+        im.DrawList_AddRect(DL, L, T, R, B, 0x99999999)
+        im.DrawList_AddRectFilled(DL, L, T, R, B, 0x99999933)
         if IsLBtnClicked then
-            ImGui.DrawList_AddRect(DL, L, T, R, B, 0x999999dd)
-            ImGui.DrawList_AddRectFilled(DL, L, T, R, B, 0xffffff66)
+            im.DrawList_AddRect(DL, L, T, R, B, 0x999999dd)
+            im.DrawList_AddRectFilled(DL, L, T, R, B, 0xffffff66)
             return true
         end
     end
@@ -1115,17 +1219,17 @@ end
 ---@param color? number rgba
 ---@param WrapPosX? number
 function MyText(text, font, color, WrapPosX)
-    if WrapPosX then ImGui.PushTextWrapPos(ctx, WrapPosX) end
+    if WrapPosX then im.PushTextWrapPos(ctx, WrapPosX) end
 
-    if font then ImGui.PushFont(ctx, font) end
+    if font then im.PushFont(ctx, font) end
     if color then
-        ImGui.TextColored(ctx, color, text)
+        im.TextColored(ctx, color, text)
     else
-        ImGui.Text(ctx, text)
+        im.Text(ctx, text)
     end
 
-    if font then ImGui.PopFont(ctx) end
-    if WrapPosX then ImGui.PopTextWrapPos(ctx) end
+    if font then im.PopFont(ctx) end
+    if WrapPosX then im.PopTextWrapPos(ctx) end
 end
 
 ---@param ctx ImGui_Context
@@ -1140,15 +1244,15 @@ end
 ---@return boolean ValueChanged
 ---@return integer p_value
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
-    ImGui.SetNextItemWidth(ctx, 40)
+    im.SetNextItemWidth(ctx, 40)
     local radius_outer = 10
-    local pos = { ImGui.GetCursorScreenPos(ctx) }
+    local pos = { im.GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
     local CircleClr
-    local line_height = ImGui.GetTextLineHeight(ctx)
-    local draw_list = ImGui.GetWindowDrawList(ctx)
-    local item_inner_spacing = { ImGui.GetStyleVar(ctx, ImGui.StyleVar_ItemInnerSpacing) }
-    local mouse_delta = { ImGui.GetMouseDelta(ctx) }
+    local line_height = im.GetTextLineHeight(ctx)
+    local draw_list = im.GetWindowDrawList(ctx)
+    local item_inner_spacing = { im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing) }
+    local mouse_delta = { im.GetMouseDelta(ctx) }
 
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
@@ -1160,12 +1264,12 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
         Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx] or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
 
-        ImGui.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
+        im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
             item_inner_spacing[2])
 
         local value_changed = false
-        local is_active = ImGui.IsItemActive(ctx)
-        local is_hovered = ImGui.IsItemHovered(ctx)
+        local is_active = im.IsItemActive(ctx)
+        local is_hovered = im.IsItemHovered(ctx)
 
         if is_active and mouse_delta[2] ~= 0.0 and FX[FxGUID].DeltaP_V ~= 1 then
             local step = (v_max - v_min) / 200.0
@@ -1187,16 +1291,16 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
 
         if is_active then
-            lineClr = ClrOverRide or ImGui.GetColor(ctx, ImGui.Col_SliderGrabActive)
-            CircleClr = ClrOverRide_Act or Change_Clr_A(getClr(ImGui.Col_SliderGrabActive), -0.3)
+            lineClr = ClrOverRide or im.GetColor(ctx, im.Col_SliderGrabActive)
+            CircleClr = ClrOverRide_Act or Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.3)
 
             value_changed = true
             ActiveAny = true
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num or Wet.P_Num[FX_Idx], p_value)
         elseif is_hovered or p_value ~= 1 then
-            lineClr = ClrOverRide_Act or Change_Clr_A(getClr(ImGui.Col_SliderGrabActive), -0.3)
+            lineClr = ClrOverRide_Act or Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.3)
         else
-            lineClr = ClrOverRide or ImGui.GetColor(ctx, ImGui.Col_FrameBgHovered)
+            lineClr = ClrOverRide or im.GetColor(ctx, im.Col_FrameBgHovered)
         end
 
 
@@ -1210,7 +1314,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
         local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
         local radius_inner = radius_outer * 0.40
-        if ImGui.IsItemClicked(ctx, 1) and Mods == Alt then
+        if im.IsItemClicked(ctx, 1) and Mods == Alt then
             local Total_P = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
             local P = Total_P - 1
             local DeltaV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P)
@@ -1227,30 +1331,30 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
 
         if FX[FxGUID].DeltaP_V ~= 1 then
-            ImGui.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
-            ImGui.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
+            im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
                 center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
-            ImGui.DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
-                ImGui.GetColor(ctx, ImGui.Col_Text), labeltoShow)
+            im.DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
+                im.GetColor(ctx, im.Col_Text), labeltoShow)
         else
             local radius_outer = radius_outer
-            ImGui.DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
+            im.DrawList_AddTriangleFilled(draw_list, center[1] - radius_outer, center[2] + radius_outer, center[1],
                 center[2] - radius_outer, center[1] + radius_outer, center[2] + radius_outer, 0x999900ff)
-            ImGui.DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2,
+            im.DrawList_AddText(draw_list, center[1] - radius_outer / 2 + 1, center[2] - radius_outer / 2,
                 0xffffffff, 'S')
         end
 
         --[[ if is_active or is_hovered and FX[FxGUID].DeltaP_V ~= 1 then
-            local window_padding = { ImGui.GetStyleVar(ctx, ImGui.StyleVar_WindowPadding) }
-            ImGui.SetNextWindowPos(ctx, pos[1] - window_padding[1],
+            local window_padding = { im.GetStyleVar(ctx, im.StyleVar_WindowPadding) }
+            im.SetNextWindowPos(ctx, pos[1] - window_padding[1],
                 pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
-            ImGui.BeginTooltip(ctx)
+            im.BeginTooltip(ctx)
             if Mods == Shift then
-                ImGui.Text(ctx, ('%.1f'):format(p_value * 100) .. '%')
+                im.Text(ctx, ('%.1f'):format(p_value * 100) .. '%')
             else
-                ImGui.Text(ctx, ('%.0f'):format(p_value * 100) .. '%')
+                im.Text(ctx, ('%.0f'):format(p_value * 100) .. '%')
             end
-            ImGui.EndTooltip(ctx)
+            im.EndTooltip(ctx)
         end ]]
         if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
 
@@ -1267,7 +1371,7 @@ function DrawTriangle(DL, CenterX, CenterY, size, clr)
     local Cx = CenterX
     local Cy = CenterY
     local S = size
-    ImGui.DrawList_AddTriangleFilled(DL, Cx, Cy - S, Cx - S, Cy, Cx + S, Cy, clr or 0x77777777ff)
+    im.DrawList_AddTriangleFilled(DL, Cx, Cy - S, Cx - S, Cy, Cx + S, Cy, clr or 0x77777777ff)
 end
 
 ---@param DL ImGui_DrawList
@@ -1279,14 +1383,14 @@ function DrawDownwardTriangle(DL, CenterX, CenterY, size, clr)
     local Cx = CenterX
     local Cy = CenterY
     local S = size
-    ImGui.DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
+    im.DrawList_AddTriangleFilled(DL, Cx - S, Cy, Cx, Cy + S, Cx + S, Cy, clr or 0x77777777ff)
 end
 
 ---Same Line
 ---@param xpos? number offset_from_start_xIn
 ---@param pad? number spacingIn
 function SL(xpos, pad)
-    ImGui.SameLine(ctx, xpos, pad)
+    im.SameLine(ctx, xpos, pad)
 end
 
 ---@param w number
@@ -1297,91 +1401,100 @@ end
 ---@param Identifier? string
 ---@return boolean|nil
 function IconBtn(w, h, icon, BGClr, center, Identifier)
-    ImGui.PushFont(ctx, icon1)
-    if ImGui.InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
+    im.PushFont(ctx, icon1)
+    if im.InvisibleButton(ctx, icon .. (Identifier or ''), w, h) then
     end
     local FillClr
-    if ImGui.IsItemActive(ctx) then
-        FillClr = getClr(ImGui.Col_ButtonActive)
-        IcnClr = getClr(ImGui.Col_TextDisabled)
-    elseif ImGui.IsItemHovered(ctx) then
-        FillClr = getClr(ImGui.Col_ButtonHovered)
-        IcnClr = getClr(ImGui.Col_Text)
+    if im.IsItemActive(ctx) then
+        FillClr = getClr(im.Col_ButtonActive)
+        IcnClr = getClr(im.Col_TextDisabled)
+    elseif im.IsItemHovered(ctx) then
+        FillClr = getClr(im.Col_ButtonHovered)
+        IcnClr = getClr(im.Col_Text)
     else
-        FillClr = getClr(ImGui.Col_Button)
-        IcnClr = getClr(ImGui.Col_Text)
+        FillClr = getClr(im.Col_Button)
+        IcnClr = getClr(im.Col_Text)
     end
     if BGClr then FillClr = BGClr end
 
     L, T, R, B, W, H = HighlightSelectedItem(FillClr, 0x00000000, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
         'GetItemRect', Foreground)
-    TxtSzW, TxtSzH = ImGui.CalcTextSize(ctx, icon)
+    TxtSzW, TxtSzH = im.CalcTextSize(ctx, icon)
     if center == 'center' then
-        ImGui.DrawList_AddText(WDL, L + W / 2 - TxtSzW / 2, T - H / 2 - 1, IcnClr, icon)
+        im.DrawList_AddText(WDL, L + W / 2 - TxtSzW / 2, T - H / 2 - 1, IcnClr, icon)
     else
-        ImGui.DrawList_AddText(WDL, L + 3, T - H / 2, IcnClr, icon)
+        im.DrawList_AddText(WDL, L + 3, T - H / 2, IcnClr, icon)
     end
-    ImGui.PopFont(ctx)
-    if ImGui.IsItemActivated(ctx) then return true end
+    im.PopFont(ctx)
+    if im.IsItemActivated(ctx) then return true end
 end
 
 dofile(r.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Modules/Drawing.lua") -- DrawListButton function
 
-function DrawListButton(name, color, round_side, icon, iconfile, edging, hover, offset)
+---@param drawlist ImGui_DrawList
+---@param name string
+---@param color integer
+---@param round_side boolean
+---@param icon boolean
+---@param iconfile string
+---@param edging boolean
+---@param hover boolean
+---@param offset boolean
+function DrawListButton(drawlist, name, color, round_side, icon, iconfile, edging, hover, offset)
     local multi_color = IS_DRAGGING_RIGHT_CANVAS and color or ColorToHex(color, hover and 50 or 0)
-    local xs, ys = ImGui.GetItemRectMin(ctx)
-    local xe, ye = ImGui.GetItemRectMax(ctx)
+    local xs, ys = im.GetItemRectMin(ctx)
+    local xe, ye = im.GetItemRectMax(ctx)
     local w = xe - xs
     local h = ye - ys
   
     local round_flag = round_side and ROUND_FLAG[round_side] or nil
     local round_amt = round_flag and ROUND_CORNER or 0
   
-    ImGui.DrawList_AddRectFilled(WDL, xs, ys, xe, ye, ImGui.GetColorEx(ctx, multi_color), round_amt,
+    im.DrawList_AddRectFilled(drawlist, xs, ys, xe, ye, im.GetColorEx(ctx, multi_color), round_amt,
       round_flag)
-    if ImGui.IsItemActive(ctx) and edging then
-        ImGui.DrawList_AddRect(WDL, xs - 2, ys - 2, xe + 2, ye + 2, 0x22FF44FF, 3, nil, 2)
+    if im.IsItemActive(ctx) and edging then
+        im.DrawList_AddRect(drawlist, xs - 2, ys - 2, xe + 2, ye + 2, 0x22FF44FF, 3, nil, 2)
     end
   
-    if icon then ImGui.PushFont(ctx, iconfile) end
+    if icon then im.PushFont(ctx, iconfile) end
   
-    local label_size = ImGui.CalcTextSize(ctx, name)
-    local font_size = ImGui.GetFontSize(ctx)
+    local label_size = im.CalcTextSize(ctx, name)
+    local font_size = im.GetFontSize(ctx)
     local font_color = CalculateFontColor(color)
   
-    ImGui.DrawList_AddTextEx(WDL, nil, font_size, xs + (w / 2) - (label_size / 2) + (offset or 0),
-      ys + ((h / 2)) - font_size / 2, ImGui.GetColorEx(ctx, font_color), name)
-    if icon then ImGui.PopFont(ctx) end
+    im.DrawList_AddTextEx(drawlist, nil, font_size, xs + (w / 2) - (label_size / 2) + (offset or 0),
+      ys + ((h / 2)) - font_size / 2, im.GetColorEx(ctx, font_color), name)
+    if icon then im.PopFont(ctx) end
 end
 
 ---@param f integer
 ---@return integer
 function getClr(f)
-    return ImGui.GetStyleColor(ctx, f)
+    return im.GetStyleColor(ctx, f)
 end
 
 ---@param CLR number
 ---@param HowMuch number
 ---@return integer
 function Change_Clr_A(CLR, HowMuch)
-    local R, G, B, A = ImGui.ColorConvertU32ToDouble4(CLR)
+    local R, G, B, A = im.ColorConvertU32ToDouble4(CLR)
     local A = SetMinMax(A + HowMuch, 0, 1)
-    return ImGui.ColorConvertDouble4ToU32(R, G, B, A)
+    return im.ColorConvertDouble4ToU32(R, G, B, A)
 end
 
 ---@param Clr number
 function Generate_Active_And_Hvr_CLRs(Clr)
     local ActV, HvrV
-    local R, G, B, A = ImGui.ColorConvertU32ToDouble4(Clr)
-    local H, S, V = ImGui.ColorConvertRGBtoHSV(R, G, B)
+    local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
+    local H, S, V = im.ColorConvertRGBtoHSV(R, G, B)
     if V > 0.9 then
         ActV = V - 0.2
         HvrV = V - 0.1
     end
-    local R, G, B = ImGui.ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
-    local ActClr = ImGui.ColorConvertDouble4ToU32(R, G, B, A)
-    local R, G, B = ImGui.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
-    local HvrClr = ImGui.ColorConvertDouble4ToU32(R, G, B, A)
+    local R, G, B = im.ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
+    local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
+    local R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
+    local HvrClr = im.ColorConvertDouble4ToU32(R, G, B, A)
     return ActClr, HvrClr
 end
 
@@ -1397,19 +1510,19 @@ function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
     if Fx_P .. FxGUID == TryingToAddExistingPrm then
         if r.time_precise() > TimeNow and r.time_precise() < TimeNow + 0.1 or r.time_precise() > TimeNow + 0.2 and r.time_precise() < TimeNow + 0.3 then
             if Shape == 'Circle' then
-                ImGui.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
+                im.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
             elseif Shape == 'Rect' then
-                local L, T = ImGui.GetItemRectMin(ctx)
-                ImGui.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
+                local L, T = im.GetItemRectMin(ctx)
+                im.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
             end
         end
     end
     if Fx_P .. FxGUID == TryingToAddExistingPrm_Cont then
-        local L, T = ImGui.GetItemRectMin(ctx)
+        local L, T = im.GetItemRectMin(ctx)
         if Shape == 'Circle' then
-            ImGui.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
+            im.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
         elseif Shape == 'Rect' then
-            ImGui.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
+            im.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
         end
     end
 end
@@ -1465,16 +1578,37 @@ end
 
 ---@param A string text for tooltip
 function tooltip(A)
-    ImGui.BeginTooltip(ctx)
-    ImGui.SetTooltip(ctx, A)
-    ImGui.EndTooltip(ctx)
+    im.BeginTooltip(ctx)
+    im.SetTooltip(ctx, A)
+    im.EndTooltip(ctx)
 end
 
 ---@param A string text for tooltip
 function HintToolTip(A)
-    ImGui.BeginTooltip(ctx)
-    ImGui.SetTooltip(ctx, A)
-    ImGui.EndTooltip(ctx)
+    im.BeginTooltip(ctx)
+    im.SetTooltip(ctx, A)
+    im.EndTooltip(ctx)
+end
+
+---@param str string text for tooltip
+---@param flags string flags (delayshort, delaynormal, stationary, etc) for tooltip
+function TooltipUI(str, flags)
+    if r.ImGui_IsItemHovered(ctx, flags) then
+        r.ImGui_BeginTooltip(ctx)
+        r.ImGui_PushFont(ctx, Font)
+        r.ImGui_Text(ctx, str)
+        r.ImGui_PopFont(ctx)
+        r.ImGui_EndTooltip(ctx)
+    end
+end
+
+---@param str string text for tooltip
+---@param flags string flags (delayshort, delaynormal, stationary, etc) for tooltip
+function QuestionHelpObject(str, flags)
+    im.TextColored(ctx, 0x99999977, '(?)')
+    if im.IsItemHovered(ctx) then
+        TooltipUI(str, flags)
+    end
 end
 
 ---@param LT_Track MediaTrack
@@ -1677,7 +1811,7 @@ end
 ---@param Rpt integer
 function AddSpacing(Rpt)
     for i = 1, Rpt, 1 do
-        ImGui.Spacing(ctx)
+        im.Spacing(ctx)
     end
 end
 
@@ -1689,14 +1823,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 FX[FxGUID].TitleClrAct, FX[FxGUID].TitleClrHvr = Generate_Active_And_Hvr_CLRs(
                     FX[FxGUID].TitleClr)
             end
-            ImGui.PushStyleColor(ctx, ImGui.Col_ButtonHovered,
+            im.PushStyleColor(ctx, im.Col_ButtonHovered,
                 FX[FxGUID].TitleClrHvr or 0x22222233)
-            ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive,
+            im.PushStyleColor(ctx, im.Col_ButtonActive,
                 FX[FxGUID].TitleClrAct or 0x22222233)
         else
             WinbtnClrPop = 1
         end
-        ImGui.PushStyleColor(ctx, ImGui.Col_Button, FX[FxGUID].TitleClr or 0x22222233)
+        im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID].TitleClr or 0x22222233)
         local WindowBtn
 
 
@@ -1705,24 +1839,24 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             if not FX[FxGUID].NoWindowBtn then
                 local Name = (FX[FxGUID].CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
                 if DebugMode then Name = FxGUID end
-                WindowBtn = ImGui.Button(ctx, Name .. '## ' .. FxGUID,
+                WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,
                     width or FX[FxGUID].TitleWidth or DefaultWidth - 38, 20) -- create window name button
 
 
-                if ImGui.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
+                if im.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                     FX[FxGUID].TtlHvr = true
                     if not CantAddPrm then
-                        TtlR, TtlB = ImGui.GetItemRectMax(ctx)
-                        if ImGui.IsMouseHoveringRect(ctx, TtlR - 20, TtlB - 20, TtlR, TtlB) then
-                            ImGui.DrawList_AddRectFilled(WDL, TtlR, TtlB, TtlR - 20, TtlB - 20,
-                                getClr(ImGui.Col_ButtonHovered))
-                            ImGui.DrawList_AddRect(WDL, TtlR, TtlB, TtlR - 20, TtlB - 19,
-                                getClr(ImGui.Col_Text))
-                            ImGui.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 20, TtlR - 15,
-                                TtlB - 20, getClr(ImGui.Col_Text), '+')
+                        TtlR, TtlB = im.GetItemRectMax(ctx)
+                        if im.IsMouseHoveringRect(ctx, TtlR - 20, TtlB - 20, TtlR, TtlB) then
+                            im.DrawList_AddRectFilled(WDL, TtlR, TtlB, TtlR - 20, TtlB - 20,
+                                getClr(im.Col_ButtonHovered))
+                            im.DrawList_AddRect(WDL, TtlR, TtlB, TtlR - 20, TtlB - 19,
+                                getClr(im.Col_Text))
+                            im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 20, TtlR - 15,
+                                TtlB - 20, getClr(im.Col_Text), '+')
                             if IsLBtnClicked then
-                                ImGui.OpenPopup(ctx, 'Add Parameter' .. FxGUID)
-                                ImGui.SetNextWindowPos(ctx, TtlR, TtlB)
+                                im.OpenPopup(ctx, 'Add Parameter' .. FxGUID)
+                                im.SetNextWindowPos(ctx, TtlR, TtlB)
                                 AddPrmPopupOpen = FxGUID
                             end
                         end
@@ -1735,43 +1869,43 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local Name = (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-            -- ImGui.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
-            --ImGui.SameLine(ctx, nil, 0)
+            -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
+            --im.SameLine(ctx, nil, 0)
 
-            WindowBtn = ImGui.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, FX[FxGUID].V_Win_Btn_Height)
+            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, FX[FxGUID].V_Win_Btn_Height)
 
-            -- ImGui.PopStyleVar(ctx)             --StyleVar#3 POP
+            -- im.PopStyleVar(ctx)             --StyleVar#3 POP
         else -- if collapsed
             FX.WidthCollapse[FxGUID] = 27
             local Name = (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-            ImGui.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
-            --ImGui.SameLine(ctx, nil, 0)
+            im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
+            --im.SameLine(ctx, nil, 0)
 
-            WindowBtn = ImGui.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
-            ImGui.PopStyleVar(ctx)             --StyleVar#3 POP
+            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
+            im.PopStyleVar(ctx)             --StyleVar#3 POP
         end
-        ImGui.PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
+        im.PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
 
         local BgClr
         FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
 
         if not FX.Enable[FX_Idx] then
-            --ImGui.DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
+            --im.DrawList_AddRectFilled(WDL, L, T - 20, R, B +20, 0x00000088)
             BgClr = 0x00000088
         end
         HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL,
             FX[FxGUID].Round --[[rounding]])
 
 
-        -- ImGui.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
-        local R_ClickOnWindowBtn = ImGui.IsItemClicked(ctx, 1)
-        local L_ClickOnWindowBtn = ImGui.IsItemClicked(ctx)
+        -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
+        local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
+        local L_ClickOnWindowBtn = im.IsItemClicked(ctx)
 
         if not CantCollapse then
             if R_ClickOnWindowBtn and Mods == Ctrl then
-                ImGui.OpenPopup(ctx, 'Fx Module Menu')
+                im.OpenPopup(ctx, 'Fx Module Menu')
             elseif R_ClickOnWindowBtn and Mods == 0 then
                 FX[FxGUID].Collapse = toggle(FX[FxGUID].Collapse)
                 if not FX[FxGUID].Collapse then FX.WidthCollapse[FxGUID] = nil end
@@ -1790,18 +1924,18 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             DeleteFX(FX_Idx, FxGUID)
         end
 
-        if ImGui.IsItemHovered(ctx) then
+        if im.IsItemHovered(ctx) then
             HintMessage =
             'Mouse: L=Open FX Window | Shift+L = Toggle Bypass | Alt+L = Delete | R = Collapse | Alt+R = Collapse All'
         end
 
 
         ----==  Drag and drop----
-        if ImGui.BeginDragDropSource(ctx, ImGui.DragDropFlags_AcceptNoDrawDefaultRect) then
+        if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect) then
             DragFX_ID = FX_Idx
             DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-            ImGui.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
-            ImGui.EndDragDropSource(ctx)
+            im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
+            im.EndDragDropSource(ctx)
 
             DragDroppingFX = true
             if IsAnyMouseDown == false then DragDroppingFX = false end
@@ -1827,18 +1961,18 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 end
 
 function DndAddFX_SRC(fx)
-    if ImGui.BeginDragDropSource(ctx, ImGui.DragDropFlags_AcceptBeforeDelivery) then
-        ImGui.SetDragDropPayload(ctx, 'DND ADD FX', fx)
-        ImGui.Text(ctx, fx)
-        ImGui.EndDragDropSource(ctx)
+    if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptBeforeDelivery) then
+        im.SetDragDropPayload(ctx, 'DND ADD FX', fx)
+        im.Text(ctx, fx)
+        im.EndDragDropSource(ctx)
     end
 end
 
 function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost, FxGUID_Container)
     --if not DND_ADD_FX then return  end
-    ImGui.PushStyleColor(ctx, ImGui.Col_DragDropTarget, 0)
-    if ImGui.BeginDragDropTarget(ctx) then
-        local dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'DND ADD FX')
+    im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
+    if im.BeginDragDropTarget(ctx) then
+        local dropped, payload = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
 
 
         if dropped then
@@ -1877,9 +2011,9 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
             end
             FX_Idx_OpenedPopup = nil
         end
-        ImGui.EndDragDropTarget(ctx)
+        im.EndDragDropTarget(ctx)
     end
-    ImGui.PopStyleColor(ctx)
+    im.PopStyleColor(ctx)
 end
 
 function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
@@ -1888,13 +2022,13 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         path = path or ""
         for i = 1, #tbl do
             if tbl[i].dir then
-                if ImGui.BeginMenu(ctx, tbl[i].dir) then
+                if im.BeginMenu(ctx, tbl[i].dir) then
                     DrawFxChains(tbl[i], table.concat({ path, os_separator, tbl[i].dir }))
-                    ImGui.EndMenu(ctx)
+                    im.EndMenu(ctx)
                 end
             end
             if type(tbl[i]) ~= "table" then
-                if ImGui.Selectable(ctx, tbl[i]) then
+                if im.Selectable(ctx, tbl[i]) then
                     if TRACK then
                         r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i], extension }), false,
                             -1000 - FX_Idx)
@@ -1918,14 +2052,14 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         path = path or ""
         for i = 1, #tbl do
             if tbl[i].dir then
-                if ImGui.BeginMenu(ctx, tbl[i].dir) then
+                if im.BeginMenu(ctx, tbl[i].dir) then
                     local cur_path = table.concat({ path, os_separator, tbl[i].dir })
                     DrawTrackTemplates(tbl[i], cur_path)
-                    ImGui.EndMenu(ctx)
+                    im.EndMenu(ctx)
                 end
             end
             if type(tbl[i]) ~= "table" then
-                if ImGui.Selectable(ctx, tbl[i]) then
+                if im.Selectable(ctx, tbl[i]) then
                     local template_str = table.concat({ path, os_separator, tbl[i], extension })
                     LoadTemplate(template_str) -- ADD NEW TRACK FROM TEMPLATE
                 end
@@ -1933,27 +2067,27 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
     end
 
-    if ImGui.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
+    if im.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
         if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
             AddedFX = true
-            ImGui.CloseCurrentPopup(ctx)
+            im.CloseCurrentPopup(ctx)
         end -- Add FX Window
-        ImGui.SeparatorText(ctx, "PLUGINS")
+        im.SeparatorText(ctx, "PLUGINS")
         for i = 1, #CAT do
-            if ImGui.BeginMenu(ctx, CAT[i].name) then
+            if im.BeginMenu(ctx, CAT[i].name) then
                 if CAT[i].name == "FX CHAINS" then
                     DrawFxChains(CAT[i].list)
                 elseif CAT[i].name == "TRACK TEMPLATES" then -- THIS IS MISSING
                     DrawTrackTemplates(CAT[i].list)
                 else
                     for j = 1, #CAT[i].list do
-                        if ImGui.BeginMenu(ctx, CAT[i].list[j].name) then
+                        if im.BeginMenu(ctx, CAT[i].list[j].name) then
                             for p = 1, #CAT[i].list[j].fx do
                                 if CAT[i].list[j].fx[p] then
-                                    if ImGui.Selectable(ctx, CAT[i].list[j].fx[p]) then
+                                    if im.Selectable(ctx, CAT[i].list[j].fx[p]) then
                                         if TRACK then
                                             AddedFX = true
                                             r.TrackFX_AddByName(TRACK, CAT[i].list[j].fx[p], false, -1000 - FX_Idx)
@@ -1962,15 +2096,15 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
                                     end
                                 end
                             end
-                            ImGui.EndMenu(ctx)
+                            im.EndMenu(ctx)
                         end
                     end
                 end
-                ImGui.EndMenu(ctx)
+                im.EndMenu(ctx)
             end
         end
-        if ImGui.BeginMenu(ctx, "FXD INSTRUMENTS & EFFECTS") then
-            if ImGui.Selectable(ctx, "ReaDrum Machine") then
+        if im.BeginMenu(ctx, "FXD INSTRUMENTS & EFFECTS") then
+            if im.Selectable(ctx, "ReaDrum Machine") then
                 local chain_src = "../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain"
                 local found = false
                 count = r.TrackFX_GetCount(TRACK)                                             -- 1 based
@@ -1991,30 +2125,30 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
                 end
             end
             DndAddFX_SRC("../Scripts/FX Devices/BryanChi_FX_Devices/src/FXChains/ReaDrum Machine.RfxChain")
-            ImGui.EndMenu(ctx)
+            im.EndMenu(ctx)
         end
         TRACK = r.GetSelectedTrack(0, 0)
-        if ImGui.Selectable(ctx, "CONTAINER") then
+        if im.Selectable(ctx, "CONTAINER") then
             r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
             AddedFX = true
             LAST_USED_FX = "Container"
         end
         DndAddFX_SRC("Container")
-        if ImGui.Selectable(ctx, "VIDEO PROCESSOR") then
+        if im.Selectable(ctx, "VIDEO PROCESSOR") then
             r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
             AddedFX = true
             LAST_USED_FX = "Video processor"
         end
         DndAddFX_SRC("Video processor")
         if LAST_USED_FX then
-            if ImGui.Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
+            if im.Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
                 r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - FX_Idx)
                 AddedFX = true
             end
         end
         DndAddFX_SRC(LAST_USED_FX)
-        ImGui.SeparatorText(ctx, "UTILS")
-        if ImGui.Selectable(ctx, 'Add FX Layering', false) then
+        im.SeparatorText(ctx, "UTILS")
+        if im.Selectable(ctx, 'Add FX Layering', false) then
             local FX_Idx = FX_Idx
             --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
             local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
@@ -2082,11 +2216,11 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
 
             FX_Idx_OpenedPopup = nil
-            ImGui.CloseCurrentPopup(ctx)
+            im.CloseCurrentPopup(ctx)
             if val & 4 ~= 0 then
                 r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
             end
-        elseif ImGui.Selectable(ctx, 'Add Band Split', false) then
+        elseif im.Selectable(ctx, 'Add Band Split', false) then
             r.gmem_attach('FXD_BandSplit')
             table.insert(AddFX.Name, 'FXD Saike BandSplitter')
             table.insert(AddFX.Pos, FX_Idx)
@@ -2111,10 +2245,10 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
 
         if CloseAddFX_Popup then
-            ImGui.CloseCurrentPopup(ctx)
+            im.CloseCurrentPopup(ctx)
             CloseAddFX_Popup = nil
         end
-        ImGui.EndPopup(ctx)
+        im.EndPopup(ctx)
     else
         Dvdr.Clr[ClrLbl or ''] = 0x131313ff
     end
@@ -2126,17 +2260,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
     if --[[ FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] and ]] FxGUID then
         FX[FxGUID] = FX[FxGUID] or {}
-        ImGui.BeginGroup(ctx)
+        im.BeginGroup(ctx)
 
         FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
         local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
         --local FxGUID = FXGUID[FX_Idx]
         local FxNameS = FX.Win_Name_S[FX_Idx]
         local Hide
-        FX.DL = ImGui.GetWindowDrawList(ctx)
+        FX.DL = im.GetWindowDrawList(ctx)
 
         if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
-            ContainerX, ContainerY = ImGui.GetCursorScreenPos(ctx)
+            ContainerX, ContainerY = im.GetCursorScreenPos(ctx)
         end
 
         local _, fx_ident = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_ident') -- by default \\Plugins\\FX\\reasamplomatic.dll<1920167789 or /Applications/REAPER.app/Contents/Plugins/FX/reasamplomatic.vst.dylib<1920167789
@@ -2149,7 +2283,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         WDL = FX.DL
         FX[FxGUID] = FX[FxGUID] or {}
         if FX[FxGUID].MorphA and not FX[FxGUID].MorphHide then
-            local OrigCurX, OrigCurY = ImGui.GetCursorPos(ctx)
+            local OrigCurX, OrigCurY = im.GetCursorPos(ctx)
 
             DefClr_A_Act = Morph_A or CustomColorsDefault.Morph_A
             DefClr_A = Change_Clr_A(DefClr_A_Act, -0.2)
@@ -2219,69 +2353,69 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
             end
 
-            ImGui.SetNextItemWidth(ctx, 20)
-            local x, y = ImGui.GetCursorPos(ctx)
+            im.SetNextItemWidth(ctx, 20)
+            local x, y = im.GetCursorPos(ctx)
             x = x - 2
-            local SCx, SCy = ImGui.GetCursorScreenPos(ctx)
+            local SCx, SCy = im.GetCursorScreenPos(ctx)
             SCx = SCx - 2
-            ImGui.SetCursorPosX(ctx, x)
+            im.SetCursorPosX(ctx, x)
 
-            --ImGui.PushStyleColor(ctx, ImGui.Col_Button,DefClr_A) ImGui.PushStyleColor(ctx, ImGui.Col_ButtonHovered, DefClr_A_Hvr) ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive, DefClr_A_Act)
+            --im.PushStyleColor(ctx, im.Col_Button,DefClr_A) im.PushStyleColor(ctx, im.Col_ButtonHovered, DefClr_A_Hvr) im.PushStyleColor(ctx, im.Col_ButtonActive, DefClr_A_Act)
 
-            if ImGui.Button(ctx, 'A##' .. FxGUID, 20, 20) then
+            if im.Button(ctx, 'A##' .. FxGUID, 20, 20) then
                 StoreAllPrmVal('A', nil, FX[FxGUID].Morph_ID)
             end
-            --ImGui.PopStyleColor(ctx,3)
+            --im.PopStyleColor(ctx,3)
 
 
-            if ImGui.IsItemHovered(ctx) and FX[FxGUID].MorphA_Name then
+            if im.IsItemHovered(ctx) and FX[FxGUID].MorphA_Name then
                 if FX[FxGUID].MorphA_Name ~= '' then
                     HintToolTip(FX[FxGUID].MorphA_Name)
                 end
             end
 
             local H = 180
-            ImGui.SetCursorPos(ctx, x, y + 20)
+            im.SetCursorPos(ctx, x, y + 20)
 
-            ImGui.InvisibleButton(ctx, '##Morph' .. FxGUID, 20, H)
+            im.InvisibleButton(ctx, '##Morph' .. FxGUID, 20, H)
 
             local BgClrA, isActive, V_Pos, DrgSpdMod, SldrActClr, BtnB_TxtClr, ifHvr
             local M = PresetMorph
 
 
-            if ImGui.IsItemActive(ctx) then
-                BgClr = ImGui.GetStyleColor(ctx, ImGui.Col_FrameBgActive)
+            if im.IsItemActive(ctx) then
+                BgClr = im.GetStyleColor(ctx, im.Col_FrameBgActive)
                 isActive = true
                 BgClrA = DefClr_A_Act
                 BgClrB =
                     DefClr_B_Act -- shift 0x00RRGGBB to 0xRRGGBB00 then add 0xFF for 100% opacity
-            elseif ImGui.IsItemHovered(ctx) then
+            elseif im.IsItemHovered(ctx) then
                 ifHvr = true
                 BgClrA = DefClr_A_Hvr
                 BgClrB = DefClr_B_Hvr
             else
-                BgClr = ImGui.GetStyleColor(ctx, ImGui.Col_FrameBg)
+                BgClr = im.GetStyleColor(ctx, im.Col_FrameBg)
                 BgClrA = DefClr_A
                 BgClrB = DefClr_B
             end
-            if --[[Ctrl + R click]] ImGui.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                ImGui.OpenPopup(ctx, 'Morphing menu' .. FX_Idx)
+            if --[[Ctrl + R click]] im.IsItemClicked(ctx, 1) and Mods == Ctrl then
+                im.OpenPopup(ctx, 'Morphing menu' .. FX_Idx)
             end
 
-            local L, T = ImGui.GetItemRectMin(ctx)
-            local R, B = ImGui.GetItemRectMax(ctx)
-            ImGui.DrawList_AddRectFilledMultiColor(WDL, L, T, R, B, BgClrA, BgClrA, DefClr_B,
+            local L, T = im.GetItemRectMin(ctx)
+            local R, B = im.GetItemRectMax(ctx)
+            im.DrawList_AddRectFilledMultiColor(WDL, L, T, R, B, BgClrA, BgClrA, DefClr_B,
                 DefClr_B)
 
-            ImGui.SameLine(ctx, nil, 0)
+            im.SameLine(ctx, nil, 0)
 
             if isActive then
-                local _, v = ImGui.GetMouseDelta(ctx, nil, nil)
+                local _, v = im.GetMouseDelta(ctx, nil, nil)
                 if Mods == Shift then DrgSpdMod = 4 end
                 DraggingMorph = FxGUID
                 FX[FxGUID].MorphAB_Sldr = SetMinMax(
                     (FX[FxGUID].MorphAB_Sldr or 0) + v / (DrgSpdMod or 2), 0, 100)
-                SldrActClr = ImGui.GetStyleColor(ctx, ImGui.Col_SliderGrabActive)
+                SldrActClr = im.GetStyleColor(ctx, im.Col_SliderGrabActive)
                 if FX[FxGUID].MorphB[1] ~= nil then
                     local M_ID
                     if FX[FxGUID].Morph_ID then
@@ -2310,8 +2444,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             --[[ if ifHvr   then
 
-                --ImGui.SetNextWindowPos(ctx,SCx+20, SCy+20)
-                ImGui.OpenPopup(ctx, 'Hover On Preset Morph Drag')
+                --im.SetNextWindowPos(ctx,SCx+20, SCy+20)
+                im.OpenPopup(ctx, 'Hover On Preset Morph Drag')
 
                 M.JustHvrd = true
             end
@@ -2320,15 +2454,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 M.JustHvrd = nil
             end ]]
 
-            if ImGui.BeginPopup(ctx, 'Morphing menu' .. FX_Idx) then
+            if im.BeginPopup(ctx, 'Morphing menu' .. FX_Idx) then
                 local Disable
                 MorphingMenuOpen = true
                 if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then
-                    ImGui.BeginDisabled(ctx)
+                    im.BeginDisabled(ctx)
                 end
 
                 if not FX[FxGUID].Morph_ID or FX[FxGUID].Unlink then
-                    if ImGui.Selectable(ctx, 'Automate', false) then
+                    if im.Selectable(ctx, 'Automate', false) then
                         r.gmem_attach('ParamValues')
 
                         if not Trk[TrkID].Morph_ID then
@@ -2399,7 +2533,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             FX.Win_Name_S[FX_Idx]:gsub("%b()", "") .. ' - Morph AB ')
                     end
                 elseif FX[FxGUID].Morph_ID or not FX[FxGUID].Unlink then
-                    if ImGui.Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
+                    if im.Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
                         for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i ..
                                 ".plink.active", 0) -- 1 active, 0 inactive
@@ -2414,18 +2548,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
                 if FX[FxGUID].Morph_Value_Edit then
-                    if ImGui.Selectable(ctx, 'EXIT Edit Preset Value Mode', false) then
+                    if im.Selectable(ctx, 'EXIT Edit Preset Value Mode', false) then
                         FX[FxGUID].Morph_Value_Edit = false
                     end
                 else
-                    if Disable then ImGui.BeginDisabled(ctx) end
-                    if ImGui.Selectable(ctx, 'ENTER Edit Preset Value Mode', false) then
+                    if Disable then im.BeginDisabled(ctx) end
+                    if im.Selectable(ctx, 'ENTER Edit Preset Value Mode', false) then
                         FX[FxGUID].Morph_Value_Edit = true
                     end
                 end
-                if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then ImGui.EndDisabled(ctx) end
+                if not FX[FxGUID].MorphA[1] or not FX[FxGUID].MorphB[1] then im.EndDisabled(ctx) end
 
-                if ImGui.Selectable(ctx, 'Morphing Blacklist Settings', false) then
+                if im.Selectable(ctx, 'Morphing Blacklist Settings', false) then
                     if OpenMorphSettings then
                         OpenMorphSettings = FxGUID
                     else
@@ -2442,13 +2576,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
 
-                if ImGui.Selectable(ctx, 'Hide Morph Slider', false) then
+                if im.Selectable(ctx, 'Hide Morph Slider', false) then
                     FX[FxGUID].MorphHide = true
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
                         'true', true)
                 end
 
-                ImGui.EndPopup(ctx)
+                im.EndPopup(ctx)
             else
                 MorphingMenuOpen = false
             end
@@ -2467,49 +2601,49 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
             V_Pos = T + (FX[FxGUID].MorphAB_Sldr or 0) / 100 * H * 0.95
-            ImGui.DrawList_AddRectFilled(WDL, L, V_Pos, R, V_Pos + 10, 0xffffff22)
-            ImGui.DrawList_AddRect(WDL, L, V_Pos, R, V_Pos + 10, 0xffffff44)
+            im.DrawList_AddRectFilled(WDL, L, V_Pos, R, V_Pos + 10, 0xffffff22)
+            im.DrawList_AddRect(WDL, L, V_Pos, R, V_Pos + 10, 0xffffff44)
 
 
-            ImGui.SameLine(ctx)
-            ImGui.SetCursorPos(ctx, x, y + 200)
+            im.SameLine(ctx)
+            im.SetCursorPos(ctx, x, y + 200)
             if not FX[FxGUID].MorphB[1] then
-                BtnB_TxtClr = ImGui.GetStyleColor(ctx,
-                    ImGui.Col_TextDisabled)
+                BtnB_TxtClr = im.GetStyleColor(ctx,
+                    im.Col_TextDisabled)
             end
 
             if BtnB_TxtClr then
-                ImGui.PushStyleColor(ctx, ImGui.Col_Text,
-                    ImGui.GetStyleColor(ctx, ImGui.Col_TextDisabled))
+                im.PushStyleColor(ctx, im.Col_Text,
+                    im.GetStyleColor(ctx, im.Col_TextDisabled))
             end
-            ImGui.PushStyleColor(ctx, ImGui.Col_Button, DefClr_B)
-            ImGui.PushStyleColor(ctx, ImGui.Col_ButtonHovered, DefClr_B_Hvr)
-            ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive, DefClr_B_Act)
+            im.PushStyleColor(ctx, im.Col_Button, DefClr_B)
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, DefClr_B_Hvr)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, DefClr_B_Act)
 
-            if ImGui.Button(ctx, 'B##' .. FxGUID, 20, 20) then
+            if im.Button(ctx, 'B##' .. FxGUID, 20, 20) then
                 StoreAllPrmVal('B', nil, FX[FxGUID].Morph_ID)
                 local rv, presetname = r.TrackFX_GetPreset(LT_Track, FX_Idx)
                 if rv then FX[FxGUID].MorphB_Name = presetname end
             end
-            if ImGui.IsItemHovered(ctx) and FX[FxGUID].MorphB_Name then
+            if im.IsItemHovered(ctx) and FX[FxGUID].MorphB_Name then
                 HintToolTip(FX[FxGUID]
                     .MorphB_Name)
             end
-            ImGui.PopStyleColor(ctx, 3)
+            im.PopStyleColor(ctx, 3)
 
-            if BtnB_TxtClr then ImGui.PopStyleColor(ctx) end
+            if BtnB_TxtClr then im.PopStyleColor(ctx) end
             if FX.Enable[FX_Idx] == false then
-                ImGui.DrawList_AddRectFilled(WDL, L, T - 20, R, B + 20, 0x00000088)
+                im.DrawList_AddRectFilled(WDL, L, T - 20, R, B + 20, 0x00000088)
             end
 
-            ImGui.SetCursorPos(ctx, OrigCurX + 19, OrigCurY)
+            im.SetCursorPos(ctx, OrigCurX + 19, OrigCurY)
         end
 
         local FX_Devices_Bg = FX_Devices_Bg
 
         -- FX window color
 
-        ImGui.PushStyleColor(ctx, ImGui.Col_ChildBg, FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff); local poptimes = 1
+        im.PushStyleColor(ctx, im.Col_ChildBg, FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff); local poptimes = 1
 
 
         FX[FxGUID] = FX[FxGUID] or {}
@@ -2545,92 +2679,92 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         if not Hide then
             local CurPosX
             if FxGUID == FXGUID[(tablefind(Trk[TrkID].PostFX, FxGUID) or 0) - 1] then
-                --[[ CurPosX = ImGui.GetCursorPosX(ctx)
-                ImGui.SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
+                --[[ CurPosX = im.GetCursorPosX(ctx)
+                im.SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
             end
             local Width = FX.WidthCollapse[FxGUID] or FX[FxGUID].Width or DefaultWidth or 220
-           -- local winFlg = ImGui.ChildFlags_NoScrollWithMouse + ImGui.ChildFlags_NoScrollbar
+           -- local winFlg = im.ChildFlags_NoScrollWithMouse + im.ChildFlags_NoScrollbar
 
             local dummyH = 220
             if FX_Name == 'Container' then
-                winFlg = FX[FxGUID].NoScroll or ImGui.ChildFlags_AlwaysAutoResize
+                winFlg = FX[FxGUID].NoScroll or im.ChildFlags_AlwaysAutoResize
                 dummyH = 0
             end
-            ImGui.PushStyleVar(ctx, ImGui.StyleVar_ScrollbarSize, 8) -- styleVar ScrollBar
+            im.PushStyleVar(ctx, im.StyleVar_ScrollbarSize, 8) -- styleVar ScrollBar
 
 
 
 
-            if ImGui.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, ImGui.WindowFlags_NoScrollbar | ImGui.WindowFlags_NoScrollWithMouse) and not Hide then ----START CHILD WINDOW------
+            if im.BeginChild(ctx, FX_Name .. FX_Idx, Width, 220, nil, im.WindowFlags_NoScrollbar | im.WindowFlags_NoScrollWithMouse) and not Hide then ----START CHILD WINDOW------
                 if Draw[FxNameS] ~= nil then
                     local D = Draw[FxNameS]
                 end
 
 
-                Glob.FDL = ImGui.GetForegroundDrawList(ctx)
+                Glob.FDL = im.GetForegroundDrawList(ctx)
 
-                WDL = ImGui.GetWindowDrawList(ctx)
-                --if not SPLITTER then  SPLITTER = ImGui.CreateDrawListSplitter(WDL) end 
+                WDL = im.GetWindowDrawList(ctx)
+                --if not SPLITTER then  SPLITTER = im.CreateDrawListSplitter(WDL) end 
         
         
 
-                Win_L, Win_T = ImGui.GetItemRectMin(ctx); Win_W, Win_H = ImGui.GetItemRectSize(ctx)
-                Win_R, _ = ImGui.GetItemRectMax(ctx); Win_B = Win_T + 220
+                Win_L, Win_T = im.GetItemRectMin(ctx); Win_W, Win_H = im.GetItemRectSize(ctx)
+                Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
 
                 if Draw.DrawMode[FxGUID] == true then
                     local D = Draw[FxNameS]
-                    ImGui.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
+                    im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
                     -- add horizontal grid
                     for i = 0, 220, LE.GridSize do
-                        ImGui.DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
+                        im.DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
                     end
                     -- add vertical grid
                     for i = 0, FX[FxGUID].Width or DefaultWidth, LE.GridSize do
-                        ImGui.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444411)
+                        im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444411)
                     end
-                    if ImGui.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItm and Draw.Time == 0 then
+                    if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItm and Draw.Time == 0 then
                         if Draw.Type == 'Text' then
-                            ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_TextInput)
+                            im.SetMouseCursor(ctx, im.MouseCursor_TextInput)
                         end
-                        if ImGui.IsMouseClicked(ctx, 0) and Mods == 0 then
+                        if im.IsMouseClicked(ctx, 0) and Mods == 0 then
                             Draw.CurrentylDrawing = true
-                            MsX_Start, MsY_Start = ImGui.GetMousePos(ctx);
-                            CurX, CurY = ImGui.GetCursorScreenPos(ctx)
+                            MsX_Start, MsY_Start = im.GetMousePos(ctx);
+                            CurX, CurY = im.GetCursorScreenPos(ctx)
                             Win_MsX_Start = MsX_Start - CurX; Win_MsY_Start = MsY_Start - CurY + 3
                         end
 
                         if Draw.CurrentylDrawing then
                             if IsLBtnHeld and Mods == 0 and MsX_Start then
-                                MsX, MsY   = ImGui.GetMousePos(ctx)
-                                CurX, CurY = ImGui.GetCursorScreenPos(ctx)
+                                MsX, MsY   = im.GetMousePos(ctx)
+                                CurX, CurY = im.GetCursorScreenPos(ctx)
                                 Win_MsX    = MsX - CurX; Win_MsY = MsY - CurY
 
                                 Rad        = MsX - MsX_Start
                                 local Clr  = Draw.clr or 0xffffffff
                                 if Rad < 0 then Rad = Rad * (-1) end
                                 if Draw.Type == 'line' then
-                                    ImGui.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY_Start, Clr)
+                                    im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY_Start, Clr)
                                 elseif Draw.Type == 'V-line' then
-                                    ImGui.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX_Start, MsY, Clr)
+                                    im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX_Start, MsY, Clr)
                                 elseif Draw.Type == 'rectangle' then
-                                    ImGui.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                    im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
                                         FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif Draw.Type == 'Picture' then
-                                    ImGui.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                    im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
                                         FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif Draw.Type == 'rect fill' then
-                                    ImGui.DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                                    im.DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
                                         FX[FxGUID].Draw.Df_EdgeRound or 0)
                                 elseif Draw.Type == 'circle' then
-                                    ImGui.DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad, Clr)
+                                    im.DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad, Clr)
                                 elseif Draw.Type == 'circle fill' then
-                                    ImGui.DrawList_AddCircleFilled(WDL, MsX_Start, MsY_Start, Rad, Clr)
+                                    im.DrawList_AddCircleFilled(WDL, MsX_Start, MsY_Start, Rad, Clr)
                                 elseif Draw.Type == 'Text' then
-                                    ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_TextInput)
+                                    im.SetMouseCursor(ctx, im.MouseCursor_TextInput)
                                 end
                             end
 
-                            if ImGui.IsMouseReleased(ctx, 0) and Mods == 0 and Draw.Type ~= 'Text' then
+                            if im.IsMouseReleased(ctx, 0) and Mods == 0 and Draw.Type ~= 'Text' then
                                 FX[FxGUID].Draw[(#FX[FxGUID].Draw or 0) + 1] = {}
                                 local D = FX[FxGUID].Draw[(#FX[FxGUID].Draw or 1)]
 
@@ -2662,16 +2796,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                     HvringItmSelector = nil
                     if AddText then
-                        ImGui.OpenPopup(ctx, 'Drawlist Add Text Menu')
+                        im.OpenPopup(ctx, 'Drawlist Add Text Menu')
                     end
 
-                    if ImGui.BeginPopup(ctx, 'Drawlist Add Text Menu') then
-                        ImGui.SetKeyboardFocusHere(ctx)
+                    if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
+                        im.SetKeyboardFocusHere(ctx)
 
-                        enter, NewDrawTxt = ImGui.InputText(ctx, '##' .. 'DrawTxt', NewDrawTxt)
-                        --ImGui.SetItemDefaultFocus( ctx)
+                        enter, NewDrawTxt = im.InputText(ctx, '##' .. 'DrawTxt', NewDrawTxt)
+                        --im.SetItemDefaultFocus( ctx)
 
-                        if ImGui.IsWindowAppearing(ctx) then
+                        if im.IsWindowAppearing(ctx) then
                             table.insert(D.L, Win_MsX_Start);
                             table.insert(D.T, Win_MsY_Start);;
                             table.insert(D.Type, Draw.Type)
@@ -2684,25 +2818,25 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             D.Txt[AddText] = NewDrawTxt
                         end
 
-                        if ImGui.IsItemDeactivatedAfterEdit(ctx) then
+                        if im.IsItemDeactivatedAfterEdit(ctx) then
                             D.Txt[#D.Txt] = NewDrawTxt
                             AddText = nil;
                             NewDrawTxt = nil
 
 
 
-                            ImGui.CloseCurrentPopup(ctx)
+                            im.CloseCurrentPopup(ctx)
                         end
 
-                        ImGui.SetItemDefaultFocus(ctx)
+                        im.SetItemDefaultFocus(ctx)
 
 
 
-                        ImGui.EndPopup(ctx)
+                        im.EndPopup(ctx)
                     end
                     if LBtnRel then Draw.CurrentylDrawing = nil end
 
-                    if ImGui.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil then
+                    if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil then
                         if IsLBtnClicked then
                             Draw.SelItm = nil
                             Draw.Time = 1
@@ -2715,22 +2849,22 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         for i, D in ipairs(FX[FxGUID].Draw) do
                             local ID = FX_Name .. i
                             local CircleX, CircleY = Win_L + D.L, Win_T + D.T
-                            local FDL = ImGui.GetForegroundDrawList(ctx)
-                            ImGui.DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
-                            ImGui.DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
+                            local FDL = im.GetForegroundDrawList(ctx)
+                            im.DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
+                            im.DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
 
 
                             if Draw.SelItm == i then
-                                ImGui.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
+                                im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
                             end
 
 
                             --if hover on item node ...
-                            if ImGui.IsMouseHoveringRect(ctx, CircleX - 5, CircleY - 5, CircleX + 5, CircleY + 10) then
+                            if im.IsMouseHoveringRect(ctx, CircleX - 5, CircleY - 5, CircleX + 5, CircleY + 10) then
                                 HvringItmSelector = true
-                                ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_ResizeAll)
+                                im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
                                 if DragItm == nil then
-                                    ImGui.DrawList_AddCircle(WDL, CircleX, CircleY, 9, 0x999999ff)
+                                    im.DrawList_AddCircle(WDL, CircleX, CircleY, 9, 0x999999ff)
                                 end
                                 if IsLBtnClicked and Mods == 0 then
                                     Draw.SelItm = i
@@ -2746,18 +2880,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     table.remove(D.B, i)
                                     if D.Txt then table.remove(D.Txt, SetMinMax(i, 1, #D.Txt)) end
                                     if D.clr then table.remove(D.clr, SetMinMax(i, 1, #D.clr)) end
-                                    if ImGui.BeginPopup(ctx, 'Drawlist Add Text Menu') then
-                                        ImGui.CloseCurrentPopup(ctx)
-                                        ImGui.EndPopup(ctx)
+                                    if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
+                                        im.CloseCurrentPopup(ctx)
+                                        im.EndPopup(ctx)
                                     end
                                 end
                             end
 
                             if not IsLBtnHeld then DragItm = nil end
                             if LBtnDrag and DragItm == i then --- Drag node to reposition
-                                ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_ResizeAll)
-                                ImGui.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x00000033)
-                                local Dx, Dy = ImGui.GetMouseDelta(ctx)
+                                im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
+                                im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x00000033)
+                                local Dx, Dy = im.GetMouseDelta(ctx)
                                 if D.Type[DragItm] ~= 'circle' and D.Type[DragItm] ~= 'circle fill' then
                                     D.R = D.R + Dx -- this is circle's radius
                                 end
@@ -2780,40 +2914,40 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         local Round = FX[FxGUID].Draw.Df_EdgeRound or 0
 
                         if D.Type == 'line' then
-                            ImGui.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
+                            im.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
                         elseif D.Type == 'V-line' then
-                            ImGui.DrawList_AddLine(WDL, Win_L + D.L, Win_T + D.T,
+                            im.DrawList_AddLine(WDL, Win_L + D.L, Win_T + D.T,
                                 Win_L + D.L, Win_T + D.B, D.clr or 0xffffffff)
                         elseif D.Type == 'rectangle' then
-                            ImGui.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
+                            im.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
                         elseif D.Type == 'rect fill' then
-                            ImGui.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff,
+                            im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff,
                                 Round)
                         elseif D.Type == 'circle' then
-                            ImGui.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
+                            im.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
                         elseif D.Type == 'circle fill' then
-                            ImGui.DrawList_AddCircleFilled(WDL, L, T, D.R,
+                            im.DrawList_AddCircleFilled(WDL, L, T, D.R,
                                 D.clr or 0xffffffff)
                         elseif D.Type == 'Text' and D.Txt then
-                            ImGui.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
+                            im.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
                                 D.FtSize or 13, L, T, D.clr or 0xffffffff, D.Txt)
                         elseif D.Type == 'Picture' then
                             if not D.Image then
-                                ImGui.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
-                                ImGui.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2,
+                                im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
+                                im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2,
                                     0xffffffff, 'Add Image path', R - L)
                             else
                                 if D.KeepImgRatio then
-                                    local w, h = ImGui.Image_GetSize(D.Image)
+                                    local w, h = im.Image_GetSize(D.Image)
 
                                     local H_ratio = w / h
                                     local size = R - L
 
 
-                                    ImGui.DrawList_AddImage(WDL, D.Image, L, T, L + size,
+                                    im.DrawList_AddImage(WDL, D.Image, L, T, L + size,
                                         T + size * H_ratio, 0, 0, 1, 1, D.clr or 0xffffffff)
                                 else
-                                    ImGui.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B,
+                                    im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B,
                                         L, B,
                                         _1, _2, _3, _4, _5, _6, _7, _8, D.clr or 0xffffffff)
                                 end
@@ -2824,36 +2958,36 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
                 if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then -- Resize FX or title btn
-                    MouseX, MouseY = ImGui.GetMousePos(ctx)
-                    Win_L, Win_T = ImGui.GetItemRectMin(ctx)
-                    Win_R, _ = ImGui.GetItemRectMax(ctx); Win_B = Win_T + 220
-                    WinDrawList = ImGui.GetWindowDrawList(ctx)
-                    ImGui.DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0, Win_R or 0,
+                    MouseX, MouseY = im.GetMousePos(ctx)
+                    Win_L, Win_T = im.GetItemRectMin(ctx)
+                    Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
+                    WinDrawList = im.GetWindowDrawList(ctx)
+                    im.DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0, Win_R or 0,
                         Win_B, 0x00000055)
                     --draw grid
 
-                    if ImGui.IsKeyPressed(ctx, ImGui.Key_Equal) then
+                    if im.IsKeyPressed(ctx, im.Key_Equal) then
                         LE.GridSize = LE.GridSize + 5
-                    elseif ImGui.IsKeyPressed(ctx, ImGui.Key_Minus) then
+                    elseif im.IsKeyPressed(ctx, im.Key_Minus) then
                         LE.GridSize = LE.GridSize - 5
                     end
 
                     for i = 0, FX[FXGUID[FX_Idx]].Width or DefaultWidth, LE.GridSize do
-                        ImGui.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444455)
+                        im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444455)
                     end
                     for i = 0, 220, LE.GridSize do
-                        ImGui.DrawList_AddLine(WinDrawList, Win_L,
+                        im.DrawList_AddLine(WinDrawList, Win_L,
                             Win_T + i, Win_R, Win_T + i, 0x44444455)
                     end
 
-                    ImGui.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B,
+                    im.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B,
                         0x66666677, 1)
 
 
-                    if ImGui.IsMouseHoveringRect(ctx, Win_R - 5, Win_T, Win_R + 5, Win_B) then
-                        ImGui.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B,
+                    if im.IsMouseHoveringRect(ctx, Win_R - 5, Win_T, Win_R + 5, Win_B) then
+                        im.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B,
                             0xffffffff, 3)
-                        ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_ResizeEW)
+                        im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
 
                         if IsLBtnClicked then
                             LE.ResizingFX = FX_Idx --@Todo change fxidx to fxguid
@@ -2862,12 +2996,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                     if LE.ResizingFX == FX_Idx and IsLBtnHeld then
-                        ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_ResizeEW)
+                        im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
 
-                        ImGui.DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0,
+                        im.DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0,
                             Win_R or 0, Win_B, 0x00000055)
-                        local MsDragDeltaX, MsDragDeltaY = ImGui.GetMouseDragDelta(ctx); local Dx, Dy =
-                            ImGui.GetMouseDelta(ctx)
+                        local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy =
+                            im.GetMouseDelta(ctx)
                         if not FX[FxGUID].Width then FX[FxGUID].Width = DefaultWidth end
                         FX[FxGUID].Width = FX[FxGUID].Width + Dx; LE.BeenEdited = true
                     end
@@ -2879,9 +3013,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
                 end
 
-                ImGui.SameLine(ctx, nil, 0)
+                im.SameLine(ctx, nil, 0)
                 if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true then
-                    ImGui.BeginDisabled(ctx); R, T = ImGui.GetItemRectMax(ctx)
+                    im.BeginDisabled(ctx); R, T = im.GetItemRectMax(ctx)
                 end
 
 
@@ -2891,13 +3025,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 AddWindowBtn(FxGUID, FX_Idx )
 
 
-                ImGui.PushStyleColor(ctx, ImGui.Col_Border, getClr(ImGui.Col_FrameBg))
+                im.PushStyleColor(ctx, im.Col_Border, getClr(im.Col_FrameBg))
 
 
                 -- Add Prm popup
-                if ImGui.BeginPopup(ctx, 'Add Parameter' .. FxGUID, ImGui.WindowFlags_AlwaysVerticalScrollbar) then
+                if im.BeginPopup(ctx, 'Add Parameter' .. FxGUID, im.WindowFlags_AlwaysVerticalScrollbar) then
                     local CheckBox, rv = {}, {}
-                    if ImGui.Button(ctx, 'Add all parameters', -1) then
+                    if im.Button(ctx, 'Add all parameters', -1) then
                         for i = 0, r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 1, 1 do
                             local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i))
 
@@ -2919,24 +3053,24 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                     AddPrmPopupOpen = FxGUID
-                    if not PrmFilterTxt then AddPrmWin_W, AddPrmWin_H = ImGui.GetWindowSize(ctx) end
-                    ImGui.SetWindowSize(ctx, 500, 500, condIn)
+                    if not PrmFilterTxt then AddPrmWin_W, AddPrmWin_H = im.GetWindowSize(ctx) end
+                    im.SetWindowSize(ctx, 500, 500, condIn)
 
                     local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
-                    if not ImGui.ValidatePtr(PrmFilter, "ImGui_TextFilter*") then PrmFilter = ImGui.CreateTextFilter(PrmFilterTxt) end 
+                    if not im.ValidatePtr(PrmFilter, "ImGui_TextFilter*") then PrmFilter = im.CreateTextFilter(PrmFilterTxt) end 
 
 
 
 
-                    ImGui.SetNextItemWidth(ctx, 60)
+                    im.SetNextItemWidth(ctx, 60)
 
                     if not FX[FxGUID].NotFirstOpenPrmWin then
-                        ImGui.SetKeyboardFocusHere(ctx, offsetIn)
+                        im.SetKeyboardFocusHere(ctx, offsetIn)
                     end
 
-                    if ImGui.TextFilter_Draw(PrmFilter, ctx, '##PrmFilterTxt', -1 - (SpaceForBtn or 0)) then
-                        PrmFilterTxt = ImGui.TextFilter_Get(PrmFilter)
-                        ImGui.TextFilter_Set(PrmFilter, PrmFilterTxt)
+                    if im.TextFilter_Draw(PrmFilter, ctx, '##PrmFilterTxt', -1 - (SpaceForBtn or 0)) then
+                        PrmFilterTxt = im.TextFilter_Get(PrmFilter)
+                        im.TextFilter_Set(PrmFilter, PrmFilterTxt)
                     end
 
                     for i = 1, Ct, 1 do
@@ -2948,8 +3082,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     for i = 1, Ct, 1 do
                         local P_Name = select(2,
                             r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
-                        if ImGui.TextFilter_PassFilter(PrmFilter, P_Name) then
-                            rv[i], CheckBox[i - 1] = ImGui.Checkbox(ctx, (i - 1) .. '. ' .. P_Name,
+                        if im.TextFilter_PassFilter(PrmFilter, P_Name) then
+                            rv[i], CheckBox[i - 1] = im.Checkbox(ctx, (i - 1) .. '. ' .. P_Name,
                                 CheckBox[i - 1])
                             if rv[i] then
                                 local RepeatPrmFound
@@ -2969,35 +3103,35 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                     end
                     FX[FxGUID].NotFirstOpenPrmWin = true
-                    ImGui.EndPopup(ctx)
+                    im.EndPopup(ctx)
                 elseif AddPrmPopupOpen == FxGUID then
                     PrmFilterTxt = nil
                     FX[FxGUID].NotFirstOpenPrmWin = nil
                 end
 
 
-                ImGui.PopStyleColor(ctx)
+                im.PopStyleColor(ctx)
 
 
                 if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true then
-                    local L, T = ImGui.GetItemRectMin(ctx); local R, _ = ImGui.GetItemRectMax(
+                    local L, T = im.GetItemRectMin(ctx); local R, _ = im.GetItemRectMax(
                         ctx); B = T + 20
-                    ImGui.DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
-                    ImGui.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
+                    im.DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
+                    im.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
 
                     if MouseX > L and MouseX < R and MouseY > T and MouseY < B then
-                        ImGui.DrawList_AddRectFilled(WinDrawList, L, T, R, T + 20, 0x99999955)
+                        im.DrawList_AddRectFilled(WinDrawList, L, T, R, T + 20, 0x99999955)
                         if IsLBtnClicked then
                             LE.SelectedItem = 'Title'
                             LE.ChangingTitleSize = true
-                            LE.MouseX_before, _ = ImGui.GetMousePos(ctx)
+                            LE.MouseX_before, _ = im.GetMousePos(ctx)
                         elseif IsRBtnClicked then
-                            ImGui.OpenPopup(ctx, 'Fx Module Menu')
+                            im.OpenPopup(ctx, 'Fx Module Menu')
                         end
                     end
 
                     if LE.SelectedItem == 'Title' then
-                        ImGui.DrawList_AddRect(WinDrawList, L, T, R,
+                        im.DrawList_AddRect(WinDrawList, L, T, R,
                             T + 20, 0x999999ff)
                     end
 
@@ -3006,10 +3140,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
 
                     if LBtnDrag and LE.ChangingTitleSize then
-                        ImGui.SetMouseCursor(ctx, ImGui.MouseCursor_ResizeEW)
-                        DeltaX, DeltaY = ImGui.GetMouseDelta(ctx)
+                        im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
+                        DeltaX, DeltaY = im.GetMouseDelta(ctx)
                         local AddedDelta = AddedDelta or 0 + DeltaX
-                        LE.MouseX_after, _ = ImGui.GetMousePos(ctx)
+                        LE.MouseX_after, _ = im.GetMousePos(ctx)
                         local MouseDiff = LE.MouseX_after - LE.MouseX_before
 
                         if FX[FxGUID].TitleWidth == nil then
@@ -3018,10 +3152,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         if Mods == 0 then
                             if MouseDiff > LE.GridSize then
                                 FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth + LE.GridSize; LE.MouseX_before =
-                                    ImGui.GetMousePos(ctx); LE.BeenEdited = true
+                                    im.GetMousePos(ctx); LE.BeenEdited = true
                             elseif MouseDiff < -LE.GridSize then
                                 FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth - LE.GridSize; LE.MouseX_before =
-                                    ImGui.GetMousePos(ctx); LE.BeenEdited = true
+                                    im.GetMousePos(ctx); LE.BeenEdited = true
                             end
                         end
                         if Mods == Shift then
@@ -3030,7 +3164,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                     if IsLBtnHeld == false then LE.ChangingTitleSize = nil end
 
-                    ImGui.EndDisabled(ctx)
+                    im.EndDisabled(ctx)
                 end
 
 
@@ -3040,8 +3174,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                if DebugMode and ImGui.IsItemHovered(ctx) then tooltip('FX_Idx = ' .. FX_Idx) end
-                if DebugMode and ImGui.IsKeyDown(ctx, 84) then tooltip(TrkID) end
+                if DebugMode and im.IsItemHovered(ctx) then tooltip('FX_Idx = ' .. FX_Idx) end
+                if DebugMode and im.IsKeyDown(ctx, 84) then tooltip(TrkID) end
 
 
 
@@ -3054,9 +3188,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                if ImGui.BeginPopup(ctx, 'Fx Module Menu') then
+                if im.BeginPopup(ctx, 'Fx Module Menu') then
                     if not FX[FxGUID].MorphA then
-                        if ImGui.Button(ctx, 'Preset Morphing', 160) then
+                        if im.Button(ctx, 'Preset Morphing', 160) then
                             FX[FxGUID].MorphA = {}
                             FX[FxGUID].MorphB = {}
                             local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
@@ -3070,32 +3204,33 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
                             --[[ r.SetProjExtState(r0oj, 'FX Devices', string key, string value) ]]
                             FX[FxGUID].MorphHide = nil
-                            ImGui.CloseCurrentPopup(ctx)
+                            im.CloseCurrentPopup(ctx)
                         end
                     else
                         if not FX[FxGUID].MorphHide then
-                            if ImGui.Button(ctx, 'Hide Morph Slider', 160) then
+                            if im.Button(ctx, 'Hide Morph Slider', 160) then
                                 FX[FxGUID].MorphHide = true
                                 r.GetSetMediaTrackInfo_String(LT_Track,
                                     'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
-                                ImGui.CloseCurrentPopup(ctx)
+                                im.CloseCurrentPopup(ctx)
                             end
                         else
-                            if ImGui.Button(ctx, 'Show Morph Slider', 160) then
+                            if im.Button(ctx, 'Show Morph Slider', 160) then
                                 FX[FxGUID].MorphHide = nil
-                                ImGui.CloseCurrentPopup(ctx)
+                                im.CloseCurrentPopup(ctx)
                             end
                         end
                     end
 
-                    ImGui.SameLine(ctx)
+                    im.SameLine(ctx)
                     if not FX[FxGUID].MorphA then
-                        ImGui.BeginDisabled(ctx)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_Text,
-                            getClr(ImGui.Col_TextDisabled))
+                        im.BeginDisabled(ctx)
+                        im.PushStyleColor(ctx, im.Col_Text,
+                            getClr(im.Col_TextDisabled))
                     end
-                    local rv = ImGui.Button(ctx, '##g', 20, 20) -- settings icon
-                    DrawListButton('g', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false)
+                    local rv = im.Button(ctx, '##g', 20, 20) -- settings icon
+                    DrawListButton(WDL, 'g', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false) -- wrench
+                    TooltipUI("Open Preset Morph settings window", im.HoveredFlags_Stationary)
                     if rv then 
                         if OpenMorphSettings then
                             OpenMorphSettings = FxGUID
@@ -3111,28 +3246,28 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 FX_Idx, i)
                             FX[FxGUID].PrmList[i].Name = name
                         end
-                        ImGui.CloseCurrentPopup(ctx)
+                        im.CloseCurrentPopup(ctx)
                     end
                     if not FX[FxGUID].MorphA then
-                        ImGui.EndDisabled(ctx)
-                        ImGui.PopStyleColor(ctx)
+                        im.EndDisabled(ctx)
+                        im.PopStyleColor(ctx)
                     end
 
 
 
-                    if ImGui.Button(ctx, 'Layout Edit mode', -FLT_MIN) then
+                    if im.Button(ctx, 'Layout Edit mode', -FLT_MIN) then
                         if not FX.LayEdit then
                             FX.LayEdit = FxGUID
                         else
                             FX.LayEdit = false
                         end
                         CloseLayEdit = nil
-                        ImGui.CloseCurrentPopup(ctx)
+                        im.CloseCurrentPopup(ctx)
                         if Draw.DrawMode[FxGUID] then Draw.DrawMode[FxGUID] = nil end
                     end
 
 
-                    if ImGui.Button(ctx, 'Save all values as default', -FLT_MIN) then
+                    if im.Button(ctx, 'Save all values as default', -FLT_MIN) then
                         local dir_path = CurrentDirectory .. 'src'
                         local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
                         local file = io.open(file_path, 'a+')
@@ -3169,20 +3304,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             file:close()
                         end
-                        ImGui.CloseCurrentPopup(ctx)
+                        im.CloseCurrentPopup(ctx)
                     end
 
 
 
                     if FX.Def_Type[FxGUID] ~= 'Knob' then
-                        ImGui.Text(ctx, 'Default Sldr Width:')
-                        ImGui.SameLine(ctx)
+                        im.Text(ctx, 'Default Sldr Width:')
+                        im.SameLine(ctx)
                         local SldrW_DrgSpd
                         if Mods == Shift then SldrW_DrgSpd = 1 else SldrW_DrgSpd = LE.GridSize end
-                        ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                        im.SetNextItemWidth(ctx, -FLT_MIN)
 
 
-                        Edited, FX.Def_Sldr_W[FxGUID] = ImGui.DragInt(ctx,
+                        Edited, FX.Def_Sldr_W[FxGUID] = im.DragInt(ctx,
                             '##' .. FxGUID .. 'Default Width', FX.Def_Sldr_W[FxGUID] or 160,
                             LE.GridSize, 50, 300)
 
@@ -3195,60 +3330,60 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                    ImGui.Text(ctx, 'Default Param Type:')
-                    ImGui.SameLine(ctx)
-                    ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                    im.Text(ctx, 'Default Param Type:')
+                    im.SameLine(ctx)
+                    im.SetNextItemWidth(ctx, -FLT_MIN)
 
 
-                    if ImGui.BeginCombo(ctx, '## P type', FX.Def_Type[FxGUID] or 'Slider', ImGui.ComboFlags_NoArrowButton) then
-                        if ImGui.Selectable(ctx, 'Slider', false) then
+                    if im.BeginCombo(ctx, '## P type', FX.Def_Type[FxGUID] or 'Slider', im.ComboFlags_NoArrowButton) then
+                        if im.Selectable(ctx, 'Slider', false) then
                             FX.Def_Type[FxGUID] = 'Slider'
                             r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                 FX.Def_Type[FxGUID])
-                        elseif ImGui.Selectable(ctx, 'Knob', false) then
+                        elseif im.Selectable(ctx, 'Knob', false) then
                             FX.Def_Type[FxGUID] = 'Knob'
                             r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                 FX.Def_Type[FxGUID])
-                        elseif ImGui.Selectable(ctx, 'Drag', false) then
+                        elseif im.Selectable(ctx, 'Drag', false) then
                             FX.Def_Type[FxGUID] = 'Drag'
                             r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
                                 FX.Def_Type[FxGUID])
                         end
-                        ImGui.EndCombo(ctx)
+                        im.EndCombo(ctx)
                     end
-                    ImGui.EndPopup(ctx)
+                    im.EndPopup(ctx)
                 end
 
                 if OpenMorphSettings then
-                    ImGui.SetNextWindowSizeConstraints(ctx, 500, 500, FLT_MAX, FLT_MAX)
-                    Open, Oms = ImGui.Begin(ctx, 'Preset Morph Settings ', Oms,
-                        ImGui.WindowFlags_NoCollapse | ImGui.WindowFlags_NoDocking)
+                    im.SetNextWindowSizeConstraints(ctx, 500, 500, FLT_MAX, FLT_MAX)
+                    Open, Oms = im.Begin(ctx, 'Preset Morph Settings ', Oms,
+                        im.WindowFlags_NoCollapse | im.WindowFlags_NoDocking)
                     if Oms then
                         if FxGUID == OpenMorphSettings then
-                            ImGui.Text(ctx, 'Set blacklist parameters here: ')
+                            im.Text(ctx, 'Set blacklist parameters here: ')
                             local SpaceForBtn
-                            if not ImGui.ValidatePtr(Filter, "ImGui_TextFilter*") then
-                                Filter = ImGui.CreateTextFilter(FilterTxt)
+                            if not im.ValidatePtr(Filter, "ImGui_TextFilter*") then
+                                Filter = im.CreateTextFilter(FilterTxt)
                             end
-                            ImGui.Text(ctx, 'Filter :')
-                            ImGui.SameLine(ctx)
+                            im.Text(ctx, 'Filter :')
+                            im.SameLine(ctx)
                             if FilterTxt then SpaceForBtn = 170 end
-                            if ImGui.TextFilter_Draw(Filter, ctx, '##', -1 - (SpaceForBtn or 0)) then
-                                FilterTxt = ImGui.TextFilter_Get(Filter)
-                                ImGui.TextFilter_Set(Filter, Txt)
+                            if im.TextFilter_Draw(Filter, ctx, '##', -1 - (SpaceForBtn or 0)) then
+                                FilterTxt = im.TextFilter_Get(Filter)
+                                im.TextFilter_Set(Filter, Txt)
                             end
                             if FilterTxt then
                                 SL()
-                                BL_All = ImGui.Button(ctx, 'Blacklist all results')
+                                BL_All = im.Button(ctx, 'Blacklist all results')
                             end
 
-                            ImGui.Text(ctx, 'Save morphing settings to : ')
+                            im.Text(ctx, 'Save morphing settings to : ')
                             SL()
-                            local Save_FX = ImGui.Button(ctx, 'FX Instance', 80)
+                            local Save_FX = im.Button(ctx, 'FX Instance', 80)
                             SL()
-                            local Save_Proj = ImGui.Button(ctx, 'Project', 80)
+                            local Save_Proj = im.Button(ctx, 'Project', 80)
                             SL()
-                            local Save_Glob = ImGui.Button(ctx, 'Global', 80)
+                            local Save_Glob = im.Button(ctx, 'Global', 80)
                             SL()
                             local FxNam = FX.Win_Name_S[FX_Idx]:gsub("%b()", "")
                             demo.HelpMarker(
@@ -3264,18 +3399,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             if Save_FX or Save_Proj or Save_Glob then
                                 Tooltip_Timer = r.time_precise()
-                                TTP_x, TTP_y = ImGui.GetMousePos(ctx)
-                                ImGui.OpenPopup(ctx, '## Successfully saved preset morph')
+                                TTP_x, TTP_y = im.GetMousePos(ctx)
+                                im.OpenPopup(ctx, '## Successfully saved preset morph')
                             end
 
                             if Tooltip_Timer then
-                                if ImGui.BeginPopupModal(ctx, '## Successfully saved preset morph', nil, ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_NoResize) then
-                                    ImGui.Text(ctx, 'Successfully saved ')
-                                    if ImGui.IsMouseClicked(ctx, 0) then
-                                        ImGui.CloseCurrentPopup(
+                                if im.BeginPopupModal(ctx, '## Successfully saved preset morph', nil, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize) then
+                                    im.Text(ctx, 'Successfully saved ')
+                                    if im.IsMouseClicked(ctx, 0) then
+                                        im.CloseCurrentPopup(
                                             ctx)
                                     end
-                                    ImGui.EndPopup(ctx)
+                                    im.EndPopup(ctx)
                                 end
 
                                 if Tooltip_Timer + 3 < r.time_precise() then
@@ -3300,27 +3435,26 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track,
                                     r.TrackFX_GetNumParams(LT_Track, FX_Idx), FX_Name)
                             else
-                                ImGui.BeginTable(ctx, 'Parameter List', 5,
-                                    ImGui.TableFlags_Resizable)
-                                --ImGui.TableSetupColumn( ctx, 'BL',  flagsIn, 20,  user_idIn)
+                                im.BeginTable(ctx, 'Parameter List', 5, im.TableFlags_Resizable)
+                                --im.TableSetupColumn( ctx, 'BL',  flagsIn, 20,  user_idIn)
 
-                                ImGui.TableHeadersRow(ctx)
-                                ImGui.SetNextItemWidth(ctx, 20)
-                                ImGui.TableSetColumnIndex(ctx, 0)
+                                im.TableHeadersRow(ctx)
+                                im.SetNextItemWidth(ctx, 20)
+                                im.TableSetColumnIndex(ctx, 0)
 
-                                local rv = ImGui.InvisibleButton(ctx, '##M', 20, 20) -- (/) icon
-                                DrawListButton('M', 0x00000000, nil, true, icon1_middle, false)
-                                ImGui.TableSetColumnIndex(ctx, 1)
-                                ImGui.AlignTextToFramePadding(ctx)
-                                ImGui.Text(ctx, 'Parameter Name ')
-                                ImGui.TableSetColumnIndex(ctx, 2)
-                                ImGui.AlignTextToFramePadding(ctx)
-                                ImGui.Text(ctx, 'A')
-                                ImGui.TableSetColumnIndex(ctx, 3)
-                                ImGui.AlignTextToFramePadding(ctx)
-                                ImGui.Text(ctx, 'B')
-                                ImGui.TableNextRow(ctx)
-                                ImGui.TableSetColumnIndex(ctx, 0)
+                                local rv = im.InvisibleButton(ctx, '##M', 20, 20) -- (/) icon
+                                DrawListButton(WDL, 'M', 0x00000000, nil, true, icon1_middle, false)
+                                im.TableSetColumnIndex(ctx, 1)
+                                im.AlignTextToFramePadding(ctx)
+                                im.Text(ctx, 'Parameter Name ')
+                                im.TableSetColumnIndex(ctx, 2)
+                                im.AlignTextToFramePadding(ctx)
+                                im.Text(ctx, 'A')
+                                im.TableSetColumnIndex(ctx, 3)
+                                im.AlignTextToFramePadding(ctx)
+                                im.Text(ctx, 'B')
+                                im.TableNextRow(ctx)
+                                im.TableSetColumnIndex(ctx, 0)
 
 
 
@@ -3328,22 +3462,22 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if --[[Last Touch]] LT_ParamNum and LT_FXGUID == FxGUID then
                                     local P = FX[FxGUID].PrmList
                                     local N = math.max(LT_ParamNum, 1)
-                                    ImGui.TableSetBgColor(ctx, 1,
-                                        getClr(ImGui.Col_TabUnfocused))
-                                    ImGui.PushStyleVar(ctx, ImGui.StyleVar_FramePadding, 0, 9)
+                                    im.TableSetBgColor(ctx, 1,
+                                        getClr(im.Col_TabUnfocused))
+                                    im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 9)
 
-                                    rv, P[N].BL = ImGui.Checkbox(ctx, '##' .. N, P[N].BL)
-                                    if P[N].BL then ImGui.BeginDisabled(ctx) end
+                                    rv, P[N].BL = im.Checkbox(ctx, '##' .. N, P[N].BL)
+                                    if P[N].BL then im.BeginDisabled(ctx) end
 
-                                    ImGui.TableSetColumnIndex(ctx, 1)
-                                    ImGui.Text(ctx, N .. '. ' .. (P[N].Name or ''))
+                                    im.TableSetColumnIndex(ctx, 1)
+                                    im.Text(ctx, N .. '. ' .. (P[N].Name or ''))
 
 
                                     ------- A --------------------
-                                    ImGui.TableSetColumnIndex(ctx, 2)
-                                    ImGui.Text(ctx, 'A:')
+                                    im.TableSetColumnIndex(ctx, 2)
+                                    im.Text(ctx, 'A:')
                                     SL()
-                                    ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                                    im.SetNextItemWidth(ctx, -FLT_MIN)
 
                                     local i = LT_ParamNum or 0
                                     local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
@@ -3354,7 +3488,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
 
 
-                                    P.Drag_A, FX[FxGUID].MorphA[i] = ImGui.DragDouble(ctx,
+                                    P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx,
                                         '## MorphVal_A' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1,
                                         P.FormatV_A or '')
                                     if P.Drag_A then
@@ -3363,19 +3497,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                     SL()
                                     --------- B --------------------
-                                    ImGui.TableSetColumnIndex(ctx, 3)
-                                    ImGui.Text(ctx, 'B:')
+                                    im.TableSetColumnIndex(ctx, 3)
+                                    im.Text(ctx, 'B:')
                                     SL()
 
                                     local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                         FX_Idx, i)
-                                    ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                                    im.SetNextItemWidth(ctx, -FLT_MIN)
                                     if not P.FormatV_B and FX[FxGUID].MorphB[1] then
                                         P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i], OrigV, i)
                                     end
 
 
-                                    P.Drag_B, FX[FxGUID].MorphB[i] = ImGui.DragDouble(ctx,
+                                    P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx,
                                         '## MorphVal_B' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1,
                                         P.FormatV_B)
                                     if P.Drag_B then
@@ -3383,12 +3517,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
 
 
-                                    if P[N].BL then ImGui.EndDisabled(ctx) end
+                                    if P[N].BL then im.EndDisabled(ctx) end
                                     --HighlightSelectedItem( 0xffffff33 , OutlineClr, 1, L,T,R,B,h,w, H_OutlineSc, V_OutlineSc,'GetItemRect', Foreground)
 
-                                    ImGui.PopStyleVar(ctx)
-                                    ImGui.TableNextRow(ctx)
-                                    ImGui.TableSetColumnIndex(ctx, 0)
+                                    im.PopStyleVar(ctx)
+                                    im.TableNextRow(ctx)
+                                    im.TableSetColumnIndex(ctx, 0)
                                 end
                                 local Load_FX_Proj_Glob
                                 local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track,
@@ -3408,7 +3542,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local P = FX[FxGUID].PrmList[i - 1]
                                     local prm = FX[FxGUID].PrmList
 
-                                    if ImGui.TextFilter_PassFilter(Filter, P.Name) --[[ and (i~=LT_ParamNum and LT_FXGUID==FxGUID) ]] then
+                                    if im.TextFilter_PassFilter(Filter, P.Name) --[[ and (i~=LT_ParamNum and LT_FXGUID==FxGUID) ]] then
                                         i = i - 1
                                         if prm[i].BL == nil then
                                             if Load_FX_Proj_Glob == 'FX' then
@@ -3425,36 +3559,36 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end ]]
                                         end
                                         if BL_All --[[BL all filtered params ]] then if P.BL then P.BL = false else P.BL = true end end
-                                        rv, prm[i].BL = ImGui.Checkbox(ctx, '## BlackList' .. i,
+                                        rv, prm[i].BL = im.Checkbox(ctx, '## BlackList' .. i,
                                             prm[i].BL)
 
-                                        ImGui.TableSetColumnIndex(ctx, 1)
+                                        im.TableSetColumnIndex(ctx, 1)
                                         if P.BL then
-                                            ImGui.PushStyleColor(ctx, ImGui.Col_Text,
-                                                getClr(ImGui.Col_TextDisabled))
+                                            im.PushStyleColor(ctx, im.Col_Text,
+                                                getClr(im.Col_TextDisabled))
                                         end
 
 
-                                        ImGui.Text(ctx, i .. '. ' .. (P.Name or ''))
+                                        im.Text(ctx, i .. '. ' .. (P.Name or ''))
 
 
 
                                         ------- A --------------------
-                                        ImGui.TableSetColumnIndex(ctx, 2)
-                                        ImGui.Text(ctx, 'A:')
+                                        im.TableSetColumnIndex(ctx, 2)
+                                        im.Text(ctx, 'A:')
                                         SL()
 
                                         local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                             FX_Idx,
                                             i)
-                                        ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                                        im.SetNextItemWidth(ctx, -FLT_MIN)
                                         if not P.FormatV_A and FX[FxGUID].MorphA[1] then
                                             P.FormatV_A =
                                                 GetFormatPrmV(FX[FxGUID].MorphA[i + 1], OrigV, i)
                                         end
 
 
-                                        P.Drag_A, FX[FxGUID].MorphA[i] = ImGui.DragDouble(ctx,
+                                        P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx,
                                             '## MorphVal_A' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1,
                                             P.FormatV_A or '')
                                         if P.Drag_A then
@@ -3468,20 +3602,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         SL()
 
                                         --------- B --------------------
-                                        ImGui.TableSetColumnIndex(ctx, 3)
-                                        ImGui.Text(ctx, 'B:')
+                                        im.TableSetColumnIndex(ctx, 3)
+                                        im.Text(ctx, 'B:')
                                         SL()
 
                                         local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
                                             FX_Idx,
                                             i)
-                                        ImGui.SetNextItemWidth(ctx, -FLT_MIN)
+                                        im.SetNextItemWidth(ctx, -FLT_MIN)
                                         if not P.FormatV_B and FX[FxGUID].MorphB[1] then
                                             P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i] or 0,
                                                 OrigV, i)
                                         end
 
-                                        P.Drag_B, FX[FxGUID].MorphB[i] = ImGui.DragDouble(ctx,
+                                        P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx,
                                             '## MorphVal_B' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1,
                                             P.FormatV_B)
                                         if P.Drag_B then
@@ -3514,12 +3648,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if P.BL then table.insert(TheresBL, i) end
                                         end
 
-                                        ImGui.SetNextItemWidth(ctx, -1)
+                                        im.SetNextItemWidth(ctx, -1)
 
-                                        if P.BL then ImGui.PopStyleColor(ctx) end
+                                        if P.BL then im.PopStyleColor(ctx) end
 
-                                        ImGui.TableNextRow(ctx)
-                                        ImGui.TableSetColumnIndex(ctx, 0)
+                                        im.TableNextRow(ctx)
+                                        im.TableSetColumnIndex(ctx, 0)
                                     end
                                 end
 
@@ -3557,12 +3691,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                 end
 
-                                ImGui.EndTable(ctx)
+                                im.EndTable(ctx)
                             end
                         end
-                        ImGui.End(ctx)
+                        im.End(ctx)
                     else
-                        ImGui.End(ctx)
+                        im.End(ctx)
                         OpenMorphSettings = false
                     end
                 end
@@ -3586,7 +3720,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                ImGui.SameLine(ctx)
+                im.SameLine(ctx)
 
                 --------------------------------
                 ----Area right of window title
@@ -3625,14 +3759,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             1, FX_Idx)
                     end
 
-                    if ImGui.BeginDragDropTarget(ctx) then
-                        rv, payload = ImGui.AcceptDragDropPayload(ctx, 'FX_Drag')
+                    if im.BeginDragDropTarget(ctx) then
+                        rv, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
                         if rv then
                         end
-                        ImGui.EndDragDropTarget(ctx)
+                        im.EndDragDropTarget(ctx)
                     end
                 end
-                -- ImGui.PopStyleVar(ctx) --StyleVar#4  POP (Things in the header of FX window)
+                -- im.PopStyleVar(ctx) --StyleVar#4  POP (Things in the header of FX window)
 
                 ------------------------------------------
                 ------ Generic FX's knobs and sliders area
@@ -3661,33 +3795,33 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                     if FX.Enable[FX_Idx] == true then
                         -- Params Colors-----
-                        --[[ ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, 0x32403aff)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgActive, 0x44444488)
+                        --[[ im.PushStyleColor(ctx, im.Col_FrameBg, 0x32403aff)
+                        im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x44444488)
 
                         times = 2 ]]
                     else
-                        --[[ ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, 0x17171744)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_Text, 0x66666644)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_SliderGrab, 0x66666644)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgActive, 0x66666622)
-                        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgHovered, 0x44444422)
+                        --[[ im.PushStyleColor(ctx, im.Col_FrameBg, 0x17171744)
+                        im.PushStyleColor(ctx, im.Col_Text, 0x66666644)
+                        im.PushStyleColor(ctx, im.Col_SliderGrab, 0x66666644)
+                        im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666622)
+                        im.PushStyleColor(ctx, im.Col_FrameBgHovered, 0x44444422)
                         times = 5 ]]
                     end
 
                     if FX[FxGUID].Round then
-                        ImGui.PushStyleVar(ctx,
-                            ImGui.StyleVar_FrameRounding, FX[FxGUID].Round)
+                        im.PushStyleVar(ctx,
+                            im.StyleVar_FrameRounding, FX[FxGUID].Round)
                     end
                     if FX[FxGUID].GrbRound then
-                        ImGui.PushStyleVar(ctx,
-                            ImGui.StyleVar_GrabRounding, FX[FxGUID].GrbRound)
+                        im.PushStyleVar(ctx,
+                            im.StyleVar_GrabRounding, FX[FxGUID].GrbRound)
                     end
 
                     if (FX.LayEdit == FxGUID or Draw.DrawMode[FxGUID] == true) and Mods ~= Apl then
-                        ImGui.BeginDisabled(ctx, true)
+                        im.BeginDisabled(ctx, true)
                     end
                     if FX.LayEdit then
-                        LE.DragX, LE.DragY = ImGui.GetMouseDragDelta(ctx, 0)
+                        LE.DragX, LE.DragY = im.GetMouseDragDelta(ctx, 0)
                     end
 
                     ------------------------------------------------------
@@ -3717,48 +3851,48 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local W = ((FX[FxGUID][Fx_P - Column * 6].Sldr_W or FX.Def_Sldr_W[FxGUID] or 160) + GapBtwnPrmColumns) *
                                     Column
                                 local Y = 30 * (Fx_P - (Column * 6))
-                                ImGui.SetCursorPos(ctx, W, Y)
+                                im.SetCursorPos(ctx, W, Y)
                             elseif FP.Type == 'V-Slider' or (FX.Def_Type[FxGUID] == 'V-Slider' and FP.Type == nil) then
-                                ImGui.SetCursorPos(ctx, 17 * (Fx_P - 1), 30)
+                                im.SetCursorPos(ctx, 17 * (Fx_P - 1), 30)
                             elseif FP.Type == 'Knob' or (FX.Def_Type[FxGUID] == 'Knob' and FP.Type == nil) then
                                 local KSz = Df.KnobSize
                                 local G = 15
                                 local Column = math.floor(Fx_P / 3 - 0.1)
 
-                                ImGui.SetCursorPos(ctx, KSz * (Column),
+                                im.SetCursorPos(ctx, KSz * (Column),
                                     26 + (KSz + G) * (Fx_P - (Column * 3) - 1))
                             end
                         end
 
-                        if FP.PosX then ImGui.SetCursorPosX(ctx, FP.PosX) end
-                        if FP.PosY then ImGui.SetCursorPosY(ctx, FP.PosY) end
+                        if FP.PosX then im.SetCursorPosX(ctx, FP.PosX) end
+                        if FP.PosY then im.SetCursorPosY(ctx, FP.PosY) end
 
-                        rectminX, RectMinY = ImGui.GetItemRectMin(ctx)
-                        curX, CurY = ImGui.GetCursorPos(ctx)
+                        rectminX, RectMinY = im.GetItemRectMin(ctx)
+                        curX, CurY = im.GetCursorPos(ctx)
                         if CurY > 210 then
-                            ImGui.SetCursorPosY(ctx, 210)
+                            im.SetCursorPosY(ctx, 210)
                             CurY = 210
                         end
                         if curX < 0 then
-                            ImGui.SetCursorPosX(ctx, 0)
+                            im.SetCursorPosX(ctx, 0)
                         elseif curX > (FX[FxGUID].Width or DefaultWidth) then
-                            ImGui.SetCursorPosX(ctx, (FX[FxGUID].Width or DefaultWidth) - 10)
+                            im.SetCursorPosX(ctx, (FX[FxGUID].Width or DefaultWidth) - 10)
                         end
 
                         -- if prm has clr set, calculate colors for active and hvr clrs
                         if FP.BgClr then
-                            local R, G, B, A = ImGui.ColorConvertU32ToDouble4(FP.BgClr)
-                            local H, S, V = ImGui.ColorConvertRGBtoHSV(R, G, B)
+                            local R, G, B, A = im.ColorConvertU32ToDouble4(FP.BgClr)
+                            local H, S, V = im.ColorConvertRGBtoHSV(R, G, B)
                             local HvrV, ActV
                             if V > 0.9 then
                                 HvrV = V - 0.1
                                 ActV = V - 0.5
                             end
-                            local R, G, B = ImGui.ColorConvertHSVtoRGB(H, S, HvrV or V +
+                            local R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V +
                                 0.1)
-                            local HvrClr = ImGui.ColorConvertDouble4ToU32(R, G, B, A)
-                            local R, G, B = ImGui.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
-                            local ActClr = ImGui.ColorConvertDouble4ToU32(R, G, B, A)
+                            local HvrClr = im.ColorConvertDouble4ToU32(R, G, B, A)
+                            local R, G, B = im.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
+                            local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
                             FP.BgClrHvr = HvrClr
                             FP.BgClrAct = ActClr
                         end
@@ -3835,14 +3969,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             if Prm and FxGUID then
 
-                                --[[ if not ImGui.ValidatePtr(FX[FxGUID].DL_SPLITER, 'ImGui_DrawListSplitter*') then
-                                    FX[FxGUID].DL_SPLITER = ImGui.CreateDrawListSplitter(WDL)
+                                --[[ if not im.ValidatePtr(FX[FxGUID].DL_SPLITER, 'ImGui_DrawListSplitter*') then
+                                    FX[FxGUID].DL_SPLITER = im.CreateDrawListSplitter(WDL)
                                 end
-                                --local FX[FxGUID].DL_SPLITER = ImGui.CreateDrawListSplitter(WDL)
+                                --local FX[FxGUID].DL_SPLITER = im.CreateDrawListSplitter(WDL)
 
 
-                                ImGui.DrawListSplitter_Split(FX[FxGUID].DL_SPLITER, 2)
-                                ImGui.DrawListSplitter_SetCurrentChannel(FX[FxGUID].DL_SPLITER, 1) ]]
+                                im.DrawListSplitter_Split(FX[FxGUID].DL_SPLITER, 2)
+                                im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].DL_SPLITER, 1) ]]
                                 --Prm.V = Prm.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, Prm.Num)
                                 --- Add Parameter controls ---------
                                 if Prm.Type == 'Slider' or (not Prm.Type and not FX.Def_Type[FxGUID]) or FX.Def_Type[FxGUID] == 'Slider' then
@@ -3881,7 +4015,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         CurY)
                                 end
 
-                                if ImGui.IsItemClicked(ctx) and LBtnDC then
+                                if im.IsItemClicked(ctx) and LBtnDC then
                                     if Mods == 0 then
                                         local dir_path = CurrentDirectory .. 'src'
                                         local file_path = ConcatPath(dir_path,
@@ -3950,7 +4084,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                                 if FP.Draw then
-                                    --ImGui.DrawListSplitter_SetCurrentChannel(FX[FxGUID].DL_SPLITER, 0)
+                                    --im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].DL_SPLITER, 0)
 
                                     local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
                                         if rpt and rpt ~= 0 then
@@ -3975,7 +4109,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
 
                                     for i, v in ipairs(FP.Draw) do
-                                        local x, y              = ImGui.GetItemRectMin(ctx)
+                                        local x, y              = im.GetItemRectMin(ctx)
                                         Prm.V                   = Prm.V or 0
                                         local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) +
                                             ((GR or 0) * (v.X_Offset_VA_GR or 0))
@@ -4007,8 +4141,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
 
                                         if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
-                                            local w = v.Width or ImGui.GetItemRectSize(ctx)
-                                            local h = v.Height or select(2, ImGui.GetItemRectSize(ctx))
+                                            local w = v.Width or im.GetItemRectSize(ctx)
+                                            local h = v.Height or select(2, im.GetItemRectSize(ctx))
 
                                             local x2 = x + w
                                             local y2 = y + h
@@ -4041,7 +4175,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                                                 local function Addline(Xg, Yg, none, RptClr)
-                                                    ImGui.DrawList_AddLine(WDL, x + (Xg or 0),
+                                                    im.DrawList_AddLine(WDL, x + (Xg or 0),
                                                         y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
                                                         RptClr or Clr_VA or v.Clr or 0xffffffff,
                                                         Thick)
@@ -4051,7 +4185,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                     nil, v.RPT_Clr, v.Clr)
                                             elseif v.Type == 'Rect' then
                                                 local function AddRect(Xg, Yg, none, RptClr)
-                                                    ImGui.DrawList_AddRect(WDL, x + (Xg or 0),
+                                                    im.DrawList_AddRect(WDL, x + (Xg or 0),
                                                         y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
                                                         RptClr or Clr_VA or v.Clr or 0xffffffff,
                                                         v.Round, flag, Thick)
@@ -4060,7 +4194,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                     nil, v.RPT_Clr, v.Clr)
                                             elseif v.Type == 'Rect Filled' then
                                                 local function AddRectFill(Xg, Yg, none, RptClr)
-                                                    ImGui.DrawList_AddRectFilled(WDL, x + (Xg or 0),
+                                                    im.DrawList_AddRectFilled(WDL, x + (Xg or 0),
                                                         y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
                                                         RptClr or Clr_VA or v.Clr or 0xffffffff,
                                                         v.Round)
@@ -4071,9 +4205,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
-                                                ImGui.DrawList_AddLine(WDL, x - l, y - l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
                                                     y + l, 0xffffffdd)
-                                                ImGui.DrawList_AddLine(WDL, x - l, y + l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
                                                     y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
@@ -4092,14 +4226,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             end
 
                                             local function AddCircle(X_Gap, Y_Gap, Gap, RptClr)
-                                                ImGui.DrawList_AddCircle(WDL,
+                                                im.DrawList_AddCircle(WDL,
                                                     x + w / 2 + (X_Gap or 0),
                                                     y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0),
                                                     RptClr or Clr_VA or v.Clr or 0xffffffff, nil,
                                                     Thick)
                                             end
                                             local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr)
-                                                ImGui.DrawList_AddCircleFilled(WDL,
+                                                im.DrawList_AddCircleFilled(WDL,
                                                     x + w / 2 + (X_Gap or 0),
                                                     y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0),
                                                     RptClr or Clr_VA or v.Clr or 0xffffffff)
@@ -4117,13 +4251,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
                                                 local x, y = x + Rad / 2, y + Rad / 2
-                                                ImGui.DrawList_AddLine(WDL, x - l, y - l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
                                                     y + l, 0xffffffdd)
-                                                ImGui.DrawList_AddLine(WDL, x - l, y + l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
                                                     y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle' then
-                                            local w, h = ImGui.GetItemRectSize(ctx)
+                                            local w, h = im.GetItemRectSize(ctx)
                                             local x, y = x + w / 2 + (v.X_Offset or 0),
                                                 y + h / 2 + (v.Y_Offset or 0)
                                             local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
@@ -4137,34 +4271,34 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             local OUT = v.Rad_Out or 30
 
                                             if v.Type == 'Knob Pointer' then
-                                                ImGui.DrawList_AddLine(WDL, x + angle_cos * IN,
+                                                im.DrawList_AddLine(WDL, x + angle_cos * IN,
                                                     y + angle_sin * IN, x + angle_cos * (OUT - Thick),
                                                     y + angle_sin * (OUT - Thick),
                                                     Clr_VA or v.Clr or 0x999999aa, Thick)
                                             elseif v.Type == 'Knob Range' then
                                                 local function AddRange(G)
                                                     for i = IN, OUT, (1 + (v.Gap or 0)) do
-                                                        ImGui.DrawList_PathArcTo(WDL, x, y, i,
+                                                        im.DrawList_PathArcTo(WDL, x, y, i,
                                                             ANGLE_MIN,
                                                             SetMinMax(
                                                                 ANGLE_MIN +
                                                                 (ANGLE_MAX - ANGLE_MIN) * Prm.V,
                                                                 ANGLE_MIN, ANGLE_MAX))
-                                                        ImGui.DrawList_PathStroke(WDL,
+                                                        im.DrawList_PathStroke(WDL,
                                                             Clr_VA or v.Clr or 0x999999aa, nil, Thick)
-                                                        ImGui.DrawList_PathClear(WDL)
+                                                        im.DrawList_PathClear(WDL)
                                                     end
                                                 end
 
 
                                                 Repeat(1, 0, X_Gap, X_Gap, AddRange)
                                             elseif v.Type == 'Knob Circle' then
-                                                ImGui.DrawList_AddCircle(WDL, x + angle_cos * IN,
+                                                im.DrawList_AddCircle(WDL, x + angle_cos * IN,
                                                     y + angle_sin * IN, v.Width,
                                                     Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                             elseif v.Type == 'Knob Image' and v.Image then
                                                 local X, Y = x + angle_cos * IN, y + angle_sin * IN
-                                                ImGui.DrawList_AddImage(WDL, v.Image, X, Y,
+                                                im.DrawList_AddImage(WDL, v.Image, X, Y,
                                                     X + v.Width, Y + v.Width, nil, nil, nil, nil,
                                                     Clr_VA or v.Clr or 0x999999aa)
                                             end
@@ -4174,13 +4308,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
 
-                                                ImGui.DrawList_AddLine(WDL, x - l, y - l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
                                                     y + l, 0xffffffdd)
-                                                ImGui.DrawList_AddLine(WDL, x - l, y + l, x + l,
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
                                                     y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Image' and v.Image then
-                                            local w, h = ImGui.Image_GetSize(v.Image)
+                                            local w, h = im.Image_GetSize(v.Image)
                                             local w, h = (v.Width or w), (v.Height or h)
                                             if v.Width_VA and v.Width_VA ~= 0 then
                                                 w = (v.Width or w) *
@@ -4191,7 +4325,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                     v.Height_VA * Prm.V
                                             end
                                             local function AddImage(X_Gap, Y_Gap, none, RptClr)
-                                                ImGui.DrawList_AddImage(WDL, v.Image, x + X_Gap,
+                                                im.DrawList_AddImage(WDL, v.Image, x + X_Gap,
                                                     y + (Y_Gap or 0), x + w + X_Gap,
                                                     y + h + (Y_Gap or 0), 0, 0, 1, 1,
                                                     RptClr or Clr_VA or v.Clr)
@@ -4202,12 +4336,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                 AddImage, nil, v.RPT_Clr, v.Clr)
                                         elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
                                             local GR = round(GR, 1)
-                                            ImGui.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff,
+                                            im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff,
                                                 GR or '')
                                         end
                                     end
                                 end
-                                --ImGui.DrawListSplitter_Merge(FX[FxGUID].DL_SPLITER)
+                                --im.DrawListSplitter_Merge(FX[FxGUID].DL_SPLITER)
                                 --Try another method: use undo history to detect if user has changed a preset, if so, unlink all params
                                 --[[ if r.TrackFX_GetOpen(LT_Track, FX_Idx) and focusedFXState==1 and FX_Index_FocusFX==FX_Idx then
 
@@ -4226,11 +4360,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                 end ]]
                             end
-                            if ImGui.IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then
-                                local draw_list = ImGui.GetForegroundDrawList(ctx)
-                                local mouse_pos = { ImGui.GetMousePos(ctx) }
-                                local click_pos = { ImGui.GetMouseClickedPos(ctx, 0) }
-                                ImGui.DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1],
+                            if im.IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then
+                                local draw_list = im.GetForegroundDrawList(ctx)
+                                local mouse_pos = { im.GetMousePos(ctx) }
+                                local click_pos = { im.GetMouseClickedPos(ctx, 0) }
+                                im.DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1],
                                     mouse_pos[2], 0xB62424FF, 4.0) -- Draw a line between the button and the mouse cursor
                                 local P_Num = Prm.Num
                                 lead_fxid =
@@ -4251,7 +4385,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     lead_paramnumber = buf
                                 end
                             end
-                            if ImGui.IsItemClicked(ctx, 1) and Mods == Shift then
+                            if im.IsItemClicked(ctx, 1) and Mods == Shift then
                                 local P_Num = Prm.Num
                                 local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                     "param." .. P_Num .. ".plink.midi_bus")
@@ -4332,11 +4466,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                 end
                             end
-                            if ImGui.IsItemClicked(ctx, 1) and Mods == Ctrl and not AssigningMacro then
-                                ImGui.OpenPopup(ctx, '##prm Context menu' .. FP.Num)
+                            if im.IsItemClicked(ctx, 1) and Mods == Ctrl and not AssigningMacro then
+                                im.OpenPopup(ctx, '##prm Context menu' .. FP.Num)
                             end
-                            if ImGui.BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
-                                if ImGui.Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
+                            if im.BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
+                                if im.Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
                                     local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false)    -- Check if envelope is on
                                     if env == nil then                                               -- Envelope is off
                                         local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, true) -- true = Create envelope
@@ -4355,7 +4489,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     r.TrackList_AdjustWindows(false)
                                     r.UpdateArrange()
                                 end
-                                if ImGui.Selectable(ctx, 'Remove Envelope', false) then
+                                if im.Selectable(ctx, 'Remove Envelope', false) then
                                     local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
                                     if env == nil then                                            -- Envelope is off
                                         local nothing
@@ -4371,7 +4505,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     r.TrackList_AdjustWindows(false)
                                     r.UpdateArrange()
                                 end
-                                if ImGui.Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
+                                if im.Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                         "param." .. Prm.Num .. ".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
                                     if retval and buf == "1" then             -- Toggle
@@ -4388,7 +4522,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             Prm.Num .. ".mod.visible", 1)
                                     end
                                 end
-                                if ImGui.Selectable(ctx, 'Toggle Add LFO') then
+                                if im.Selectable(ctx, 'Toggle Add LFO') then
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                         "param." .. Prm.Num .. ".lfo.active")
                                     if retval and buf == "1" then
@@ -4401,7 +4535,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             Prm.Num .. ".mod.visible", 1)
                                     end
                                 end
-                                if ImGui.Selectable(ctx, 'Toggle Add CC Link') then
+                                if im.Selectable(ctx, 'Toggle Add CC Link') then
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                         "param." .. Prm.Num .. ".plink.active")
                                     local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
@@ -4505,7 +4639,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             "param." .. Prm.Num .. ".plink.midi_msg2", retvals)
                                     end
                                 end
-                                if ImGui.Selectable(ctx, 'Toggle Open Modulation/Link Window') then
+                                if im.Selectable(ctx, 'Toggle Open Modulation/Link Window') then
                                     local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                         "param." .. Prm.Num .. ".mod.visible")
                                     if retval and buf == "1" then
@@ -4516,7 +4650,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
                                         "param." .. Prm.Num .. ".mod.visible", value)
                                 end
-                                ImGui.EndPopup(ctx)
+                                im.EndPopup(ctx)
                             end
                         end
                     end -- Rpt for every param
@@ -4524,13 +4658,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     if FX.LayEdit then
                         if LE.DragY > LE.GridSize or LE.DragX > LE.GridSize or LE.DragY < -LE.GridSize or LE.DragX < -LE.GridSize then
-                            ImGui.ResetMouseDragDelta(ctx)
+                            im.ResetMouseDragDelta(ctx)
                         end
                     end
 
 
-                    if ImGui.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and
-                        ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_RootAndChildWindows)
+                    if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and
+                        im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows)
                     then
                         if ClickOnAnyItem == nil and LBtnRel and AdjustPrmWidth ~= true and Mods == 0 then
                             LE.Sel_Items = {};
@@ -4544,13 +4678,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                    if FX[FxGUID].Round then ImGui.PopStyleVar(ctx) end
-                    if FX[FxGUID].GrbRound then ImGui.PopStyleVar(ctx) end
+                    if FX[FxGUID].Round then im.PopStyleVar(ctx) end
+                    if FX[FxGUID].GrbRound then im.PopStyleVar(ctx) end
 
 
 
                     if (FX.LayEdit == FxGUID or Draw.DrawMode[FxGUID] == true) and Mods ~= Apl then
-                        ImGui.EndDisabled(ctx)
+                        im.EndDisabled(ctx)
                     end
                 end
 
@@ -4576,18 +4710,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 if FX.Enable[FX_Idx] == false then
-                    ImGui.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000088)
+                    im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000088)
                 end
 
-                --[[ if ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_RootAndChildWindows) then
+                --[[ if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
                     DisableScroll = nil
                 else DisableScroll = true
                 end ]]
 
-                --ImGui.Dummy(ctx, 0, dummyH)
-                if ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_ChildWindows) then
+                --im.Dummy(ctx, 0, dummyH)
+                if im.IsWindowHovered(ctx, im.HoveredFlags_ChildWindows) then
                     if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] and not Tab_Collapse_Win then
-                        if ImGui.IsKeyPressed(ctx, ImGui.Key_Tab) then
+                        if im.IsKeyPressed(ctx, im.Key_Tab) then
                             CollapseIfTab(FxGUID, FX_Idx)
                             Tab_Collapse_Win = true
                             NeedRetrieveLayout = true
@@ -4595,14 +4729,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
 
-                HoverWindow = ImGui.GetWindowSize(ctx)
-                ImGui.Dummy(ctx, 100, 100)
-                ImGui.EndChild(ctx)
+                HoverWindow = im.GetWindowSize(ctx)
+                im.Dummy(ctx, 100, 100)
+                im.EndChild(ctx)
             end
 
 
 
-            ImGui.PopStyleVar(ctx) -- styleVar ScrollBar
+            im.PopStyleVar(ctx) -- styleVar ScrollBar
         end
 
 
@@ -4612,8 +4746,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
         --------------------FX Devices--------------------
 
-        ImGui.PopStyleColor(ctx, poptimes) -- -- PopColor #1 FX Window
-        ImGui.SameLine(ctx, nil, 0)
+        im.PopStyleColor(ctx, poptimes) -- -- PopColor #1 FX Window
+        im.SameLine(ctx, nil, 0)
 
 
 
@@ -4622,7 +4756,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-        ImGui.EndGroup(ctx)
+        im.EndGroup(ctx)
     end
     if BlinkFX == FX_Idx then BlinkFX = BlinkItem(0.2, 2, BlinkFX) end
 
@@ -4738,7 +4872,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     Dvdr.Clr[ClrLbl] = Space_Between_FXs
     Dvdr.Width[TblIdxForSpace] = Dvdr.Width[TblIdxForSpace] or 0
     if FX_Idx == 0 and DragDroppingFX and not SpcIsInPre then
-        if ImGui.IsMouseHoveringRect(ctx, Cx_LeftEdge + 10, Cy_BeforeFXdevices, Cx_LeftEdge + 25, Cy_BeforeFXdevices + 220) and DragFX_ID ~= 0 then
+        if im.IsMouseHoveringRect(ctx, Cx_LeftEdge + 10, Cy_BeforeFXdevices, Cx_LeftEdge + 25, Cy_BeforeFXdevices + 220) and DragFX_ID ~= 0 then
             Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
         end
     end
@@ -4753,7 +4887,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         Dvdr.Clr[ClrLbl] = Dvdr.Clr[ClrLbl] or Clr.Dvdr.In_Layer
     end
 
-    ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, Dvdr.Clr[ClrLbl])
+    im.PushStyleColor(ctx, im.Col_FrameBg, Dvdr.Clr[ClrLbl])
 
     local w = 10 + Dvdr.Width[TblIdxForSpace] + (Dvdr.Spc_Hover[TblIdxForSpace] or 0) + (AdditionalWidth or 0)
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
@@ -4762,10 +4896,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     -- StyleColor For Space Btwn Fx Windows
     if not Hide then
-        if ImGui.BeginChild(ctx, '##SpaceBetweenWindows' .. FX_Idx .. tostring(SpaceIsBeforeRackMixer) .. 'Last SPC in Rack = ' .. tostring(AddLastSPCinRack), 10, 220) then
-            --HOVER_RECT = ImGui.IsWindowHovered(ctx,  ImGui.HoveredFlags_RectOnly)
-            HoverOnWindow = ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_AllowWhenBlockedByActiveItem)
-            WinW          = ImGui.GetWindowSize(ctx)
+        if im.BeginChild(ctx, '##SpaceBetweenWindows' .. FX_Idx .. tostring(SpaceIsBeforeRackMixer) .. 'Last SPC in Rack = ' .. tostring(AddLastSPCinRack), 10, 220) then
+            --HOVER_RECT = im.IsWindowHovered(ctx,  im.HoveredFlags_RectOnly)
+            HoverOnWindow = im.IsWindowHovered(ctx, im.HoveredFlags_AllowWhenBlockedByActiveItem)
+            WinW          = im.GetWindowSize(ctx)
 
 
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and Wet.ActiveAny ~= true and Knob_Active ~= true and not Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 then
@@ -4778,19 +4912,19 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         '\n AddLastSpace = ' ..
                         (AddLastSpace or 'nil') .. '\n AdditionalWidth = ' .. (AdditionalWidth or 'nil'))
                 end
-                ImGui.PushStyleColor(ctx, ImGui.Col_ButtonHovered, CLR_BtwnFXs_Btn_Hover)
-                ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive, CLR_BtwnFXs_Btn_Active)
+                im.PushStyleColor(ctx, im.Col_ButtonHovered, CLR_BtwnFXs_Btn_Hover)
+                im.PushStyleColor(ctx, im.Col_ButtonActive, CLR_BtwnFXs_Btn_Active)
 
-                local x, y = ImGui.GetCursorScreenPos(ctx)
-                ImGui.SetCursorScreenPos(ctx, x, Glob.WinT)
-                BTN_Btwn_FXWindows = ImGui.Button(ctx, '##Button between Windows', 99, 217)
+                local x, y = im.GetCursorScreenPos(ctx)
+                im.SetCursorScreenPos(ctx, x, Glob.WinT)
+                BTN_Btwn_FXWindows = im.Button(ctx, '##Button between Windows', 99, 217)
                 FX_Insert_Pos = FX_Idx
 
                 if BTN_Btwn_FXWindows then
                     FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
-                    ImGui.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
+                    im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
                 end
-                ImGui.PopStyleColor(ctx, 2)
+                im.PopStyleColor(ctx, 2)
                 Dvdr.RestoreNormWidthWait[FX_Idx] = 0
             else
                 Dvdr.RestoreNormWidthWait[FX_Idx] = (Dvdr.RestoreNormWidthWait[FX_Idx] or 0) + 1
@@ -4805,10 +4939,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             AddFX_Menu(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
 
 
-            ImGui.EndChild(ctx)
+            im.EndChild(ctx)
         end
     end
-    ImGui.PopStyleColor(ctx)
+    im.PopStyleColor(ctx)
     local FXGUID_FX_Idx = r.TrackFX_GetFXGUID(LT_Track, FX_Idx - 1)
 
 
@@ -5013,17 +5147,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         if DragFX_ID == FX_Idx or DragFX_ID == FX_Idx - 1 and FX.InLyr[FXGUID_of_DraggingFX] == FXGUID[FX_Idx] then
             Dvdr.Width[TblIdxForSpace] = 0
         else
-            if ImGui.BeginDragDropTarget(ctx) then
+            if im.BeginDragDropTarget(ctx) then
                 FxDroppingTo = FX_Idx
                 ----- Drag Drop FX -------
-                dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'FX_Drag')
+                dropped, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
                 if FxGUID == FxGUID_DragFX then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
                     Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
                 end
 
-                ImGui.SameLine(ctx, 100, 10)
+                im.SameLine(ctx, 100, 10)
 
 
                 if dropped and Mods == 0 then
@@ -5046,7 +5180,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
 
-                ImGui.EndDragDropTarget(ctx)
+                im.EndDragDropTarget(ctx)
             else
                 Dvdr.Width[TblIdxForSpace] = 0
                 FxDroppingTo = nil
@@ -5055,14 +5189,14 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         if Payload_Type == 'DND ADD FX' then
             DndAddFXfromBrowser_TARGET(FX_Idx, ClrLbl) -- fx layer
         end
-        ImGui.SameLine(ctx, 100, 10)
+        im.SameLine(ctx, 100, 10)
     elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
         if DragFX_ID == FX_Idx or DragFX_ID == FX_Idx - 1 and FX.InLyr[FXGUID_of_DraggingFX] == FXGUID[FX_Idx] then
             Dvdr.Width[TblIdxForSpace] = 0
         else
-            if ImGui.BeginDragDropTarget(ctx) then
+            if im.BeginDragDropTarget(ctx) then
                 FxDroppingTo = FX_Idx
-                dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'FX_Drag')
+                dropped, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
                 if FxGUID == FxGUID_DragFX then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
@@ -5071,7 +5205,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 
                 HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
-                ImGui.SameLine(ctx, 100, 10)
+                im.SameLine(ctx, 100, 10)
                 local ContainerIdx = tablefind(FXGUID, FxGUID_Container)
                 local InsPos = math.min(FX_Idx - ContainerIdx + 1, #FX[FxGUID_Container].FXsInBS)
 
@@ -5098,7 +5232,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
                 end
-                ImGui.EndDragDropTarget(ctx)
+                im.EndDragDropTarget(ctx)
                 
             else
                 Dvdr.Width[TblIdxForSpace] = 0
@@ -5125,13 +5259,13 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             FX[FxGUID_DragFX].InWhichBand = nil
         end
 
-        if ImGui.BeginDragDropTarget(ctx) then
+        if im.BeginDragDropTarget(ctx) then
             if Payload_Type == 'FX_Drag' then
                 local allowDropNext, MoveFromPostToNorm, DontAllowDrop
                 local FX_Idx = FX_Idx
                 if Mods == Apl then allowDropNext = true end
                  FxGUID_DragFX = DragFxGuid 
-                local rv, type, payload, is_preview, is_delivery = ImGui.GetDragDropPayload(ctx)
+                local rv, type, payload, is_preview, is_delivery = im.GetDragDropPayload(ctx)
 
 
                 if tablefind(Trk[TrkID].PreFX, FxGUID_DragFX) and (not SpcIsInPre or SpaceIsBeforeRackMixer == 'End of PreFX') then allowDropNext = true end
@@ -5149,17 +5283,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if (DragFX_ID + offset == FX_Idx or DragFX_ID + offset == FX_Idx - 1) and SpaceIsBeforeRackMixer ~= true and FX.InLyr[FxGUID_DragFX] == nil and not SpcInPost and not allowDropNext
                     or (Trk[TrkID].PreFX[#Trk[TrkID].PreFX] == FxGUID_DragFX and SpaceIsBeforeRackMixer == 'End of PreFX') or DontAllowDrop then
-                    ImGui.SameLine(ctx, nil, 0)
+                    im.SameLine(ctx, nil, 0)
 
                     Dvdr.Width[TblIdxForSpace] = 0
-                    ImGui.EndDragDropTarget(ctx)
+                    im.EndDragDropTarget(ctx)
                 else
                     HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
-                    Dvdr.Clr[ClrLbl] = ImGui.GetStyleColor(ctx, ImGui.Col_Button)
+                    Dvdr.Clr[ClrLbl] = im.GetStyleColor(ctx, im.Col_Button)
                     Dvdr.Width[TblIdxForSpace] = Df.Dvdr_Width
 
-                    dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'FX_Drag')
+                    dropped, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
                     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
                     if dropped and Mods == 0 then
                         payload = tonumber(payload)
@@ -5206,7 +5340,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         if FX_Idx == 0 then copypos = 0 end
                         MoveFX(payload, copypos, false)
                     end
-                    ImGui.SameLine(ctx, nil, 0)
+                    im.SameLine(ctx, nil, 0)
                 end
             elseif Payload_Type == 'FX Layer Repositioning' then -- FX Layer Repositioning
                 local FXGUID_RackMixer = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
@@ -5221,15 +5355,15 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if (DragFX_ID - (math.max(lyrFxInst, 1)) <= FX_Idx and FX_Idx <= DragFX_ID + 1) or DragFX_ID - lyrFxInst == FX_Idx then
                     DontAllowDrop = true
-                    ImGui.SameLine(ctx, nil, 0)
+                    im.SameLine(ctx, nil, 0)
                     Dvdr.Width[TblIdxForSpace] = 0
-                    ImGui.EndDragDropTarget(ctx)
+                    im.EndDragDropTarget(ctx)
 
                     --[[  ]]
                     Dvdr.Width[FX_Idx] = 0
                 else --if dragging to an adequate space
-                    Dvdr.Clr[ClrLbl] = ImGui.GetStyleColor(ctx, ImGui.Col_Button)
-                    dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'FX Layer Repositioning')
+                    Dvdr.Clr[ClrLbl] = im.GetStyleColor(ctx, im.Col_Button)
+                    dropped, payload = im.AcceptDragDropPayload(ctx, 'FX Layer Repositioning')
                     Dvdr.Width[TblIdxForSpace] = 30
 
                     if dropped then
@@ -5244,16 +5378,16 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 if SpaceIsBeforeRackMixer == 'SpcInBS' or FX_Idx == Pl or Pl + (#FX[FXGUID[Pl]].FXsInBS or 0) + 2 == FX_Idx then
                     Dvdr.Width[TblIdxForSpace] = 0
                 else
-                    dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'BS_Drag')
+                    dropped, payload = im.AcceptDragDropPayload(ctx, 'BS_Drag')
                     Dvdr.Width[TblIdxForSpace] = 30
                     if dropped then
                         RepositionFXsInContainer(FX_Idx, Payload)
                     end
                 end
             elseif Payload_Type == 'DND ADD FX' then
-                ImGui.PushStyleColor(ctx, ImGui.Col_DragDropTarget, 0)
+                im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
 
-                local dropped, payload = ImGui.AcceptDragDropPayload(ctx, 'DND ADD FX')
+                local dropped, payload = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
                 HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
                 if dropped then
@@ -5293,20 +5427,20 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FX_Idx_OpenedPopup = nil
                     RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 end
-                ImGui.PopStyleColor(ctx)
+                im.PopStyleColor(ctx)
 
-                ImGui.EndDragDropTarget(ctx)
+                im.EndDragDropTarget(ctx)
             end
         else
             Dvdr.Width[TblIdxForSpace] = 0
             Dvdr.Clr[ClrLbl] = 0x131313ff
-            ImGui.SameLine(ctx, nil, 0)
+            im.SameLine(ctx, nil, 0)
         end
 
 
 
 
-        ImGui.SameLine(ctx, nil, 0)
+        im.SameLine(ctx, nil, 0)
     end
 
 
