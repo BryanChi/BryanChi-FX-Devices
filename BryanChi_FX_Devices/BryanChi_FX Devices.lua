@@ -1733,25 +1733,28 @@ if not visible then return end
 
     if im.IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = toggle(Cont_Param_Add_Mode) end
 
-
-    if im.Button(ctx, 'R') then
+    local drawlist = im.GetWindowDrawList(ctx)
+    local rv = im.InvisibleButton(ctx, 'Automation##Trim/Read', 20, 20)
+    DrawListButton(drawlist, "E", 0x262626ff, false, true, icon1_middle)
+    if rv then
         r.Undo_BeginBlock()
         r.SetTrackAutomationMode(LT_Track, 0)
         r.Undo_EndBlock('Set track automation mode (Trim/Read)', -1)
     end
-    if im.Button(ctx, 'T') then
+    local rv = im.InvisibleButton(ctx, 'Automation##Touch', 20, 20)
+    DrawListButton(drawlist, "E", 0xffff00ff, false, true, icon1_middle)
+    if rv then
         r.Undo_BeginBlock()
         r.SetTrackAutomationMode(LT_Track, 2)
         r.Undo_EndBlock('Set track automation mode (Touch)', -1)
     end
-    if im.Button(ctx, 'P') then
+    local rv = im.InvisibleButton(ctx, 'Automation##Latch Preview', 20, 20)
+    DrawListButton(drawlist, "E", 0x0467ffff, false, true, icon1_middle)
+    if rv then
         r.Undo_BeginBlock()
         r.SetTrackAutomationMode(LT_Track, 5)
         r.Undo_EndBlock('Set track automation mode (Latch Preview)', -1)
     end
-
-
-
 
     if FX.LayEdit then
         local FxGUID = FX.LayEdit
