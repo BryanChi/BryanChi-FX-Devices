@@ -3,7 +3,7 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = FxGUID
 local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
+local path_table = {}
 
 
 
@@ -12,6 +12,34 @@ FX[FxGUID].TitleWidth = 60
 FX[FxGUID].Width = 280
 FX[FxGUID].ProC_GR = FX[FxGUID].ProC_GR or {}
 FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
+
+
+---@return integer
+---@return integer
+---@return string
+---@return string
+local function GetNextAndPreviousFXID()
+    local incontainer, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
+    if incontainer then
+        path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
+        next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, path_table[#path_table] + 1) 
+        local target_pos = path_table[#path_table]
+        local name_pos = path_table[#path_table] - 1
+        local previous_name = TrackFX_GetInsertPositionInContainer(parent_container, name_pos)
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_name)
+        previous_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, target_pos)
+    else -- not in container
+        next_fxidx = FX_Idx + 1
+        if FX_Idx == 0 then -- 0 based, when the first slot is FX_Idx, there's no slot in the previous position (-1)
+            previous_fxidx = FX_Idx
+        else
+            previous_fxidx = FX_Idx - 1
+        end
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_fxidx)
+    end
+    local _, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
+    return next_fxidx, previous_fxidx, NextFX, PreviousFX
+end
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
@@ -529,29 +557,7 @@ if not FX[FxGUID].Collapse then
 
         if not ProC.GR_NATIVE then 
             local lastFXname
-            local ret, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
-            if ret then -- in container
-                local path_table = {}
-                path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
-                next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, path_table[#path_table] + 1) 
-                if path_table[#path_table] == 1 then -- 1 based, when the first slot is FX_Idx, there's no slot in the previous position (0)
-                    target_pos = path_table[#path_table]
-                else
-                    target_pos = path_table[#path_table] - 1
-                end
-                previous_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, target_pos) 
-            else -- not in container
-                next_fxidx = FX_Idx + 1
-                if FX_Idx == 0 then -- 0 based, when the first slot is FX_Idx, there's no slot in the previous position (-1)
-                    previous_fxidx = FX_Idx
-                else
-                    previous_fxidx = FX_Idx - 1
-                end
-            end
-
-            local isnext, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
-            local isprevious, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_fxidx)
- 
+            local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID()
            --[[if FX_Idx > 0x2000000 then 
                 local lastfx =  GetLastFXid_in_Container(FX_Idx)
                 if lastfx then 
@@ -578,7 +584,9 @@ if not FX[FxGUID].Collapse then
                 table.insert(AddFX.Pos, next_fxidx)
                 table.insert(AddFX.Name, 'FXD Gain Reduction Scope')
                 ProC.GainSc_FXGUID = FxGUID
-
+                if path_table[#path_table] then
+                    path_table[#path_table] = path_table[#path_table] + 1
+                end
 
                 function WriteGmemToGainReductionScope(FxGUID)
 
