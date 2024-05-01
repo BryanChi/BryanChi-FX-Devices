@@ -5329,7 +5329,7 @@ if not visible then return end
                                         end
 
                                         if im.IsItemHovered(ctx) then
-                                            HintToolTip(
+                                            tooltip(
                                                 'Alt-Click to Delete All Conditions')
                                         end
 
