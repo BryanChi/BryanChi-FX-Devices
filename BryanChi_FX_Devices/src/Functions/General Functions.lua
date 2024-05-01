@@ -858,7 +858,7 @@ function QuestionHelpHint(Str)
         SL()
         im.TextColored(ctx, 0x99999977, '(?)')
         if im.IsItemHovered(ctx) then
-            HintToolTip(Str)
+            tooltip(Str)
         end
     end
 end
@@ -1578,13 +1578,6 @@ end
 
 ---@param A string text for tooltip
 function tooltip(A)
-    im.BeginTooltip(ctx)
-    im.SetTooltip(ctx, A)
-    im.EndTooltip(ctx)
-end
-
----@param A string text for tooltip
-function HintToolTip(A)
     im.BeginTooltip(ctx)
     im.SetTooltip(ctx, A)
     im.EndTooltip(ctx)
@@ -2370,7 +2363,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             if im.IsItemHovered(ctx) and FX[FxGUID].MorphA_Name then
                 if FX[FxGUID].MorphA_Name ~= '' then
-                    HintToolTip(FX[FxGUID].MorphA_Name)
+                    tooltip(FX[FxGUID].MorphA_Name)
                 end
             end
 
@@ -2626,7 +2619,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if rv then FX[FxGUID].MorphB_Name = presetname end
             end
             if im.IsItemHovered(ctx) and FX[FxGUID].MorphB_Name then
-                HintToolTip(FX[FxGUID]
+                tooltip(FX[FxGUID]
                     .MorphB_Name)
             end
             im.PopStyleColor(ctx, 3)

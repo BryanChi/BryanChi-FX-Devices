@@ -548,7 +548,7 @@ function Show_KBShortcutEditor()
         SL()
         MyText('(?)', nil, 0xffffff66)
         if im.IsItemHovered(ctx) then
-            HintToolTip(
+            tooltip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
         end
 
