@@ -5,6 +5,27 @@
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
+---@param fxidx integer
+---@param param_n number
+---@param active number 1 active, 0 inactive
+---@param scale boolean|number
+---@param midibus number 0-based, 15 = Bus 16
+---@param midichan number 0-based, 0 = Omni
+---@param midimsg number 160 is Aftertouch
+---@param midimsg2 number CC value
+---@param baseline boolean|number
+function ParameterMIDILink(fxidx, param_n, active, scale, midibus, midichan, midimsg, midimsg2, baseline)
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.active", active)    -- 1 active, 0 inactive
+    if scale then r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.scale", scale) end
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.effect", -100) -- -100 enables midi_msg*
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.param", -1)    -- -1 not parameter link
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.midi_bus", midibus) -- 0 based, 15 = Bus 16
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.midi_chan", midichan) -- 0 based, 0 = Omni
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.midi_msg", midimsg)  -- 160 is Aftertouch
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.midi_msg2", midimsg2)  -- CC value
+    if baseline then r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".mod.baseline", baseline) end
+end
+
 ---@param TrkNum number
 ---@param fxid integer
 ---@param parmidx integer

@@ -2298,16 +2298,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             'P_EXT: FX Morph A' .. i .. FxGUID,
                             FX[FxGUID].MorphA[i], true)
                         if LinkCC then
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)         -- 1 active, 0 inactive
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale",
-                                FX[FxGUID].MorphB[i])                                                                   -- Scale
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100)      -- -100 enables midi_msg*
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)         -- -1 not parameter link
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15)      -- 0 based, 15 = Bus 16
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan", 16)     -- 0 based, 0 = Omni
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg", 160)     -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2", LinkCC) -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline", Prm_Val)   -- Baseline
+                            ParameterMIDILink(FX_Idx, i, 1, FX[FxGUID].MorphB[i], 15, 16, 160, LinkCC, Prm_Val)
                         end
                     else
                         if DontStoreCurrentVal ~= 'Dont' then FX[FxGUID].MorphB[i] = Prm_Val end
@@ -2316,18 +2307,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 'P_EXT: FX Morph B' .. i ..
                                 FxGUID, FX[FxGUID].MorphB[i], true)
                             if LinkCC then
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)     -- 1 active, 0 inactive
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale",
-                                    Prm_Val - FX[FxGUID].MorphA[i])                                                     -- Scale
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100)  -- -100 enables midi_msg*
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)     -- -1 not parameter link
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg", 160) -- 160 is Aftertouch
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2",
-                                    LinkCC)                                                                             -- CC value
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline",
-                                    FX[FxGUID].MorphA[i])                                                               -- Baseline
+                                ParameterMIDILink(FX_Idx, i, 1, Prm_Val - FX[FxGUID].MorphA[i], 15, 16, 160, LinkCC, FX[FxGUID].MorphA[i])
                             end
                         end
                     end
@@ -2477,30 +2457,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local Scale = FX[FxGUID].MorphB[i] - v
 
                             if v ~= FX[FxGUID].MorphB[i] then
-                                local function LinkPrm()
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 1)    -- 1 active, 0 inactive
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.scale", Scale) -- Scale
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.effect", -100) -- -100 enables midi_msg*
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.param", -1)    -- -1 not parameter link
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_bus", 15) -- 0 based, 15 = Bus 16
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_chan",
-                                        16)                                                                                -- 0 based, 0 = Omni
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg",
-                                        160)                                                                               -- 160 is Aftertouch
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.midi_msg2",
-                                        FX[FxGUID].Morph_ID)                                                               -- CC value
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".mod.baseline", v)    -- Baseline
-                                    FX[FxGUID][i] = FX[FxGUID][i] or {}
-                                    r.GetSetMediaTrackInfo_String(LT_Track,
-                                        'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true)
-                                end
-
+                                ParameterMIDILink(FX_Idx, i, 1, Scale, 15, 16, 160, FX[FxGUID].Morph_ID, v)
+                                FX[FxGUID][i] = FX[FxGUID][i] or {}
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true)
                                 if FX[FxGUID].PrmList[i] then
                                     if FX[FxGUID].PrmList[i].BL ~= true then
-                                        LinkPrm()
+                                        ParameterMIDILink(FX_Idx, i, 1, Scale, 15, 16, 160, FX[FxGUID].Morph_ID, v)
+                                        FX[FxGUID][i] = FX[FxGUID][i] or {}
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true)
                                     end
                                 else
-                                    LinkPrm()
+                                    ParameterMIDILink(FX_Idx, i, 1, Scale, 15, 16, 160, FX[FxGUID].Morph_ID, v)
+                                    FX[FxGUID][i] = FX[FxGUID][i] or {}
+                                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true)
                                 end
                             end
                         end
@@ -4054,20 +4023,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             r.gmem_write(7, Prm.WhichCC) --tells jsfx to retrieve P value
                                             PM.TimeNow = r.time_precise()
                                             r.gmem_write(11000 + Prm.WhichCC, ToDef.V)
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.active", 1)              -- 1 active, 0 inactive
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.effect", -100)           -- -100 enables midi_msg*
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.param", -1)              -- -1 not parameter link
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.midi_bus", 15)           -- 0 based, 15 = Bus 16
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.midi_chan", 16)          -- 0 based, 0 = Omni
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.midi_msg", 176)          -- 176 is CC
-                                            r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.midi_msg2", Prm.WhichCC) -- CC value
+                                            ParameterMIDILink(ToDef.ID, ToDef.P, 1, false, 15, 16, 176, Prm.WhichCC, false)
                                         end
                                     end
                                     Prm.V = ToDef.V
@@ -4616,20 +4572,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
                                     end
                                     if retvals ~= nil then
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
-                                            Prm.Num .. ".plink.active", value)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
-                                            Prm.Num .. ".plink.effect", -100)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
-                                            Prm.Num .. ".plink.param", -1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
-                                            "param." .. Prm.Num .. ".plink.midi_bus", 0)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
-                                            "param." .. Prm.Num .. ".plink.midi_chan", 1)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
-                                            "param." .. Prm.Num .. ".plink.midi_msg", 176)
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
-                                            "param." .. Prm.Num .. ".plink.midi_msg2", retvals)
+                                        ParameterMIDILink(FX_Idx, Prm.Num, value, false, 0, 1, 176, retvals, false)
                                     end
                                 end
                                 if im.Selectable(ctx, 'Toggle Open Modulation/Link Window') then
