@@ -14,32 +14,27 @@ FX[FxGUID].ProC_GR = FX[FxGUID].ProC_GR or {}
 FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1
 
 
----@return integer
----@return integer
----@return string
----@return string
-local function GetNextAndPreviousFXID()
-    local incontainer, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
-    if incontainer then
-        path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
-        next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, path_table[#path_table] + 1) 
-        local target_pos = path_table[#path_table]
-        local name_pos = path_table[#path_table] - 1
-        local previous_name = TrackFX_GetInsertPositionInContainer(parent_container, name_pos)
-        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_name)
-        previous_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, target_pos)
-    else -- not in container
-        next_fxidx = FX_Idx + 1
-        if FX_Idx == 0 then -- 0 based, when the first slot is FX_Idx, there's no slot in the previous position (-1)
-            previous_fxidx = FX_Idx
-        else
-            previous_fxidx = FX_Idx - 1
-        end
-        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_fxidx)
-    end
-    local _, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
-    return next_fxidx, previous_fxidx, NextFX, PreviousFX
-end
+
+
+--[[ local function Enclose_with_Container(fxid)
+    local container_id = r.TrackFX_AddByName(LT_Track, 'Container', false, fxid )
+    local target_pos =  TrackFX_GetInsertPositionInContainer(container_id, 1)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(container_id)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(previous_fxidx)
+    MoveFX(previous_fxidx, target_pos)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(previous_fxidx)
+
+    MoveFX(next_fxidx, target_pos)
+
+    r.TrackFX_SetNamedConfigParm(LT_Track, container_id, 'renamed_name', 'Pro-C 2')
+
+    --r.TrackFX_CopyToTrack(LT_Track, previous_fxidx, LT_Track, target_pos,true )
+
+end 
+ ]]
+
+
+
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
 ---------------------------------------------
@@ -557,7 +552,7 @@ if not FX[FxGUID].Collapse then
 
         if not ProC.GR_NATIVE then 
             local lastFXname
-            local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID()
+            local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
            --[[if FX_Idx > 0x2000000 then 
                 local lastfx =  GetLastFXid_in_Container(FX_Idx)
                 if lastfx then 
@@ -612,7 +607,7 @@ if not FX[FxGUID].Collapse then
             end
 
             if not PreviousFX:find('JS: FXD Split to 4 channels') and not tablefind(Trk[TrkID].PreFX, FxGUID) and not tablefind(Trk[TrkID].PostFX, FxGUID) then
-                table.insert(AddFX.Pos, previous_fxidx)
+                table.insert(AddFX.Pos, FX_Idx)
                 table.insert(AddFX.Name, 'FXD Split to 4 channels')
                 if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
                     rv = r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 4)
@@ -620,6 +615,18 @@ if not FX[FxGUID].Collapse then
             else
                 r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
             end
+
+
+            --[[ if PreviousFX:find('JS: FXD Split to 4 channels') and NextFX:find('JS: FXD Gain Reduction Scope') then 
+                if not Cont_Added then 
+                    Enclose_with_Container(next_fxidx)
+                    Cont_Added = true 
+                end 
+
+            end 
+            ]]
+
+
             
             r.gmem_attach('CompReductionScope'); r.gmem_write(2000, PM.DIY_TrkID[TrkID])
 

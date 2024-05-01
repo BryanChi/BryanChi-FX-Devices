@@ -285,6 +285,8 @@ else
                     SL(nil,0)
                 end
 
+                If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
+
             
                 if v.children then 
                     Upcoming_Container = v.children

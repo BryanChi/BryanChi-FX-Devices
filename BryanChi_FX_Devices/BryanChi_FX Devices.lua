@@ -800,9 +800,13 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             end
 
             if im.IsKeyPressed(ctx, im.Key_Enter) then
-                r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
+
+                table.insert(AddFX.Pos, FX_Idx)
+                table.insert(AddFX.Name,filtered_fx[ADDFX_Sel_Entry])
+                --r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
                 LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
                 ADDFX_Sel_Entry = nil
+
                 im.CloseCurrentPopup(ctx)
                 close = true
 
@@ -1481,33 +1485,52 @@ if not visible then return end
         ----- Del FX ------
         if Sel_Track_FX_Count then
             for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
+                
 
-                if FX_Name == 'JS: FXD Gain Reduction Scope' then
-                    local _, FX_Name_Before = r.TrackFX_GetFXName(LT_Track, FX_Idx - 1)
-                    if string.find(FX_Name_Before, 'Pro%-C 2') == nil then
-                        r.TrackFX_Delete(LT_Track, FX_Idx)
+                local function Do(FX_Idx)
+                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
+                    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+
+                    if FX_Name == 'JS: FXD Gain Reduction Scope' then
+                        if string.find(PreviousFX, 'Pro%-C 2') == nil then
+                            r.TrackFX_Delete(LT_Track, FX_Idx)
+                        end
                     end
+                    if FX_Name == 'JS: FXD Split to 4 channels' then
+
+                        if string.find(NextFX, 'Pro%-C 2') == nil and not AddFX.Name[1] then
+                            r.TrackFX_Delete(LT_Track, FX_Idx)
+                        end
+                        local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
+                        local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
+    
+                        if ProC_pin ~= SplitPin then
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
+                            local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
+    
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
+                        end
+                    end
+                end  
+
+                local is_container , container_count= r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
+
+                if is_container then 
+                    for i= 1 , container_count , 1 do 
+                        local Idx= tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.'..i)))
+                        if Idx then 
+                        Do(Idx)
+                        end 
+                    end 
+                else 
+                    Do(FX_Idx)
+
                 end
-                if FX_Name == 'JS: FXD Split to 4 channels' then
-                    local _, FX_Name_After = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
-                    if string.find(FX_Name_After, 'Pro%-C 2') == nil and not AddFX.Name[1] then
-                        r.TrackFX_Delete(LT_Track, FX_Idx)
-                    end
-                    local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
-                    local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
-
-                    if ProC_pin ~= SplitPin then
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
-                        local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
-
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
-                    end
-                end
+               
             end
         end
 
@@ -6108,6 +6131,8 @@ if not visible then return end
                     Layout_Edit()
 
                 end
+
+                
                 if --[[FX Layer Window ]] string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then --!!!!  FX Layer Window
                     if not FX[FxGUID].Collapse then
                         FXGUID_RackMixer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -6929,41 +6954,6 @@ if not visible then return end
                         else
                             FX.InLyr[FxGUID] = nil
                         end
-                    end
-                elseif FX_Name:find('FXD Split to 4 channels') then
-                    local _, FX_Name_After = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
-                    --if FX below is not Pro-C 2
-                    if FX_Name_After then
-                        if string.find(FX_Name_After, 'Pro%-C 2') then
-                            if FX.InLyr[FXGUID[FX_Idx + 1]] then -- if in layering
-                                SyncAnalyzerPinWithFX(FX_Idx, FX_Idx + 1, FX_Name)
-                            end
-                        end
-                    end
-                elseif FX_Name:find('FXD Gain Reduction Scope') then
-                    r.gmem_attach('CompReductionScope')
-                    if FX[FXGUID[FX_Idx - 1]] then
-                        r.gmem_write(FX[FXGUID[FX_Idx - 1]].ProC_ID or 0, FX_Idx - 1)
-                    end
-                    local _, FX_Name_Before = r.TrackFX_GetFXName(LT_Track, FX_Idx - 1)
-
-
-                    --if FX above is not Pro-C 2
-                    FX[FxGUID].ProC_Scope_Del_Wait = (FX[FxGUID].ProC_Scope_Del_Wait or 0) + 1
-
-                    if FX[FxGUID].ProC_Scope_Del_Wait > FX_Add_Del_WaitTime + 10 then
-                        if string.find(FX_Name_Before, 'Pro%-C 2') then
-                            if FX.InLyr[FXGUID[FX_Idx - 1]] then -- if in layering
-                                SyncAnalyzerPinWithFX(FX_Idx, FX_Idx - 1, FX_Name)
-                            end
-                        end
-                        FX[FxGUID].ProC_Scope_Del_Wait = 0
-                    end
-
-                    if FX.InLyr[FXGUID[FX_Idx - 1]] then
-                        FX.InLyr[FxGUID] = FX.InLyr[FXGUID[FX_Idx - 1]]
-                    else
-                        FX.InLyr[FxGUID] = nil
                     end
                 elseif string.find(FX_Name, 'FXD Split to 32 Channels') ~= nil then
                     r.TrackFX_Show(LT_Track, FX_Idx, 2)
@@ -8010,6 +8000,10 @@ if not visible then return end
                         im.EndPopup(ctx)
                     end
                 end --  for if FX_Name ~='JS: FXD (Mix)RackMixer'
+
+                If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
+
+
             end
 
 

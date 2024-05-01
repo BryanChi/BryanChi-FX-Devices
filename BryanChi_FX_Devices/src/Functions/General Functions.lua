@@ -76,6 +76,34 @@ local function GetFXIDinContainer(tr, NestedPath, idx1, target) -- 1based
       return path_id
 end
 
+---@return integer
+---@return integer
+---@return string
+---@return string
+function GetNextAndPreviousFXID(FX_Idx )
+
+    local incontainer, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
+    if incontainer then
+        path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
+        next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, path_table[#path_table] + 1) 
+        local target_pos = path_table[#path_table]
+        local name_pos = path_table[#path_table] - 1
+        local previous_name = TrackFX_GetInsertPositionInContainer(parent_container, name_pos)
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_name)
+        previous_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, target_pos)
+    else -- not in container
+        next_fxidx = FX_Idx + 1
+        if FX_Idx == 0 then -- 0 based, when the first slot is FX_Idx, there's no slot in the previous position (-1)
+            previous_fxidx = FX_Idx
+        else
+            previous_fxidx = FX_Idx - 1
+        end
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_fxidx)
+    end
+    local _, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
+    return next_fxidx, previous_fxidx, NextFX, PreviousFX
+end
+
 ---@param tr MediaTrack
 ---@param fxidx integer 0 based or something like 33554455 in container
 ---@return table<Index,fxslot> table
@@ -2262,6 +2290,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         local Hide
         FX.DL = im.GetWindowDrawList(ctx)
 
+
         if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
             ContainerX, ContainerY = im.GetCursorScreenPos(ctx)
         end
@@ -2630,6 +2659,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Hide = true
         end
 
+
+
         if Trk[TrkID].PreFX_Hide then
             if FindStringInTable(Trk[TrkID].PreFX, FxGUID) then
                 Hide = true
@@ -2638,6 +2669,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 Hide = true
             end
         end
+        
         if not Hide then
             local CurPosX
             if FxGUID == FXGUID[(tablefind(Trk[TrkID].PostFX, FxGUID) or 0) - 1] then
@@ -4785,6 +4817,11 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     if FX_Idx == 0 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then FX_Idx = 1 end
 
+    --[[ local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx_in_Container or FX_Idx)
+    if FindStringInTable(BlackListFXs, FX_Name) then
+        Hide = true
+    end
+    ]]
     TblIdxForSpace = FX_Idx .. tostring(SpaceIsBeforeRackMixer)
     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     if Trk[TrkID].PreFX[1] then
@@ -5384,3 +5421,51 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     return WinW
 end
+
+
+
+
+function If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+    local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+    local FxGUID_Next =  r.TrackFX_GetFXGUID(LT_Track, next_fxidx)
+    local FxGUID_Prev =  r.TrackFX_GetFXGUID(LT_Track, previous_fxidx)
+
+
+    if FX_Name:find('FXD Split to 4 channels') then
+
+        --if FX below is not Pro-C 2
+        if NextFX then
+            if string.find(NextFX, 'Pro%-C 2') then
+                if FX.InLyr[FxGUID_Next] then -- if in layering
+                    SyncAnalyzerPinWithFX(FX_Idx, next_fxidx, FX_Name)
+                end
+            end
+        end
+
+    elseif FX_Name:find('FXD Gain Reduction Scope') then
+        r.gmem_attach('CompReductionScope')
+        if FX[FxGUID_Prev] then
+            r.gmem_write(FX[FxGUID_Prev].ProC_ID or 0, previous_fxidx)
+        end
+
+        --if FX above is not Pro-C 2
+        FX[FxGUID].ProC_Scope_Del_Wait = (FX[FxGUID].ProC_Scope_Del_Wait or 0) + 1
+
+        if FX[FxGUID].ProC_Scope_Del_Wait > FX_Add_Del_WaitTime + 10 then
+            if string.find(PreviousFX, 'Pro%-C 2') then
+                if FX.InLyr[FxGUID_Prev] then -- if in layering
+                    SyncAnalyzerPinWithFX(FX_Idx, previous_fxidx, FX_Name)
+                end
+            end
+            FX[FxGUID].ProC_Scope_Del_Wait = 0
+        end
+
+        if FX.InLyr[FxGUID_Prev] then
+            FX.InLyr[FxGUID] = FX.InLyr[FxGUID_Prev]
+        else
+            FX.InLyr[FxGUID] = nil
+        end
+    end 
+
+end 
