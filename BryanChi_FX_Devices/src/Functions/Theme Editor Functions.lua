@@ -4,27 +4,27 @@ demo = {}
 --- add a doc/helper tooltip
 ---@param desc string
 function demo.HelpMarker(desc)
-    ImGui.TextDisabled(ctx, '(?)')
-    if ImGui.IsItemHovered(ctx) then
-        ImGui.BeginTooltip(ctx)
-        ImGui.PushTextWrapPos(ctx, ImGui.GetFontSize(ctx) * 35.0)
-        ImGui.Text(ctx, desc)
-        ImGui.PopTextWrapPos(ctx)
-        ImGui.EndTooltip(ctx)
+    im.TextDisabled(ctx, '(?)')
+    if im.IsItemHovered(ctx) then
+        im.BeginTooltip(ctx)
+        im.PushTextWrapPos(ctx, im.GetFontSize(ctx) * 35.0)
+        im.Text(ctx, desc)
+        im.PopTextWrapPos(ctx)
+        im.EndTooltip(ctx)
     end
 end
 
 function demo.PopStyle()
     if app.style_editor and app.style_editor.push_count > 0 then
         app.style_editor.push_count = app.style_editor.push_count - 1
-        ImGui.PopStyleColor(ctx, #cache['Col'])
-        --ImGui.PopStyleVar(ctx, #cache['StyleVar'])
+        im.PopStyleColor(ctx, #cache['Col'])
+        --im.PopStyleVar(ctx, #cache['StyleVar'])
     elseif NeedtoPopStyle then
         for i in demo.EachEnum('Col') do
-            ImGui.PopStyleColor(ctx)
+            im.PopStyleColor(ctx)
         end
     elseif DefaultThemeActive then
-        ImGui.PopStyleColor(ctx, DefaultStylePop)
+        im.PopStyleColor(ctx, DefaultStylePop)
     end
 end
 
@@ -33,13 +33,13 @@ function demo.PushStyle()
         app.style_editor.push_count = app.style_editor.push_count + 1
         --[[ for i, value in pairs(app.style_editor.style.vars) do
                     if type(value) == 'table' then
-                        ImGui.PushStyleVar(ctx, i, table.unpack(value))
+                        im.PushStyleVar(ctx, i, table.unpack(value))
                     else
-                        ImGui.PushStyleVar(ctx, i, value)
+                        im.PushStyleVar(ctx, i, value)
                     end
             end ]]
         for i, value in pairs(app.style_editor.style.colors) do
-            ImGui.PushStyleColor(ctx, i, value)
+            im.PushStyleColor(ctx, i, value)
         end
     else
         local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
@@ -60,15 +60,15 @@ function demo.PushStyle()
         end
         DefaultThemeActive = true
         ------------------- Default Color Theme --------------------
-        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBg, 0x48484837)
-        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgHovered, 0x49494966)
-        ImGui.PushStyleColor(ctx, ImGui.Col_FrameBgActive, 0x3F3F3FAB)
-        ImGui.PushStyleColor(ctx, ImGui.Col_Button, 0x57575786)
-        ImGui.PushStyleColor(ctx, ImGui.Col_ButtonHovered, 0x6F6F6F86)
-        ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive, 0x90909086)
-        ImGui.PushStyleColor(ctx, ImGui.Col_ButtonActive, 0x57575786)
-        ImGui.PushStyleColor(ctx, ImGui.Col_SliderGrab, 0x616161FF)
-        ImGui.PushStyleColor(ctx, ImGui.Col_SliderGrabActive, 0xD1D1D1AC)
+        im.PushStyleColor(ctx, im.Col_FrameBg, 0x48484837)
+        im.PushStyleColor(ctx, im.Col_FrameBgHovered, 0x49494966)
+        im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x3F3F3FAB)
+        im.PushStyleColor(ctx, im.Col_Button, 0x57575786)
+        im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x6F6F6F86)
+        im.PushStyleColor(ctx, im.Col_ButtonActive, 0x90909086)
+        im.PushStyleColor(ctx, im.Col_ButtonActive, 0x57575786)
+        im.PushStyleColor(ctx, im.Col_SliderGrab, 0x616161FF)
+        im.PushStyleColor(ctx, im.Col_SliderGrabActive, 0xD1D1D1AC)
         DefaultStylePop = 9
     end
 end
@@ -123,7 +123,7 @@ function PushStyle_AtScriptStart()
     if file then
         local Lines = get_lines(file_path)
         for i in demo.EachEnum('Col') do
-            ImGui.PushStyleColor(ctx, 1, 0x372837ff)
+            im.PushStyleColor(ctx, 1, 0x372837ff)
         end
     else
         ----- Default Color theme ---------------
@@ -143,7 +143,7 @@ function demo.GetStyleData()
     }
 
     for i, name in demo.EachEnum('StyleVar') do
-        local rv = { ImGui.GetStyleVar(ctx, i) }
+        local rv = { im.GetStyleVar(ctx, i) }
         local is_vec2 = false
         for _, vec2_name in ipairs(vec2) do
             if vec2_name == name then
@@ -154,7 +154,7 @@ function demo.GetStyleData()
         data.vars[i] = is_vec2 and rv or rv[1]
     end
     for i in demo.EachEnum('Col') do
-        data.colors[i] = ImGui.GetStyleColor(ctx, i)
+        data.colors[i] = im.GetStyleColor(ctx, i)
     end
     return data
 end
@@ -176,11 +176,11 @@ function ShowStyleEditor()
     local rv
 
 
-    if not ctx then ctx = ImGui.CreateContext('Style Editor 2') end
-    if not styleEditorIsOpen then ImGui.SetNextWindowSize(ctx, 500, 800) end
-    open, OpenStyleEditor = ImGui.Begin(ctx, 'FX Devices Style Editor', OpenStyleEditor,
-        ImGui.WindowFlags_TopMost + ImGui.WindowFlags_NoCollapse +
-        ImGui.WindowFlags_NoDocking --[[ +ImGui.WindowFlags_AlwaysAutoResize ]])
+    if not ctx then ctx = im.CreateContext('Style Editor 2') end
+    if not styleEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
+    open, OpenStyleEditor = im.Begin(ctx, 'FX Devices Style Editor', OpenStyleEditor,
+        im.WindowFlags_TopMost + im.WindowFlags_NoCollapse +
+        im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
 
 
     if open then
@@ -195,25 +195,25 @@ function ShowStyleEditor()
             }
         end
 
-        ImGui.PushItemWidth(ctx, ImGui.GetWindowWidth(ctx) * 0.50)
+        im.PushItemWidth(ctx, im.GetWindowWidth(ctx) * 0.50)
 
-        local FrameRounding, GrabRounding = ImGui.StyleVar_FrameRounding,
-            ImGui.StyleVar_GrabRounding
-        --[[ rv,app.style_editor.style.vars[FrameRounding] = ImGui.SliderDouble(ctx, 'FrameRounding', app.style_editor.style.vars[FrameRounding], 0.0, 12.0, '%.0f')
+        local FrameRounding, GrabRounding = im.StyleVar_FrameRounding,
+            im.StyleVar_GrabRounding
+        --[[ rv,app.style_editor.style.vars[FrameRounding] = im.SliderDouble(ctx, 'FrameRounding', app.style_editor.style.vars[FrameRounding], 0.0, 12.0, '%.0f')
             if rv then
             app.style_editor.style.vars[GrabRounding] = app.style_editor.style.vars[FrameRounding] -- Make GrabRounding always the same value as FrameRounding
             end ]]
 
-        ImGui.PushItemWidth(ctx, ImGui.GetFontSize(ctx) * 8)
+        im.PushItemWidth(ctx, im.GetFontSize(ctx) * 8)
 
-        local Alpha, DisabledAlpha = ImGui.StyleVar_Alpha, ImGui.StyleVar_DisabledAlpha
-        rv, app.style_editor.style.vars[Alpha] = ImGui.DragDouble(ctx, 'Global Alpha',
+        local Alpha, DisabledAlpha = im.StyleVar_Alpha, im.StyleVar_DisabledAlpha
+        rv, app.style_editor.style.vars[Alpha] = im.DragDouble(ctx, 'Global Alpha',
             app.style_editor.style.vars[Alpha], 0.005, 0.20, 1.0, '%.2f') -- Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
-        ImGui.SameLine(ctx)
-        rv, app.style_editor.style.vars[DisabledAlpha] = ImGui.DragDouble(ctx, 'Disabled Alpha',
-            app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); ImGui.SameLine(ctx); demo
+        im.SameLine(ctx)
+        rv, app.style_editor.style.vars[DisabledAlpha] = im.DragDouble(ctx, 'Disabled Alpha',
+            app.style_editor.style.vars[DisabledAlpha], 0.005, 0.0, 1.0, '%.2f'); im.SameLine(ctx); demo
             .HelpMarker('Additional alpha multiplier for disabled items (multiply over current value of Alpha).')
-        ImGui.PopItemWidth(ctx)
+        im.PopItemWidth(ctx)
 
 
 
@@ -225,39 +225,39 @@ function ShowStyleEditor()
         for i, name in ipairs(borders) do
             local var = r[('ImGui_StyleVar_%sSize'):format(name)]()
             local enable = app.style_editor.style.vars[var] > 0
-            if i > 1 then ImGui.SameLine(ctx) end
-            rv, enable = ImGui.Checkbox(ctx, name, enable)
+            if i > 1 then im.SameLine(ctx) end
+            rv, enable = im.Checkbox(ctx, name, enable)
             if rv then app.style_editor.style.vars[var] = enable and 1 or 0 end
         end
 
         -- Save/Revert button
-        --[[ if ImGui.Button(ctx, 'Save Ref') then
+        --[[ if im.Button(ctx, 'Save Ref') then
             demo.CopyStyleData(app.style_editor.style, app.style_editor.ref)
             end
-            ImGui.SameLine(ctx)
-            if ImGui.Button(ctx, 'Revert Ref') then
+            im.SameLine(ctx)
+            if im.Button(ctx, 'Revert Ref') then
             demo.CopyStyleData(app.style_editor.ref, app.style_editor.style)
             end
-            ImGui.SameLine(ctx) ]]
+            im.SameLine(ctx) ]]
 
-        --[[ ImGui.SameLine(ctx)
+        --[[ im.SameLine(ctx)
             demo.HelpMarker(
             'Save/Revert in local non-persistent storage. Default Colors definition are not affected. \z
             Use "Export" below to save them somewhere.')
-            ImGui.SameLine(ctx)
+            im.SameLine(ctx)
             ]]
 
-        --[[ if ImGui.Button(ctx, 'Factory Reset Color Theme') then
+        --[[ if im.Button(ctx, 'Factory Reset Color Theme') then
                 DltClrTheme = true
             end
             if DltClrTheme then
 
                 local file, file_path = CallFile('a', 'ThemeColors.ini')
-                if ImGui.BeginPopup( ctx, 'You Sure you want to delete color theme?',ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_NoResize ) then
+                if im.BeginPopup( ctx, 'You Sure you want to delete color theme?',im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize ) then
 
-                    if ImGui.Button(ctx, 'No') then DltClrTheme = false  ImGui.CloseCurrentPopup(ctx)    end
-                    if ImGui.Button(ctx, 'Yes') then file:close() file:remove(file_path) DltClrTheme=false  end
-                    ImGui.EndPopup(ctx)
+                    if im.Button(ctx, 'No') then DltClrTheme = false  im.CloseCurrentPopup(ctx)    end
+                    if im.Button(ctx, 'Yes') then file:close() file:remove(file_path) DltClrTheme=false  end
+                    im.EndPopup(ctx)
                 end
             end  ]]
 
@@ -271,50 +271,50 @@ function ShowStyleEditor()
             end
 
             if app.style_editor.output_dest == 0 then
-                ImGui.LogToClipboard(ctx)
+                im.LogToClipboard(ctx)
             else
-                ImGui.LogToTTY(ctx)
+                im.LogToTTY(ctx)
             end
             for _, line in ipairs(lines) do
                 local pad = string.rep('\x20', name_maxlen - line[1]:len())
-                ImGui.LogText(ctx, ('ImGui.Push%s(ctx, ImGui.%s_%s(),%s %s)\n')
+                im.LogText(ctx, ('im.Push%s(ctx, im.%s_%s(),%s %s)\n')
                     :format(funcSuffix, enumName, line[1], pad, formatValue(line[2])))
             end
             if #lines == 1 then
-                ImGui.LogText(ctx, ('\nImGui.Pop%s(ctx)\n'):format(funcSuffix))
+                im.LogText(ctx, ('\nim.Pop%s(ctx)\n'):format(funcSuffix))
             elseif #lines > 1 then
-                ImGui.LogText(ctx, ('\nImGui.Pop%s(ctx, %d)\n'):format(funcSuffix, #lines))
+                im.LogText(ctx, ('\nim.Pop%s(ctx, %d)\n'):format(funcSuffix, #lines))
             end
-            ImGui.LogFinish(ctx)
+            im.LogFinish(ctx)
         end
 
-        --[[  if ImGui.Button(ctx, 'Export Vars') then
+        --[[  if im.Button(ctx, 'Export Vars') then
                 --- for enum
                 export('StyleVar', 'StyleVar', app.style_editor.style.vars, app.style_editor.ref.vars,
                 function(a, b) if type(a) == 'table' then return a[1] == b[1] and a[2] == b[2] else return a == b end end,
                 function(val) if type(val) == 'table' then return ('%g, %g'):format(table.unpack(val)) else return ('%g'):format(val) end end)
             end
-            ImGui.SameLine(ctx) ]]
-        if ImGui.Button(ctx, 'Save Color Settings') then
+            im.SameLine(ctx) ]]
+        if im.Button(ctx, 'Save Color Settings') then
             -- for each enum
             local file = CallFile('w', 'ThemeColors.ini')
 
             if file then
                 --[[ for i, name in demo.EachEnum('Col') do
-                        if ImGui.TextFilter_PassFilter(app.style_editor.colors.filter.inst, name) then
-                            file:write(name, ' - ', ImGui.GetStyleColor(ctx, )'\n')
+                        if im.TextFilter_PassFilter(app.style_editor.colors.filter.inst, name) then
+                            file:write(name, ' - ', im.GetStyleColor(ctx, )'\n')
                         end
                     end ]]
 
                 for i, value in pairs(app.style_editor.style.colors) do
                     --[[ if i == 0 then
-                            file:write(55, ' = ', ImGui.GetStyleColor(ctx,ImGui.Col_ModalWindowDimBg ),'\n')
+                            file:write(55, ' = ', im.GetStyleColor(ctx,im.Col_ModalWindowDimBg ),'\n')
                         elseif i > 0 then
                             file:write(i, ' = ', app.style_editor.style.colors[i-1],'\n')
                         end ]]
                 end
                 --[[ for i, name in demo.EachEnum('Col') do
-                        file:write(name..' = '.. ImGui.GetStyleColor(ctx,ImGui.Col_ModalWindowDimBg ))
+                        file:write(name..' = '.. im.GetStyleColor(ctx,im.Col_ModalWindowDimBg ))
                     end  ]]
 
 
@@ -336,24 +336,24 @@ function ShowStyleEditor()
 
 
 
-        ImGui.Separator(ctx)
+        im.Separator(ctx)
 
-        --if ImGui.BeginTabBar(ctx, '##tabs', ImGui.TabBarFlags_None) then
-        --[[  if ImGui.BeginTabItem(ctx, 'Sizes') then
+        --if im.BeginTabBar(ctx, '##tabs', im.TabBarFlags_None) then
+        --[[  if im.BeginTabItem(ctx, 'Sizes') then
                 local slider = function(varname, min, max, format)
                 local func = r['ImGui_StyleVar_' .. varname]
                 assert(func, ('%s is not exposed as a StyleVar'):format(varname))
                 local var = func()
                 if type(app.style_editor.style.vars[var]) == 'table' then
-                    local rv,val1,val2 = ImGui.SliderDouble2(ctx, varname, app.style_editor.style.vars[var][1], app.style_editor.style.vars[var][2], min, max, format)
+                    local rv,val1,val2 = im.SliderDouble2(ctx, varname, app.style_editor.style.vars[var][1], app.style_editor.style.vars[var][2], min, max, format)
                     if rv then app.style_editor.style.vars[var] = { val1, val2 } end
                 else
-                    local rv,val = ImGui.SliderDouble(ctx, varname, app.style_editor.style.vars[var], min, max, format)
+                    local rv,val = im.SliderDouble(ctx, varname, app.style_editor.style.vars[var], min, max, format)
                     if rv then app.style_editor.style.vars[var] = val end
                 end
                 end
 
-                ImGui.Text(ctx, 'Main')
+                im.Text(ctx, 'Main')
                 slider('WindowPadding',     0.0, 20.0, '%.0f')
                 slider('FramePadding',      0.0, 20.0, '%.0f')
                 slider('CellPadding',       0.0, 20.0, '%.0f')
@@ -363,13 +363,13 @@ function ShowStyleEditor()
                 slider('IndentSpacing',     0.0, 30.0, '%.0f')
                 slider('ScrollbarSize',     1.0, 20.0, '%.0f')
                 slider('GrabMinSize',       1.0, 20.0, '%.0f')
-                ImGui.Text(ctx, 'Borders')
+                im.Text(ctx, 'Borders')
                 slider('WindowBorderSize', 0.0, 1.0, '%.0f')
                 slider('ChildBorderSize',  0.0, 1.0, '%.0f')
                 slider('PopupBorderSize',  0.0, 1.0, '%.0f')
                 slider('FrameBorderSize',  0.0, 1.0, '%.0f')
                 -- slider('TabBorderSize',    0.0, 1.0, '%.0f')
-                ImGui.Text(ctx, 'Rounding')
+                im.Text(ctx, 'Rounding')
                 slider('WindowRounding',    0.0, 12.0, '%.0f')
                 slider('ChildRounding',     0.0, 12.0, '%.0f')
                 slider('FrameRounding',     0.0, 12.0, '%.0f')
@@ -378,27 +378,27 @@ function ShowStyleEditor()
                 slider('GrabRounding',      0.0, 12.0, '%.0f')
                 -- slider('LogSliderDeadzone', 0.0, 12.0, '%.0f')
                 slider('TabRounding',       0.0, 12.0, '%.0f')
-                ImGui.Text(ctx, 'Alignment')
+                im.Text(ctx, 'Alignment')
                 slider('WindowTitleAlign', 0.0, 1.0, '%.2f')
                 -- int window_menu_button_position = app.style_editor.style.WindowMenuButtonPosition + 1
-                -- if (ctx, ImGui.Combo(ctx, 'WindowMenuButtonPosition', (ctx, int*)&window_menu_button_position, "None\0Left\0Right\0"))
+                -- if (ctx, im.Combo(ctx, 'WindowMenuButtonPosition', (ctx, int*)&window_menu_button_position, "None\0Left\0Right\0"))
                 --     app.style_editor.style.WindowMenuButtonPosition = window_menu_button_position - 1
-                -- ImGui.Combo(ctx, 'ColorButtonPosition', (ctx, int*)&app.style_editor.style.ColorButtonPosition, "Left\0Right\0")
+                -- im.Combo(ctx, 'ColorButtonPosition', (ctx, int*)&app.style_editor.style.ColorButtonPosition, "Left\0Right\0")
                 slider('ButtonTextAlign', 0.0, 1.0, '%.2f')
-                ImGui.SameLine(ctx); demo.HelpMarker('Alignment applies when a button is larger than its text content.')
+                im.SameLine(ctx); demo.HelpMarker('Alignment applies when a button is larger than its text content.')
                 slider('SelectableTextAlign', 0.0, 1.0, '%.2f')
-                ImGui.SameLine(ctx); demo.HelpMarker('Alignment applies when a selectable is larger than its text content.')
-                -- ImGui.Text(ctx, 'Safe Area Padding')
-                -- ImGui.SameLine(ctx); demo.HelpMarker('Adjust if you cannot see the edges of your screen (ctx, e.g. on a TV where scaling has not been configured).')
+                im.SameLine(ctx); demo.HelpMarker('Alignment applies when a selectable is larger than its text content.')
+                -- im.Text(ctx, 'Safe Area Padding')
+                -- im.SameLine(ctx); demo.HelpMarker('Adjust if you cannot see the edges of your screen (ctx, e.g. on a TV where scaling has not been configured).')
                 -- slider('DisplaySafeAreaPadding', 0.0, 30.0, '%.0f')
-                ImGui.EndTabItem(ctx)
+                im.EndTabItem(ctx)
             end ]]
 
-        --[[ if ImGui.BeginTabItem(ctx, 'Colors') then ]]
+        --[[ if im.BeginTabItem(ctx, 'Colors') then ]]
         if not app.style_editor.colors then
             app.style_editor.colors = {
                 filter = { inst = nil, text = '' },
-                alpha_flags = ImGui.ColorEditFlags_AlphaPreviewHalf,
+                alpha_flags = im.ColorEditFlags_AlphaPreviewHalf,
             }
         end
 
@@ -407,57 +407,57 @@ function ShowStyleEditor()
 
 
         -- the filter object is destroyed once unused for one or more frames
-        if not ImGui.ValidatePtr(app.style_editor.colors.filter.inst, 'ImGui_TextFilter*') then
-            app.style_editor.colors.filter.inst = ImGui.CreateTextFilter(app.style_editor.colors.filter.text)
+        if not im.ValidatePtr(app.style_editor.colors.filter.inst, 'ImGui_TextFilter*') then
+            app.style_editor.colors.filter.inst = im.CreateTextFilter(app.style_editor.colors.filter.text)
         end
 
-        if ImGui.TextFilter_Draw(app.style_editor.colors.filter.inst, ctx, 'Filter colors', ImGui.GetFontSize(ctx) * 16) then
-            app.style_editor.colors.filter.text = ImGui.TextFilter_Get(app.style_editor.colors.filter.inst)
+        if im.TextFilter_Draw(app.style_editor.colors.filter.inst, ctx, 'Filter colors', im.GetFontSize(ctx) * 16) then
+            app.style_editor.colors.filter.text = im.TextFilter_Get(app.style_editor.colors.filter.inst)
         end
 
-        if ImGui.RadioButton(ctx, 'Opaque', app.style_editor.colors.alpha_flags == ImGui.ColorEditFlags_None) then
-            app.style_editor.colors.alpha_flags = ImGui.ColorEditFlags_None
+        if im.RadioButton(ctx, 'Opaque', app.style_editor.colors.alpha_flags == im.ColorEditFlags_None) then
+            app.style_editor.colors.alpha_flags = im.ColorEditFlags_None
         end
-        ImGui.SameLine(ctx)
-        if ImGui.RadioButton(ctx, 'Alpha', app.style_editor.colors.alpha_flags == ImGui.ColorEditFlags_AlphaPreview) then
-            app.style_editor.colors.alpha_flags = ImGui.ColorEditFlags_AlphaPreview
+        im.SameLine(ctx)
+        if im.RadioButton(ctx, 'Alpha', app.style_editor.colors.alpha_flags == im.ColorEditFlags_AlphaPreview) then
+            app.style_editor.colors.alpha_flags = im.ColorEditFlags_AlphaPreview
         end
-        ImGui.SameLine(ctx)
-        if ImGui.RadioButton(ctx, 'Both', app.style_editor.colors.alpha_flags == ImGui.ColorEditFlags_AlphaPreviewHalf) then
-            app.style_editor.colors.alpha_flags = ImGui.ColorEditFlags_AlphaPreviewHalf
+        im.SameLine(ctx)
+        if im.RadioButton(ctx, 'Both', app.style_editor.colors.alpha_flags == im.ColorEditFlags_AlphaPreviewHalf) then
+            app.style_editor.colors.alpha_flags = im.ColorEditFlags_AlphaPreviewHalf
         end
-        ImGui.SameLine(ctx)
+        im.SameLine(ctx)
         demo.HelpMarker(
             'In the color list:\n\z
                 Left-click on color square to open color picker,\n\z
                 Right-click to open edit options menu.')
 
-        if ImGui.BeginChild(ctx, '##colors', 0, 0, ImGui.ChildFlags_Border,
-                ImGui.WindowFlags_AlwaysVerticalScrollbar   |
+        if im.BeginChild(ctx, '##colors', 0, 0, im.ChildFlags_Border,
+                im.WindowFlags_AlwaysVerticalScrollbar   |
 
-                -- ImGui.WindowFlags_NavFlattened()) TODO: BETA/INTERNAL, not exposed yet
+                -- im.WindowFlags_NavFlattened()) TODO: BETA/INTERNAL, not exposed yet
                 0) then
-            ImGui.PushItemWidth(ctx, -160)
-            local inner_spacing = ImGui.GetStyleVar(ctx, ImGui.StyleVar_ItemInnerSpacing)
+            im.PushItemWidth(ctx, -160)
+            local inner_spacing = im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing)
 
             -- @todo  add custom colors here
             function addClr(str)
-                rv, _G[str] = ImGui.ColorEdit4(ctx, '##' .. str, _G[str],
-                    ImGui.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
-                ImGui.SameLine(ctx, 0.0, inner_spacing)
-                ImGui.Text(ctx, str)
+                rv, _G[str] = im.ColorEdit4(ctx, '##' .. str, _G[str],
+                    im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
+                im.SameLine(ctx, 0.0, inner_spacing)
+                im.Text(ctx, str)
             end
 
-            ImGui.Text(ctx, 'Specific Colors')
+            im.Text(ctx, 'Specific Colors')
             AddSpacing(2)
 
             for i, v in pairs(CustomColors) do
-                if ImGui.TextFilter_PassFilter(app.style_editor.colors.filter.inst, v) then
-                    rv, _G[v] = ImGui.ColorEdit4(ctx, '##' .. v, _G[v] or CustomColorsDefault[v],
-                        ImGui.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
-                    ImGui.SameLine(ctx, 0.0, inner_spacing)
+                if im.TextFilter_PassFilter(app.style_editor.colors.filter.inst, v) then
+                    rv, _G[v] = im.ColorEdit4(ctx, '##' .. v, _G[v] or CustomColorsDefault[v],
+                        im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
+                    im.SameLine(ctx, 0.0, inner_spacing)
                     local name = string.gsub(v, '_', ' ')
-                    ImGui.Text(ctx, name)
+                    im.Text(ctx, name)
                 end
             end
 
@@ -465,25 +465,25 @@ function ShowStyleEditor()
 
 
             --[[ for i, name in demo.EachEnum('Col') do
-                        if ImGui.TextFilter_PassFilter(app.style_editor.colors.filter.inst, name) then
-                            ImGui.PushID(ctx, i)
-                            rv, app.style_editor.style.colors[i] = ImGui.ColorEdit4(ctx, '##color', app.style_editor.style.colors[i], ImGui.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
+                        if im.TextFilter_PassFilter(app.style_editor.colors.filter.inst, name) then
+                            im.PushID(ctx, i)
+                            rv, app.style_editor.style.colors[i] = im.ColorEdit4(ctx, '##color', app.style_editor.style.colors[i], im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
                             if app.style_editor.style.colors[i] ~= app.style_editor.ref.colors[i] then
                                 -- Tips: in a real user application, you may want to merge and use an icon font into the main font,
                                 -- so instead of "Save"/"Revert" you'd use icons!
                                 -- Read the FAQ and docs/FONTS.md about using icon fonts. It's really easy and super convenient!
-                                ImGui.SameLine(ctx, 0.0, inner_spacing)
-                                if ImGui.Button(ctx, 'Save') then
+                                im.SameLine(ctx, 0.0, inner_spacing)
+                                if im.Button(ctx, 'Save') then
                                 app.style_editor.ref.colors[i] = app.style_editor.style.colors[i]
                                 end
-                                ImGui.SameLine(ctx, 0.0, inner_spacing)
-                                if ImGui.Button(ctx, 'Revert') then
+                                im.SameLine(ctx, 0.0, inner_spacing)
+                                if im.Button(ctx, 'Revert') then
                                 app.style_editor.style.colors[i] = app.style_editor.ref.colors[i]
                                 end
                             end
-                            ImGui.SameLine(ctx, 0.0, inner_spacing)
-                            ImGui.Text(ctx, name)
-                            ImGui.PopID(ctx)
+                            im.SameLine(ctx, 0.0, inner_spacing)
+                            im.Text(ctx, name)
+                            im.PopID(ctx)
                         end
                     end ]]
 
@@ -491,20 +491,20 @@ function ShowStyleEditor()
 
 
 
-            ImGui.PopItemWidth(ctx)
-            ImGui.EndChild(ctx)
+            im.PopItemWidth(ctx)
+            im.EndChild(ctx)
         end
 
-        --ImGui.EndTabItem(ctx)
+        --im.EndTabItem(ctx)
         --[[ end ]]
 
 
 
-        --ImGui.EndTabBar(ctx)
+        --im.EndTabBar(ctx)
         --end
 
-        ImGui.PopItemWidth(ctx)
-        ImGui.End(ctx)
+        im.PopItemWidth(ctx)
+        im.End(ctx)
     else
         styleEditorIsOpen = false
     end
@@ -513,31 +513,31 @@ end
 function Show_KBShortcutEditor()
     local rv
 
-    if not ctx then ctx = ImGui.CreateContext('Shortcut Editor') end
-    if not KBEditorIsOpen then ImGui.SetNextWindowSize(ctx, 500, 800) end
-    open, OpenKBEditor = ImGui.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor,
-        ImGui.WindowFlags_NoCollapse +
-        ImGui.WindowFlags_NoDocking --[[ +ImGui.WindowFlags_AlwaysAutoResize ]])
+    if not ctx then ctx = im.CreateContext('Shortcut Editor') end
+    if not KBEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
+    open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor,
+        im.WindowFlags_NoCollapse +
+        im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
 
 
     if open then
         KBEditorIsOpen = true
-        --[[ rv = ImGui.BeginTable(ctx, 'Keyboard Shortcut Table',  1 ,nil  ,  outer_size_w ,  outer_size_h, inner_width )
-            ImGui.Text(ctx, 'adfafd')
-            ImGui.EndTable(ctx) ]]
+        --[[ rv = im.BeginTable(ctx, 'Keyboard Shortcut Table',  1 ,nil  ,  outer_size_w ,  outer_size_h, inner_width )
+            im.Text(ctx, 'adfafd')
+            im.EndTable(ctx) ]]
 
         local HoverKeyTime = HoverKeyTime or 0
 
-        if ImGui.Button(ctx, '+') then
-            local x, y = ImGui.GetWindowPos(ctx)
-            local w, h = ImGui.GetWindowSize(ctx)
+        if im.Button(ctx, '+') then
+            local x, y = im.GetWindowPos(ctx)
+            local w, h = im.GetWindowSize(ctx)
 
-            ImGui.SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
-            ImGui.OpenPopup(ctx, '##Type Key Popup')
+            im.SetNextWindowPos(ctx, x + w / 3.5, y + h / 2)
+            im.OpenPopup(ctx, '##Type Key Popup')
         end
         SL()
 
-        if ImGui.Button(ctx, 'Save') then
+        if im.Button(ctx, 'Save') then
             local file = CallFile('w', 'Keyboard Shortcuts.ini')
             for i, v in pairs(KB_Shortcut) do
                 file:write(v, ' = ', Command_ID[i], '\n')
@@ -547,17 +547,17 @@ function Show_KBShortcutEditor()
 
         SL()
         MyText('(?)', nil, 0xffffff66)
-        if ImGui.IsItemHovered(ctx) then
-            HintToolTip(
+        if im.IsItemHovered(ctx) then
+            tooltip(
                 'Start by click on the + and entering a key or key combination \nLeft click on a shortcut key to swap assigned actions \nAlt+Left click to remove shortcut')
         end
 
 
-        if ImGui.BeginPopupModal(ctx, '##Type Key Popup', nil, ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_AlwaysAutoResize) then
-            ImGui.Text(ctx, 'Type Key or mouse-click to cancel')
+        if im.BeginPopupModal(ctx, '##Type Key Popup', nil, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
+            im.Text(ctx, 'Type Key or mouse-click to cancel')
 
             for i, v in pairs(AllAvailableKeys) do
-                if ImGui.IsKeyPressed(ctx, v) then
+                if im.IsKeyPressed(ctx, v) then
                     local function GetFinalTxt(i)
                         local txt
                         if Mods == 0 then
@@ -601,38 +601,38 @@ function Show_KBShortcutEditor()
 
 
 
-                    ImGui.CloseCurrentPopup(ctx)
+                    im.CloseCurrentPopup(ctx)
                 end
             end
 
-            if ImGui.IsMouseClicked(ctx, 0) then
-                ImGui.CloseCurrentPopup(ctx)
+            if im.IsMouseClicked(ctx, 0) then
+                im.CloseCurrentPopup(ctx)
             end
 
-            ImGui.EndPopup(ctx)
+            im.EndPopup(ctx)
         end
 
 
         for i, v in ipairs(KB_Shortcut) do
-            if ImGui.Button(ctx, v) then
+            if im.Button(ctx, v) then
                 ShortCutKeyToSwitch = v
                 ShortCutKeyIndex = i
-                ImGui.OpenPopup(ctx, '##Type Key Popup')
+                im.OpenPopup(ctx, '##Type Key Popup')
             end
 
-            if ImGui.IsItemClicked(ctx) and Mods == Alt then
+            if im.IsItemClicked(ctx) and Mods == Alt then
                 table.remove(KB_Shortcut, i)
             end
 
 
             if AlreadyAddedKey == v then
-                ImGui.SetScrollHereY(ctx)
+                im.SetScrollHereY(ctx)
                 _, stop = BlinkItem(0.3, 3.5)
                 if stop == 'Stop' then AlreadyAddedKey = nil end
             end
 
             SL()
-            ImGui.Text(ctx, ' : ')
+            im.Text(ctx, ' : ')
             SL()
             local CmdTxt, commandID
 
@@ -643,8 +643,8 @@ function Show_KBShortcutEditor()
             end
             if CmtTxt == '' then CmdTxt = nil end
 
-            if ImGui.Button(ctx, (CmdTxt or ' Click to Paste Command ID') .. '##' .. i) then
-                Command_ID[i] = ImGui.GetClipboardText(ctx)
+            if im.Button(ctx, (CmdTxt or ' Click to Paste Command ID') .. '##' .. i) then
+                Command_ID[i] = im.GetClipboardText(ctx)
             end
 
             if AlreadyAddedKey == v then
@@ -653,9 +653,9 @@ function Show_KBShortcutEditor()
 
 
 
-            --rv, Command_ID[i] = ImGui.InputText(ctx, '##'..i , Command_ID[i] or 'Paste Command ID Here...', ImGui.InputTextFlags_AutoSelectAll)
+            --rv, Command_ID[i] = im.InputText(ctx, '##'..i , Command_ID[i] or 'Paste Command ID Here...', im.InputTextFlags_AutoSelectAll)
 
-            ImGui.Separator(ctx)
+            im.Separator(ctx)
         end
 
 
@@ -664,7 +664,7 @@ function Show_KBShortcutEditor()
 
 
 
-        ImGui.End(ctx)
+        im.End(ctx)
     else
         KBEditorIsOpen = false
     end

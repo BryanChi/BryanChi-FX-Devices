@@ -21,30 +21,29 @@ LFO.DummyH  =  LFO.Win.h + 20
 --LFO.DummyW  =  ( LFO.Win.w + 30) * ((Mc.LFO_leng or LFO.Def.Len)/4 ) 
 Mc.Freq = Mc.Freq or 1
 Mc.Gain = Mc.Gain or 5
-ImGui.TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
---[[  IsMacroSlidersEdited, I.Val = ImGui.SliderDouble(ctx, i .. '##LFO', I.Val, Slider1Min or 0,
+im.TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
+--[[  IsMacroSlidersEdited, I.Val = im.SliderDouble(ctx, i .. '##LFO', I.Val, Slider1Min or 0,
 Slider1Max or 1) ]]
 
 local W = (VP.w - 10) / 12 -3
-local rv = ImGui.InvisibleButton(ctx, 'LFO Button' .. i, W, H)
-local w, h = ImGui.GetItemRectSize(ctx)
+local rv = im.InvisibleButton(ctx, 'LFO Button' .. i, W, H)
+local w, h = im.GetItemRectSize(ctx)
 
-local L, T = ImGui.GetItemRectMin(ctx)
-local WDL = ImGui.GetWindowDrawList(ctx)
+local L, T = im.GetItemRectMin(ctx)
+local WDL = im.GetWindowDrawList(ctx)
 local X_range =  (LFO.Win.w ) * ((Mc.LFO_leng or LFO.Def.Len)/4 )
 
-ImGui.DrawList_AddRect(WDL, L, T-2, L + w +2, T + h, EightColors.LFO[i])
+im.DrawList_AddRect(WDL, L, T-2, L + w +2, T + h, EightColors.LFO[i])
 
 
 
-if ImGui.IsItemClicked(ctx, 1) and Mods == Ctrl then
-    ImGui.OpenPopup(ctx, 'LFO' .. i .. 'Menu')
-
+if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
+    im.OpenPopup(ctx, 'LFO' .. i .. 'Menu')
 end
 
 WhenRightClickOnModulators(Macro)
 local G = 1  -- Gap between Drawing Coord values retrieved from jsfx
-local HdrPosL, HdrPosT = ImGui.GetCursorScreenPos(ctx)
+local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
 function DrawShape (Node, L, W, H, T, Clr )
     if Node then 
         for i, v  in ipairs(Node) do 
@@ -65,9 +64,8 @@ function DrawShape (Node, L, W, H, T, Clr )
             local PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,x,y)
 
             for i, v in ipairs(PtsX) do  
-                
                 if i > 1 and PtsX[i] <= L+W then      -- >1 because you need two points to draw a line
-                    ImGui.DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], Clr or EightColors.LFO[Macro])
+                    im.DrawList_AddLine(WDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], Clr or EightColors.LFO[Macro])
                 end
             end
         end
@@ -75,24 +73,23 @@ function DrawShape (Node, L, W, H, T, Clr )
 end
 -- Draw Tiny Playhead
 local PlayPos = L + r.gmem_read(108+i)/4 * w / ((Mc.LFO_leng or LFO.Def.Len)/4 )
-ImGui.DrawList_AddLine(WDL ,PlayPos , T ,PlayPos, T+h , EightColors.LFO[Macro], 1 )
-ImGui.DrawList_AddCircleFilled(WDL,PlayPos, T+ h -  MOD * h - 3/2 , 3, EightColors.LFO[Macro])
+im.DrawList_AddLine(WDL ,PlayPos , T ,PlayPos, T+h , EightColors.LFO[Macro], 1 )
+im.DrawList_AddCircleFilled(WDL,PlayPos, T+ h -  MOD * h - 3/2 , 3, EightColors.LFO[Macro])
 
-DrawShape (Mc.Node, HdrPosL, w, h, T  )
-
+DrawShape(Mc.Node, HdrPosL, w, h, T)
 
 if rv and not LFO_DragDir and Mods == 0 then
-    ImGui.OpenPopup(ctx, 'LFO Shape Select')
-    --ImGui.SetNextWindowSize(ctx, LFO.Win.w  , LFO.Win.h+200)
+    im.OpenPopup(ctx, 'LFO Shape Select')
+    --im.SetNextWindowSize(ctx, LFO.Win.w  , LFO.Win.h+200)
 end
 
 
     
 function open_LFO_Win(Track, Macro)
     local tweaking
-    -- ImGui.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
-    ImGui.SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
-    if ImGui.Begin(ctx, 'LFO Shape Edit Window'..Macro, true , ImGui.WindowFlags_NoDecoration+ ImGui.WindowFlags_AlwaysAutoResize) then
+    -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
+    im.SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
+    if im.Begin(ctx, 'LFO Shape Edit Window'..Macro, true , im.WindowFlags_NoDecoration+ im.WindowFlags_AlwaysAutoResize) then
 
         
         local function ConverCtrlNodeY (lastY, Y) 
@@ -115,39 +112,39 @@ function open_LFO_Win(Track, Macro)
 
         LFO.Pin = PinIcon (LFO.Pin,TrkID..'Macro = '..Macro  ,BtnSz, 'LFO window pin'..Macro, 0x00000000, ClrTint)
         SL()
-        if ImGui.ImageButton(ctx, '## copy' .. Macro, Img.Copy, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
+        if im.ImageButton(ctx, '## copy' .. Macro, Img.Copy, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
             LFO.Clipboard = Mc.Node
         end
         SL()
-        if ImGui.ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
+        if im.ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
             Mc.Node = LFO.Clipboard
         end
 
         SL(nil, 30)
-        if ImGui.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
+        if im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint) then 
                 LFO.OpenSaveDialog= Macro 
         end
 
         
         SL()
 
-        if ImGui.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint) then 
+        if im.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz*2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint) then 
             if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end 
         end 
         if LFO.OpenShapeSelect then Highlight_Itm(WDL, 0xffffff55 ) end 
 
 
-        ImGui.Dummy(ctx, (LFO.Win.w ) * ((Mc.LFO_leng or LFO.Def.Len)/4 ) ,  LFO.DummyH)
+        im.Dummy(ctx, (LFO.Win.w ) * ((Mc.LFO_leng or LFO.Def.Len)/4 ) ,  LFO.DummyH)
         --local old_Win_T, old_Win_B = VP.y - 320, VP.y - 20
         local NodeSz = 15
-        local w, h = ImGui.GetItemRectSize(ctx)
+        local w, h = im.GetItemRectSize(ctx)
         LFO.Def.DummyW = (LFO.Win.w ) * (LFO.Def.Len/4)
         LFO.DummyW = w
-        local L, T = ImGui.GetItemRectMin(ctx)
+        local L, T = im.GetItemRectMin(ctx)
         local Win_T, Win_B = T  , T+h     -- 7 is prob the window padding
-        ImGui.DrawList_AddRectFilled(WDL , L, T, L+w, T+h , 0xffffff22)   
+        im.DrawList_AddRectFilled(WDL , L, T, L+w, T+h , 0xffffff22)   
         SL()
-        ImGui.Dummy(ctx, 10,  10)
+        im.Dummy(ctx, 10,  10)
 
 
         LFO.Win.L, LFO.Win.R = L , L + X_range
@@ -198,8 +195,8 @@ function open_LFO_Win(Track, Macro)
         end ]]
 
 
-        if not ImGui.IsAnyItemHovered(ctx) and LBtnDC then -- Add new node if double click
-            local x, y = ImGui.GetMousePos(ctx)
+        if not im.IsAnyItemHovered(ctx) and LBtnDC then -- Add new node if double click
+            local x, y = im.GetMousePos(ctx)
             local InsertPos
             local x = (x - L)/ LFO.DummyW
             local y = (y - T)/ LFO.DummyH
@@ -235,8 +232,8 @@ function open_LFO_Win(Track, Macro)
             local w, h = 15, 15
             InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
             local Hvred
-            local w, h = ImGui.GetItemRectSize(ctx)
-            local L, T = ImGui.GetItemRectMin(ctx)
+            local w, h = im.GetItemRectSize(ctx)
+            local L, T = im.GetItemRectMin(ctx)
 
             local function ClampCtrlNode (ID)
                 Node[ID] = Node[ID]  or {}
@@ -257,23 +254,23 @@ function open_LFO_Win(Track, Macro)
                 end
             end
 
-            if ImGui.IsItemHovered(ctx) then
+            if im.IsItemHovered(ctx) then
                 LineClr, CtClr = 0xffffffbb, 0xffffff88
                 HoverNode = ID
                 Hvred = true
             end
 
-            if MouseClosestNode==ID and ImGui.IsKeyPressed(ctx,ImGui.Key_X,false) then 
+            if MouseClosestNode==ID and im.IsKeyPressed(ctx,im.Key_X,false) then 
                 DraggingNode = ID
                 tweaking = Macro 
-            elseif ImGui.IsKeyReleased(ctx,ImGui.Key_X)  then 
+            elseif im.IsKeyReleased(ctx,im.Key_X)  then 
                 DraggingNode=nil
             end 
 
             -- if moving node
-            if (ImGui.IsItemActive(ctx) and Mods == 0)  or DraggingNode == ID then 
+            if (im.IsItemActive(ctx) and Mods == 0)  or DraggingNode == ID then 
                 tweaking = Macro
-                HideCursorTillMouseUp(nil, ImGui.Key_X )
+                HideCursorTillMouseUp(nil, im.Key_X )
                 HideCursorTillMouseUp(0)
                 HoverNode = ID
 
@@ -282,7 +279,7 @@ function open_LFO_Win(Track, Macro)
                 if ID ==1 then lastX = 0 end 
                 if ID == #Node then nextX = 1 end 
 
-                local MsX, MsY =  GetMouseDelta(0, ImGui.Key_X)
+                local MsX, MsY =  GetMouseDelta(0, im.Key_X)
                 local MsX = MsX / LFO.DummyW
                 local MsY = MsY / LFO.DummyH
 
@@ -316,25 +313,25 @@ function open_LFO_Win(Track, Macro)
                     if Node[ID+1].ctrlX == (this + next) / 2 then Node[ID+1].ctrlX = nil end
                 end
 
-                ImGui.ResetMouseDragDelta(ctx)
-            elseif ImGui.IsItemClicked(ctx) and Mods == Alt then 
+                im.ResetMouseDragDelta(ctx)
+            elseif im.IsItemClicked(ctx) and Mods == Alt then 
 
                 LFO.DeleteNode = ID 
             end
 
 
-            ImGui.DrawList_AddCircle(WDL, L + NodeSz / 2, T + NodeSz / 2, 5, LineClr)
-            ImGui.DrawList_AddCircleFilled(WDL, L + NodeSz / 2, T + NodeSz / 2, 3, CtClr)
+            im.DrawList_AddCircle(WDL, L + NodeSz / 2, T + NodeSz / 2, 5, LineClr)
+            im.DrawList_AddCircleFilled(WDL, L + NodeSz / 2, T + NodeSz / 2, 3, CtClr)
             return Hvred
         end
         local Node = Mc.Node
         
 
 
-        local FDL = ImGui.GetForegroundDrawList(ctx)
+        local FDL = im.GetForegroundDrawList(ctx)
         --table.sort(Node.x, function(k1, k2) return k1 < k2 end)
         local AnyNodeHovered
-        if  ImGui.IsKeyReleased(ctx, ImGui.Key_C  ) or LBtnRel  then 
+        if  im.IsKeyReleased(ctx, im.Key_C  ) or LBtnRel  then 
 
             DraggingLFOctrl = nil 
             Save_All_LFO_Info(Node) 
@@ -360,36 +357,36 @@ function open_LFO_Win(Track, Macro)
 
 
             -- Control Node
-            if (ImGui.IsMouseHoveringRect(ctx, lastX, Win_T, X, Win_B) or DraggingLFOctrl == i) then
+            if (im.IsMouseHoveringRect(ctx, lastX, Win_T, X, Win_B) or DraggingLFOctrl == i) then
                 local Sz = LFO.CtrlNodeSz
 
                 ---- Draw Node
                 if not DraggingLFOctrl or DraggingLFOctrl == i  then
                     if not HoverNode and not DraggingNode then
-                        ImGui.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, X, Y, 0xffffff44, 7)
-                        ImGui.DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz, LineClr)
-                        --ImGui.DrawList_AddText(FDL, CtrlX, CtrlY, 0xffffffff, i)
+                        im.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, X, Y, 0xffffff44, 7)
+                        im.DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz, LineClr)
+                        --im.DrawList_AddText(FDL, CtrlX, CtrlY, 0xffffffff, i)
                     end
                 end
 
                 InvisiBtn(ctx, CtrlX - Sz / 2, CtrlY - Sz / 2, '##Ctrl Node' .. i, Sz)
-                if ImGui.IsKeyPressed(ctx, ImGui.Key_C , false )  or ImGui.IsItemActivated(ctx) then 
+                if im.IsKeyPressed(ctx, im.Key_C , false )  or im.IsItemActivated(ctx) then 
                     DraggingLFOctrl = i
                 end
                 
-                if ImGui.IsItemHovered(ctx) then
-                    ImGui.DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz + 2, LineClr)
+                if im.IsItemHovered(ctx) then
+                    im.DrawList_AddCircle(FDL, CtrlX, CtrlY, Sz + 2, LineClr)
                 end
             end
 
             -- decide which node is mouse closest to 
             local Range = X - lastX
-            if ImGui.IsMouseHoveringRect(ctx, lastX, Win_T, lastX + Range/2, Win_B) and not tweaking and not DraggingNode  then 
-                ImGui.DrawList_AddCircle(FDL, lastX, lastY, LFO.NodeSz+2, LineClr)
+            if im.IsMouseHoveringRect(ctx, lastX, Win_T, lastX + Range/2, Win_B) and not tweaking and not DraggingNode  then 
+                im.DrawList_AddCircle(FDL, lastX, lastY, LFO.NodeSz+2, LineClr)
                 MouseClosestNode = last
 
-            elseif ImGui.IsMouseHoveringRect(ctx, lastX + Range/2, Win_T, X, Win_B) and not tweaking and not DraggingNode  then 
-                ImGui.DrawList_AddCircle(FDL, X, Y, LFO.NodeSz+2, LineClr)
+            elseif im.IsMouseHoveringRect(ctx, lastX + Range/2, Win_T, X, Win_B) and not tweaking and not DraggingNode  then 
+                im.DrawList_AddCircle(FDL, X, Y, LFO.NodeSz+2, LineClr)
 
                 MouseClosestNode = i 
             end
@@ -398,7 +395,7 @@ function open_LFO_Win(Track, Macro)
             if DraggingLFOctrl==i then
 
                 tweaking = Macro
-                local Dx, Dy =  GetMouseDelta(0, ImGui.Key_C)
+                local Dx, Dy =  GetMouseDelta(0, im.Key_C)
                 local Dx , Dy = Dx / LFO.DummyW, Dy / LFO.DummyH
                 local CtrlX, CtrlY  =  Node[i].ctrlX or (Node[last].x + Node[i].x)/ 2,  Node[i].ctrlY or (Node[last].y + Node[i].y) / 2
 
@@ -437,13 +434,13 @@ function open_LFO_Win(Track, Macro)
             if Wheel_V~=0 then Sqr = ( Sqr or 0 ) + Wheel_V / 100 end 
 
         
-            --ImGui.DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
+            --im.DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
 
             local N = i
             for i, v in ipairs(PtsX) do  
                 if i > 1 then      -- >1 because you need two points to draw a line
-                    ImGui.DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
-                --  ImGui.DrawList_AddText(FDL, PtsX[i-1] ,PtsY[i-1], 0xffffffff,i)
+                    im.DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
+                --  im.DrawList_AddText(FDL, PtsX[i-1] ,PtsY[i-1], 0xffffffff,i)
                 end
                 ----- things below don't need >1 because jsfx needs all points to draw lines
 
@@ -464,7 +461,7 @@ function open_LFO_Win(Track, Macro)
             end
             r.gmem_write(6, #Node*11)
 
-            --ImGui.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
+            --im.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
         end
 
 
@@ -477,7 +474,7 @@ function open_LFO_Win(Track, Macro)
 
         if DraggingLFOctrl then 
 
-            HideCursorTillMouseUp(nil, ImGui.Key_C )
+            HideCursorTillMouseUp(nil, im.Key_C )
             HideCursorTillMouseUp(0)
             
         end
@@ -486,13 +483,13 @@ function open_LFO_Win(Track, Macro)
         if not AnyNodeHovered then HoverNode = nil end
 
 
-        --ImGui.DrawList_PathStroke(FDL, 0xffffffff, nil, 2)
+        --im.DrawList_PathStroke(FDL, 0xffffffff, nil, 2)
 
         --- Draw Playhead 
 
         local PlayPos = HdrPosL + r.gmem_read(108+i)/4 * LFO.Win.w
-        ImGui.DrawList_AddLine(WDL ,PlayPos , Win_T,PlayPos, Win_B , 0xffffff99, 4 )
-        ImGui.DrawList_AddCircleFilled(WDL,PlayPos, Win_B - MOD * LFO.DummyH , 5, 0xffffffcc)
+        im.DrawList_AddLine(WDL ,PlayPos , Win_T,PlayPos, Win_B , 0xffffff99, 4 )
+        im.DrawList_AddCircleFilled(WDL,PlayPos, Win_B - MOD * LFO.DummyH , 5, 0xffffffcc)
 
         -- Draw Grid 
 
@@ -502,45 +499,45 @@ function open_LFO_Win(Track, Macro)
                 local W = (X_range/division)
                 local R = HdrPosL + X_range
                 local X = Pad_L +HdrPosL +  W * i
-                ImGui.DrawList_AddLine(WDL ,X, Win_T,X, Win_B , 0xffffff55, 2 )
+                im.DrawList_AddLine(WDL ,X, Win_T,X, Win_B , 0xffffff55, 2 )
             end
         end
         DrawGridLine_V(Mc.LFO_leng or LFO.Def.Len )
 
 
-        ImGui.SetCursorPos(ctx, 10,  LFO.Win.h + 55)
-        ImGui.AlignTextToFramePadding(ctx)
-        ImGui.Text(ctx,'Speed:') SL()
-        ImGui.SetNextItemWidth(ctx, 50)
-        local rv, V =  ImGui.DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f' )
-        if ImGui.IsItemActive(ctx) then 
+        im.SetCursorPos(ctx, 10,  LFO.Win.h + 55)
+        im.AlignTextToFramePadding(ctx)
+        im.Text(ctx,'Speed:') SL()
+        im.SetNextItemWidth(ctx, 50)
+        local rv, V =  im.DragDouble(ctx, '##Speed', Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f' )
+        if im.IsItemActive(ctx) then 
             ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
             tweaking = Macro 
             Mc.LFO_spd = V
             
         end
-        if Mods == Alt and ImGui.IsItemActivated(ctx) then Mc.LFO_spd = 1 end 
-        if ImGui.IsItemHovered(ctx) then 
-            if ImGui.IsKeyPressed(ctx,ImGui.Key_DownArrow, false) then 
+        if Mods == Alt and im.IsItemActivated(ctx) then Mc.LFO_spd = 1 end 
+        if im.IsItemHovered(ctx) then 
+            if im.IsKeyPressed(ctx,im.Key_DownArrow, false) then 
                 Mc.LFO_spd = (Mc.LFO_spd or 1 )/2 
                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
-            elseif ImGui.IsKeyPressed(ctx,ImGui.Key_UpArrow, false) then 
+            elseif im.IsKeyPressed(ctx,im.Key_UpArrow, false) then 
                 Mc.LFO_spd = (Mc.LFO_spd or 1) * 2
                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed' )
             end
         end
         SL(nil, 30)
 
-        ImGui.Text(ctx, 'Length:') SL()
-        ImGui.SetNextItemWidth(ctx, 80)
+        im.Text(ctx, 'Length:') SL()
+        im.SetNextItemWidth(ctx, 80)
 
-        rv, Mc.LFO_leng = ImGui.SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length', Mc.LFO_leng or LFO.Def.Len, 1, 8)
-        if ImGui.IsItemActivated(ctx) then LengthBefore = Mc.LFO_leng end 
-        if ImGui.IsItemActive(ctx ) then 
+        rv, Mc.LFO_leng = im.SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length', Mc.LFO_leng or LFO.Def.Len, 1, 8)
+        if im.IsItemActivated(ctx) then LengthBefore = Mc.LFO_leng end 
+        if im.IsItemActive(ctx ) then 
             tweaking=Macro  
             ChangeLFO(13, Mc.LFO_leng or LFO.Def.Len, 9, 'LFO Length' )
         end 
-        if ImGui.IsItemEdited(ctx) then 
+        if im.IsItemEdited(ctx) then 
             local Change =   Mc.LFO_leng - LengthBefore 
             for i, v in ipairs( Node) do 
                 Node[i].x =  Node[i].x / ((LengthBefore+Change) / LengthBefore )
@@ -556,77 +553,77 @@ function open_LFO_Win(Track, Macro)
 
 
 
-        if  ImGui.IsWindowHovered(ctx,ImGui.HoveredFlags_RootAndChildWindows) then 
+        if  im.IsWindowHovered(ctx,im.HoveredFlags_RootAndChildWindows) then 
             LFO.WinHovered = Macro  -- this one doesn't get cleared after unhovering, to inform script which one to stay open
             LFO.HvringWin= Macro      
         else LFO.HvringWin = nil 
             LFO.DontOpenNextFrame = true   -- it's needed so the open_LFO_Win function doesn't get called twice when user 'unhover' the lfo window
         end
         
-        if ImGui.IsWindowAppearing(ctx) then 
+        if im.IsWindowAppearing(ctx) then 
             Save_All_LFO_Info(Node) 
         end
 
-        ImGui.End(ctx)
+        im.End(ctx)
     end
 
 
     if LFO.OpenShapeSelect == Macro then 
 
-        ImGui.SetNextWindowPos(ctx, L+LFO.DummyW + 30  ,T-LFO.DummyH - 200)
-        if not ImGui.ValidatePtr(ShapeFilter, "ImGui_TextFilter*") then
-            ShapeFilter = ImGui.CreateTextFilter(Shape_Filter_Txt)
+        im.SetNextWindowPos(ctx, L+LFO.DummyW + 30  ,T-LFO.DummyH - 200)
+        if not im.ValidatePtr(ShapeFilter, "ImGui_TextFilter*") then
+            ShapeFilter = im.CreateTextFilter(Shape_Filter_Txt)
         end
-        ImGui.SetNextWindowSizeConstraints( ctx, 220, 150, 240, 700)
-        if ImGui.Begin(ctx, 'Shape Selection Popup',true,  ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_AlwaysAutoResize) then 
+        im.SetNextWindowSizeConstraints( ctx, 220, 150, 240, 700)
+        if im.Begin(ctx, 'Shape Selection Popup',true,  im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then 
             local W, H = 150, 75
             local function DrawShapesInSelector(Shapes)
                 local AnyShapeHovered
                 for i,v in pairs(Shapes) do 
                     --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
 
-                    if ImGui.TextFilter_PassFilter(ShapeFilter, v.Name) then
-                        ImGui.Text(ctx, v.Name or i)
+                    if im.TextFilter_PassFilter(ShapeFilter, v.Name) then
+                        im.Text(ctx, v.Name or i)
                         
-                        --ImGui.SetCursorPosX( ctx, - 15 )
-                        local L, T = ImGui.GetItemRectMin(ctx)
-                        if ImGui.IsMouseHoveringRect( ctx, L,T, L+ 200, T + 10 ) then 
+                        --im.SetCursorPosX( ctx, - 15 )
+                        local L, T = im.GetItemRectMin(ctx)
+                        if im.IsMouseHoveringRect( ctx, L,T, L+ 200, T + 10 ) then 
                             SL( W-8)
 
                             if TrashIcon(8, 'delete'..(v.Name or i), 0xffffff00) then 
-                                ImGui.OpenPopup(ctx, 'Delete shape prompt'..i)
-                                ImGui.SetNextWindowPos(ctx,L, T)
+                                im.OpenPopup(ctx, 'Delete shape prompt'..i)
+                                im.SetNextWindowPos(ctx,L, T)
                             end
                         end
                         
-                        if ImGui.Button(ctx,'##'..(v.Name or i)..i, W, H ) then 
+                        if im.Button(ctx,'##'..(v.Name or i)..i, W, H ) then 
                             Mc.Node = v 
                             LFO.NewShapeChosen = v
                         end
-                        if ImGui.IsItemHovered(ctx) then
+                        if im.IsItemHovered(ctx) then
                             Mc.Node = v
                             AnyShapeHovered = true 
                             LFO.AnyShapeHovered = true 
                         end
-                        local L, T = ImGui.GetItemRectMin(ctx)
-                        local w, h = ImGui.GetItemRectSize(ctx)
-                        ImGui.DrawList_AddRectFilled(WDL, L,T,L+w, T+h , 0xffffff33)
-                        ImGui.DrawList_AddRect(WDL, L,T,L+w, T+h , 0xffffff66)
+                        local L, T = im.GetItemRectMin(ctx)
+                        local w, h = im.GetItemRectSize(ctx)
+                        im.DrawList_AddRectFilled(WDL, L,T,L+w, T+h , 0xffffff33)
+                        im.DrawList_AddRect(WDL, L,T,L+w, T+h , 0xffffff66)
 
                         DrawShape (v , L,  w, h, T , 0xffffffaa)
                     end
-                    if ImGui.BeginPopupModal(ctx, 'Delete shape prompt'..i, true ,  ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_NoResize|ImGui.WindowFlags_AlwaysAutoResize) then 
-                        ImGui.Text(ctx, 'Confirm deleting this shape:')
-                        if  ImGui.Button(ctx, 'yes') or ImGui.IsKeyPressed(ctx, ImGui.Key_Y) or ImGui.IsKeyPressed(ctx, ImGui.Key_Enter) then 
+                    if im.BeginPopupModal(ctx, 'Delete shape prompt'..i, true ,  im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then 
+                        im.Text(ctx, 'Confirm deleting this shape:')
+                        if  im.Button(ctx, 'yes') or im.IsKeyPressed(ctx, im.Key_Y) or im.IsKeyPressed(ctx, im.Key_Enter) then 
                             LFO.DeleteShape = i 
-                            ImGui.CloseCurrentPopup(ctx)
+                            im.CloseCurrentPopup(ctx)
 
                         end
                         SL()
-                        if ImGui.Button(ctx, 'No') or  ImGui.IsKeyPressed(ctx, ImGui.Key_N) or ImGui.IsKeyPressed(ctx, ImGui.Key_Escape) then 
-                            ImGui.CloseCurrentPopup(ctx)
+                        if im.Button(ctx, 'No') or  im.IsKeyPressed(ctx, im.Key_N) or im.IsKeyPressed(ctx, im.Key_Escape) then 
+                            im.CloseCurrentPopup(ctx)
                         end
-                        ImGui.EndPopup(ctx)
+                        im.EndPopup(ctx)
                     end
                 end
                 if LFO.AnyShapeHovered  then  -- if any shape was hovered
@@ -650,7 +647,7 @@ function open_LFO_Win(Track, Macro)
 
             local function  Global_Shapes()
                 
-                if ImGui.IsWindowAppearing(ctx) then  
+                if im.IsWindowAppearing(ctx) then  
                     LFO.NodeBeforePreview = Mc.Node
                 end
                 
@@ -677,9 +674,9 @@ function open_LFO_Win(Track, Macro)
                     LFO.DeleteShape = nil 
                 end
 
-                if ImGui.TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1 ) then
-                    Shape_Filter_Txt = ImGui.TextFilter_Get(ShapeFilter)
-                    ImGui.TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
+                if im.TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1 ) then
+                    Shape_Filter_Txt = im.TextFilter_Get(ShapeFilter)
+                    im.TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
                 end
 
 
@@ -696,9 +693,9 @@ function open_LFO_Win(Track, Macro)
                 
 
 
-                if ImGui.IsWindowFocused( ctx) and ImGui.IsKeyPressed(ctx, ImGui.Key_Escape) then 
+                if im.IsWindowFocused( ctx) and im.IsKeyPressed(ctx, im.Key_Escape) then 
                     
-                    ImGui.CloseCurrentPopup(ctx)
+                    im.CloseCurrentPopup(ctx)
                     LFO.OpenShapeSelect = nil
                 end
             end
@@ -836,7 +833,7 @@ function open_LFO_Win(Track, Macro)
 
             end 
 
-            if ImGui.ImageButton(ctx, '## save' .. Macro, Img.Save, 12, 12, nil, nil, nil, nil, ClrBG, ClrTint) then 
+            if im.ImageButton(ctx, '## save' .. Macro, Img.Save, 12, 12, nil, nil, nil, nil, ClrBG, ClrTint) then 
                 if LFO.OpenedTab == 'Global' then 
                     LFO.OpenSaveDialog= Macro 
                 elseif LFO.OpenedTab == 'Project' then 
@@ -846,37 +843,37 @@ function open_LFO_Win(Track, Macro)
                 end
             end
             SL()
-            ImGui.AlignTextToFramePadding(ctx)
+            im.AlignTextToFramePadding(ctx)
 
 
-            if ImGui.BeginTabBar(ctx, 'shape select tab bar') then 
+            if im.BeginTabBar(ctx, 'shape select tab bar') then 
                 
-                if ImGui.BeginTabItem(ctx, 'Global') then 
+                if im.BeginTabItem(ctx, 'Global') then 
                     Global_Shapes ()
                     LFO.OpenedTab = 'Global'
-                    ImGui.EndTabItem(ctx)
+                    im.EndTabItem(ctx)
                 end
 
-                if ImGui.BeginTabItem(ctx, 'Project') then 
+                if im.BeginTabItem(ctx, 'Project') then 
                     Proj_Shapes()
                     LFO.OpenedTab = 'Project'
-                    ImGui.EndTabItem(ctx)
+                    im.EndTabItem(ctx)
                 end
 
-                if ImGui.BeginTabItem(ctx, 'Track') then 
+                if im.BeginTabItem(ctx, 'Track') then 
                     Track_Shapes()
                     LFO.OpenedTab = 'Track'
-                    ImGui.EndTabItem(ctx)
+                    im.EndTabItem(ctx)
                 end
 
-                ImGui.EndTabBar(ctx)
+                im.EndTabBar(ctx)
             end
 
-            if ImGui.IsWindowHovered(ctx,ImGui.FocusedFlags_RootAndChildWindows) then 
+            if im.IsWindowHovered(ctx,im.FocusedFlags_RootAndChildWindows) then 
                 LFO.HoveringShapeWin = Macro 
             else LFO.HoveringShapeWin = nil 
             end
-            ImGui.End(ctx)
+            im.End(ctx)
         end
     end
 
@@ -892,7 +889,7 @@ end
 
 
 
-local HvrOnBtn = ImGui.IsItemHovered(ctx) 
+local HvrOnBtn = im.IsItemHovered(ctx) 
 local PinID = TrkID..'Macro = '..Macro
 if HvrOnBtn or LFO.HvringWin == Macro or LFO.Tweaking == Macro or LFO.Pin == PinID or LFO.OpenSaveDialog==Macro or LFO.HoveringShapeWin ==Macro  then  
     LFO.notHvrTime = 0
@@ -916,7 +913,7 @@ LFO.DontOpenNextFrame = nil
 
 
 
-if ImGui.IsItemActive(ctx) then
+if im.IsItemActive(ctx) then
     open_LFO_Win(Track, Macro)
     if not LFO_MsX_Start then LFO_MsX_Start, LFO_MsY_Start = r.GetMousePosition() end
     LFO_MsX_Now, LFO_MsY_Now = r.GetMousePosition()
@@ -930,7 +927,7 @@ if ImGui.IsItemActive(ctx) then
             LFO_DragDir = 'V'
         end
     end
-    local Dx, Dy = ImGui.GetMouseDelta(ctx)
+    local Dx, Dy = im.GetMouseDelta(ctx)
     local DragSpd = 0.1
     if LFO_DragDir == 'H' then
         Mc.Freq = SetMinMax(Mc.Freq + (Dx * DragSpd), 0.1, 20)
@@ -976,27 +973,27 @@ if #Mc.StepV > W then
 end
 for s = 0, W, G do
     local last = SetMinMax(s - 1, 0, W)
-    ImGui.DrawList_AddLine(WDL, L + s, T + H - (Mc.StepV[last] or 0), L + s + G,
+    im.DrawList_AddLine(WDL, L + s, T + H - (Mc.StepV[last] or 0), L + s + G,
         T + H - (Mc.StepV[s] or 0), EightColors.LFO[i], 2)
-    --ImGui.DrawList_PathLineTo(WDL, L+s,  Y_Mid+math.sin(s/Mc.Freq) * Mc.Gain)
+    --im.DrawList_PathLineTo(WDL, L+s,  Y_Mid+math.sin(s/Mc.Freq) * Mc.Gain)
 end ]]
 if LFO.OpenSaveDialog==Macro then 
-    ImGui.OpenPopup(ctx,  'Decide Name')
-    ImGui.SetNextWindowPos(ctx, L  ,T-LFO.DummyH)
-    ImGui.SetNextWindowFocus( ctx)
+    im.OpenPopup(ctx,  'Decide Name')
+    im.SetNextWindowPos(ctx, L  ,T-LFO.DummyH)
+    im.SetNextWindowFocus( ctx)
 
-    if ImGui.BeginPopupModal( ctx, 'Decide Name',  true ,ImGui.WindowFlags_NoTitleBar|ImGui.WindowFlags_AlwaysAutoResize) then 
-        ImGui.Text(ctx, 'Enter a name for the shape: ')
-        --[[ ImGui.Text(ctx, '(?)')
-        if ImGui.IsItemHovered(ctx) then 
+    if im.BeginPopupModal( ctx, 'Decide Name',  true ,im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then 
+        im.Text(ctx, 'Enter a name for the shape: ')
+        --[[ im.Text(ctx, '(?)')
+        if im.IsItemHovered(ctx) then 
             tooltip('use / in file name to save into sub-directories')
         end ]]
 
-        ImGui.SetNextItemWidth(ctx, LFO.Def.DummyW)  
-            ImGui.SetKeyboardFocusHere(ctx)  
-        local rv, buf =  ImGui.InputText(ctx, buf or '##Name' ,buf)
+        im.SetNextItemWidth(ctx, LFO.Def.DummyW)  
+            im.SetKeyboardFocusHere(ctx)  
+        local rv, buf =  im.InputText(ctx, buf or '##Name' ,buf)
 
-        if  (ImGui.IsItemFocused( ctx)  and ImGui.IsKeyPressed(ctx, ImGui.Key_Enter) and Mods == 0) or ImGui.Button(ctx,'Enter') then 
+        if  (im.IsItemFocused( ctx)  and im.IsKeyPressed(ctx, im.Key_Enter) and Mods == 0) or im.Button(ctx,'Enter') then 
             local LFO_Name = buf 
             local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
             local file_path = ConcatPath(path, LFO_Name..'.ini')
@@ -1019,17 +1016,17 @@ if LFO.OpenSaveDialog==Macro then
             end
 
             LFO.OpenSaveDialog = nil 
-            ImGui.CloseCurrentPopup(ctx)
+            im.CloseCurrentPopup(ctx)
         end
         SL()
-        if ImGui.Button(ctx,'Cancel (Esc)') or ImGui.IsKeyPressed(ctx, ImGui.Key_Escape) then 
-            ImGui.CloseCurrentPopup(ctx)
+        if im.Button(ctx,'Cancel (Esc)') or im.IsKeyPressed(ctx, im.Key_Escape) then 
+            im.CloseCurrentPopup(ctx)
             LFO.OpenSaveDialog = nil 
         end
 
         
 
-        ImGui.EndPopup(ctx)
+        im.EndPopup(ctx)
 
     end
 end
