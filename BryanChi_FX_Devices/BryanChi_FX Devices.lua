@@ -6935,9 +6935,11 @@ if not visible then return end
                     im.SameLine(ctx, nil, 0)
                     FX[FXGUID[FX_Idx]].DontShowTilNextFullLoop = true
                 elseif FX_Name:find('FXD ReSpectrum') then
-                    local _, FX_Name_After = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
+                    --local _, FX_Name_After = r.TrackFX_GetFXName(LT_Track, FX_Idx + 1)
+                    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+
                     --if FX below is not Pro-Q 3
-                    if string.find(FX_Name_After, 'Pro%-Q 3') == nil then
+                    if string.find(NextFX, 'Pro%-Q 3') == nil then
                         ProQ3.SpectrumDeleteWait = (ProQ3.SpectrumDeleteWait or 0) + 1
                         if ProQ3.SpectrumDeleteWait > FX_Add_Del_WaitTime then
                             if FX_Idx == Sel_Track_FX_Count then
