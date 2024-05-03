@@ -2,6 +2,9 @@
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
+--local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+--local _, FX_Name = r.TrackFX_GetFXName(LT_Track,FX_Idx)
+
 
 FX[FxGUID].CustomTitle = 'Pro-Q 3'
 FX[FxGUID].TitleWidth= 50
@@ -12,7 +15,8 @@ FX[FxGUID].Width = 340
 
 
 -------- Add params-----------
-if Prm.InstAdded[PluginScript.Guid] ~= true and FX.Win_Name[FX_Idx]:find('Pro%-Q 3') then
+if Prm.InstAdded[FxGUID] ~= true and FX_Name:find('Pro%-Q 3') then
+    
     for Band = 1, 24, 1 do
         local gain_P_num =  ((Band - 1) * 13) + 3
         local freq_P_num =  ((Band - 1) * 13) + 2
@@ -246,46 +250,66 @@ if not FX[FxGUID].Collapse then
         SpectrumY = 0
         r.gmem_attach('gmemReEQ_Spectrum')
         if FX[FxGUID].ProQ_ID then
-            r.gmem_write(FX[FxGUID].ProQ_ID, FX_Idx)
+            if FX_Idx > 0x2000000 then 
+                r.gmem_write(FX[FxGUID].ProQ_ID, FX_Idx - 0x2000000 )
+
+            else 
+                r.gmem_write(FX[FxGUID].ProQ_ID, FX_Idx)
+            end 
         end
 
         ----Get spectrum info
-        -- attach a DIYFXGUID to each PRO Q and use that for spectrums
+        -- attach a DIYFXGUID to each PRO Q and use that for spectrums'
+    
+        local  X_gmem_slot, Y_gmem_slot  
+        if FX_Idx > 0x2000000 then 
+            X_gmem_slot =  (FX_Idx - 0x2000000  + 1) * 1000
+            Y_gmem_slot =  300 + (FX_Idx - 0x2000000  + 1) * 1000
+
+        else 
+            X_gmem_slot =  (FX_Idx + 1) * 1000
+            Y_gmem_slot =  300 + (FX_Idx + 1) * 1000
+        end  -- accounts for in containers
+
+        
+
         if TrkID ~= TrkID_End then
+            
             for i = 2, 249, 1 do
-                r.gmem_write(i + ((FX_Idx + 1) * 1000), 0)
-                r.gmem_write(i + 300 + ((FX_Idx + 1) * 1000), 0)
+                r.gmem_write( i + X_gmem_slot, 0)
+                r.gmem_write( i + Y_gmem_slot, 0)
             end
         end
 
 
+
         for i = 2, 249, 1 do
-            BinY = r.gmem_read(i + ((FX_Idx + 1) * 1000))
-            tx = r.gmem_read(i + 300 + ((FX_Idx + 1) * 1000))
+            BinY = r.gmem_read( i + X_gmem_slot)
+            tx = r.gmem_read( i + Y_gmem_slot)
+
+            if tx then 
+
+                tx = freq_to_x_MyOwn(tx)
+
+                ty = spectrum1_to_y(BinY)
+                ty = ProQ_Ypos_T + ty
+
+                tx = tx + ProQ_Xpos_L
+                if lx == nil then lx = tx end
+
+                tx = round(tx, 0)
 
 
+                if lx ~= tx and i ~= 2 then
+                    im.DrawList_AddQuadFilled(Foreground, lx, B, lx, ly, tx, ty, tx,
+                        B, 0x003535ff)
+                elseif i == 2 then
+                    im.DrawList_AddQuadFilled(Foreground, lx, B, lx, ty, tx, ty, tx,
+                        B, 0x003535ff)
+                end
 
-
-            tx = freq_to_x_MyOwn(tx)
-
-            ty = spectrum1_to_y(BinY)
-            ty = ProQ_Ypos_T + ty
-
-            tx = tx + ProQ_Xpos_L
-            if lx == nil then lx = tx end
-
-            tx = round(tx, 0)
-
-
-            if lx ~= tx and i ~= 2 then
-                im.DrawList_AddQuadFilled(Foreground, lx, B, lx, ly, tx, ty, tx,
-                    B, 0x003535ff)
-            elseif i == 2 then
-                im.DrawList_AddQuadFilled(Foreground, lx, B, lx, ty, tx, ty, tx,
-                    B, 0x003535ff)
+                lx = tx; ly = ty;
             end
-
-            lx = tx; ly = ty;
         end
 
 
@@ -1301,17 +1325,24 @@ if not FX[FxGUID].Collapse then
             ProQ_Xpos_L + ProQ3.Width, ProQ_Ypos_T + ProQ3.H, 0x00000077)
     end
 
-    if ProQ.Analyzer then 
-        if FX.Win_Name[math.max(FX_Idx - 1, 0)]:find('FXD ReSpectrum') then
-            r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
+    if ProQ.Analyzer then   -- if it's using analyzer
+
+        local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+        
+        if PreviousFX:find('FXD ReSpectrum') then
+            r.TrackFX_Show(LT_Track, previous_fxidx, 2)
             if tablefind(Trk[TrkID].PreFX, FxGUID) then
-                r.TrackFX_Delete(LT_Track,FX_Idx - 1)
+                r.TrackFX_Delete(LT_Track,previous_fxidx)
             end
-            SyncAnalyzerPinWithFX(FX_Idx - 1, FX_Idx,
-                FX.Win_Name[math.max(FX_Idx - 1, 0)])
+
+            SyncAnalyzerPinWithFX(previous_fxidx, FX_Idx, PreviousFX)
         else -- if no spectrum is before pro-Q 3
+
             FX[FxGUID].AddEQSpectrumWait = (FX[FxGUID].AddEQSpectrumWait or 0) + 1
             if FX[FxGUID].AddEQSpectrumWait > FX_Add_Del_WaitTime then
+                local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+
+
                 r.gmem_attach('gmemReEQ_Spectrum')
                 r.gmem_write(1, PM.DIY_TrkID[TrkID])
                 FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or math.random(1000000, 9999999)
@@ -1322,6 +1353,7 @@ if not FX[FxGUID].Collapse then
                 if im.IsPopupOpen(ctx, 'Delete FX Layer ', im.PopupFlags_AnyPopupId + im.PopupFlags_AnyPopupLevel) then AnyPopupOpen = true end
 
                 if not tablefind(Trk[TrkID].PostFX, FxGUID) and not tablefind(Trk[TrkID].PreFX, FxGUID) and not AnyPopupOpen then
+
                     r.gmem_attach('gmemReEQ_Spectrum')
                     r.gmem_write(1, PM.DIY_TrkID[TrkID])
                     FX[FxGUID].ProQ_ID = FX[FxGUID].ProQ_ID or
@@ -1329,17 +1361,24 @@ if not FX[FxGUID].Collapse then
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProQ_ID ' .. FxGUID,
                         FX[FxGUID].ProQ_ID, true)
                     r.gmem_write(2, FX[FxGUID].ProQ_ID)
-                    rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 -
-                        FX_Idx)
+                    rv = r.TrackFX_AddByName(LT_Track, 'FXD ReSpectrum', 0, -1000 - FX_Idx)
+                    --[[ table.insert(AddFX.Pos, FX_Idx)
+                    table.insert(AddFX.Name, 'FXD ReSpectrum') ]]
                 end
                 FX[FxGUID].AddEQSpectrumWait = 0
-                r.TrackFX_Show(LT_Track, FX_Idx - 1, 2)
+                local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(previous_fxidx)
+
+
+                if FX_Idx == 0 then previous_fxidx = -1 end 
+                r.TrackFX_Show(LT_Track, previous_fxidx , 2)
                 for i = 0, 16, 1 do
                     --r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, i,0,0)
                     r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, i, 0, 0)
                 end
             end
         end
+        ttp(FX[FxGUID].ProQ_ID)
+
 
         r.gmem_attach('gmemReEQ_Spectrum')
         r.gmem_write(1, PM.DIY_TrkID[TrkID])

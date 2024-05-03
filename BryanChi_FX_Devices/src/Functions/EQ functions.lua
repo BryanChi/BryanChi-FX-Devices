@@ -661,6 +661,7 @@ function x_to_freq(x)
 end
 
 function freq_to_x_MyOwn(y)
+
     Euler = 2.71828182845904523
     return (340 * math.log(y / 10, Euler)) / 8.00636757
 end
