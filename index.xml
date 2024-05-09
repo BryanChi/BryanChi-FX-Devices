@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="7696c4a5c806ae83b53a2e610aa74d50b375be6e" name="FX Devices">
+<index version="1" commit="b997c0b145d5ed023f2faae878130389a4a81055" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <version name="1.0beta10.4.1.2" author="Bryan Chi" time="2023-09-28T13:58:10Z">
@@ -1612,6 +1612,30 @@
         <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/7696c4a5c806ae83b53a2e610aa74d50b375be6e/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
         <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/7696c4a5c806ae83b53a2e610aa74d50b375be6e/BryanChi_FX_Devices/src/Constants.lua</source>
         <source file="src/FXChains/ReaDrum Machine.RfxChain">https://github.com/BryanChi/BryanChi-FX-Devices/raw/7696c4a5c806ae83b53a2e610aa74d50b375be6e/BryanChi_FX_Devices/src/FXChains/ReaDrum%20Machine.RfxChain</source>
+      </version>
+      <version name="1.0beta12" author="Bryan Chi" time="2024-04-18T00:57:38Z">
+        <changelog><![CDATA[- Add option to use native gain reduction values for Pro-C
+- Add option to disable using Respectrum on Pro-Q ]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/BryanChi_FX%20Devices.lua</source>
+      </version>
+    </reapack>
+  </category>
+  <category name="BryanChi_FX_Devices/src/Functions">
+    <reapack name="General Functions.lua" type="script">
+      <version name="1.0Beta 1" time="2024-04-18T00:57:38Z">
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/src/Functions/General%20Functions.lua</source>
+      </version>
+    </reapack>
+    <reapack name="Modulation.lua" type="script">
+      <version name="1.0Beta 2" time="2024-04-18T00:57:38Z">
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
+      </version>
+    </reapack>
+  </category>
+  <category name="Sample Stacker/Functions">
+    <reapack name="General Functions.lua" type="script">
+      <version name="1.0Beta 1" time="2024-04-19T10:02:09Z">
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/b0176a0488d7211fcb2c0320e8b4a656efda5c67/Sample%20Stacker/Functions/General%20Functions.lua</source>
       </version>
     </reapack>
   </category>
