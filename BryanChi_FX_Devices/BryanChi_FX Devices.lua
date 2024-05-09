@@ -1,9 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta12
+-- @version 1.0beta13
 -- @changelog
---  - Add option to use native gain reduction values for Pro-C
---  - Add option to disable using Respectrum on Pro-Q
+--  - make FX Devices compatible with ReaImGui 0.9
+--  - various bug fixes
 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
