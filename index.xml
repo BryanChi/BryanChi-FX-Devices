@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="b997c0b145d5ed023f2faae878130389a4a81055" name="FX Devices">
+<index version="1" commit="23a0c6636faf199c1fd8304d4d66c51116511eb1" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <version name="1.0beta10.4.1.2" author="Bryan Chi" time="2023-09-28T13:58:10Z">
@@ -1617,6 +1617,11 @@
         <changelog><![CDATA[- Add option to use native gain reduction values for Pro-C
 - Add option to disable using Respectrum on Pro-Q ]]></changelog>
         <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/BryanChi_FX%20Devices.lua</source>
+      </version>
+      <version name="1.0beta13" author="Bryan Chi" time="2024-05-09T03:31:40Z">
+        <changelog><![CDATA[- make FX Devices compatible with ReaImGui 0.9
+- various bug fixes]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/23a0c6636faf199c1fd8304d4d66c51116511eb1/BryanChi_FX_Devices/BryanChi_FX%20Devices.lua</source>
       </version>
     </reapack>
   </category>
