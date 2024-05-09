@@ -1,4 +1,4 @@
-r=reaper
+r = reaper
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 
 Added={}

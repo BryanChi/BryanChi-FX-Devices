@@ -1,7 +1,4 @@
 -- @noindex
--- @version 1.0Beta 1
-
-
 
 ProQ3 = { LT_EQBand = {}, GainDrag = {}, Band_UseState = {}, DspRange = {}, SpectrumExist = {}, }
 ProQ3.Width = 340

@@ -1,5 +1,3 @@
--- @version 1.0Beta 2
-
 -- @noindex
 
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }

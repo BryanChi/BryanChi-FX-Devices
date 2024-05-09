@@ -1,5 +1,7 @@
+-- @noindex
+
 -------------General Functions ------------------------------
--- @version 1.0Beta 1
+
 
 ---General functions list
 function msg(...)
@@ -1017,8 +1019,7 @@ end
 
 ---@param time number
 function HideCursor(time)
-    UserOS = r.GetOS()
-    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+    if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
     mx, my = r.GetMousePosition()
@@ -1074,8 +1075,7 @@ function GetFocusedWindow()
 end
 
 function HideCursorTillMouseUp(MouseBtn, triggerKey)
-    UserOS = r.GetOS()
-    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+    if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
@@ -1143,9 +1143,8 @@ function GetMouseDelta(MouseBtn, triggerKey)
 
     if M.StX ~= M.X_now or M.StY ~= M.Y_now then
         local outX, outY = M.X_now - M.StX, M.StY - M.Y_now
-        local UserOS = r.GetOS()
 
-        if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+        if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
         else
             outY = -outY
         end

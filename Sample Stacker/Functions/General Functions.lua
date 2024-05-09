@@ -1,9 +1,4 @@
--------------General Functions ------------------------------
--- @version 1.0Beta 1
-
-r = reaper
-
----General functions list
+-- @noindex
 
 ---@param str string
 function GetFileExtension(str)

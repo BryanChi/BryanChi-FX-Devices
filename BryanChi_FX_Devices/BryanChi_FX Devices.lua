@@ -52,6 +52,7 @@ CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- 
 package.path = CurrentDirectory .. "?.lua;"
 
 r = reaper
+OS = r.GetOS()
 
 function ThirdPartyDeps()
     local ultraschall_path = r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
@@ -156,7 +157,7 @@ PluginScript = {} ---@class PluginScript
 os_separator = package.config:sub(1, 1)
 
 --------------------------==  declare Initial Variables & Functions  ------------------------
-VersionNumber = '1.0beta10.12'
+VersionNumber = '1.0beta13'
 FX_Add_Del_WaitTime = 2
 
 FX_LIST, CAT = ReadFXFile()
@@ -5075,9 +5076,9 @@ if not visible then return end
                                                 local rv, filename = im.GetDragDropPayloadFile(ctx, i)
                                                 if rv then
                                                     FrstSelItm.Style = 'Custom Image'
-                                                    --[[  local UserOS = r.GetOS()
+                                                    --[[  
                                                     local slash = '%\\'
-                                                    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+                                                    if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
                                                         slash = '/'
                                                     end
                                                     local index = filename:match ('^.*()'..slash)
