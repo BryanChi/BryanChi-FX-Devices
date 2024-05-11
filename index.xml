@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="23a0c6636faf199c1fd8304d4d66c51116511eb1" name="FX Devices">
+<index version="1" commit="a5496f262618a12259f6f3f17ed2bd4e14a51a4d" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <version name="1.0beta10.4.1.2" author="Bryan Chi" time="2023-09-28T13:58:10Z">
@@ -1626,11 +1626,6 @@
     </reapack>
   </category>
   <category name="BryanChi_FX_Devices/src/Functions">
-    <reapack name="General Functions.lua" type="script">
-      <version name="1.0Beta 1" time="2024-04-18T00:57:38Z">
-        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/src/Functions/General%20Functions.lua</source>
-      </version>
-    </reapack>
     <reapack name="Modulation.lua" type="script">
       <version name="1.0Beta 2" time="2024-04-18T00:57:38Z">
         <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/911d7b6d08cec2398be61b27b50d4bd58de1ff1a/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
