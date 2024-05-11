@@ -4,7 +4,6 @@
 -- @changelog
 --  - make FX Devices compatible with ReaImGui 0.9
 --  - various bug fixes
-
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
