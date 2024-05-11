@@ -1,5 +1,6 @@
 -------------General Functions ------------------------------
--- @version 1.0Beta 1
+-- @noindex
+
 
 ---General functions list
 function msg(...)

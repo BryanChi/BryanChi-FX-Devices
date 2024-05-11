@@ -1,6 +1,6 @@
 -------------General Functions ------------------------------
--- @version 1.0Beta 1
 
+-- @noindex
 r = reaper
 
 ---General functions list

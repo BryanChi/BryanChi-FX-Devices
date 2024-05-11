@@ -1,4 +1,3 @@
--- @version 1.0Beta 2
 
 -- @noindex
 

@@ -1,3 +1,4 @@
+-- @noindex
 function CreateFont(ImGui)
 
     Arial_20 = ImGui.CreateFont('Arial',20)
