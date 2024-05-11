@@ -26,8 +26,8 @@ ImGui = require 'imgui' '0.9'
 
 
 
-function BuildDataBase()
-    found_dirs,  dirs_array, found_files, files_array = ultraschall.GetAllRecursiveFilesAndSubdirectories( '/Users/b/Completed Music', dir_filter,  dir_case_sensitive, file_filter,  file_case_sensitive )
+function BuildDataBase(PATH)
+    found_dirs,  dirs_array, found_files, files_array = ultraschall.GetAllRecursiveFilesAndSubdirectories( PATH, dir_filter,  dir_case_sensitive, file_filter,  file_case_sensitive )
 
     -- get selected items
     Sel_Itms = {}
@@ -578,7 +578,7 @@ function RandomButtons(MatchedFiles, Mode)
 end
 
 
-files_array, File_Name_No_Path= BuildDataBase()
+files_array, File_Name_No_Path= BuildDataBase('/Volumes/4TB Crucial/Sound Collections')
 
 
 function loop()
