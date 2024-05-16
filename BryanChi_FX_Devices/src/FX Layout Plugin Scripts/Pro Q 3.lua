@@ -1377,7 +1377,7 @@ if not FX[FxGUID].Collapse then
                 end
             end
         end
-        ttp(FX[FxGUID].ProQ_ID)
+
 
 
         r.gmem_attach('gmemReEQ_Spectrum')
