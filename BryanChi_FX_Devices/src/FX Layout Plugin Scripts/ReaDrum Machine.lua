@@ -187,8 +187,6 @@ local function DrawPads(loopmin, loopmax)
   DoubleClickActions(loopmin, loopmax)
 
   for a = loopmin, loopmax do
-    local midi_octave_offset = r.SNM_GetIntConfigVar("midioctoffs", 0)
-    midi_oct_offs = (midi_octave_offset - 1) * 12
     notenum = a - 1
     note_name = getNoteName(notenum + midi_oct_offs)
 
@@ -367,6 +365,7 @@ local w_open, w_closed = 250, def_btn_h + (s_window_x * 2)
 if not FX[FXGUID[FX_Idx]].Collapse then
   CheckKeys()
   UpdatePadID()
+  midi_oct_offs = GetMidiOctOffsSettings()
   local wx, wy = im.GetWindowPos(ctx)
   local w_open, w_closed = 250, def_btn_h + s_window_x * 2 + 10
   local h = 220
