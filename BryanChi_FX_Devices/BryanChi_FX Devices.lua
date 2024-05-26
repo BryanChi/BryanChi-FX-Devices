@@ -45,6 +45,11 @@ r = reaper
 
 OS = r.GetOS()
 
+if not r.ImGui_GetBuiltinPath then
+  r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window", "MISSING DEPENDENCIES", 0)
+  return r.ReaPack_BrowsePackages('dear imgui')
+end
+
 ---@type string
 package.path = r.ImGui_GetBuiltinPath() .. '/?.lua'
 im = require 'imgui' '0.9.1'
