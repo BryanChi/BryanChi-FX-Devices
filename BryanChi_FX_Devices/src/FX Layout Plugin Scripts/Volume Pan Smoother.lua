@@ -25,19 +25,19 @@ ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX
 
 
 
-if not FX[FxGUID].Collapse then
+if not FX[FXGUID[FX_Idx]].Collapse then
     if Prm.InstAdded[PluginScript.Guid] ~= true then
         ----- Declare the parameters here ----------
         --- number in green represents FX Prm Index
-        StoreNewParam(FxGUID, 'Volume', 0 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FXGUID[FX_Idx], 'Volume', 0 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
             1--[[Prm table index]], FX_Idx )       
-        StoreNewParam(FxGUID, 'Pan', 1 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FXGUID[FX_Idx], 'Pan', 1 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
         2--[[Prm table index]] , FX_Idx)       
-        StoreNewParam(FxGUID, 'Pan Law', 2 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
+        StoreNewParam(FXGUID[FX_Idx], 'Pan Law', 2 --[[Prm number]] , FX_Idx, false, 'AddingFromExtState',
         3--[[Prm table index]], FX_Idx )
 
-        Prm.InstAdded[FxGUID] = true
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added','true') --- this line is needed so the parameters will only be added once.
+        Prm.InstAdded[FXGUID[FX_Idx]] = true
+        r.SetProjExtState(0, 'FX Devices', 'FX' .. FXGUID[FX_Idx] .. 'Params Added','true') --- this line is needed so the parameters will only be added once.
     end
     function F_Tp(FX_P)
         return FX.Prm.ToTrkPrm[FxGUID .. FX_P]

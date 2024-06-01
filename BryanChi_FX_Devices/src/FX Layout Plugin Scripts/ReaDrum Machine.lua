@@ -1,9 +1,9 @@
 -- @noindex
 -- @author Suzuki
 -- @link https://forum.cockos.com/showthread.php?t=284566
--- @version 1.6.5
+-- @version 1.5.7
 -- @changelog
--- + Added an indicator to the vertical tab when sample/FX is in a pad and a pad plays note.
+-- # compatible with v0.9 ImGui update
 -- @about ReaDrum Machine is a script which loads samples and FX from browser/arrange into subcontainers inside a container named ReaDrum Machine. 
 
 Pad          = {}
@@ -187,6 +187,8 @@ local function DrawPads(loopmin, loopmax)
   DoubleClickActions(loopmin, loopmax)
 
   for a = loopmin, loopmax do
+    local midi_octave_offset = r.SNM_GetIntConfigVar("midioctoffs", 0)
+    midi_oct_offs = (midi_octave_offset - 1) * 12
     notenum = a - 1
     note_name = getNoteName(notenum + midi_oct_offs)
 
@@ -365,7 +367,6 @@ local w_open, w_closed = 250, def_btn_h + (s_window_x * 2)
 if not FX[FXGUID[FX_Idx]].Collapse then
   CheckKeys()
   UpdatePadID()
-  midi_oct_offs = GetMidiOctOffsSettings()
   local wx, wy = im.GetWindowPos(ctx)
   local w_open, w_closed = 250, def_btn_h + s_window_x * 2 + 10
   local h = 220
@@ -377,8 +378,22 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     
   draw_list = im.GetWindowDrawList(ctx)                  -- 4 x 4 left vertical tab drawing
   f_draw_list = im.GetForegroundDrawList(ctx) 
-  
+  --im.DrawListSplitter_Split(F_SPLITTER, 2)                     -- NUMBER OF Z ORDER CHANNELS
+  --if Pad[a] then
+  --  im.DrawListSplitter_SetCurrentChannel(SPLITTER, 1)       -- SET HIGHER PRIORITY TO DRAW FIRST
+  --  local x, y = im.GetCursorPos(ctx)
+  --  im.DrawList_AddRectFilled(f_draw_list, 100, 100, 100, 100, 0x654321FF)
+  --end
+  --im.DrawListSplitter_SetCurrentChannel(F_SPLITTER, 0)       -- SET LOWER PRIORITY TO DRAW AFTER
   local x, y = im.GetCursorPos(ctx)
+  for ci = 0, 8 * (hy - 18), hy - 15.5 do
+    for bi = 0, 15, 5 do
+      for i = 0, 15, 5 do
+        im.DrawList_AddRectFilled(f_draw_list, wx + x + i + 1, wy + y + bi + ci - 5, wx + x + 4 + i, wy + y - 1 + bi + ci,
+        (RDM_VTab or CustomColorsDefault.RDM_VTab))
+      end
+    end
+  end
     
   local _, n = r.GetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU")
   if n ~= nil then
@@ -388,26 +403,10 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   im.SetCursorPos(ctx, x, y - 7)
   if im.BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100) then   -- vertical tab
     for i = 1, 8 do
-      im.SetCursorPos(ctx, 3,  y + 145 - (i - 1) * 24 - 6)
+      im.SetCursorPos(ctx, 0, (y) * (i / 1.3  - 0.75) + 0.75 * (i - 1))
       local rv = im.InvisibleButton(ctx, "B" .. i, 20, 20)
       local xs, ys = im.GetItemRectMin(ctx)
       local xe, ye = im.GetItemRectMax(ctx)
-      for hi = 1, 4 do
-        for vi = 1, 4 do
-          local num = (i - 1) * 16 + (hi - 1) * 4 + vi
-          if Pad[num] and Pad[num].Filter_ID then -- flash pad
-            local rv = r.TrackFX_GetParam(LT_Track, Pad[num].Filter_ID, 1)
-            if rv == 1 then
-              rect_color = 0xffd700ff
-            else
-              rect_color = 0xffffffff
-            end
-          else
-            rect_color = (RDM_VTab or CustomColorsDefault.RDM_VTab)
-          end
-          im.DrawList_AddRectFilled(draw_list, xs + 5 * (vi - 1), ye - 5 * (hi - 1), xs + 4 + 5 * (vi - 1), ye - 4 - 5 * (hi - 1), rect_color)
-        end
-      end
       if rv then
         FX[FxGUID].LAST_MENU = RememberTab(FX[FxGUID].LAST_MENU, i)
       end
@@ -425,7 +424,8 @@ if not FX[FXGUID[FX_Idx]].Collapse then
       end
       HighlightHvredItem()
       if FX[FxGUID].LAST_MENU == i then 
-        Highlight_Itm(draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
+        --im.DrawListSplitter_SetCurrentChannel(SPLITTER, 1)
+        Highlight_Itm(f_draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
     end
     im.EndChild(ctx)
@@ -434,13 +434,13 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   if FX[FxGUID].LAST_MENU then       -- Open pads manu
     im.SetCursorPos(ctx, x + w_closed - 10, y - 7)
     if im.BeginChild(ctx, "child_menu", w_open + 250, h + 88) then
-      local high = 0 + 16 * (FX[FxGUID].LAST_MENU)
-      local low = 0 + 16 * (FX[FxGUID].LAST_MENU - 1) + 1
+      local high = 128 - 16 * (FX[FxGUID].LAST_MENU - 1 )
+      local low = 128 - 16 * (FX[FxGUID].LAST_MENU) + 1 
       openpad = DrawPads(low, high)
       im.EndChild(ctx)
     end
   end
-
+  --im.DrawListSplitter_Merge(SPLITTER)  -- MERGE EVERYTHING FOR RENDER
   if FX[FxGUID].OPEN_PAD == openpad and openpad then
       
     im.SetCursorPos(ctx, 340 + 5,0)
@@ -450,6 +450,10 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     
     local x, y = im.GetCursorScreenPos(ctx)
 
+      --[[ im.DrawList_AddLine(WDL, x, y, x, y+220, 0x123456ff, 2 )
+      im.DrawList_AddLine(WDL, x1-2, y, x1-2, y+220, 0x123456ff, 2 )
+      im.DrawList_AddLine(WDL, x1, y, x, y, 0x123456ff, 2 )
+      im.DrawList_AddLine(WDL, x1, y+220-1, x, y+220-1, 0x123456ff, 2 ) ]]
     im.DrawList_AddRect(f_draw_list, x1-2, y1, x, y + 220 - 1, 0x123456ff, nil, nil, 2) -- leftover remains when pad is moved while opening fx inside pad
   end
   im.EndGroup(ctx)
