@@ -37,22 +37,27 @@
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   [main] src/FXD - Record Last Touch.lua
-
 -- @about
 --   Please check the forum post for info:
 --   https://forum.cockos.com/showthread.php?t=263622
--- dofile("/home/antoine/Documents/Experiments/lua/debug_connect.lua")
+
+r = reaper
+
+OS = r.GetOS()
+
+if not r.ImGui_GetBuiltinPath then
+  r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window", "MISSING DEPENDENCIES", 0)
+  return r.ReaPack_BrowsePackages('dear imgui')
+end
 
 ---@type string
-package.path = reaper.ImGui_GetBuiltinPath() .. '/?.lua'
-im = require 'imgui' '0.9.0.2'
+package.path = r.ImGui_GetBuiltinPath() .. '/?.lua'
+im = require 'imgui' '0.9.1'
 
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 
-r = reaper
-
-function ThirdPartyDeps()
+local function ThirdPartyDeps()
     local ultraschall_path = r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
     local readrum_machine = r.GetResourcePath() ..
         "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
@@ -138,19 +143,17 @@ end
 
 if ThirdPartyDeps() then return end
 
-
-
-require("src.Functions.General Functions")
+require("src.Constants")
 require("src.Functions.EQ functions")
-require("src.Functions.Layout Editor functions")
+require("src.Functions.Filesystem_utils")
 require("src.Functions.FX Layering")
+require("src.Functions.General Functions")
+require("src.Functions.GUI")
+require("src.Functions.Layout Editor functions")
 require("src.Functions.Modulation")
 require("src.Functions.Theme Editor Functions")
-require("src.Functions.Filesystem_utils")
-require("src.Constants")
 
 PluginScript = {} ---@class PluginScript
-
 
 os_separator = package.config:sub(1, 1)
 
@@ -1751,31 +1754,24 @@ if not visible then return end
         end
     end
 
-
-
     if im.IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = toggle(Cont_Param_Add_Mode) end
 
     local drawlist = im.GetWindowDrawList(ctx)
-    local rv = im.InvisibleButton(ctx, 'Automation##Trim/Read', 20, 20)
-    DrawListButton(drawlist, "E", 0x262626ff, false, true, icon1_middle)
+    local env_color = GetEnvelopeColor(LT_Track)
+    local rv = HoverHighlightButton(0x00, "##Automation", 20, 20)
+    DrawListButton(drawlist, "E", env_color, false, true, icon1_middle)
+    ChangeAutomationModeByWheel(LT_Track)
     if rv then
-        r.Undo_BeginBlock()
-        r.SetTrackAutomationMode(LT_Track, 0)
-        r.Undo_EndBlock('Set track automation mode (Trim/Read)', -1)
+        AutomationMode = {"Trim/Read", "Read", "Touch", "Write", "Latch", "Latch Preview"}
+        im.OpenPopup(ctx, 'automation_popup')
     end
-    local rv = im.InvisibleButton(ctx, 'Automation##Touch', 20, 20)
-    DrawListButton(drawlist, "E", 0xffff00ff, false, true, icon1_middle)
-    if rv then
-        r.Undo_BeginBlock()
-        r.SetTrackAutomationMode(LT_Track, 2)
-        r.Undo_EndBlock('Set track automation mode (Touch)', -1)
-    end
-    local rv = im.InvisibleButton(ctx, 'Automation##Latch Preview', 20, 20)
-    DrawListButton(drawlist, "E", 0x0467ffff, false, true, icon1_middle)
-    if rv then
-        r.Undo_BeginBlock()
-        r.SetTrackAutomationMode(LT_Track, 5)
-        r.Undo_EndBlock('Set track automation mode (Latch Preview)', -1)
+    if im.BeginPopup(ctx, 'automation_popup') then
+        for k, v in ipairs(AutomationMode) do
+            if im.Selectable(ctx, v) then
+                r.SetTrackAutomationMode(LT_Track, k - 1)
+            end
+        end
+        im.EndPopup(ctx)
     end
 
     if FX.LayEdit then
@@ -5074,9 +5070,9 @@ if not visible then return end
                                                 local rv, filename = im.GetDragDropPayloadFile(ctx, i)
                                                 if rv then
                                                     FrstSelItm.Style = 'Custom Image'
-                                                    --[[  local UserOS = r.GetOS()
+                                                    --[[
                                                     local slash = '%\\'
-                                                    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+                                                    if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
                                                         slash = '/'
                                                     end
                                                     local index = filename:match ('^.*()'..slash)
