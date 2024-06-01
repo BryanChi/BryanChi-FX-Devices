@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="8185866aa04127e8937c5453552e79ade7e99715" name="FX Devices">
+<index version="1" commit="a59befa109c02751ccde3d0e952379391b92111f" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <version name="1.0beta10.4.1.2" author="Bryan Chi" time="2023-09-28T13:58:10Z">
