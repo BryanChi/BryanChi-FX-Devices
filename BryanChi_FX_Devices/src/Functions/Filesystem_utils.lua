@@ -70,9 +70,8 @@ end
 ---@return string | nil
 function CopyImageFile(filename, subfolder)
   if filename then
-    local UserOS = r.GetOS()
     local slash = '%\\'
-    if UserOS == "OSX32" or UserOS == "OSX64" or UserOS == "macOS-arm64" then
+    if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
       slash = '/'
     end
     local index = filename:match('^.*()' .. slash)
