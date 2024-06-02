@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.2
+-- @version 1.0beta13.3
 -- @changelog
 --  - make FX Devices compatible with ReaImGui 0.9
 --  - various bug fixes
