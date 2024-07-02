@@ -84,10 +84,8 @@ local function DnD_PLink_SOURCE(FX_Idx, P_Num)
         local click_pos = { im.GetMouseClickedPos(ctx, 1) }
         im.DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1], mouse_pos[2],
             PLink or CustomColorsDefault.PLink, 4.0) -- Draw a line between the button and the mouse cursor
-        lead_fxid =
-            FX_Idx                                   -- storing the original fx id
-        fxidx =
-            FX_Idx                                   -- to prevent an error in layout editor function by not changing FX_Idx itself
+        lead_fxid = FX_Idx                                   -- storing the original fx id
+        fxidx = FX_Idx                                   -- to prevent an error in layout editor function by not changing FX_Idx itself
         lead_paramnumber = P_Num
         local ret, _ = r.TrackFX_GetNamedConfigParm(LT_Track, lead_fxid, "parent_container")
         local rev = ret
