@@ -3611,7 +3611,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     im.SameLine(ctx, nil, 0)
 
                     Dvdr.Width[TblIdxForSpace] = 0
-                    im.EndDragDropTarget(ctx)
                 else
                     HighlightSelectedItem(0xffffff22, nil, 0, L, T, R, B, h, w, 0, 0, 'GetItemRect', Foreground)
 
@@ -3666,6 +3665,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         MoveFX(payload, copypos, false)
                     end
                     im.SameLine(ctx, nil, 0)
+
                 end
             elseif Payload_Type == 'FX Layer Repositioning' then -- FX Layer Repositioning
                 local FXGUID_RackMixer = r.TrackFX_GetFXGUID(LT_Track, DragFX_ID)
@@ -3682,7 +3682,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     DontAllowDrop = true
                     im.SameLine(ctx, nil, 0)
                     Dvdr.Width[TblIdxForSpace] = 0
-                    im.EndDragDropTarget(ctx)
+
 
                     --[[  ]]
                     Dvdr.Width[FX_Idx] = 0
@@ -3754,8 +3754,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
                 im.PopStyleColor(ctx)
 
-                im.EndDragDropTarget(ctx)
             end
+            im.EndDragDropTarget(ctx)
         else
             Dvdr.Width[TblIdxForSpace] = 0
             Dvdr.Clr[ClrLbl] = 0x131313ff
