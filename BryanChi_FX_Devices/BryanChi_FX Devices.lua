@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.32
+-- @version 1.0beta13.4
 -- @changelog
 --  - Install all deps in one go instead prompting user 1 by 1
 -- @provides
