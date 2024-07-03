@@ -2,8 +2,7 @@
 -- @author Bryan Chi
 -- @version 1.0beta13.3
 -- @changelog
---  - make FX Devices compatible with ReaImGui 0.9
---  - various bug fixes
+--  - Install all deps in one go instead prompting user 1 by 1
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -46,8 +45,9 @@ r = reaper
 OS = r.GetOS()
 
 if not r.ImGui_GetBuiltinPath then
-  r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window", "MISSING DEPENDENCIES", 0)
-  return r.ReaPack_BrowsePackages('dear imgui')
+    r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window",
+        "MISSING DEPENDENCIES", 0)
+    return r.ReaPack_BrowsePackages('dear imgui')
 end
 
 ---@type string
@@ -71,11 +71,11 @@ local function ThirdPartyDeps()
 
     if n:match("^7%.") then
         fx_browser = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
-        fx_browser_reapack = 'sexan fx browser parser v7'
+        fx_browser_reapack = '"sexan fx browser parser v7"'
     else
         fx_browser = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
         fx_browser_v6_path = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
-        fx_browser_reapack = 'sexan fx browser parser v6'
+        fx_browser_reapack = '"sexan fx browser parser v6"'
     end
     --local fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
     --local fx_browser_v7_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
@@ -103,40 +103,36 @@ local function ThirdPartyDeps()
     end
 
     if not reapack_process then
+        local deps = {}
         -- FX BROWSER
         if r.file_exists(fx_browser) then
             dofile(fx_browser)
         else
-            r.ShowMessageBox("Sexan FX BROWSER is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            r.ReaPack_BrowsePackages(fx_browser_reapack)
-            return 'error Sexan FX BROWSER'
+            deps[#deps + 1] = fx_browser_reapack
         end
         -- js extension
         if r.APIExists("JS_ReaScriptAPI_Version") then
             local js_extension = true
         else
-            r.ShowMessageBox("js Extension is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
-            r.ReaPack_BrowsePackages('js_ReascriptAPI')
-            return 'error js Extension'
+            deps[#deps + 1] = '"js_ReascriptAPI"'
         end
         -- ReaDrum Machine
         if r.file_exists(readrum_machine) then
             local found_readrum_machine = true
         else
-            r.ShowMessageBox("ReaDrum Machine is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            r.ReaPack_BrowsePackages('readrum machine')
-            return 'error Suzuki ReaDrum Machine'
+            deps[#deps + 1] = '"readrum machine"'
         end
         -- ULTRASCHALL
         if r.file_exists(ultraschall_path) then
             dofile(ultraschall_path)
         else
-            r.ShowMessageBox("Ultraschall API is needed.\nPlease Install it in next window", "MISSING DEPENDENCIES",
-                0)
-            r.ReaPack_BrowsePackages('ultraschall')
-            return 'error ultraschall'
+            deps[#deps + 1] = '"ultraschall"'
+        end
+
+        if #deps ~= 0 then
+            r.ShowMessageBox("Need Additional Packages.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
+            r.ReaPack_BrowsePackages(table.concat(deps, " OR "))
+            return true
         end
     end
 end
@@ -675,7 +671,6 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
         end
         if SpaceIsBeforeRackMixer == 'SpcInBS' then
-
             DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
         end
         if SpcIsInPre then
@@ -802,9 +797,8 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             end
 
             if im.IsKeyPressed(ctx, im.Key_Enter) then
-
                 table.insert(AddFX.Pos, FX_Idx)
-                table.insert(AddFX.Name,filtered_fx[ADDFX_Sel_Entry])
+                table.insert(AddFX.Name, filtered_fx[ADDFX_Sel_Entry])
                 --r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
                 LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
                 ADDFX_Sel_Entry = nil
@@ -888,9 +882,9 @@ end
 
 local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
 script_folder       = script_folder .. '/src'
-icon1         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
-icon1_middle   = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
-icon1_small   = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
+icon1               = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
+icon1_middle        = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
+icon1_small         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
 
 local function attachImagesAndFonts()
     Img = {
@@ -903,7 +897,7 @@ local function attachImagesAndFonts()
         Sine   = im.CreateImage(CurrentDirectory .. '/src/Images/sinewave.png'),
     }
     for i = 6, 64, 1 do
-      _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)
+        _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)
     end
     System_Font = im.CreateFont('sans-serif', 14)
     im.Attach(ctx, System_Font)
@@ -1134,20 +1128,20 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
             for Fx_P in ipairs(FX[FxGUID]) do
+                local rv, V_before = r.GetSetMediaTrackInfo_String(Track,
+                    'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
 
-                local rv , V_before = r.GetSetMediaTrackInfo_String(Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
-
-                if rv  then FX[FxGUID][Fx_P].V  = tonumber(V_before) end 
+                if rv then FX[FxGUID][Fx_P].V = tonumber(V_before) end
 
 
                 --msg(tostring(FX[FxGUID][Fx_P].V))
 
 
-                
-                --if FX[FxGUID][Fx_P] then msg(type(FX[FxGUID][Fx_P])) end 
- 
+
+                --if FX[FxGUID][Fx_P] then msg(type(FX[FxGUID][Fx_P])) end
+
                 local ParamX_Value = 'Param' ..
-                    tostring(FX[FxGUID][Fx_P].Name) .. 
+                    tostring(FX[FxGUID][Fx_P].Name) ..
                     'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
                 ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
                 _G[ParamX_Value] = ParamValue_At_Script_Start
@@ -1376,7 +1370,7 @@ function loop()
 
 
 
-if not visible then return end 
+    if not visible then return end
     VP.w, VP.h = im.Viewport_GetSize(Viewport)
     VP.FDL = VP.FDL or im.GetForegroundDrawList(ctx)
     VP.X, VP.Y = im.GetCursorScreenPos(ctx)
@@ -1425,9 +1419,9 @@ if not visible then return end
 
         im.DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2, 0xffffffff,
             'Select a track to start')
-            return
+        return
     end
-                    -- of if LT_Track
+    -- of if LT_Track
     r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
 
 
@@ -1443,7 +1437,6 @@ if not visible then return end
     end
 
     local function Add_Del_Move_FX_At_Begining_of_Loop()
-
         ------- Add FX ---------
         for i, v in ipairs(AddFX.Name) do
             if v:find('FXD Gain Reduction Scope') then
@@ -1487,8 +1480,6 @@ if not visible then return end
         ----- Del FX ------
         if Sel_Track_FX_Count then
             for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-                
-
                 local function Do(FX_Idx)
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
                     local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
@@ -1499,40 +1490,38 @@ if not visible then return end
                         end
                     end
                     if FX_Name == 'JS: FXD Split to 4 channels' then
-
                         if string.find(NextFX, 'Pro%-C 2') == nil and not AddFX.Name[1] then
                             r.TrackFX_Delete(LT_Track, FX_Idx)
                         end
                         local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
                         local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
-    
+
                         if ProC_pin ~= SplitPin then
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
                             local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
-    
+
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
                             r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
                         end
                     end
-                end  
-
-                local is_container , container_count= r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
-
-                if is_container then 
-                    for i= 1 , container_count , 1 do 
-                        local Idx= tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.'..i)))
-                        if Idx then 
-                        Do(Idx)
-                        end 
-                    end 
-                else 
-                    Do(FX_Idx)
-
                 end
-               
+
+                local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
+
+                if is_container then
+                    for i = 1, container_count, 1 do
+                        local Idx = tonumber(select(2,
+                            r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
+                        if Idx then
+                            Do(Idx)
+                        end
+                    end
+                else
+                    Do(FX_Idx)
+                end
             end
         end
 
@@ -1672,12 +1661,12 @@ if not visible then return end
         im.PushStyleColor(ctx, im.Col_SliderGrab, 0x808080ff)
         im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x808080ff) ]]
 
-        --[[if Use_SystemFont then
+    --[[if Use_SystemFont then
             Font = System_Font
         else]]
-            Font = Font_Andale_Mono
-        --end
-        im.PushFont(ctx, Font)
+    Font = Font_Andale_Mono
+    --end
+    im.PushFont(ctx, Font)
 
 
 
@@ -1710,7 +1699,8 @@ if not visible then return end
             QuestionHelpObject('Make horizontal scroll behavior reversed', im.HoveredFlags_Stationary)
             _, Ctrl_Scroll = im.Checkbox(ctx, "Ctrl Scroll", Ctrl_Scroll)
             SL()
-            QuestionHelpObject('Use ctrl + scroll to scroll horizontally and scroll to adjust parameters.', im.HoveredFlags_Stationary)
+            QuestionHelpObject('Use ctrl + scroll to scroll horizontally and scroll to adjust parameters.',
+                im.HoveredFlags_Stationary)
             _, ProC.GR_NATIVE = im.Checkbox(ctx, 'Use Native Gain Reduction for Pro-C', ProC.GR_NATIVE)
             _, ProQ.Analyzer = im.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
             --_, Use_SystemFont = im.Checkbox(ctx, 'Use System Font', Use_SystemFont)
@@ -1762,7 +1752,7 @@ if not visible then return end
     DrawListButton(drawlist, "E", env_color, false, true, icon1_middle)
     ChangeAutomationModeByWheel(LT_Track)
     if rv then
-        AutomationMode = {"Trim/Read", "Read", "Touch", "Write", "Latch", "Latch Preview"}
+        AutomationMode = { "Trim/Read", "Read", "Touch", "Write", "Latch", "Latch Preview" }
         im.OpenPopup(ctx, 'automation_popup')
     end
     if im.BeginPopup(ctx, 'automation_popup') then
@@ -2713,14 +2703,16 @@ if not visible then return end
 
 
                     SL(nil, 30)
-                    local rv = im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint)
+                    local rv = im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG,
+                        ClrTint)
                     TooltipUI("Save LFO shape as preset", im.HoveredFlags_Stationary)
                     if rv then
                         LFO.OpenSaveDialog = Macro
                     end
 
                     SL()
-                    local rv = im.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz * 2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint)
+                    local rv = im.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz * 2, BtnSz, nil, nil, nil,
+                        nil, 0xffffff00, ClrTint)
                     TooltipUI("Open Shape preset window", im.HoveredFlags_Stationary)
                     if rv then
                         if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end
@@ -4129,7 +4121,7 @@ if not visible then return end
         end
     end
 
-    MainWin_Flg = im.WindowFlags_HorizontalScrollbar + FX_DeviceWindow_NoScroll 
+    MainWin_Flg = im.WindowFlags_HorizontalScrollbar + FX_DeviceWindow_NoScroll
 
     if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 240, nil, MainWin_Flg) then
         ------------------------------------------------------
@@ -4221,7 +4213,7 @@ if not visible then return end
                         createFXWindow(FX_Idx)
                         local rv, inputPins, outputPins = r.TrackFX_GetIOSize(LT_Track, FX_Idx)
                     end
-                    
+
                     local function Layout_Edit()
                         if FX.LayEdit == FXGUID[FX_Idx] then
                             im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
@@ -5009,7 +5001,8 @@ if not visible then return end
                                                 SL()
                                                 local LH = im.GetTextLineHeight(ctx)
                                                 local rv = im.Button(ctx, '##%', 20, 20) -- bin icon
-                                                DrawListButton(WDL, '%', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false) -- trash bin
+                                                DrawListButton(WDL, '%', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil,
+                                                    true, icon1_middle, false)           -- trash bin
                                                 if rv then
                                                     table.remove(FX[FxGUID][Itm].ManualValuesFormat, i)
                                                     table.remove(FX[FxGUID][Itm].ManualValues, i)
@@ -5329,7 +5322,7 @@ if not visible then return end
                                     ---@param BtnTitle string
                                     ---@param ShowCondition string "ShowCondition"..number
                                     local function Condition(ConditionPrm, ConditionPrm_PID, ConditionPrm_V,
-                                                                ConditionPrm_V_Norm, BtnTitle, ShowCondition)
+                                                             ConditionPrm_V_Norm, BtnTitle, ShowCondition)
                                         if im.Button(ctx, BtnTitle) then
                                             if Mods == 0 then
                                                 for i, v in pairs(LE.Sel_Items) do
@@ -5578,7 +5571,7 @@ if not visible then return end
 
                                             if rv then
                                                 local function AddProp(ShownName, Name, width, sl, defaultV, stepSize,
-                                                                        min, max, format)
+                                                                       min, max, format)
                                                     if ShownName then
                                                         im.Text(ctx, ShownName)
                                                         SL()
@@ -5697,7 +5690,7 @@ if not visible then return end
                                                     end ]]
 
                                                     local function AddVal(Name, defaultV, stepSize, min, max, format,
-                                                                            NextRow)
+                                                                          NextRow)
                                                         local Column = 1
                                                         if Name:find('_VA') then Column = 2 end
                                                         im.TableSetColumnIndex(ctx, Column)
@@ -6122,12 +6115,11 @@ if not visible then return end
                             PopClr(ctx, 2)
                         end
                     end
-                    
-                    Layout_Edit()
 
+                    Layout_Edit()
                 end
 
-                
+
                 if --[[FX Layer Window ]] string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then --!!!!  FX Layer Window
                     if not FX[FxGUID].Collapse then
                         FXGUID_RackMixer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -7261,7 +7253,7 @@ if not visible then return end
 
 
                             function DropFXintoBS(FxID, FxGUID_BS, Band, Pl, DropDest, DontMove) --Pl is payload    --!!!! Correct drop dest!!!!
-                                if not FxID then return end 
+                                if not FxID then return end
                                 FX[FxID] = FX[FxID] or {}
 
                                 if FX.InLyr[FxID] then --- move fx out of Layer
@@ -7419,12 +7411,12 @@ if not visible then return end
                                             end
                                         end
                                     elseif Payload_Type == 'DND ADD FX' then
-                                        im.DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos,0xffffff66)
-                                        
-                                        if im.IsMouseReleased(ctx, 0) then
+                                        im.DrawList_AddRectFilled(WDL, WinL, CrossPos, WinR, Nxt_CrossPos, 0xffffff66)
 
+                                        if im.IsMouseReleased(ctx, 0) then
                                             local InsPos = Find_InsPos()
-                                            local rv, type, payload, is_preview, is_delivery = r.ImGui_GetDragDropPayload(ctx)
+                                            local rv, type, payload, is_preview, is_delivery = r
+                                                .ImGui_GetDragDropPayload(ctx)
                                             local id = r.TrackFX_AddByName(LT_Track, payload, false, -1000 - InsPos - 1)
                                             local FXid = r.TrackFX_GetFXGUID(LT_Track, id)
                                             DropFXintoBS(FXid, FxGUID, i, id, FX_Idx, 'DontMove')
@@ -7999,8 +7991,6 @@ if not visible then return end
                 end --  for if FX_Name ~='JS: FXD (Mix)RackMixer'
 
                 If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
-
-
             end
 
 
@@ -8044,7 +8034,6 @@ if not visible then return end
         end --for repeat as many times as FX instances
 
         local function Detect_If_FX_Deleted()
-
             for i = 0, #FXGUID do
                 local FXid = r.TrackFX_GetFXGUID(LT_Track, i)
 
@@ -8059,8 +8048,6 @@ if not visible then return end
         end
 
         local function When_User_Swtich_Track()
-
-
             --when user switch selected track...
             if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                 Sendgmems = nil
@@ -8113,7 +8100,6 @@ if not visible then return end
                     Sendgmems = true
                 end
             end
-
         end
 
 
