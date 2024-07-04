@@ -161,7 +161,6 @@ function PDefer(func)
         local status, err = xpcall(func, debug.traceback)
         if not status then
             PrintTraceback(err)
-            Release()
         end
     end)
 end
