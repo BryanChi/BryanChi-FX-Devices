@@ -1000,17 +1000,24 @@ end
 
 -------- FX Related --------
 
-function AddMacroJSFX()
+function AddMacroJSFX(FXname, InsertPos)
+    local name = FXname or 'FXD Macros'
+    local pos = InsertPos or 0
+
     local MacroGetLT_Track = r.GetLastTouchedTrack()
-    MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, 0)
+    local MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, name, 0--[[RecFX]], pos)
+    
     if MacrosJSFXExist == -1 then
-        r.TrackFX_AddByName(MacroGetLT_Track, 'FXD Macros', 0, -1000)
+        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, -1000-InsertPos)
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else
         return true
     end
 end
+
+
+
 
 function GetLTParam()
     LT_Track = r.GetLastTouchedTrack()

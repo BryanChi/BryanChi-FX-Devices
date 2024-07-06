@@ -8,6 +8,7 @@ FX[FxGUID].CustomTitle = 'Container'
 FX[FxGUID].Width = 35
 FX[FxGUID].V_Win_Btn_Height = 130 
 FX[FxGUID].Cont_Collapse = FX[FxGUID].Cont_Collapse or 0
+local fx = FX[FxGUID]
 
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
@@ -30,11 +31,24 @@ if not FX[FxGUID].Collapse then
 
     SyncWetValues(FX_Idx)
     local x, y = im.GetCursorPos(ctx)
+    im.SetCursorPos(ctx, 9, 165)
+    if im.Button(ctx, 'M') then --macro button
+        FX[FxGUID].MacroPageActive = toggle (FX[FxGUID].MacroPageActive)
+        Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
+        table.insert(Trk[TrkID].Container_Id , FxGUID)
+        local _, FirstFX = r.TrackFX_GetFXName(LT_Track, fx.LowestID)
+        if not string.find(FirstFX, 'FXD Containr Macro') then 
+            AddMacroJSFX('FXD Containr Macro',fx.LowestID )
+        end 
+    end 
     im.SetCursorPos(ctx, 3, 135)
-        SyncWetValues(FX_Idx)
+    SyncWetValues(FX_Idx)
 
     Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
+    
+
     im.SetCursorPos(ctx,x,y)
+
 
 end
 
@@ -228,9 +242,8 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
             end
         end
 
-
         
-         --[[ + (    Hv or 0) ]]
+        --[[ + (    Hv or 0) ]]
 
         if FX[FxGUID].Cont_Collapse ==1 then 
 
@@ -243,8 +256,47 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     
 end
 local X , Y = im.GetCursorScreenPos(ctx)
- -- 
- 
+
+
+
+local function  macroPage()
+    if not fx.MacroPageActive then return end 
+
+    local Size = 15 
+    for i = 1 , 8 , 1 do 
+        fx.Mc = fx.Mc or {}
+        fx.Mc[i] = fx.Mc[i] or {}
+    end 
+
+    for i = 0 , 3 , 1 do 
+        local I = i +1
+        local mc = fx.Mc[I]
+
+        im.SetCursorPos(ctx,45,  10+ i * (Size*2+25))
+        
+        mc.TweakingKnob , mc.Val = AddKnob_Simple(ctx , 'Macro'..i,  mc.Val or 0, Size)
+        im.SetNextItemWidth(ctx, Size*3)
+        
+        im.SetCursorPos(ctx,35,  10+ i * (Size*2+25) + Size*1.6 )
+        --im.InputText(ctx,'##Label'..i)
+
+        _,mc.Name =  r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', '', false)
+        local rv, label = im.InputText(ctx, '##'..i, mc.Name or 'Mc ' .. I, im.InputTextFlags_AutoSelectAll)
+        if rv then 
+            mc.Name = label
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', label, true )
+        end 
+
+        if mc.TweakingKnob then 
+            r.TrackFX_SetParamNormalized(LT_Track, fx.LowestID, i, mc.Val)
+        end 
+
+    end 
+
+
+
+end  
+macroPage(fx)
 
 local TB = Upcoming_Container or TREE[Root_ID+1].children
 
@@ -263,7 +315,9 @@ else
     local PreviewW , LastSpc 
 
     for i, v in ipairs(Upcoming_Container or TREE[Root_ID+1].children) do 
-
+        if i == 1 then 
+            fx.LowestID =  v.addr_fxid
+        end 
         local FX_Id = v.addr_fxid
         local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
@@ -286,7 +340,7 @@ else
                 end
 
                 If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
-
+                im.SetCursorPosY(ctx,0)
             
                 if v.children then 
                     Upcoming_Container = v.children

@@ -3773,3 +3773,103 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     return WinW
 end
+
+
+
+
+
+function AddKnob_Simple(ctx, label , p_value ,  Size)
+    local Size = Size or 15
+    local p_value = p_value or 0
+    local radius_outer = Radius or Df.KnobRadius;
+
+
+    local V_Font, Font = Arial_12, Font_Andale_Mono_12
+
+    local Radius       = Radius or 0
+
+    local pos          = { im.GetCursorScreenPos(ctx) }
+    local center       = { pos[1] + radius_outer/2, pos[2] + radius_outer/2 }
+    local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
+
+
+
+    local CenteredLblPos, CenteredVPos
+
+
+
+
+    local line_height = im.GetTextLineHeight(ctx)
+    local draw_list = im.GetWindowDrawList(ctx)
+    local f_draw_list = im.GetForegroundDrawList(ctx)
+
+    local item_inner_spacing = { item_inner_spacing, item_inner_spacing } or
+        { { im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing) } }
+    local mouse_delta = { im.GetMouseDelta(ctx) }
+
+
+    local ANGLE_MIN = 3.141592 * 0.75
+    local ANGLE_MAX = 3.141592 * 2.25
+    local BtnOffset
+
+
+
+
+    local Active = im.InvisibleButton(ctx, label or 'sdfadsf', Size*2, Size*2, ClickButton) -- ClickButton to alternate left/right dragging
+    if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
+        if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
+            im.SetDragDropPayload(ctx, 'my_type', 'my_data')
+            Knob_Active  = true
+            Clr_SldrGrab = getClr(im.Col_Text)
+
+            HideCursorTillMouseUp(0)
+            im.SetMouseCursor(ctx, im.MouseCursor_None)
+            if -mouse_delta[2] ~= 0.0 then
+                local stepscale = 1
+                if Mods == Shift then stepscale = 3 end
+                local step = --[[ (v_max - v_min) ]] 1 / (200.0 * stepscale)
+                p_value = p_value + (-mouse_delta[2] * step)
+
+                p_value = SetMinMax(p_value , 0 , 1 )
+
+                value_changed = true
+                --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                --MvingP_Idx = F_Tp
+                --Tweaking = P_Num .. FxGUID
+            end
+            im.EndDragDropSource(ctx)
+        end
+    elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
+        DnD_PLink_SOURCE(FX_Idx, P_Num)
+    end
+    KNOB = true
+
+    --ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
+    --[[ local focused_window, hwnd = GetFocusedWindow()
+    if focused_window == "FX Devices" then
+        r.JS_Window_SetFocus(hwnd)
+        AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+    end ]]
+
+
+    local radius_outer = Size
+    local t = p_value
+    local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+    local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+    local radius_inner = radius_outer * 0.40
+
+        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,im.GetColor(ctx, im.Col_Button))
+        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
+            center[2] + angle_sin * radius_inner,
+            center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), Clr_SldrGrab,  2)
+        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
+        im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
+        im.DrawList_PathClear(draw_list)
+        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
+            im.GetColor(ctx,
+                is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
+                im.Col_FrameBg))
+
+
+    return Knob_Active, p_value
+end
