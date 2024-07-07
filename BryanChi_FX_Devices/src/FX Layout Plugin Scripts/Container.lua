@@ -9,6 +9,7 @@ FX[FxGUID].Width = 35
 FX[FxGUID].V_Win_Btn_Height = 130 
 FX[FxGUID].Cont_Collapse = FX[FxGUID].Cont_Collapse or 0
 local fx = FX[FxGUID]
+local ModIconSz = 18 
 
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
@@ -18,41 +19,47 @@ DEBUG_W = DEBUG_W or {}
 local Accent_Clr = 0x49CC85ff
 
 
----------------------------------------------
----------TITLE BAR AREA------------------
----------------------------------------------
 
-
-if not FX[FxGUID].Collapse then
-
-    --[[ local nm = Vertical_FX_Name (FX_Name)
-    WindowBtn = im.Button(ctx, nm, 25, 130) ]]
-
-
-    SyncWetValues(FX_Idx)
-    local x, y = im.GetCursorPos(ctx)
-    im.SetCursorPos(ctx, 9, 165)
-    if im.Button(ctx, 'M') then --macro button
+local function Modulation_Icon(LT_Track, slot)
+    im.PushStyleColor ( ctx, im.Col_Button, 0x000000000)
+    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, 0xD3D3D399) then 
         FX[FxGUID].MacroPageActive = toggle (FX[FxGUID].MacroPageActive)
         Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
         table.insert(Trk[TrkID].Container_Id , FxGUID)
-        local _, FirstFX = r.TrackFX_GetFXName(LT_Track, fx.LowestID)
+        if not slot then slot  = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1)end 
+        local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
         if not string.find(FirstFX, 'FXD Containr Macro') then 
-            AddMacroJSFX('FXD Containr Macro',fx.LowestID )
+            AddMacroJSFX('FXD Containr Macro', slot )
         end 
     end 
-    im.SetCursorPos(ctx, 3, 135)
-    SyncWetValues(FX_Idx)
-
-    Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
-    
-
-    im.SetCursorPos(ctx,x,y)
-
-
+    im.PopStyleColor(ctx)
 end
 
+local function titleBar()
 
+
+    if not FX[FxGUID].Collapse then
+
+        SyncWetValues(FX_Idx)
+        local x, y = im.GetCursorPos(ctx)
+        im.SetCursorPos(ctx, 3, 165)
+
+        Modulation_Icon(LT_Track, fx.LowestID)
+    
+        im.SetCursorPos(ctx, 3, 135)
+        SyncWetValues(FX_Idx)
+        
+
+        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
+        
+
+        im.SetCursorPos(ctx,x,y)
+
+
+    end
+end
+
+titleBar()
 FX[FxGUID].BgClr = 0x258551ff
 
 ---------------------------------------------
@@ -335,8 +342,11 @@ else
                 local  diff, Cur_X_ofs
                 if i == 1 then 
                     SL(nil,0)
+                    im.SetCursorPosY(ctx, 0 )
+
                      AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
                     SL(nil,0)
+
                 end
 
                 If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
@@ -361,7 +371,7 @@ else
                 local FX_Id_next = FX_Id + (v.scale or 0)
 
                 if im.IsItemHovered(ctx) then Hover = true end 
-            
+                im.SetCursorPosY(ctx, 0 )
                 LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
                 FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w +( LastSpc or 0)
