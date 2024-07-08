@@ -1008,7 +1008,7 @@ function AddMacroJSFX(FXname, InsertPos)
     local MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, name, 0--[[RecFX]], pos)
     
     if MacrosJSFXExist == -1 then
-        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, -1000-InsertPos)
+        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, -1000-pos)
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else

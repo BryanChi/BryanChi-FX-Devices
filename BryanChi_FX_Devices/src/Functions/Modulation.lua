@@ -272,13 +272,29 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         local M = AssigningMacro
         local IdM = 'Param:' .. tostring(Trk.Prm.Assign) .. 'Macro:' .. AssigningMacro
 
+        function Show_Mod_Range_Value() 
+            if FP.ModAMT and  FP.ModAMT[M] then 
+                if RC then 
+                 _, V_Before = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, P_Num)
+                end 
 
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value+FP.ModAMT[M] )
+
+                local rv, V_After = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, P_Num)
+
+                im.BeginTooltip(ctx)
+                im.SetTooltip(ctx, V_Before .. ' ~ '.. V_After)
+                im.EndTooltip(ctx)
+
+            end 
+        end 
+        Show_Mod_Range_Value() 
         local sizeX, sizeY = im.GetItemRectSize(ctx)
 
         --[[
-                PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
-                Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
-                SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
+            PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
+            Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
+            SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
         local RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
         if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
@@ -315,6 +331,9 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar','', true)
             r.gmem_write(4, 1)
             r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign,  FP.ModAMT[M]) -- tells jsfx the param's mod amount
+        elseif not IsRBtnHeld then 
+            Trk.Prm.Assign = nil 
+       
         end
 
 
