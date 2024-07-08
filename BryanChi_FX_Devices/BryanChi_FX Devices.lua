@@ -1,9 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.4
+-- @version 1.0beta13.5
 -- @changelog
---  - Add error/traceback log on script crash (protected defer call)
---  - Fix crash when script is started and project has no tracks or no track has been selected
+--  - Add Show Modulation range tooltip when right dragging to set modulation range.
+--  - WIP - New Container modualtion feature (not usable yet)
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
