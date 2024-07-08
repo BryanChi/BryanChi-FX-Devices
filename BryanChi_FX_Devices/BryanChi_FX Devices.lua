@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.5
+-- @version 1.0beta13.33
 -- @changelog
 --  - Add Show Modulation range tooltip when right dragging to set modulation range.
 --  - WIP - New Container modualtion feature (not usable yet)
