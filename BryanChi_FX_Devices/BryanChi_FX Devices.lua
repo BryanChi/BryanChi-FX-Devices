@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.33
+-- @version 1.0beta13.34
 -- @changelog
---  - Add Show Modulation range tooltip when right dragging to set modulation range.
---  - WIP - New Container modualtion feature (not usable yet)
+--  - Added missing image file
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -27,6 +26,8 @@
 --   src/Images/sinewave.png
 --   src/Images/save.png
 --   src/Images/trash.png
+--   src/Images/Modulation Icon.png
+--   src/Images/Modulation Icon Hollow.png
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Knobs/FancyBlueKnob_Inverted.png
@@ -431,7 +432,7 @@ BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter',
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
-    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility'
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro'
 }
 UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',

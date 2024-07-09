@@ -280,8 +280,8 @@ local function  macroPage()
         local mc = fx.Mc[I]
 
         im.SetCursorPos(ctx,45,  10+ i * (Size*2+25))
-        
-        mc.TweakingKnob , mc.Val = AddKnob_Simple(ctx , 'Macro'..i,  mc.Val or 0, Size)
+
+        mc.TweakingKnob , mc.Val = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or 0, Size)
         im.SetNextItemWidth(ctx, Size*3)
         
         im.SetCursorPos(ctx,35,  10+ i * (Size*2+25) + Size*1.6 )
@@ -295,15 +295,17 @@ local function  macroPage()
         end 
 
         if mc.TweakingKnob then 
+msg('sadasd')
             r.TrackFX_SetParamNormalized(LT_Track, fx.LowestID, i, mc.Val)
         end 
 
     end 
 
 
+    fx.Width = fx.Width + Size *3.3
 
 end  
-macroPage(fx)
+macroPage()
 
 local TB = Upcoming_Container or TREE[Root_ID+1].children
 
@@ -339,6 +341,8 @@ else
         else       -- if not collapsed
             --FX[FxGUID].BgClr = 0xff22ff44
             local function Render_Normal()
+                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
+                
                 local  diff, Cur_X_ofs
                 if i == 1 then 
                     SL(nil,0)
@@ -348,6 +352,8 @@ else
                     SL(nil,0)
 
                 end
+
+                
 
                 If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
                 im.SetCursorPosY(ctx,0)

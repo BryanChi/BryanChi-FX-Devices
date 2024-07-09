@@ -3152,6 +3152,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
+        im.Dummy(ctx, 0, 0)
+        im.SameLine(ctx, nil, 0)
 
 
         im.EndGroup(ctx)
@@ -3166,8 +3168,14 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                          AdditionalWidth, FX_Idx_in_Container)
     local SpcIsInPre, Hide, SpcInPost, MoveTarget
     local WinW
+    
 
     if FX_Idx == 0 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then FX_Idx = 1 end
+    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    if string.find( FX_Name , 'FXD Containr Macro') then
+
+        return nil
+    end 
 
     --[[ local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx_in_Container or FX_Idx)
     if FindStringInTable(BlackListFXs, FX_Name) then
@@ -3816,12 +3824,13 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
 
 
     local Active = im.InvisibleButton(ctx, label or 'sdfadsf', Size*2, Size*2, ClickButton) -- ClickButton to alternate left/right dragging
+
     if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
         if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
             im.SetDragDropPayload(ctx, 'my_type', 'my_data')
             Knob_Active  = true
             Clr_SldrGrab = getClr(im.Col_Text)
-
+            msg('asd')
             HideCursorTillMouseUp(0)
             im.SetMouseCursor(ctx, im.MouseCursor_None)
             if -mouse_delta[2] ~= 0.0 then
