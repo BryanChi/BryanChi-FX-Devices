@@ -26,7 +26,7 @@
 --   src/Images/sinewave.png
 --   src/Images/save.png
 --   src/Images/trash.png
---   src/Images/Modulation Icon.png
+--   src/Images/Modulation Icon.PNG
 --   src/Images/Modulation Icon Hollow.png
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
