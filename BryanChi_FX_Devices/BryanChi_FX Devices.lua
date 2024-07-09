@@ -18,16 +18,7 @@
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
 --   src/FXChains/ReaDrum Machine.RfxChain
---   src/Images/Analog Knob 1.png
---   src/Images/copy.png
---   src/Images/paste.png
---   src/Images/pin.png
---   src/Images/pinned.png
---   src/Images/sinewave.png
---   src/Images/save.png
---   src/Images/trash.png
---   src/Images/Modulation Icon.png
---   src/Images/Modulation Icon Hollow.png
+--   src/Images/*.png
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/Bitwig.png
 --   src/Images/Knobs/FancyBlueKnob_Inverted.png
