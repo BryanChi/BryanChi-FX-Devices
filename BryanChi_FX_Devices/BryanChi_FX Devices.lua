@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.34
+-- @version 1.0beta13.35
 -- @changelog
 --  - Added missing image file
 -- @provides
