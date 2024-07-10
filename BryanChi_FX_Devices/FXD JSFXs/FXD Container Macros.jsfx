@@ -701,7 +701,7 @@ trkGUID_Num === gmem[2]? (
     P.Inst = gmem[3];    
     Param = gmem[6];
     Macro = gmem[5];
-    a[Param+ Macro*1000] = gmem[Param+ Macro*1000];
+    a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // prm's value before modulation
         
   );
   mode ==2?(   // if User is adjusting atk...  

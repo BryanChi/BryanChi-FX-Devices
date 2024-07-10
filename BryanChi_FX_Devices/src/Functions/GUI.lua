@@ -691,6 +691,25 @@ function BlinkItem(dur, rpt, var, highlightEdge, EdgeNoBlink, L, T, R, B, h, w)
     end
 end
 
+
+function RepeatAtInterval(dur, rpt, FUNCTION)
+    TimeBegin = TimeBegin or r.time_precise()
+    local Now = r.time_precise()
+    if rpt then
+        for i = 0, rpt - 1, 1 do
+            if Now > TimeBegin + dur * i and Now < TimeBegin + dur * (i + 0.5) then -- second blink
+                return true 
+            end
+        end
+    else
+        if Now > TimeBegin and Now < TimeBegin + dur / 2 then
+            return true 
+        elseif Now > TimeBegin + dur / 2 + dur then
+            TimeBegin = r.time_precise()
+        end
+    end
+end
+
 local function extract_enclosed_text(input_string)
     local start, finish, enclosed_text = string.find(input_string, "%[(.-)%]")
     if start then
@@ -3790,6 +3809,8 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
     local Size = Size or 15
     local p_value = p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
+    local Knob_Click, Knob_RC
+
 
 
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
@@ -3801,7 +3822,7 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
 
 
-
+    ClickButton = WhichClick()
     local CenteredLblPos, CenteredVPos
 
 
@@ -3823,14 +3844,14 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
 
 
 
-    local Active = im.InvisibleButton(ctx, label or 'sdfadsf', Size*2, Size*2, ClickButton) -- ClickButton to alternate left/right dragging
+    local Active = im.InvisibleButton(ctx, label or '##', Size*2, Size*2, ClickButton) -- ClickButton to alternate left/right dragging
 
     if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
         if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
             im.SetDragDropPayload(ctx, 'my_type', 'my_data')
             Knob_Active  = true
             Clr_SldrGrab = getClr(im.Col_Text)
-            msg('asd')
+
             HideCursorTillMouseUp(0)
             im.SetMouseCursor(ctx, im.MouseCursor_None)
             if -mouse_delta[2] ~= 0.0 then
@@ -3848,9 +3869,15 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
             end
             im.EndDragDropSource(ctx)
         end
-    elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
-        DnD_PLink_SOURCE(FX_Idx, P_Num)
+        --[[ elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
+        DnD_PLink_SOURCE(FX_Idx, P_Num) ]]
     end
+     
+    if im.IsItemClicked(ctx, 1 ) then 
+        Knob_Click = 2 
+    end 
+
+    if Knob_Active then Knob_Click = 1 end 
     KNOB = true
 
     --ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
@@ -3879,6 +3906,16 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
                 is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
                 im.Col_FrameBg))
 
-
-    return Knob_Active, p_value
+     
+    return Knob_Click, p_value, center
 end
+
+function Draw_Simple_Knobs_Arc (center, clr, radius)
+    local ANGLE_MIN = 3.141592 * 0.75
+    local ANGLE_MAX = 3.141592 * 2.25
+    local draw_list = im.GetWindowDrawList(ctx)
+
+    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius / 2, ANGLE_MIN, ANGLE_MAX)
+    im.DrawList_PathStroke(draw_list, clr, nil, radius * 0.6)
+    im.DrawList_PathClear(draw_list)
+end 

@@ -645,14 +645,17 @@ end
 function FindExactStringInTable(Table, V)
     local found = nil
     local Tab = {}
+    local index
     if V then
         for i, val in pairs(Table) do
             if val == V then
                 found = true
                 table.insert(Tab, i)
+                index = i 
             end
+            
         end
-        if found == true then return true, Tab else return false end
+        if found == true then return true, Tab, index else return false end
     else
         return nil
     end
@@ -1006,9 +1009,9 @@ function AddMacroJSFX(FXname, InsertPos)
 
     local MacroGetLT_Track = r.GetLastTouchedTrack()
     local MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, name, 0--[[RecFX]], pos)
-    
+
     if MacrosJSFXExist == -1 then
-        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, -1000-pos)
+        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, (-1000-pos))
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else

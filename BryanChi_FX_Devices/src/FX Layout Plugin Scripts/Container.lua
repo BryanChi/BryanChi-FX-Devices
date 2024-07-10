@@ -29,7 +29,14 @@ local function Modulation_Icon(LT_Track, slot)
         if not slot then slot  = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1)end 
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
         if not string.find(FirstFX, 'FXD Containr Macro') then 
-            AddMacroJSFX('FXD Containr Macro', slot )
+
+            AddMacroJSFX('JS: FXD Container Macros', slot )
+
+            r.gmem_attach('ContainerMacro')
+            r.gmem_write(0, #Trk[TrkID].Container_Id )
+            r.gmem_write(1, PM.DIY_TrkID[TrkID] )
+            msg(PM.DIY_TrkID[TrkID] )
+
         end 
     end 
     im.PopStyleColor(ctx)
@@ -59,17 +66,62 @@ local function titleBar()
     end
 end
 
-titleBar()
-FX[FxGUID].BgClr = 0x258551ff
+local function  macroPage()
+    if not fx.MacroPageActive then return end 
 
----------------------------------------------
----------Body--------------------------------
----------------------------------------------
+    local Size = 15 
+    for i = 1 , 8 , 1 do 
+        fx.Mc = fx.Mc or {}
+        fx.Mc[i] = fx.Mc[i] or {}
+    end 
+
+    for i = 0 , 3 , 1 do 
+        local I = i +1
+        local mc = fx.Mc[I]
+
+        im.SetCursorPos(ctx,45,  10+ i * (Size*2+25))
+
+        mc.TweakingKnob , mc.Val , mc.center = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or 0, Size)
+        im.SetNextItemWidth(ctx, Size*3)
 
 
-rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
-local WinW = 0 
-local AllW = 0
+        
+        im.SetCursorPos(ctx,35,  10+ i * (Size*2+25) + Size*1.6 )
+        --im.InputText(ctx,'##Label'..i)
+
+        _,mc.Name =  r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', '', false)
+        local rv, label = im.InputText(ctx, '##'..i, mc.Name or 'Mc ' .. I, im.InputTextFlags_AutoSelectAll)
+        if rv then 
+            mc.Name = label
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', label, true )
+        end 
+
+        if mc.TweakingKnob == 1  then 
+            r.TrackFX_SetParamNormalized(LT_Track, fx.LowestID, i, mc.Val)
+        elseif mc.TweakingKnob == 2 then 
+            if not AssignContMacro then 
+                AssignContMacro = i
+                AssignContMacro_FxGuID = FxGUID
+            else AssignContMacro = nil 
+            end 
+        end 
+
+
+        if AssignContMacro == i then 
+            
+            if  RepeatAtInterval(0.2, nil) then 
+                Draw_Simple_Knobs_Arc (mc.center, 0xff22ffff, Size)
+            end 
+        end 
+    end 
+
+    
+
+
+    fx.Width = fx.Width + Size *3.3
+
+end  
+
 
 function CollapseIfTab(FxGUID, FX_Idx)
 
@@ -262,50 +314,22 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     end
     
 end
+titleBar()
+FX[FxGUID].BgClr = 0x258551ff
+
+---------------------------------------------
+---------Body--------------------------------
+---------------------------------------------
+
+rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
+local WinW = 0 
+local AllW = 0
+
 local X , Y = im.GetCursorScreenPos(ctx)
 
 
-
-local function  macroPage()
-    if not fx.MacroPageActive then return end 
-
-    local Size = 15 
-    for i = 1 , 8 , 1 do 
-        fx.Mc = fx.Mc or {}
-        fx.Mc[i] = fx.Mc[i] or {}
-    end 
-
-    for i = 0 , 3 , 1 do 
-        local I = i +1
-        local mc = fx.Mc[I]
-
-        im.SetCursorPos(ctx,45,  10+ i * (Size*2+25))
-
-        mc.TweakingKnob , mc.Val = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or 0, Size)
-        im.SetNextItemWidth(ctx, Size*3)
-        
-        im.SetCursorPos(ctx,35,  10+ i * (Size*2+25) + Size*1.6 )
-        --im.InputText(ctx,'##Label'..i)
-
-        _,mc.Name =  r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', '', false)
-        local rv, label = im.InputText(ctx, '##'..i, mc.Name or 'Mc ' .. I, im.InputTextFlags_AutoSelectAll)
-        if rv then 
-            mc.Name = label
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..I..' Name', label, true )
-        end 
-
-        if mc.TweakingKnob then 
-msg('sadasd')
-            r.TrackFX_SetParamNormalized(LT_Track, fx.LowestID, i, mc.Val)
-        end 
-
-    end 
-
-
-    fx.Width = fx.Width + Size *3.3
-
-end  
 macroPage()
+
 
 local TB = Upcoming_Container or TREE[Root_ID+1].children
 

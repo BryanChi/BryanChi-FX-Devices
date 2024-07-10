@@ -66,7 +66,7 @@ function ButtonDraw(color, center, radius_outer) -- for drawing to clarify which
     end
 end
 
-local function WhichClick() -- to alternate left and right click flags for InvisibleButton
+ function WhichClick() -- to alternate left and right click flags for InvisibleButton
     if im.IsMouseClicked(ctx, 0) then
         ClickButton = im.ButtonFlags_MouseButtonLeft
     elseif im.IsMouseClicked(ctx, 1) then
@@ -916,7 +916,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     if not FxGUID then return end
 
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
-
+    FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
@@ -1030,7 +1030,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         local button_x, button_y = im.GetCursorPos(ctx)
         im.SetCursorPosY(ctx, button_y - (PosB - PosT))
-       -- WhichClick()
+        --WhichClick()
         --[[ im.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
         if ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
             DnD_PLink_SOURCE(FX_Idx, P_Num)

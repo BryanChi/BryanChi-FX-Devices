@@ -126,7 +126,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trig
 
         r.gmem_write(6, CC)
 
-
+        msg(CC)
         AssignToPrmNum = P_Num
 
         r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
@@ -170,9 +170,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if FX[FxGUID][Fx_P].WhichCC then
             local CC = FX[FxGUID][Fx_P].WhichCC
 
-            r.GetSetMediaTrackInfo_String(LT_Track,
-                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',
-                FX[FxGUID][Fx_P].V, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
 
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow = r.time_precise()
@@ -183,7 +181,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", "15") -- 0 based, 15 = Bus 16
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "16") -- 0 based, 0 = Omni
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", "176")   -- 176 is CC
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", CC) -- CC value
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", 160) -- CC value
         end
 
         Tweaking = nil
@@ -263,7 +261,25 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             end
         end
     end
+    local function CalculateModAmt(ModAmt )
+        local RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
+        if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
+        ModAmt = ((MouseDrag / 100) or 0) + (ModAmt or 0)
+        if ModAmt + p_value > 1 then ModAmt = 1 - p_value end
+        if ModAmt + p_value < 0 then ModAmt = -p_value end
+
+
+        if Type == 'Pro-Q' then 
+            local sc = (ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]  )
+            local max = 0.5+ 1/sc/2
+            local min = 0.5- 1/sc/2
+            if ModAmt + p_value > max then ModAmt = max - p_value end
+            if ModAmt + p_value < min then ModAmt = -( p_value-min) end
+        end 
+        return ModAmt
+    end 
     local Vertical
     if Type == 'Vert' then Vertical = 'Vert' end
     if FP then  FP.ModBipolar = FP.ModBipolar or {} end 
@@ -272,48 +288,38 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         local M = AssigningMacro
         local IdM = 'Param:' .. tostring(Trk.Prm.Assign) .. 'Macro:' .. AssigningMacro
 
-        function Show_Mod_Range_Value() 
+        --[[ function Show_Mod_Range_Value() 
             if FP.ModAMT and  FP.ModAMT[M] then 
                 if RC then 
-                 _, V_Before = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, P_Num)
+
+                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "0") 
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0  )
+                    _, V_Before = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, P_Num)
+                    --r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "1") 
                 end 
 
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value+FP.ModAMT[M] )
 
                 local rv, V_After = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, P_Num)
-
+                
                 im.BeginTooltip(ctx)
-                im.SetTooltip(ctx, V_Before .. ' ~ '.. V_After)
+                im.SetTooltip(ctx, (V_Before or '' ).. ' ~ '.. (V_After or ''))
                 im.EndTooltip(ctx)
 
             end 
         end 
-        Show_Mod_Range_Value() 
+        Show_Mod_Range_Value()  ]]
+
+
         local sizeX, sizeY = im.GetItemRectSize(ctx)
 
         --[[
             PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
             Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
             SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
-
-        local RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
-        if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
-        if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
-
         
-        FX[FxGUID][Fx_P].ModAMT[M] = ((MouseDrag / 100) or 0) + (FX[FxGUID][Fx_P].ModAMT[M] or 0)
-
-        if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
-        if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
-
-
-        if Type == 'Pro-Q' then 
-            local sc = (ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]  )
-            local max = 0.5+ 1/sc/2
-            local min = 0.5- 1/sc/2
-            if FP.ModAMT[M] + p_value > max then FP.ModAMT[M] = max - p_value end
-            if FP.ModAMT[M] + p_value < min then FP.ModAMT[M] = -( p_value-min) end
-        end 
+        FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
+         
 
 
         local BipolarOut 
@@ -344,21 +350,14 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     end
 
 
-
+    -- Draw Mod Lines
     if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.ModAMT then
         local offset = 0
         for M, v in ipairs(MacroNums) do
-            if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then
-                --if Modulation has been assigned to params
-                local sizeX, sizeY = im.GetItemRectSize(ctx)
-                local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+            if FP.ModAMT[M] and FP.ModAMT[M] ~= 0 then--if Modulation has been assigned to params
 
                 --- indicator of where the param is currently
-                if not FX[FxGUID][Fx_P].V then
-                    FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-                end
-
-
+                FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
                 DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,FX[FxGUID][Fx_P].V, Vertical, FP, offset)
                 Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
@@ -368,8 +367,89 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         end -- of reapeat for every macro
     end
 
+
+    local function MakeContainerModulationPossible ()
+        if AssignContMacro then 
+            
+            local rv,ContID, Index = FindExactStringInTable(Trk[TrkID].Container_Id , AssignContMacro_FxGuID)
+            
+            Ct= FX[AssignContMacro_FxGuID]
+            
+
+            if  im.IsItemClicked(ctx, 1) then  -- when right click the prm
+                
+                Ct.ModPrm = Ct.ModPrm or  {}
+                local rv, _, Cont_Mod_Prm_id = FindExactStringInTable(Ct.ModPrm , FxGUID.. ' , prm : '.. P_Num)
+                if not rv  then 
+                    table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. P_Num)
+                    Cont_Mod_Prm_id = #Ct.ModPrm
+                end
+                local CC = Cont_Mod_Prm_id
+                FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+                
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "1")   -- 1 active, 0 inactive
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", "-100") -- -100 enables midi_msg*
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", "-1")   -- -1 not parameter link
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus",tostring(15+Index)) --  First Container On track will be midi channel 17 , and next one will be 18 and so on.  0 based, 15 = Bus 16    
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "16") -- 0 based, 0 = Omni
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", "176")   -- 176 is CC
+                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", CC   ) -- CC value 
+                r.gmem_attach('ContainerMacro')
+
+                r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
+                --r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
+    
+                
+
+                r.gmem_write(7, CC) --tells jsfx to retrieve P value
+                r.gmem_write(11000 + CC, p_value) -- tells jsfx the value before modulation
+                AssigningCont_Prm_Mod = CC
+            elseif  AssigningCont_Prm_Mod  then  -- when right dragging a prm
+                r.gmem_attach('ContainerMacro')
+                local M = AssignContMacro+1
+                r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
+                r.gmem_write(3, #Ct.ModPrm) -- tells jsfx how many modded container prm are there 
+
+                if Ct.ModPrm then r.gmem_write(3, #Ct.ModPrm) end  -- Tells jsfx how many modulated prms there are . (eg. if there are 5, then jsfx is sending CC1 ~ 5 and so on )
+                r.gmem_write(5, M) --tells jsfx which macro is user tweaking
+                msg(M)
+                r.gmem_write(6, AssigningCont_Prm_Mod)  -- this tells jsfx which CC (index of modulated prm in a container) is user tweaking
+                FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+                FP.Cont_ModAMT[M] = CalculateModAmt(FP.Cont_ModAMT[M] )
+                r.gmem_write(1000 * M + AssigningCont_Prm_Mod,  FP.Cont_ModAMT[M]) -- tells jsfx the param's mod amount
+               
+
+                    -- Draw Mod Lines
+                if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.ModAMT then
+                    local offset = 0
+                    for M, v in ipairs(MacroNums) do
+                        if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
+
+                            --- indicator of where the param is currently
+                            FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+
+                            DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset)
+                            Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
+                            ParamHasMod_Any = true
+                            offset = offset + OffsetForMultipleMOD
+                        end
+                    end -- of reapeat for every macro
+                end
+                
+            end 
+
+            if not IsRBtnHeld then AssigningCont_Prm_Mod = nil end 
+        end
+    end
+    MakeContainerModulationPossible()
+
     return Tweaking
 end
+
+
+    
+        
+
 
 
 function Get_LFO_Shape_From_File(filename)
