@@ -320,7 +320,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
             im.EndDragDropSource(ctx)
         end
-    elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
+    elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro and not AssignContMacro then -- right drag to link parameters
         DnD_PLink_SOURCE(FX_Idx, P_Num)
     end
     KNOB = true

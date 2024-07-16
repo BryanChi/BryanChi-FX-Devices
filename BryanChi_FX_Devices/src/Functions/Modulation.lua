@@ -262,14 +262,14 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         end
     end
     local function CalculateModAmt(ModAmt )
-        local RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag
+        local RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1); local MouseDrag 
         if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
         if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
         ModAmt = ((MouseDrag / 100) or 0) + (ModAmt or 0)
         if ModAmt + p_value > 1 then ModAmt = 1 - p_value end
         if ModAmt + p_value < 0 then ModAmt = -p_value end
-
+        
 
         if Type == 'Pro-Q' then 
             local sc = (ProQ3['scale' .. ' ID' .. FXGUID[FX_Idx]]  )
@@ -278,6 +278,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             if ModAmt + p_value > max then ModAmt = max - p_value end
             if ModAmt + p_value < min then ModAmt = -( p_value-min) end
         end 
+        im.ResetMouseDragDelta(ctx, 1)
         return ModAmt
     end 
     local Vertical
@@ -317,7 +318,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
             Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
             SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
-        
+
         FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
          
 
@@ -344,7 +345,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
         --if not IsLBtnHeld then r.gmem_write(4, 1) end --tells jsfx that user is changing Macro Mod Amount
-        im.ResetMouseDragDelta(ctx, 1)
+        
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',FP.ModAMT[M], true)
     end
@@ -420,6 +421,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                     r.gmem_write(6, AssigningCont_Prm_Mod)  -- this tells jsfx which CC (index of modulated prm in a container) is user tweaking
                     FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+
                     FP.Cont_ModAMT[M] = CalculateModAmt(FP.Cont_ModAMT[M] )
                     r.gmem_write(1000 * M + AssigningCont_Prm_Mod,  FP.Cont_ModAMT[M]) -- tells jsfx the param's mod amount
                 
