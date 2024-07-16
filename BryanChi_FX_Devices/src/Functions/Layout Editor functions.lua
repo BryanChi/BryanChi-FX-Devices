@@ -734,10 +734,13 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     --if user turn knob on ImGui
     if Tweaking == P_Num .. FxGUID then
         FX[FxGUID][Fx_P].V = p_value
-        if not FP.WhichCC then
+        if not FP.WhichCC and not FP.Cont_Which_CC then
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+            msg('link')
         else
+            msg('unlink')
             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
+            msg(unsetcc)
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
         end
     end

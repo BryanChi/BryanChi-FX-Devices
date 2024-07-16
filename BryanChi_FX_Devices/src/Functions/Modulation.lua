@@ -61,16 +61,20 @@ end
 ---@param FX_Idx integer
 function RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
     if im.IsMouseDoubleClicked(ctx, 1) and im.IsItemClicked(ctx, 1) and Mods == 0 then
-        if FX[FxGUID][Fx_P].ModAMT then
+        local FP = FX[FxGUID][Fx_P]
+        if FP.ModAMT or FP.Cont_ModAMT then
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "0")   -- 1 active, 0 inactive
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", "-100") 
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", "-1")   
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", "0")
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "1")
             for Mc = 1, 8, 1 do
-                if FX[FxGUID][Fx_P].ModAMT[Mc] then
-                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "0")   -- 1 active, 0 inactive
-                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", "-100") 
-                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", "-1")   
-                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", "0")
-                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "1")
-                    FX[FxGUID][Fx_P].ModAMT[Mc] = nil
+                if FP.ModAMT then
+                    FP.ModAMT[Mc] = nil
                 end
+                if FP.Cont_ModAMT then 
+                    FP.Cont_ModAMT[Mc] = nil 
+                end 
             end
         end
         
@@ -401,7 +405,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 --r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
     
                 
-
+                FP.Cont_Which_CC =  CC
                 r.gmem_write(7, CC) --tells jsfx to retrieve P value
                 r.gmem_write(11000 + CC, p_value) -- tells jsfx the value before modulation
                 AssigningCont_Prm_Mod = CC
