@@ -646,7 +646,7 @@ function FindExactStringInTable(Table, V)
     local found = nil
     local Tab = {}
     local index
-    if V then
+    if V and Table then
         for i, val in pairs(Table) do
             if val == V then
                 found = true

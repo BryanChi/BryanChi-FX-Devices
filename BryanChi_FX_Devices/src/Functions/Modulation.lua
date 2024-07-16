@@ -126,7 +126,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trig
 
         r.gmem_write(6, CC)
 
-        msg(CC)
+
         AssignToPrmNum = P_Num
 
         r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
@@ -359,7 +359,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 --- indicator of where the param is currently
                 FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
-                DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,FX[FxGUID][Fx_P].V, Vertical, FP, offset)
+                DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, ModLineDir or Sldr_Width,FX[FxGUID][Fx_P].V, Vertical, FP, offset)
                 Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
                 ParamHasMod_Any = true
                 offset = offset + OffsetForMultipleMOD
@@ -405,35 +405,43 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 r.gmem_write(11000 + CC, p_value) -- tells jsfx the value before modulation
                 AssigningCont_Prm_Mod = CC
             elseif  AssigningCont_Prm_Mod  then  -- when right dragging a prm
-                r.gmem_attach('ContainerMacro')
-                local M = AssignContMacro+1
-                r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
-                r.gmem_write(3, #Ct.ModPrm) -- tells jsfx how many modded container prm are there 
+                local rv, _, Cont_Mod_Prm_id = FindExactStringInTable(Ct.ModPrm , FxGUID.. ' , prm : '.. P_Num)
+                if AssigningCont_Prm_Mod == Cont_Mod_Prm_id then 
 
-                if Ct.ModPrm then r.gmem_write(3, #Ct.ModPrm) end  -- Tells jsfx how many modulated prms there are . (eg. if there are 5, then jsfx is sending CC1 ~ 5 and so on )
-                r.gmem_write(5, M) --tells jsfx which macro is user tweaking
-                msg(M)
-                r.gmem_write(6, AssigningCont_Prm_Mod)  -- this tells jsfx which CC (index of modulated prm in a container) is user tweaking
-                FP.Cont_ModAMT = FP.Cont_ModAMT or {}
-                FP.Cont_ModAMT[M] = CalculateModAmt(FP.Cont_ModAMT[M] )
-                r.gmem_write(1000 * M + AssigningCont_Prm_Mod,  FP.Cont_ModAMT[M]) -- tells jsfx the param's mod amount
-               
+                    r.gmem_attach('ContainerMacro')
+                    local M = AssignContMacro+1
+                    r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
+                    r.gmem_write(3, #Ct.ModPrm) -- tells jsfx how many modded container prm are there 
+                    r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
 
-                    -- Draw Mod Lines
-                if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.ModAMT then
-                    local offset = 0
-                    for M, v in ipairs(MacroNums) do
-                        if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
 
-                            --- indicator of where the param is currently
-                            FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+                    if Ct.ModPrm then r.gmem_write(3, #Ct.ModPrm) end  -- Tells jsfx how many modulated prms there are . (eg. if there are 5, then jsfx is sending CC1 ~ 5 and so on )
+                    r.gmem_write(5, M) --tells jsfx which macro is user tweaking
 
-                            DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, FP.WhichCC, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset)
-                            Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
-                            ParamHasMod_Any = true
-                            offset = offset + OffsetForMultipleMOD
-                        end
-                    end -- of reapeat for every macro
+                    r.gmem_write(6, AssigningCont_Prm_Mod)  -- this tells jsfx which CC (index of modulated prm in a container) is user tweaking
+                    FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+                    FP.Cont_ModAMT[M] = CalculateModAmt(FP.Cont_ModAMT[M] )
+                    r.gmem_write(1000 * M + AssigningCont_Prm_Mod,  FP.Cont_ModAMT[M]) -- tells jsfx the param's mod amount
+                
+
+                        -- Draw Mod Lines
+                    if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.Cont_ModAMT then
+                        local offset = 0
+                        for M, v in ipairs(MacroNums) do
+
+                            if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
+
+                                --- indicator of where the param is currently
+                                FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+
+                                DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M])
+
+                                Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
+                                ParamHasMod_Any = true
+                                offset = offset + OffsetForMultipleMOD
+                            end
+                        end -- of reapeat for every macro
+                    end
                 end
                 
             end 

@@ -786,14 +786,14 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
 
-    if FP.ModAMT then -- Draw modlines  circular
+    if FP.ModAMT or FP.Cont_ModAMT then -- Draw modlines  circular
         local offset = 0
         local BipOfs = 0
         FP.ModBipolar = FP.ModBipolar or {}
-
+        local Amt = FP.ModAMT or FP.Cont_ModAMT
 
         for Macro, v in ipairs(MacroNums) do
-            if FP.ModAMT[Macro] then
+            if Amt[Macro] then
                 --if Modulation has been assigned to params
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
@@ -801,19 +801,18 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
 
                 if FP.ModBipolar[Macro] then
-                    BipOfs = -FP.ModAMT[Macro]
+                    BipOfs = -Amt[Macro] 
                 end
 
                 im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
-
                 im.DrawList_PathStroke(draw_list, EightColors.Bright[Macro], nil, radius_outer / 2)
                 im.DrawList_PathClear(draw_list)
 
                 --- shows modulation range
-                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * FP.ModAMT[Macro], ANGLE_MIN, ANGLE_MAX)
+                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt[Macro] , ANGLE_MIN, ANGLE_MAX)
                 local angle = angle
                 if BipOfs ~= 0 then
-                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(FP.ModAMT[Macro]), ANGLE_MIN, ANGLE_MAX)
+                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
                     im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
                     im.DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
                         radius_outer * 0.1)
@@ -2804,21 +2803,26 @@ end
 ---@param Vertical? "Vert"
 ---@param FP FX_P
 ---@param offset number
-function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V, Vertical, FP, offset)
+---@param Amt number
+function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Vertical, FP, offset, Amt)
     local drawlist = im.GetWindowDrawList(ctx) --[[add+ here]]
-    local SldrGrabPos
+    local SldrGrabPos,ModAmt
+    local BipOfs = 0
     local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
     local SizeX, SizeY = im.GetItemRectSize(ctx)
     MacroModLineOffset = 0
 
 
 
-    local ModAmt, BipOfs = FP.ModAMT[Macro], 0
+    if Amt then ModAmt = Amt 
+    else ModAmt =  FP.ModAMT[Macro]
+    end 
+
     if FP then
         FP.ModBipolar = FP.ModBipolar or {}
         if FP.ModBipolar[Macro] then
-            ModAmt = FP.ModAMT[Macro]
-            BipOfs = -FP.ModAMT[Macro]
+            ModAmt = Amt
+            BipOfs = -Amt
         end
     end
 
@@ -2845,7 +2849,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, F_Tp, Sldr_Width, P_V,
     if FP.ModBypass == Macro then Midsat, MidBright = 0x88888866, 0xaaaaaa66 end
 
 
-    if AddIndicator and FP.ModAMT[Macro] ~= 0 then
+    if AddIndicator and ModAmt ~= 0 then
         local ModPosWithAmt
         local M = Trk[TrkID].Mod[Macro]
         local MOD = McroV

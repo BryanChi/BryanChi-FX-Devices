@@ -30,12 +30,13 @@ local function Modulation_Icon(LT_Track, slot)
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
         if not string.find(FirstFX, 'FXD Containr Macro') then 
 
-            AddMacroJSFX('JS: FXD Container Macros', slot )
-
             r.gmem_attach('ContainerMacro')
             r.gmem_write(0, #Trk[TrkID].Container_Id )
             r.gmem_write(1, PM.DIY_TrkID[TrkID] )
-            msg(PM.DIY_TrkID[TrkID] )
+            --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
+            AddMacroJSFX('JS: FXD Container Macros', slot )
+
+
 
         end 
     end 
