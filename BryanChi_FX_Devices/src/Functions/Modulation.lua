@@ -3,6 +3,101 @@
 MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 ultraschall = ultraschall
 
+---@param Macro string|number
+---@param AddIndicator boolean
+---@param McroV number
+---@param FxGUID string
+---@param F_Tp number
+---@param Sldr_Width number
+---@param P_V number
+---@param Vertical? "Vert"
+---@param FP FX_P
+---@param offset number
+---@param Amt number
+---@param RangeClr number
+---@param IndicClr number
+
+function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Vertical, FP, offset, Amt,RangeClr, IndicClr)
+    local drawlist = im.GetWindowDrawList(ctx) --[[add+ here]]
+    local SldrGrabPos,ModAmt
+    local BipOfs = 0
+    local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
+    local SizeX, SizeY = im.GetItemRectSize(ctx)
+    MacroModLineOffset = 0
+
+
+
+    if Amt then ModAmt = Amt 
+    else ModAmt =  FP.ModAMT[Macro]
+    end 
+
+    if FP then
+        FP.ModBipolar = FP.ModBipolar or {}
+        if FP.ModBipolar[Macro] then
+            ModAmt = Amt
+            BipOfs = -Amt
+        end
+    end
+
+    if Vertical ~= 'Vert' then
+        PosX_End_Of_Slider = (Sldr_Width) + L
+        SldrGrabPos = SizeX * P_V
+        SliderCurPos = L + SldrGrabPos
+        SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
+        SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
+    elseif Vertical == 'Vert' then
+        PosX_End_Of_Slider = T
+        SldrGrabPos = (SizeY) * (P_V)
+        SliderCurPos = B - SldrGrabPos
+        SliderModPos = SliderCurPos - ((ModAmt * Sldr_Width) or 0)
+        SliderModPos = SetMinMax(SliderModPos, T, B)
+    end
+
+
+    drawlist = im.GetWindowDrawList(ctx)
+    -- im.DrawList_AddLine(drawlist,SliderCurPos,T,SliderModPos or 1,T, EightColors.HighSat_MidBright[Macro],3)
+
+
+    local Midsat, MidBright =RangeClr or  EightColors.MidSat[Macro], IndicClr or EightColors.HighSat_MidBright[Macro]
+    if FP.ModBypass == Macro then Midsat, MidBright = 0x88888866, 0xaaaaaa66 end
+
+
+    if AddIndicator and ModAmt ~= 0 then
+        local ModPosWithAmt
+        local M = Trk[TrkID].Mod[Macro]
+        local MOD = McroV
+        if M.Type == 'env' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
+            r.gmem_attach('ParamValues')
+            MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
+        end
+
+
+        if MOD then
+            local ModAmt = ModAmt
+            if BipOfs ~= 0 then ModAmt = ModAmt * 2 end
+            if Vertical == 'Vert' then
+                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs * Sldr_Width or 0,
+                    PosX_End_Of_Slider)
+                im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,
+                    Rounding)
+            else
+                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs * Sldr_Width or 0,
+                    PosX_End_Of_Slider)
+                im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,
+                    Rounding)
+            end
+        end
+    end
+
+    --- mod range indicator line
+    if Vertical == 'Vert' then
+        local SliderCurPos = SliderCurPos - BipOfs * Sldr_Width
+        im.DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright, Rounding)
+    else
+        local SliderCurPos = SliderCurPos + BipOfs * Sldr_Width
+        im.DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset, MidBright, 2)
+    end
+end
 ---@param fxidx integer
 ---@param param_n number
 ---@param active number 1 active, 0 inactive
@@ -364,7 +459,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if not FX[FxGUID].parent then return end
         local Cont_FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
 
-        if AssignContMacro and Cont_FxGUID ==AssignContMacro_FxGuID   then 
+        if AssignContMacro --[[ and Cont_FxGUID ==AssignContMacro_FxGuID ]]   then 
             
             local rv,ContID, Index = FindExactStringInTable(Trk[TrkID].Container_Id , AssignContMacro_FxGuID)
             
@@ -387,7 +482,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 
                 r.gmem_attach('ContainerMacro')
 
-                r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
+                r.gmem_write(2, FX[Cont_FxGUID].DIY_FxGUID) --Sends Trk GUID for jsfx to determine track
+
                 --r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
     
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P ..' Container Mod CC' , CC , true )
@@ -402,7 +498,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                     local M = AssignContMacro+1
                     r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
                     r.gmem_write(3, #Ct.ModPrm) -- tells jsfx how many modded container prm are there 
-                    r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
+                    r.gmem_write(2, FX[Cont_FxGUID].DIY_FxGUID) --Sends Trk GUID for jsfx to determine track
 
 
                     if Ct.ModPrm then r.gmem_write(3, #Ct.ModPrm) end  -- Tells jsfx how many modulated prms there are . (eg. if there are 5, then jsfx is sending CC1 ~ 5 and so on )
@@ -424,8 +520,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                                 --- indicator of where the param is currently
                                 FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-
-                                DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M])
+                                local clr = CustomColorsDefault.Container_Accent_Clr
+                                DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr)
 
                                 Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
                                 ParamHasMod_Any = true

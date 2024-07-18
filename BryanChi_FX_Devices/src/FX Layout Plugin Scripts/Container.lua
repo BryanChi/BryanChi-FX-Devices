@@ -10,13 +10,14 @@ FX[FxGUID].V_Win_Btn_Height = 130
 FX[FxGUID].Cont_Collapse = FX[FxGUID].Cont_Collapse or 0
 local fx = FX[FxGUID]
 local ModIconSz = 18 
+local Top_Spacing = 3
 LFO_Box_Size = 38
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
 DEBUG_W = DEBUG_W or {}
 
-local Accent_Clr = 0x49CC85ff
+local Accent_Clr = CustomColorsDefault.Container_Accent_Clr
 local function SaveAll_Container_IDs ()
     for i , v in ipairs(Trk[TrkID].Container_Id) do 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )
@@ -31,6 +32,7 @@ local function SetTypeToEnv(type, i)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'env', true)
             r.gmem_write(4, 4) -- tells jsfx macro type = env
             r.gmem_write(5, i) -- tells jsfx which macro
+            r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
             return true 
         end
     end
@@ -39,8 +41,9 @@ end
 local function SetTypeToStepSEQ(type, i )
     if type  ~= 'Step' then 
         if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
-            
-            r.gmem_write(4, 6) -- tells jsfx macro type = step seq
+            r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+
+            r.gmem_write(4, 6)   -- tells jsfx macro type = step seq
             r.gmem_write(5, i)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Step', true)
 
@@ -71,6 +74,7 @@ local function SetTypeToMacro(type,i)
     if im.Selectable(ctx, 'Set Type to Macro', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Macro', true)
+        r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
         r.gmem_write(4, 5) -- tells jsfx macro type = Macro
         r.gmem_write(5, i) -- tells jsfx which macro
@@ -82,6 +86,7 @@ local function SetTypeToLFO(type,i)
     if im.Selectable(ctx, 'Set Type to LFO', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'LFO', true)
+        r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
         r.gmem_write(5, i)  -- tells jsfx which macro
@@ -104,7 +109,7 @@ local function Modulation_Icon(LT_Track, slot)
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
 
         local rv , diyFxGUID = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', '', false)
-        if rv then FX[FxGUID].DIY_FxGUID = diyFxGUID  end
+        if rv then FX[FxGUID].DIY_FxGUID = diyFxGUID  msg(FX[FxGUID].DIY_FxGUID) end
 
         if not string.find(FirstFX, 'FXD Containr Macro') then 
 
@@ -112,9 +117,11 @@ local function Modulation_Icon(LT_Track, slot)
             r.gmem_write(0, #Trk[TrkID].Container_Id )
             if not FX[FxGUID].DIY_FxGUID then 
                 FX[FxGUID].DIY_FxGUID = math.random(100000000, 999999999)
+                msg(FX[FxGUID].DIY_FxGUID)
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', FX[FxGUID].DIY_FxGUID, true)
+                r.gmem_write(1, FX[FxGUID].DIY_FxGUID)
+                
             end
-            r.gmem_write(1, FX[FxGUID].DIY_FxGUID)
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
             AddMacroJSFX('JS: FXD Container Macros', slot)
 
@@ -134,9 +141,6 @@ local function titleBar()
         SyncWetValues(FX_Idx)
         local x, y = im.GetCursorPos(ctx)
 
-
-
-        ttp(y)
         im.SetCursorPos(ctx, 3, 165)
 
         Modulation_Icon(LT_Track, fx.LowestID)
@@ -1353,10 +1357,18 @@ local function LFO_Box(mc, i )
         local sz = LFO_Box_Size
         local x = x - 10
         im.DrawList_AddRectFilled(WDL,x, y, x+sz,y+sz , 0x00000055)
+        im.DrawList_AddRect(WDL,x-1, y-1, x+sz +1 ,y+sz+1 , 0xffffff77)
+
         mc.LFOx = x 
         mc.LFOy = y 
 
-        Cont_DrawShape(mc.Node, x, sz, sz, y, 0xffffffff , 1.5)
+        local clr = 0xffffffff
+        if AssignContMacro == i and AssignContMacro_FxGuID == FxGUID then 
+            if  RepeatAtInterval(0.3, nil) then
+                clr = Accent_Clr
+            end
+        end
+        Cont_DrawShape(mc.Node, x, sz, sz, y, clr , 1.5)
         if  im.InvisibleButton(ctx, 'Cont LFO Btn'.. i.. FxGUID, sz,sz) then 
             Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
 
@@ -1463,10 +1475,10 @@ local function  macroPage()
             
             if  RepeatAtInterval(0.2, nil) then
                 if mc.Type == 'Macro' then  
-                    Draw_Simple_Knobs_Arc (mc.center, 0xff22ffff, Size)
+                    Draw_Simple_Knobs_Arc (mc.center, Accent_Clr, Size)
                 elseif mc.Type == 'LFO' then 
                     local sz = LFO_Box_Size
-                    im.DrawList_AddRectFilled(WDL, mc.LFOx , mc.LFOy , mc.LFOx + sz, mc.LFOy+sz, 0xffffff33)
+                    im.DrawList_AddRectFilled(WDL, mc.LFOx , mc.LFOy , mc.LFOx + sz, mc.LFOy+sz, 0xffffff11)
                 end 
             end 
         end 
@@ -1705,6 +1717,7 @@ else
     local CollapseXPos, CollapseYPos  = im.GetCursorPos(ctx)
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
+    im.SetCursorPosY(ctx, Top_Spacing )
 
     for i, v in ipairs(Upcoming_Container or TREE[Root_ID+1].children) do 
         if i == 1 then 
@@ -1730,7 +1743,7 @@ else
                 local  diff, Cur_X_ofs
                 if i == 1 then 
                     SL(nil,0)
-                    im.SetCursorPosY(ctx, 0 )
+                    im.SetCursorPosY(ctx, Top_Spacing )
 
                      AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
                     SL(nil,0)
@@ -1740,7 +1753,7 @@ else
                 
 
                 If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
-                im.SetCursorPosY(ctx,0)
+                im.SetCursorPosY(ctx,Top_Spacing)
             
                 if v.children then 
                     Upcoming_Container = v.children
@@ -1817,7 +1830,7 @@ else
     if not FX[FxGUID].Collapse then 
         local WDL = im.GetWindowDrawList(ctx)
         --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, 0, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, rounding, 4)
+        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
     end 
 
 

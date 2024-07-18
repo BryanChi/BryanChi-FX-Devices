@@ -212,7 +212,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         elseif is_hovered or p_value ~= 1 then
             lineClr = ClrOverRide_Act or Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.3)
         else
-            lineClr = ClrOverRide or im.GetColor(ctx, im.Col_FrameBgHovered)
+            lineClr = ClrOverRide or im.GetColor(ctx, im.Col_SliderGrab)
         end
 
 

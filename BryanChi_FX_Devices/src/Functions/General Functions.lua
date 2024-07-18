@@ -1205,6 +1205,7 @@ end
 ---@param FX_Idx integer
 function DeletePrm(FxGUID, Fx_P, FX_Idx)
     --LE.Sel_Items[1] = nil
+
     local FP = FX[FxGUID][Fx_P]
     for i, v in ipairs(FX[FxGUID]) do
         if v.ConditionPrm then
@@ -1222,7 +1223,7 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '',
             true)
     end
-
+    
     for Mc = 1, 8, 1 do
         if FP.ModAMT then
             if FP.ModAMT[Mc] then

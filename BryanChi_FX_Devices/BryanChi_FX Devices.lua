@@ -226,7 +226,7 @@ CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_B
     'FX_Adder_LV2',
     'PLink', 'PLink_Edge_DarkBG', 'PLink_Edge_LightBG',
     'RDM_BG', 'RDM_VTab', 'RDM_VTab_Highlight', 'RDM_VTab_Highlight_Edge', 'RDM_PadOff', 'RDM_PadOn', 'RDM_Pad_Highlight',
-    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move' }
+    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move', 'Container_Accent_Clr' }
 CustomColorsDefault = {
     Window_BG = 0x000000ff,
     FX_Devices_Bg = 0x151515ff,
@@ -256,7 +256,8 @@ CustomColorsDefault = {
     RDM_Solo = 0xff,
     RDM_Mute = 0xff,
     RDM_DnDFX = 0x00b4d8ff,
-    RDM_DnD_Move = 0xFF0000FF
+    RDM_DnD_Move = 0xFF0000FF;
+    Container_Accent_Clr =  0x49CC85ff ;
 }
 
 
@@ -978,7 +979,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
         end
     end
-    
+
     for i = 1, 8, 1 do -- for every modulator
         Trk[TrkID].Mod[i] = {}
         local m = Trk[TrkID].Mod[i]
@@ -4301,7 +4302,7 @@ function loop()
                                                 table.sort(tb)
 
                                                 for i = #tb, 1, -1 do
-                                                    DeletePrm(FxGUID, tb[i])
+                                                    DeletePrm(FxGUID, tb[i], FX_Idx)
                                                 end
 
                                                 if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
