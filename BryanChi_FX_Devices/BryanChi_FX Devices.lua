@@ -950,10 +950,15 @@ function TrashIcon(size, lbl, ClrBG, ClrTint)
 end
 
 NumOfTotalTracks = r.CountTracks(0)
+
+
 -- Repeat for every track, at the beginning of script
 for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
+
     local Track = r.GetTrack(0, Track_Idx)
     local TrkID = r.GetTrackGUID(Track)
+    TREE = BuildFXTree(Track)
+
 
     Trk[TrkID] = Trk[TrkID] or {}
     Trk[TrkID].Mod = {}
@@ -973,6 +978,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
         end
     end
+    
     for i = 1, 8, 1 do -- for every modulator
         Trk[TrkID].Mod[i] = {}
         local m = Trk[TrkID].Mod[i]
@@ -1094,24 +1100,36 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
             _, Trk.Prm.FXGUID[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'P_Trk :' .. P .. 'Trk-' .. TrkID)
         end
-    end
+    end 
 
 
 
+    function Get_FX_Data (TB)
+        for i, v in ipairs(TB) do 
+        
+            local FX_Idx = v.addr_fxid or  i - 1
+            local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
+            local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
+            --local _, FX[FxGUID].   r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , '' , false )
 
-    for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-        local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-        local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
+            if v.children then  -- if it's a container
+                
+                Get_FX_Data (v.children)
+            end 
+
+
+            if not FxGUID then return end 
+            FX[FxGUID] = FX[FxGUID] or {}
+            FX[FxGUID].ModSlots = tonumber( select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , '', false )))
 
 
 
+            local _, DefaultSldr_W = r.GetProjExtState(0, 'FX Devices', 'Default Slider Width for FX:' .. FxGUID)
+            if DefaultSldr_W ~= '' then FX.Def_Sldr_W[FxGUID] = DefaultSldr_W end
+            local _, Def_Type = r.GetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID)
+            if Def_Type ~= '' then FX.Def_Type[FxGUID] = Def_Type end
 
-        local _, DefaultSldr_W = r.GetProjExtState(0, 'FX Devices', 'Default Slider Width for FX:' .. FxGUID)
-        if DefaultSldr_W ~= '' then FX.Def_Sldr_W[FxGUID] = DefaultSldr_W end
-        local _, Def_Type = r.GetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID)
-        if Def_Type ~= '' then FX.Def_Type[FxGUID] = Def_Type end
 
-        if FxGUID ~= nil then
             GetProjExt_FxNameNum(FxGUID)
 
             _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' ..
@@ -1148,17 +1166,9 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
             for Fx_P in ipairs(FX[FxGUID]) do
-                local rv, V_before = r.GetSetMediaTrackInfo_String(Track,
-                    'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
+                local rv, V_before = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
 
                 if rv then FX[FxGUID][Fx_P].V = tonumber(V_before) end
-
-
-                --msg(tostring(FX[FxGUID][Fx_P].V))
-
-
-
-                --if FX[FxGUID][Fx_P] then msg(type(FX[FxGUID][Fx_P])) end
 
                 local ParamX_Value = 'Param' ..
                     tostring(FX[FxGUID][Fx_P].Name) ..
@@ -1170,25 +1180,25 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                 FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = tonumber(FX.Prm.ToTrkPrm[FxGUID .. Fx_P])
 
                 local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
-
+                local FP = FX[FxGUID][Fx_P]
                 _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
-                FX[FxGUID][Fx_P].WhichCC = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..
-                        (FX[FxGUID][Fx_P].Num or 0), '', false)))
-                _, FX[FxGUID][Fx_P].WhichMODs = r.GetSetMediaTrackInfo_String(Track,
-                    'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '', false)
-                if FX[FxGUID][Fx_P].WhichMODs == '' then FX[FxGUID][Fx_P].WhichMODs = nil end
-                FX[FxGUID][Fx_P].ModAMT = {}
+                FP.WhichCC = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..(FP.Num or 0), '', false)))
+                _, FP.WhichMODs = r.GetSetMediaTrackInfo_String(Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '', false)
+                if FP.WhichMODs == '' then FP.WhichMODs = nil end
+                FP.ModAMT = {}
+                
+                FP.Cont_Which_CC = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P ..' Container Mod CC' , '' , false)))
+                FP.Cont_ModAMT = {}
 
 
                 local CC = FX[FxGUID][Fx_P].WhichCC
-                local HasModAmt
+                local HasModAmt, HasContModAmt
                 for m, v in ipairs(MacroNums) do
-                    local FP = FX[FxGUID][Fx_P]
-                    FX[FxGUID][Fx_P].ModAMT[m] = tonumber(select(2,
+
+                    FP.ModAMT[m] = tonumber(select(2,
                         r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' ..
                             Fx_P .. 'Macro' .. m .. 'Mod Amt', '', false)))
-                    if FX[FxGUID][Fx_P].ModAMT[m] then HasModAmt = true end
+                    if FP.ModAMT[m] then HasModAmt = true end
 
 
 
@@ -1202,12 +1212,18 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                             false)))
 
                     FP.ModBipolar = FP.ModBipolar or {}
-                    FP.ModBipolar[m] = StringToBool
-                        [select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
+                    FP.ModBipolar[m] = StringToBool[select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
+
+                    FP.Cont_ModAMT[m] = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Container Mod Amt', '', false)))
+
+                    if FP.Cont_ModAMT[m] then HasContModAmt = true end 
+                
+                
                 end
 
 
-                if not HasModAmt then FX[FxGUID][Fx_P].ModAMT = nil end
+                if not HasModAmt then FP.ModAMT = nil end
+                if not HasContModAmt then FP.Cont_ModAMT = nil end 
             end
 
             FX[FxGUID] = FX[FxGUID] or {}
@@ -1235,61 +1251,63 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                     'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', '', false)
                 if FX[FxGUID].MorphB_Name == '' then FX[FxGUID].MorphB_Name = nil end
             end
-        end
 
-        _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-        if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
-            local FXGUIDofRackMixer = r.TrackFX_GetFXGUID(Track, FX_Idx)
-            FX[FXGUIDofRackMixer].LyrID = FX[FXGUIDofRackMixer].LyrID or {}
-            FX[FXGUIDofRackMixer].LyrTitle = FX[FXGUIDofRackMixer].LyrTitle or {}
-            FX[FXGUIDofRackMixer].ActiveLyrCount = 0
 
-            for i = 1, 8, 1 do
-                _, FX[FXGUIDofRackMixer].LyrID[i] = r.GetProjExtState(0, 'FX Devices',
-                    'FX' .. FXGUIDofRackMixer .. 'Layer ID ' .. i)
-                _, FX[FXGUIDofRackMixer].LyrTitle[i] = r.GetProjExtState(0, 'FX Devices - ',
-                    'FX' .. FXGUIDofRackMixer .. 'Layer Title ' .. i)
-                if FX[FXGUIDofRackMixer].LyrTitle[i] == '' then FX[FXGUIDofRackMixer].LyrTitle[i] = nil end
-                FX[FXGUIDofRackMixer].LyrID[i] = tonumber(FX[FXGUIDofRackMixer].LyrID[i])
-                if FX[FXGUIDofRackMixer].LyrID[i] ~= -1 and FX[FXGUIDofRackMixer].LyrID[i] then
-                    FX[FXGUIDofRackMixer].ActiveLyrCount =
-                        FX[FXGUIDofRackMixer].ActiveLyrCount + 1
+            _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
+            if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
+                local FXGUIDofRackMixer = r.TrackFX_GetFXGUID(Track, FX_Idx)
+                FX[FXGUIDofRackMixer].LyrID = FX[FXGUIDofRackMixer].LyrID or {}
+                FX[FXGUIDofRackMixer].LyrTitle = FX[FXGUIDofRackMixer].LyrTitle or {}
+                FX[FXGUIDofRackMixer].ActiveLyrCount = 0
+
+                for i = 1, 8, 1 do
+                    _, FX[FXGUIDofRackMixer].LyrID[i] = r.GetProjExtState(0, 'FX Devices',
+                        'FX' .. FXGUIDofRackMixer .. 'Layer ID ' .. i)
+                    _, FX[FXGUIDofRackMixer].LyrTitle[i] = r.GetProjExtState(0, 'FX Devices - ',
+                        'FX' .. FXGUIDofRackMixer .. 'Layer Title ' .. i)
+                    if FX[FXGUIDofRackMixer].LyrTitle[i] == '' then FX[FXGUIDofRackMixer].LyrTitle[i] = nil end
+                    FX[FXGUIDofRackMixer].LyrID[i] = tonumber(FX[FXGUIDofRackMixer].LyrID[i])
+                    if FX[FXGUIDofRackMixer].LyrID[i] ~= -1 and FX[FXGUIDofRackMixer].LyrID[i] then
+                        FX[FXGUIDofRackMixer].ActiveLyrCount =
+                            FX[FXGUIDofRackMixer].ActiveLyrCount + 1
+                    end
+                end
+
+
+                _, Lyr.FX_Ins[FXGUIDofRackMixer] = r.GetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FxGUID)
+                if Lyr.FX_Ins[FXGUIDofRackMixer] == "" then Lyr.FX_Ins[FXGUIDofRackMixer] = nil end
+                Lyr.FX_Ins[FXGUIDofRackMixer] = tonumber(Lyr.FX_Ins[FXGUIDofRackMixer])
+            elseif FX_Name:find('FXD Saike BandSplitter') then
+                FX[FxGUID].BandSplitID = tonumber(select(2,
+                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: BandSplitterID' .. FxGUID, '', false)))
+                _, FX[FxGUID].AttachToJoiner = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Splitter\'s Joiner FxID ' ..
+                    FxGUID, '', false)
+
+                for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
+                    --Restore Band Split
+                    local FxID = r.TrackFX_GetFXGUID(Track, FX_Idx)
+                    if select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which BS' .. FxID, '', false)) == FxGUID then
+                        --local _, Guid_FX_In_BS = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX is in which BS'..FxID, '', false  )
+                        FX[FxID] = FX[FxID] or {}
+                        FX[FxID].InWhichBand = tonumber(select(2,
+                            r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which Band' .. FxID, '', false)))
+
+                        FX[FxGUID].FXsInBS = FX[FxGUID].FXsInBS or {}
+                        table.insert(FX[FxGUID].FXsInBS, FxID)
+                    end
                 end
             end
 
 
-            _, Lyr.FX_Ins[FXGUIDofRackMixer] = r.GetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FxGUID)
-            if Lyr.FX_Ins[FXGUIDofRackMixer] == "" then Lyr.FX_Ins[FXGUIDofRackMixer] = nil end
-            Lyr.FX_Ins[FXGUIDofRackMixer] = tonumber(Lyr.FX_Ins[FXGUIDofRackMixer])
-        elseif FX_Name:find('FXD Saike BandSplitter') then
-            FX[FxGUID].BandSplitID = tonumber(select(2,
-                r.GetSetMediaTrackInfo_String(Track, 'P_EXT: BandSplitterID' .. FxGUID, '', false)))
-            _, FX[FxGUID].AttachToJoiner = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Splitter\'s Joiner FxID ' ..
-                FxGUID, '', false)
 
-            for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-                --Restore Band Split
-                local FxID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-                if select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which BS' .. FxID, '', false)) == FxGUID then
-                    --local _, Guid_FX_In_BS = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX is in which BS'..FxID, '', false  )
-                    FX[FxID] = FX[FxID] or {}
-                    FX[FxID].InWhichBand = tonumber(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which Band' .. FxID, '', false)))
-
-                    FX[FxGUID].FXsInBS = FX[FxGUID].FXsInBS or {}
-                    table.insert(FX[FxGUID].FXsInBS, FxID)
-                end
+            if Track == LT_Track and string.find(FX_Name, 'Pro%-Q 3') ~= nil then
+                _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
+                ProQ3['scaleLabel' .. ' ID' .. FxGUID] = ProQ3.DspRange[FX_Idx]
+                ProQ3['scale' .. ' ID' .. FxGUID] = syncProQ_DispRange(ProQ3.DspRange[FX_Idx])
             end
+
         end
-
-
-
-        if Track == LT_Track and string.find(FX_Name, 'Pro%-Q 3') ~= nil then
-            _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
-            ProQ3['scaleLabel' .. ' ID' .. FxGUID] = ProQ3.DspRange[FX_Idx]
-            ProQ3['scale' .. ' ID' .. FxGUID] = syncProQ_DispRange(ProQ3.DspRange[FX_Idx])
-        end
-    end
+    end 
 
     for m = 1, 8, 1 do
         _, Trk[TrkID].Mod[m].Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro' .. m .. 's Name' .. TrkID, '',
@@ -1298,6 +1316,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         _, Trk[TrkID].Mod[m].Type = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Mod' .. m .. 'Type', '', false)
         if Trk[TrkID].Mod[m].Type == '' then Trk[TrkID].Mod[m].Type = nil end
     end
+    Get_FX_Data (TREE)
+
 end
 
 attachImagesAndFonts()
@@ -1643,7 +1663,6 @@ function loop()
                 --TREE = BuildFXTree(tr)
             end
 
-            TREE = BuildFXTree(tr)
 
             ----Functions & Variables -------------
             Glob.FDL = im.GetForegroundDrawList(ctx)
@@ -2103,7 +2122,7 @@ function loop()
                             true)
                     end
                     if (im.IsItemClicked(ctx, 1) or RCat or RCrel) and Mods == Ctrl then
-                        im.OpenPopup(ctx, 'Env' .. i .. 'Menu')
+                        im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
                     end
 
 
@@ -2433,7 +2452,7 @@ function loop()
 
                     im.Button(ctx, 'Follower     ')
                     if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                        im.OpenPopup(ctx, 'Follower' .. i .. 'Menu')
+                        im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
                     end
                     WhenRightClickOnModulators(Macro)
                     if im.IsItemHovered(ctx) then FolMacroHover = i end
@@ -2554,7 +2573,7 @@ function loop()
 
 
                     if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                        im.OpenPopup(ctx, 'LFO' .. i .. 'Menu')
+                        im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
                     elseif rv and Mods == 0 then
                         if LFO.Pin == TrkID .. 'Macro = ' .. Macro then
                             LFO.Pin = nil
@@ -2570,7 +2589,7 @@ function loop()
                         if Node then
                             for i, v in ipairs(Node) do
                                 local W, H = W or w, H or h
-
+                                
 
                                 local N = Node
                                 local L = L or HdrPosL
@@ -2612,6 +2631,8 @@ function loop()
 
 
                     function open_LFO_Win(Track, Macro)
+
+                        if LFO.EditWinOpen then return end 
                         local tweaking
                         -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
                         im.SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
@@ -3826,53 +3847,62 @@ function loop()
                         im.DrawList_AddCircleFilled(drawlist, Array_Parameter.PosX_Left[i], Array_Parameter.PosY_Top[i],4,_G[MacroColor])
                     else IsThereEnvOnMacro[i]=0
                     end ]]
-                local function SetTypeToEnv()
-                    if im.Selectable(ctx, 'Set Type to Envelope', false) then
-                        Trk[TrkID].Mod[i].Type = 'env'
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
-                        r.gmem_write(4, 4) -- tells jsfx macro type = env
-                        r.gmem_write(5, i) -- tells jsfx which macro
+                function SetTypeToEnv()
+                    if Trk[TrkID].Mod[i].Type  ~= 'env' then
+                        if im.Selectable(ctx, 'Set Type to Envelope', false) then
+                            Trk[TrkID].Mod[i].Type = 'env'
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
+                            r.gmem_write(4, 4) -- tells jsfx macro type = env
+                            r.gmem_write(5, i) -- tells jsfx which macro
+                        end
                     end
                 end
 
-                local function SetTypeToStepSEQ()
-                    if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
-                        Trk[TrkID].Mod[i].Type = 'Step'
-                        r.gmem_write(4, 6) -- tells jsfx macro type = step seq
-                        r.gmem_write(5, i)
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Step', true)
-                        Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
-                        Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-                        Trk[TrkID].SEQL[i] = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
-                        Trk[TrkID].SEQ_Dnom[i] = Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom
+                function SetTypeToStepSEQ()
+                    if Trk[TrkID].Mod[i].Type  ~= 'Step' then 
+                        if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
+                            Trk[TrkID].Mod[i].Type = 'Step'
+                            r.gmem_write(4, 6) -- tells jsfx macro type = step seq
+                            r.gmem_write(5, i)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Step', true)
+                            Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
+                            Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
+                            Trk[TrkID].SEQL[i] = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
+                            Trk[TrkID].SEQ_Dnom[i] = Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom
 
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length',
-                            Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, true)
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator',
-                            Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom, true)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length',
+                                Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, true)
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator',
+                                Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom, true)
 
-                        if I.Name == 'Env ' .. i or I.Name == 'Macro ' .. i then I.Name = 'Step ' .. i end
+                            if I.Name == 'Env ' .. i or I.Name == 'Macro ' .. i then I.Name = 'Step ' .. i end
+                        end
                     end
                 end
 
-                local function SetTypeToFollower()
-                    if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
-                        r.gmem_write(4, 9) -- tells jsfx macro type = Follower
-                        r.gmem_write(5, i) -- tells jsfx which macro
-                        Trk[TrkID].Mod[i].Type = 'Follower'
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Follower', true)
+                function SetTypeToFollower()
+                    if Trk[TrkID].Mod[i].Type  ~= 'Follower' then 
+                        if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
+                            r.gmem_write(4, 9) -- tells jsfx macro type = Follower
+                            r.gmem_write(5, i) -- tells jsfx which macro
+                            Trk[TrkID].Mod[i].Type = 'Follower'
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Follower', true)
+                        end
                     end
                 end
-                local function SetTypeToMacro()
-                    if im.Selectable(ctx, 'Set Type to Macro', false) then
-                        Trk[TrkID].Mod[i].Type = 'Macro'
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
-                        r.gmem_write(4, 5) -- tells jsfx macro type = Macro
-                        r.gmem_write(5, i) -- tells jsfx which macro
-                        if I.Name == 'Env ' .. i then I.Name = 'Macro ' .. i end
+                function SetTypeToMacro()
+                    if Trk[TrkID].Mod[i].Type  ~= 'Macro' then 
+                        if im.Selectable(ctx, 'Set Type to Macro', false) then
+                            Trk[TrkID].Mod[i].Type = 'Macro'
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
+                            r.gmem_write(4, 5) -- tells jsfx macro type = Macro
+                            r.gmem_write(5, i) -- tells jsfx which macro
+                            if I.Name == 'Env ' .. i then I.Name = 'Macro ' .. i end
+                        end
                     end
                 end
-                local function SetTypeToLFO()
+                function SetTypeToLFO()
+                    if Trk[TrkID].Mod[i].Type == "LFO" then return end 
                     if im.Selectable(ctx, 'Set Type to LFO', false) then
                         Trk[TrkID].Mod[i].Type = 'LFO'
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
@@ -3903,6 +3933,7 @@ function loop()
                         r.TrackList_AdjustWindows(false)
                         r.UpdateArrange()
                     end
+                    SetTypeToMacro()
                     SetTypeToEnv()
                     SetTypeToStepSEQ()
                     SetTypeToFollower()

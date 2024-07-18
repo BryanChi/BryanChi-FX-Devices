@@ -11,8 +11,8 @@ end
 ---@generic T
 ---@param v? T
 ---@return boolean
-function toggle(v)
-    if v then v = false else v = true end
+function toggle(v, value)
+    if v then v = false else v = value or true end
     return v
 end
 
@@ -254,6 +254,10 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
     end
     return ret
 end
+
+
+
+
 
 function BuildFXTree(tr)
     -- table with referencing ID tree

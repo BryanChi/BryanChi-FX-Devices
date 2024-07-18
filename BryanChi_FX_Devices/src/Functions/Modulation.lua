@@ -13,7 +13,7 @@ ultraschall = ultraschall
 ---@param midimsg2 number CC value
 ---@param baseline boolean|number
 function ParameterMIDILink(fxidx, param_n, active, scale, midibus, midichan, midimsg, midimsg2, baseline)
-    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.active", active)    -- 1 active, 0 inactive
+    r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.active", tostring (active))    -- 1 active, 0 inactive
     if scale then r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.scale", scale) end
     r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.effect", "-100") -- -100 enables midi_msg*
     r.TrackFX_SetNamedConfigParm(LT_Track, fxidx, "param." .. param_n .. ".plink.param", "-1")    -- -1 not parameter link
@@ -171,24 +171,15 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
 
     if --[[Link CC back when mouse is up]] Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
-        if FX[FxGUID][Fx_P].WhichCC then
-            local CC = FX[FxGUID][Fx_P].WhichCC
 
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
-
+        if FP.WhichCC  then
+            local CC = FP.WhichCC 
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FP.V, true)
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow = r.time_precise()
             r.gmem_write(11000 + CC, p_value)
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "1")   -- 1 active, 0 inactive
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", "-100") -- -100 enables midi_msg*
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", "-1")   -- -1 not parameter link
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus", "15") -- 0 based, 15 = Bus 16
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "16") -- 0 based, 0 = Omni
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", "176")   -- 176 is CC
-            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", 160) -- CC value
+            ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15, 16, 176, CC, nil)
         end
-
-        Tweaking = nil
     end
 
 
@@ -318,10 +309,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
         local sizeX, sizeY = im.GetItemRectSize(ctx)
 
-        --[[
-            PosX_End_Of_Slider= Prm.Pos_L[Id]+sizeX
-            Prm.SldrGrabXPos[Id]=(PosX_End_Of_Slider-Prm.Pos_L[Id])*p_value
-            SliderCurPos=Prm.Pos_L[Id]+Prm.SldrGrabXPos[Id] ]]
 
         FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
          
@@ -374,11 +361,15 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
 
     local function MakeContainerModulationPossible ()
-        if AssignContMacro then 
+        if not FX[FxGUID].parent then return end
+        local Cont_FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+
+        if AssignContMacro and Cont_FxGUID ==AssignContMacro_FxGuID   then 
             
             local rv,ContID, Index = FindExactStringInTable(Trk[TrkID].Container_Id , AssignContMacro_FxGuID)
             
             Ct= FX[AssignContMacro_FxGuID]
+            
             
 
             if  im.IsItemClicked(ctx, 1) then  -- when right click the prm
@@ -390,22 +381,16 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                     Cont_Mod_Prm_id = #Ct.ModPrm
                 end
                 local CC = Cont_Mod_Prm_id
+                FP.Cont_Which_CC =  CC
                 FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+                ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15+Index, 16, 176, CC, nil)
                 
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.active", "1")   -- 1 active, 0 inactive
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.effect", "-100") -- -100 enables midi_msg*
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.param", "-1")   -- -1 not parameter link
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_bus",tostring(15+Index)) --  First Container On track will be midi channel 17 , and next one will be 18 and so on.  0 based, 15 = Bus 16    
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_chan", "16") -- 0 based, 0 = Omni
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg", "176")   -- 176 is CC
-                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param."..P_Num..".plink.midi_msg2", CC   ) -- CC value 
                 r.gmem_attach('ContainerMacro')
 
                 r.gmem_write(2, PM.DIY_TrkID[TrkID]) --Sends Trk GUID for jsfx to determine track
                 --r.gmem_write(11000 + Trk.Prm.Assign, ParamValue_Modding)
     
-                
-                FP.Cont_Which_CC =  CC
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P ..' Container Mod CC' , CC , true )
                 r.gmem_write(7, CC) --tells jsfx to retrieve P value
                 r.gmem_write(11000 + CC, p_value) -- tells jsfx the value before modulation
                 AssigningCont_Prm_Mod = CC
@@ -428,7 +413,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                     FP.Cont_ModAMT[M] = CalculateModAmt(FP.Cont_ModAMT[M] )
                     r.gmem_write(1000 * M + AssigningCont_Prm_Mod,  FP.Cont_ModAMT[M]) -- tells jsfx the param's mod amount
-                
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Container Mod Amt',FP.Cont_ModAMT[M], true)
 
                         -- Draw Mod Lines
                     if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.Cont_ModAMT then
@@ -445,17 +430,40 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                                 Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
                                 ParamHasMod_Any = true
                                 offset = offset + OffsetForMultipleMOD
+
                             end
                         end -- of reapeat for every macro
                     end
+
                 end
                 
             end 
 
             if not IsRBtnHeld then AssigningCont_Prm_Mod = nil end 
         end
+
+        if --[[Link CC back when mouse is up]] FP.Cont_Which_CC and  Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
+            r.gmem_attach('ContainerMacro')
+
+            local CC =  FP.Cont_Which_CC
+            local bus_ofs = 0
+            if FP.Cont_Which_CC then 
+                local  guid = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent)
+                    _,_, bus_ofs = FindExactStringInTable(Trk[TrkID].Container_Id , guid)
+            end 
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FP.V, true)
+            r.gmem_write(7, CC) --tells jsfx to retrieve P value
+            PM.TimeNow = r.time_precise()
+            r.gmem_write(11000 + CC, p_value)
+            ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15+(bus_ofs or 0 ), 16, 176, CC, nil)
+        end
     end
     MakeContainerModulationPossible()
+    if Tweaking == P_Num .. FxGUID and  IsLBtnHeld == false then 
+        Tweaking = nil
+    end 
+
+
 
     return Tweaking
 end

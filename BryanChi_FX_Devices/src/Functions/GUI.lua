@@ -8,6 +8,24 @@ function InvisiBtn(ctx, x, y, str, w, h)
     local rv = im.InvisibleButton(ctx, str, w, h or w)
     return rv
 end
+function Container_CollapseIfTab(FxGUID, FX_Idx)
+    if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
+
+        local _ , name = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx,'original_name')
+        if name == 'Container' and not Tab_Collapse_Win then 
+            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
+                
+                if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
+                elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
+
+                Tab_Collapse_Win = true 
+                NeedRetrieveLayout = true 
+
+            end
+        end
+    end
+
+end
 
 ---@param w number
 ---@param h number
@@ -137,6 +155,7 @@ end
 ---@return boolean ValueChanged
 ---@return integer p_value
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
+
     im.SetNextItemWidth(ctx, 40)
     local radius_outer = 10
     local pos = { im.GetCursorScreenPos(ctx) }
@@ -739,8 +758,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             local rename = string.gsub(FX_Name, "%s*%[.-%]%s*", "")
             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "renamed_name", rename)
         end
-
-        if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
+       local  _, orig_name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+        if orig_name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
+        
             ContainerX, ContainerY = im.GetCursorScreenPos(ctx)
         end
 
@@ -1129,7 +1149,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
            -- local winFlg = im.ChildFlags_NoScrollWithMouse + im.ChildFlags_NoScrollbar
 
             local dummyH = 220
-            if FX_Name == 'Container' then
+            local  _, name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+
+            if name == 'Container' then
                 winFlg = FX[FxGUID].NoScroll or im.ChildFlags_AlwaysAutoResize
                 dummyH = 0
             end
@@ -2194,12 +2216,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
 
-                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, FX.Win_Name_S[FX_Idx]) then
+
+                if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, orig_name) then -- orig_name used to be FX.Win_Name_S[FX_Idx] , changed to orig_name to work with containers in case if user changes name
                     SyncWetValues()
 
                     if FX[FxGUID].Collapse ~= true then
-                        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0,
-                            1, FX_Idx)
+                        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
                     end
 
                     if im.BeginDragDropTarget(ctx) then
@@ -2216,13 +2238,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 ------------------------------------------
 
 
-                local function Decide_If_Create_Regular_Layout()
+                local function Need_Create_Regular_Layout()
                     if not FX[FxGUID].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                         local FX_has_Plugin
                         for i, v in pairs(PluginScripts) do
                             if FX_Name:find(v) then
                                 FX_has_Plugin = true
+
                             end
+                            local rv, name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+
+                            if name:find(v) then 
+                                FX_has_Plugin = true
+                            end 
                         end
 
                         if not FX_has_Plugin then
@@ -2233,7 +2261,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
 
-                if Decide_If_Create_Regular_Layout() then
+                if Need_Create_Regular_Layout() then
                     local WinP_X; local WinP_Y;
                     --_, foo = AddKnob(ctx, 'test', foo or 0  , 0, 100 )
                     if FX.Enable[FX_Idx] == true then
@@ -3109,7 +3137,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 for i, v in pairs(PluginScripts) do
-                    local FX_Name = FX_Name
+                    --local FX_Name = FX_Name
+                    local rv, FX_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
 
 
                     if FX_Name:find(v) then
@@ -3136,15 +3165,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end ]]
 
                 --im.Dummy(ctx, 0, dummyH)
-                if im.IsWindowHovered(ctx, im.HoveredFlags_ChildWindows) then
-                    if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]] and not Tab_Collapse_Win then
+
+                Container_CollapseIfTab(FxGUID, FX_Idx)
+                    --[[ if FX_Name == 'Container' and not Tab_Collapse_Win then
                         if im.IsKeyPressed(ctx, im.Key_Tab) then
-                            CollapseIfTab(FxGUID, FX_Idx)
+                            
                             Tab_Collapse_Win = true
                             NeedRetrieveLayout = true
                         end
-                    end
-                end
+                    end ]]
+
 
                 HoverWindow = im.GetWindowSize(ctx)
                 im.Dummy(ctx, 100, 100)
@@ -3893,6 +3923,9 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
     local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
     local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
     local radius_inner = radius_outer * 0.40
+    if Active then 
+        im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffff88)
+    end     
 
         im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,im.GetColor(ctx, im.Col_Button))
         im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,

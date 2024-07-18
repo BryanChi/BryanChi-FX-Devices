@@ -2406,8 +2406,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         local FxNameS = FX.Win_Name_S[FX_Idx]
         local Hide
         FX.DL = r.ImGui_GetWindowDrawList(ctx)
+       local  _, orig_name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
 
-        if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]]  then 
+        if orig_name == 'Container' --[[ and FX_Idx < 0x2000000 ]]  then 
             ContainerX, ContainerY =r.ImGui_GetCursorScreenPos(ctx)
         end
 
@@ -4766,16 +4767,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end ]]
 
                 r.ImGui_Dummy(ctx, 0, dummyH)
-                if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
-                    if FX_Name == 'Container' --[[ and FX_Idx < 0x2000000 ]]  and not Tab_Collapse_Win then 
+                CollapseIfTab(FxGUID, FX_Idx)
+                --[[ if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
+                    if FX_Name == 'Container'  and not Tab_Collapse_Win then 
                         if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
-                            CollapseIfTab(FxGUID, FX_Idx)
                             Tab_Collapse_Win = true 
                             NeedRetrieveLayout = true 
 
                         end
                     end
-                end
+                end ]]
 
                 HoverWindow = r.ImGui_GetWindowSize(ctx)
 
