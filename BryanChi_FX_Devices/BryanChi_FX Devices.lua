@@ -167,6 +167,7 @@ require("src.Functions.Layout Editor functions")
 require("src.Functions.Modulation")
 require("src.Functions.Theme Editor Functions")
 
+
 PluginScript = {} ---@class PluginScript
 
 os_separator = package.config:sub(1, 1)
@@ -621,254 +622,6 @@ local LAST_USED_FX
 
 
 
--- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
----@param s string
-local function Lead_Trim_ws(s) return s:match '^%s*(.*)' end
-
----@param filter_text string
-local function Filter_actions(filter_text)
-    filter_text = Lead_Trim_ws(filter_text)
-    local t = {}
-    if filter_text == "" or not filter_text then return t end
-    for i = 1, #FX_LIST do
-        local action = FX_LIST[i]
-        local name = action:lower()
-        local found = true
-        for word in filter_text:gmatch("%S+") do
-            if not name:find(word:lower(), 1, true) then
-                found = false
-                break
-            end
-        end
-
-        if found then t[#t + 1] = action end
-    end
-    return t
-end
-
-local function SetMinMax(Input, Min, Max)
-    if Input >= Max then
-        Input = Max
-    elseif Input <= Min then
-        Input = Min
-    else
-        Input = Input
-    end
-    return Input
-end
-
-
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
-    ---@type integer|nil, boolean|nil
-    local FX_Idx_For_AddFX, close
-    if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
-    local MAX_FX_SIZE = 250
-    local FxGUID = FXGUID[FX_Idx_For_AddFX or FX_Idx]
-    im.SetNextItemWidth(ctx, 180)
-    _, ADDFX_FILTER = im.InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER,
-        im.InputTextFlags_AutoSelectAll)
-
-    if im.IsWindowAppearing(ctx) then
-        local tb = FX_LIST
-        im.SetKeyboardFocusHere(ctx, -1)
-    end
-
-    local filtered_fx = Filter_actions(ADDFX_FILTER)
-    --im.SetNextWindowPos(ctx, im.GetItemRectMin(ctx), ({ im.GetItemRectMax(ctx) })[2])
-    local filter_h = #filtered_fx == 0 and 2 or (#filtered_fx > 40 and 20 * 17 or (17 * #filtered_fx))
-    local function InsertFX(Name)
-        local FX_Idx = FX_Idx
-        --- CLICK INSERT
-        if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
-
-        r.TrackFX_AddByName(LT_Track, Name, false, -1000 - FX_Idx)
-
-        -- if Inserted into Layer
-        local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
-        if FX.InLyr[FxGUID] == FXGUID_RackMixer and FX.InLyr[FxGUID] then
-            DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
-        end
-        if SpaceIsBeforeRackMixer == 'SpcInBS' then
-            DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
-        end
-        if SpcIsInPre then
-            local inspos = FX_Idx + 1
-            if SpaceIsBeforeRackMixer == 'End of PreFX' then
-                table.insert(Trk[TrkID].PreFX, FxID)
-            else
-                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
-            end
-            for i, v in pairs(Trk[TrkID].PreFX) do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                    true)
-            end
-        elseif SpcInPost then
-            if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-            table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
-            -- InsertToPost_Src = FX_Idx + offset+2
-            for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
-            end
-        end
-
-        ADDFX_FILTER = nil
-    end
-    if ADDFX_FILTER ~= '' and ADDFX_FILTER then
-        SL()
-        im.SetNextWindowSize(ctx, MAX_FX_SIZE, filter_h + 20)
-        local x, y = im.GetCursorScreenPos(ctx)
-
-        ParentWinPos_x, ParentWinPos_y = im.GetWindowPos(ctx)
-        local VP_R = VP.X + VP.w
-        if x + MAX_FX_SIZE > VP_R then x = ParentWinPos_x - MAX_FX_SIZE end
-
-        im.SetNextWindowPos(ctx, x, y - filter_h / 2)
-        if im.BeginPopup(ctx, "##popupp", im.WindowFlags_NoFocusOnAppearing --[[ MAX_FX_SIZE, filter_h ]]) then
-            ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
-            for i = 1, #filtered_fx do
-                local ShownName
-                if filtered_fx[i]:find('VST:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
-                    local clr = FX_Adder_VST or
-                        CustomColorsDefault
-                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
-                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
-                    MyText('VST', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VSTi:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6, (fx:find('.vsti') or 999) - 1)
-                    local clr = FX_Adder_VST or CustomColorsDefault.FX_Adder_VST
-                    MyText('VSTi', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VST3:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6) .. '##vst3'
-                    local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VST3i:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(7) .. '##vst3i'
-                    local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3i', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('JS:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    MyText('JS', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('AU:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    MyText('AU', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('CLAP:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6)
-                    local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAP', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('CLAPi:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(7)
-                    local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAPi', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('LV2:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5)
-                    local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    MyText('LV2', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-
-                if im.Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
-                    if filtered_fx[i] then
-                        InsertFX(filtered_fx[i])
-                        im.CloseCurrentPopup(ctx)
-                        close = true
-                    end
-                end
-                if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-                -- DRAG AND DROP
-                if im.IsItemActive(ctx) and im.IsMouseDragging(ctx, 0) then
-                    -- HIGHLIGHT DRAGGED FX
-                    DRAG_FX = i
-                    DndAddFX_SRC(filtered_fx[i])
-                    --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
-                end
-            end
-
-            if im.IsKeyPressed(ctx, im.Key_Enter) then
-                table.insert(AddFX.Pos, FX_Idx)
-                table.insert(AddFX.Name, filtered_fx[ADDFX_Sel_Entry])
-                --r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
-                LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
-                ADDFX_Sel_Entry = nil
-
-                im.CloseCurrentPopup(ctx)
-                close = true
-
-                --FILTER = ''
-                --im.CloseCurrentPopup(ctx)
-            elseif im.IsKeyPressed(ctx, im.Key_UpArrow) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry - 1
-            elseif im.IsKeyPressed(ctx, im.Key_DownArrow) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry + 1
-            end
-            --im.EndChild(ctx)
-            im.EndPopup(ctx)
-        end
-
-
-        im.OpenPopup(ctx, "##popupp")
-        im.NewLine(ctx)
-    end
-
-
-    if im.IsKeyPressed(ctx, im.Key_Escape) then
-        im.CloseCurrentPopup(ctx)
-        ADDFX_FILTER = nil
-    end
-    return close
-end
-
-local function DrawChildMenu(tbl, path, FX_Idx)
-    path = path or ""
-    for i = 1, #tbl do
-        if tbl[i].dir then
-            if im.BeginMenu(ctx, tbl[i].dir) then
-                DrawChildMenu(tbl[i], table.concat({ path, os_separator, tbl[i].dir }), FX_Idx)
-                im.EndMenu(ctx)
-            end
-        end
-        if type(tbl[i]) ~= "table" then
-            if im.Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let’s pass the third argument as false instead of nil
-                if TRACK then
-                    r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i] }), false,
-                        -1000 - FX_Idx)
-                end
-            end
-        end
-    end
-end
-
 ----------------------------End declare Initial Variables   ------------------------
 
 --------------------------==  Before GUI (No Loop) ----------------------------
@@ -955,13 +708,14 @@ NumOfTotalTracks = r.CountTracks(0)
 
 -- Repeat for every track, at the beginning of script
 for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
-
     local Track = r.GetTrack(0, Track_Idx)
     local TrkID = r.GetTrackGUID(Track)
     TREE = BuildFXTree(Track)
 
 
     Trk[TrkID] = Trk[TrkID] or {}
+    Trk[TrkID].Container_Id = {}
+
     Trk[TrkID].Mod = {}
     Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
     Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
@@ -970,6 +724,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
     for i = 1, (AutoPrmCount or 0) + 1, 1 do
         Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
     end
+   -- Trk[TrkID].Container_Id    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )
 
 
     local function RC(str, type)
@@ -1040,9 +795,8 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             end
         end
     end
-
-
-
+  
+    
     local FXCount = r.TrackFX_GetCount(Track)
     Trk[TrkID] = Trk[TrkID] or {}
     Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
@@ -1112,16 +866,21 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
             local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
             local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
             --local _, FX[FxGUID].   r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , '' , false )
-
+            Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
+            if not FxGUID then return end 
+            
             if v.children then  -- if it's a container
                 
                 Get_FX_Data (v.children)
+                local id =  RC('Container ID of '..FxGUID)
+
+
+
             end 
 
 
-            if not FxGUID then return end 
             FX[FxGUID] = FX[FxGUID] or {}
-            FX[FxGUID].ModSlots = tonumber( select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , '', false )))
+            FX[FxGUID].ModSlots = tonumber( select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Container Active Mod Slots '..FxGUID , '', false )))
 
 
 
@@ -1318,6 +1077,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         if Trk[TrkID].Mod[m].Type == '' then Trk[TrkID].Mod[m].Type = nil end
     end
     Get_FX_Data (TREE)
+    if not Trk[TrkID].Container_Id [1] then Trk[TrkID].Container_Id = nil end 
 
 end
 
@@ -1590,13 +1350,12 @@ function loop()
 
 
             Add_Del_Move_FX_At_Begining_of_Loop()
-            --[[  if not init then
-                r.TrackFX_CopyToTrack(LT_Track, 1, LT_Track, 33554439, true)
-            end
-            init = true
-            ]]
+
 
             --------- Don't remove this ---------
+            if AddFX.Name[1] then 
+                TREE = BuildFXTree(LT_Track)
+            end
             AddFX.Name         = {}
             AddFX.Pos          = {}
             ProC.GainSc_FXGUID = nil
@@ -3355,8 +3114,7 @@ function loop()
 
 
                             if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-                                LFO.WinHovered =
-                                    Macro -- this one doesn't get cleared after unhovering, to inform script which one to stay open
+                                LFO.WinHovered = Macro -- this one doesn't get cleared after unhovering, to inform script which one to stay open
                                 LFO.HvringWin = Macro
                             else
                                 LFO.HvringWin = nil

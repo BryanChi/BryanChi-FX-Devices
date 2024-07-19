@@ -478,7 +478,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 local CC = Cont_Mod_Prm_id
                 FP.Cont_Which_CC =  CC
                 FP.Cont_ModAMT = FP.Cont_ModAMT or {}
-                ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15+Index, 16, 176, CC, nil)
+                ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15+Index, 16, 176, CC, nil) -- 15+Index is midi bus
                 
                 r.gmem_attach('ContainerMacro')
 
@@ -496,9 +496,9 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                     r.gmem_attach('ContainerMacro')
                     local M = AssignContMacro+1
-                    r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
-                    r.gmem_write(3, #Ct.ModPrm) -- tells jsfx how many modded container prm are there 
-                    r.gmem_write(2, FX[Cont_FxGUID].DIY_FxGUID) --Sends Trk GUID for jsfx to determine track
+
+                     r.gmem_write(4, 1) --  Gmem 4 sets jsfx's mode, mode 1 means user is assgining modulation to a param\
+                    r.gmem_write(2, FX[Cont_FxGUID].DIY_FxGUID) --Sends diy FxGUID for jsfx to determine which Container
 
 
                     if Ct.ModPrm then r.gmem_write(3, #Ct.ModPrm) end  -- Tells jsfx how many modulated prms there are . (eg. if there are 5, then jsfx is sending CC1 ~ 5 and so on )
@@ -529,7 +529,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                             end
                         end -- of reapeat for every macro
-                    end
+                    end 
+                    r.gmem_attach('')
 
                 end
                 
@@ -677,9 +678,121 @@ function DrawLFOvalueTrail (MacroTable , x, y, Macro )
 
 end
 
+function DrawShapesInSelector(Shapes)
+    local AnyShapeHovered
+    local Mc = mc
+    for i, v in pairs(Shapes) do
+        --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
 
-function Draw_LFO_Trail ()
+        if im.TextFilter_PassFilter(ShapeFilter, v.Name) then
+            im.Text(ctx, v.Name or i)
 
+            --im.SetCursorPosX( ctx, - 15 )
+            local L, T = im.GetItemRectMin(ctx)
+            if im.IsMouseHoveringRect(ctx, L, T, L + 200, T + 10) then
+                SL(W - 8)
 
+                if TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
+                    im.OpenPopup(ctx, 'Delete shape prompt' .. i)
+                    im.SetNextWindowPos(ctx, L, T)
+                end
+            end
+
+            if im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) then
+                Mc.Node = v
+                LFO.NewShapeChosen = v
+            end
+            if im.IsItemHovered(ctx) then
+                Mc.Node = v
+                AnyShapeHovered = true
+                LFO.AnyShapeHovered = true
+                Cont_Send_All_Coord()
+            end
+            local L, T = im.GetItemRectMin(ctx)
+            local w, h = im.GetItemRectSize(ctx)
+            im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff33)
+            im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
+
+            Cont_DrawShape(v, L, w, h, T, 0xffffffaa)
+        end
+        if im.BeginPopupModal(ctx, 'Delete shape prompt' .. i, true, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then
+            im.Text(ctx, 'Confirm deleting this shape:')
+            if im.Button(ctx, 'yes') or im.IsKeyPressed(ctx, im.Key_Y) or im.IsKeyPressed(ctx, im.Key_Enter) then
+                LFO.DeleteShape = i
+                im.CloseCurrentPopup(ctx)
+            end
+            SL()
+            if im.Button(ctx, 'No') or im.IsKeyPressed(ctx, im.Key_N) or im.IsKeyPressed(ctx, im.Key_Escape) then
+                im.CloseCurrentPopup(ctx)
+            end
+            im.EndPopup(ctx)
+        end
+    end
+end
+
+local function get_Global_Shapes()
+    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+    local Shapes = {}
+    for i, v in ipairs(F) do
+        local Shape = Get_LFO_Shape_From_File(v)
+        if Shape then
+
+            Shape.Name = tostring(v):sub(0, -5)
+            table.insert(Shapes, Shape)
+        end
+    end
+    return Shapes
+end
+
+function LFO_Small_Shape_Selector(Mc)
+    local x , y  = im.GetCursorScreenPos(ctx)
+    local Shapes = get_Global_Shapes()
+    local Box_Sz = 50
+    im.SetNextWindowPos(ctx, x - (Box_Sz-5), y -LFO_Box_Size- #Shapes * Box_Sz/2 )
+    if im.BeginPopup(ctx, 'Small Shape Select') then 
+        if im.IsWindowAppearing(ctx) then
+            LFO.NodeBeforePreview = Mc.Node
+        end
+        local AnyShapeHovered
+        local Shapes = get_Global_Shapes()
+        for i, v in pairs(Shapes) do
+            local W = Box_Sz 
+            local H = Box_Sz
+            if im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) then
+                Mc.Node = v
+                LFO.NewShapeChosen = v
+            end
+            if im.IsItemHovered(ctx) then
+                Mc.Node = v
+                AnyShapeHovered = true
+                LFO.AnyShapeHovered = true
+                --Cont_Send_All_Coord()
+            end
+            local L, T = im.GetItemRectMin(ctx)
+            local w, h = im.GetItemRectSize(ctx)
+            im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0x55555511)
+            im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
+            Cont_DrawShape(v, L, w, h, T, 0xffffffaa,2)
+        end
+        if not im.IsWindowHovered(ctx) and not OpenSamllShapeSelect then
+            im.CloseCurrentPopup(ctx)
+        end
+
+        if LFO.AnyShapeHovered then     -- if any shape was hovered
+            if not AnyShapeHovered then -- if 'unhovered'
+                if LFO.NewShapeChosen then
+                    local V = LFO.NewShapeChosen
+                    Mc.Node = V                     ---keep newly selected shape
+                else
+                    Mc.Node = LFO.NodeBeforePreview -- restore original shape
+                    NeedSendAllGmemLater = Macro
+                end
+                LFO.NodeBeforePreview = Mc.Node
+                LFO.AnyShapeHovered = nil
+                LFO.NewShapeChosen = nil
+            end
+        end
+        im.EndPopup(ctx)
+    end 
 
 end

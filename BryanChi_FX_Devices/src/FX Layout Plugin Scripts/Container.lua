@@ -2,13 +2,14 @@
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
-
-FX[FxGUID].TitleWidth  = 0
-FX[FxGUID].CustomTitle = 'Container'
-FX[FxGUID].Width = 35
-FX[FxGUID].V_Win_Btn_Height = 130 
-FX[FxGUID].Cont_Collapse = FX[FxGUID].Cont_Collapse or 0
 local fx = FX[FxGUID]
+fx.TitleWidth  = 0
+
+fx.CustomTitle =  'Container'
+fx.Width = 35
+fx.V_Win_Btn_Height = 130 
+fx.Cont_Collapse = fx.Cont_Collapse or 0
+
 local ModIconSz = 18 
 local Top_Spacing = 3
 LFO_Box_Size = 38
@@ -16,6 +17,24 @@ local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
 DEBUG_W = DEBUG_W or {}
+
+local function GetAll_Container_Data()
+
+    local rv , diyFxGUID = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', '', false)
+    if rv then fx.DIY_FxGUID = diyFxGUID end
+    if not fx.DIY_FxGUID then 
+        fx.DIY_FxGUID = math.random(100000000, 999999999)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
+    end
+
+    Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
+    local rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
+    if not rv  then 
+        table.insert(Trk[TrkID].Container_Id , FxGUID)
+            rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
+    end
+end
+GetAll_Container_Data()
 
 local Accent_Clr = CustomColorsDefault.Container_Accent_Clr
 local function SaveAll_Container_IDs ()
@@ -32,7 +51,7 @@ local function SetTypeToEnv(type, i)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'env', true)
             r.gmem_write(4, 4) -- tells jsfx macro type = env
             r.gmem_write(5, i) -- tells jsfx which macro
-            r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+            r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
             return true 
         end
     end
@@ -41,7 +60,7 @@ end
 local function SetTypeToStepSEQ(type, i )
     if type  ~= 'Step' then 
         if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
-            r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+            r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
             r.gmem_write(4, 6)   -- tells jsfx macro type = step seq
             r.gmem_write(5, i)
@@ -74,7 +93,7 @@ local function SetTypeToMacro(type,i)
     if im.Selectable(ctx, 'Set Type to Macro', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Macro', true)
-        r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+        r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
         r.gmem_write(4, 5) -- tells jsfx macro type = Macro
         r.gmem_write(5, i) -- tells jsfx which macro
@@ -86,7 +105,7 @@ local function SetTypeToLFO(type,i)
     if im.Selectable(ctx, 'Set Type to LFO', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'LFO', true)
-        r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+        r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
         r.gmem_write(5, i)  -- tells jsfx which macro
@@ -101,33 +120,33 @@ local function Modulation_Icon(LT_Track, slot)
     local clr = 0xD3D3D399
     if fx.MacroPageActive then clr = Accent_Clr end 
     if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
-        FX[FxGUID].MacroPageActive = toggle (FX[FxGUID].MacroPageActive)
+        fx.MacroPageActive = toggle (fx.MacroPageActive)
         Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
-        table.insert(Trk[TrkID].Container_Id , FxGUID)
+        local Cont_ID
+        
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , #Trk[TrkID].Container_Id , true )
         if not slot then slot  = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1)end 
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
 
-        local rv , diyFxGUID = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', '', false)
-        if rv then FX[FxGUID].DIY_FxGUID = diyFxGUID  msg(FX[FxGUID].DIY_FxGUID) end
 
         if not string.find(FirstFX, 'FXD Containr Macro') then 
 
             r.gmem_attach('ContainerMacro')
-            r.gmem_write(0, #Trk[TrkID].Container_Id )
-            if not FX[FxGUID].DIY_FxGUID then 
-                FX[FxGUID].DIY_FxGUID = math.random(100000000, 999999999)
-                msg(FX[FxGUID].DIY_FxGUID)
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', FX[FxGUID].DIY_FxGUID, true)
-                r.gmem_write(1, FX[FxGUID].DIY_FxGUID)
+            r.gmem_write(0, Cont_ID )
+            if not fx.DIY_FxGUID then 
+                fx.DIY_FxGUID = math.random(100000000, 999999999)
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
+                r.gmem_write(1, fx.DIY_FxGUID)
                 
             end
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
             AddMacroJSFX('JS: FXD Container Macros', slot)
+            TREE = BuildFXTree(LT_Track)
+
 
         end 
-        FX[FxGUID].ModSlots = FX[FxGUID].ModSlots or 4  
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , FX[FxGUID].ModSlots  , true )
+        fx.ModSlots = fx.ModSlots or 4  
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , fx.ModSlots  , true )
 
     end 
     im.PopStyleColor(ctx)
@@ -136,7 +155,7 @@ end
 local function titleBar()
 
 
-    if not FX[FxGUID].Collapse then
+    if not fx.Collapse then
 
         SyncWetValues(FX_Idx)
         local x, y = im.GetCursorPos(ctx)
@@ -156,6 +175,83 @@ local function titleBar()
         local FDL = im.GetForegroundDrawList(ctx)
     end
 end
+function Cont_DrawShape(Node, L, W, H, T, Clr, thick)
+    if Node then
+
+        for i, v in ipairs(Node) do
+            local W, H = W or w, H or h
+            
+
+            local N = Node
+            local L = L or HdrPosL
+            local h = LFO.DummyH
+            local lastX = N[math.max(i - 1, 1)].x * W + L
+            local lastY = T + H - (-N[math.max(i - 1, 1)].y + 1) * H
+
+            local x = N[i].x * W + L
+            local y = T + H - (-N[math.min(i, #Node)].y + 1) * H
+
+            local CtrlX = (N[i].ctrlX or ((N[math.max(i - 1, 1)].x + N[i].x) / 2)) * W + L
+            local CtrlY = T + H - (-(N[i].ctrlY or ((N[math.max(i - 1, 1)].y + N[i].y) / 2)) + 1) * H
+
+            local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
+
+            --[[ for i, v in ipairs(PtsX) do
+                PtsX[i] = L+( L - PtsX[i]) * 0.9
+            end ]]
+
+            for i, v in ipairs(PtsX) do
+
+                if i > 1 then -- >1 because you need two points to draw a line
+                    
+                    im.DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i],
+                        Clr or EightColors.LFO[Macro], thick)
+                end
+            end
+        end
+    end
+end
+function Global_Shapes()
+    if im.IsWindowAppearing(ctx) then
+        LFO.NodeBeforePreview = Mc.Node
+    end
+
+    Shapes = {}
+
+
+
+    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
+
+    for i, v in ipairs(F) do
+        local Shape = Get_LFO_Shape_From_File(v)
+        if Shape then
+
+            Shape.Name = tostring(v):sub(0, -5)
+            table.insert(Shapes, Shape)
+        end
+    end
+
+
+    if LFO.DeleteShape then
+        os.remove(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes',
+            Shapes[LFO.DeleteShape].Name .. '.ini'))
+        table.remove(Shapes, LFO.DeleteShape)
+        LFO.DeleteShape = nil
+    end
+
+    if ShapeFilter and  im.TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1) then
+        Shape_Filter_Txt = im.TextFilter_Get(ShapeFilter)
+        im.TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
+    end
+
+    AnyShapeHovered = DrawShapesInSelector(Shapes)
+
+    if im.IsWindowFocused(ctx) and im.IsKeyPressed(ctx, im.Key_Escape) then
+        im.CloseCurrentPopup(ctx)
+        LFO.OpenShapeSelect = nil
+    end
+end
+
 local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
     local HdrPosL = x 
     local tweaking
@@ -176,7 +272,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
         function Cont_Send_All_Coord()
             for i, v in ipairs(All_Coord.X) do
 
-                r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+                r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
                 r.gmem_write(5, Macro)
@@ -187,7 +283,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
         end
         local i = Macro
         local function ChangeLFO(mode, V, gmem, StrName)
-            r.gmem_write(2, FX[FxGUID].DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+            r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
             r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
             r.gmem_write(5, i)    -- Tells jsfx which macro
@@ -924,6 +1020,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
 
 
     if LFO.OpenShapeSelect == Macro then
+        local L = HdrPosL local T = y
         im.SetNextWindowPos(ctx, L + LFO.DummyW + 30, T - LFO.DummyH - 200)
         if not im.ValidatePtr(ShapeFilter, "ImGui_TextFilter*") then
             ShapeFilter = im.CreateTextFilter(Shape_Filter_Txt)
@@ -931,8 +1028,9 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
         im.SetNextWindowSizeConstraints(ctx, 220, 150, 240, 700)
         if im.Begin(ctx, 'Shape Selection Popup', true, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
             local W, H = 150, 75
-            local function DrawShapesInSelector(Shapes)
+             function DrawShapesInSelector(Shapes)
                 local AnyShapeHovered
+                local Mc = mc
                 for i, v in pairs(Shapes) do
                     --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
 
@@ -965,7 +1063,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                         im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff33)
                         im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
 
-                        DrawShape(v, L, w, h, T, 0xffffffaa)
+                        Cont_DrawShape(v, L, w, h, T, 0xffffffaa)
                     end
                     if im.BeginPopupModal(ctx, 'Delete shape prompt' .. i, true, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then
                         im.Text(ctx, 'Confirm deleting this shape:')
@@ -1008,58 +1106,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                 end
             end
 
-            local function Global_Shapes()
-                if im.IsWindowAppearing(ctx) then
-                    LFO.NodeBeforePreview = Mc.Node
-                end
-
-                Shapes = {}
-
-
-
-                local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
-
-
-                for i, v in ipairs(F) do
-                    local Shape = Get_LFO_Shape_From_File(v)
-                    if Shape then
-                        Shape.Name = tostring(v):sub(0, -5)
-                        table.insert(Shapes, Shape)
-                    end
-                end
-
-
-                if LFO.DeleteShape then
-                    os.remove(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes',
-                        Shapes[LFO.DeleteShape].Name .. '.ini'))
-                    table.remove(Shapes, LFO.DeleteShape)
-                    LFO.DeleteShape = nil
-                end
-
-                if im.TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1) then
-                    Shape_Filter_Txt = im.TextFilter_Get(ShapeFilter)
-                    im.TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
-                end
-
-
-
-
-                AnyShapeHovered = DrawShapesInSelector(Shapes)
-
-
-
-
-
-
-
-
-
-
-                if im.IsWindowFocused(ctx) and im.IsKeyPressed(ctx, im.Key_Escape) then
-                    im.CloseCurrentPopup(ctx)
-                    LFO.OpenShapeSelect = nil
-                end
-            end
+            
 
 
             local function Save_Shape_To_Track()
@@ -1266,42 +1313,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
 
     return tweaking, All_Coord
 end
-local function Cont_DrawShape(Node, L, W, H, T, Clr, thick)
-    if Node then
 
-        for i, v in ipairs(Node) do
-            local W, H = W or w, H or h
-            
-
-            local N = Node
-            local L = L or HdrPosL
-            local h = LFO.DummyH
-            local lastX = N[math.max(i - 1, 1)].x * W + L
-            local lastY = T + H - (-N[math.max(i - 1, 1)].y + 1) * H
-
-            local x = N[i].x * W + L
-            local y = T + H - (-N[math.min(i, #Node)].y + 1) * H
-
-            local CtrlX = (N[i].ctrlX or ((N[math.max(i - 1, 1)].x + N[i].x) / 2)) * W + L
-            local CtrlY = T + H - (-(N[i].ctrlY or ((N[math.max(i - 1, 1)].y + N[i].y) / 2)) + 1) * H
-
-            local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
-
-            --[[ for i, v in ipairs(PtsX) do
-                PtsX[i] = L+( L - PtsX[i]) * 0.9
-            end ]]
-
-            for i, v in ipairs(PtsX) do
-
-                if i > 1 then -- >1 because you need two points to draw a line
-                    
-                    im.DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i],
-                        Clr or EightColors.LFO[Macro], thick)
-                end
-            end
-        end
-    end
-end
 local function RC(str, type)
     if type == 'str' then
         return select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID .. str, '', false))
@@ -1368,7 +1380,16 @@ local function LFO_Box(mc, i )
                 clr = Accent_Clr
             end
         end
+        mc.Node = mc.Node or { { x = 0, y = 0 }, { x = 1, y = 1 } } -- create two default tables for first and last point
+
         Cont_DrawShape(mc.Node, x, sz, sz, y, clr , 1.5)
+        if IsLBtnClicked and im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and im.IsPopupOpen(ctx, 'Small Shape Select') then 
+            im.CloseCurrentPopup(ctx)
+            LFO.EditWinOpen = toggle (LFO.EditWinOpen)
+            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
+
+        end 
+
         if  im.InvisibleButton(ctx, 'Cont LFO Btn'.. i.. FxGUID, sz,sz) then 
             Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
 
@@ -1377,6 +1398,36 @@ local function LFO_Box(mc, i )
         if im.IsItemClicked(ctx, 1 ) then 
             mc.TweakingKnob=  2 
         end 
+
+        if im.IsItemHovered(ctx) and not LFO.EditWinOpen then 
+            OpenSamllShapeSelect = FxGUID..i
+        end
+        if OpenSamllShapeSelect == FxGUID..i then 
+            if not im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) then  
+                OpenSamllShapeSelect_unhoverTime = (OpenSamllShapeSelect_unhoverTime or 0) + 1
+                if OpenSamllShapeSelect_unhoverTime > 5 then 
+                    OpenSamllShapeSelect = nil 
+                    OpenSamllShapeSelect_unhoverTime = 0
+                end
+            elseif im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsLBtnClicked  then  
+
+                im.CloseCurrentPopup(ctx)
+                LFO.EditWinOpen = toggle (LFO.EditWinOpen)
+            end
+
+        end 
+        
+        if im.IsItemHovered(ctx) and not im.IsPopupOpen(ctx, 'Small Shape Select') and not LFO.EditWinOpen then 
+            im.OpenPopup(ctx, 'Small Shape Select')
+        end
+        
+        LFO_Small_Shape_Selector(mc)
+
+        
+
+        
+
+
         if Open_Cont_LFO_Win and Open_Cont_LFO_Win == FxGUID then 
 
             Cont_open_LFO_Win(LT_Track, i+1 , x , y, mc)
@@ -1421,10 +1472,10 @@ local function  macroPage()
         fx.Mc[i] = fx.Mc[i] or {}
     end 
     r.gmem_attach('ContainerMacro')
-    --r.gmem_write(2, FX[FxGUID].DIY_FxGUID)
+    --r.gmem_write(2, fx.DIY_FxGUID)
     local x_before , y_before = im.GetCursorPos(ctx)
 
-    for i = 0 , FX[FxGUID].ModSlots - 1 , 1 do 
+    for i = 0 , fx.ModSlots - 1 , 1 do 
         local I = i +1
         local mc = fx.Mc[I]
         local row = math.ceil ( I /4 )
@@ -1450,8 +1501,8 @@ local function  macroPage()
                 else AssignContMacro = nil 
                 end 
                 if I == 4 then 
-                    FX[FxGUID].ModSlots = 8  
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , FX[FxGUID].ModSlots  , true )
+                    fx.ModSlots = 8  
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , fx.ModSlots  , true )
                 end 
             elseif Mods == Ctrl then 
                 im.OpenPopup(ctx,'Container Macro' .. I .. 'Menu')
@@ -1483,9 +1534,8 @@ local function  macroPage()
             end 
         end 
     end 
-    local lastrow = math.ceil ( FX[FxGUID].ModSlots /4 )
+    local lastrow = math.ceil ( fx.ModSlots /4 )
     fx.Width = fx.Width + Size  *3.3 * lastrow
-    ttp(fx.Width)
 
     im.SetCursorPos(ctx,  x_before +  (Size*3 * lastrow)  , y_before)
 
@@ -1511,7 +1561,7 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
         local W, H = 130, 20
         local L,T = im.GetCursorScreenPos(ctx)
         local L = Xpos
-        --if FX_Id ~= FX[FxGUID].LastSpc then  L = L-135  end 
+        --if FX_Id ~= fx.LastSpc then  L = L-135  end 
 
         if im.IsMouseHoveringRect(ctx, L, T-H/2, L+W, T+H/2 )  then 
             im.DrawList_AddLine(Glob.FDL, L, T, L+W , T, Accent_Clr, 3)
@@ -1519,7 +1569,7 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
 
                 local Drag_GUID = r.TrackFX_GetFXGUID(LT_Track, Payload)
                 local ofs  = 0 
-                if FX[FxGUID].parent == FX[Drag_GUID].parent then -- if they're in the same container
+                if fx.parent == FX[Drag_GUID].parent then -- if they're in the same container
                     if Payload < FX_Id then 
                         if v then ofs = v.scale end 
                             
@@ -1613,7 +1663,7 @@ end
 
 local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUID,TB)
     local Hv
-    FX[FxGUID].BgClr=nil
+    fx.BgClr=nil
 
 
 
@@ -1637,13 +1687,13 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         
         --SyncWetValues(FX_Id)
         if Click == 2  then 
-            if FX[FxGUID].Sel_Preview ~= FX_Id then 
-                FX[FxGUID].Sel_Preview = FX_Id
+            if fx.Sel_Preview ~= FX_Id then 
+                fx.Sel_Preview = FX_Id
             else 
-                FX[FxGUID].Sel_Preview = nil
+                fx.Sel_Preview = nil
             end
         end
-        if FX[FxGUID].Sel_Preview == FX_Id then 
+        if fx.Sel_Preview == FX_Id then 
             HighlightSelectedItem(nil,Accent_Clr,nil,nil,nil,nil,nil,nil,nil,1,1,'GetItemRect')
         end
         SyncWetValues(FX_Id)
@@ -1658,12 +1708,12 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
             if tonumber(FX_Count) > 9  then 
                 --FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
                 DisableScroll = true 
-                FX[FxGUID].NoScroll = nil 
+                fx.NoScroll = nil 
 
             else 
                 FX_DeviceWindow_NoScroll = 0
                 DisableScroll = false 
-                --FX[FxGUID].NoScroll =  im.WindowFlags_NoScrollWithMouse  +  im.WindowFlags_NoScrollbar +  im.WindowFlags_AlwaysAutoResize
+                --fx.NoScroll =  im.WindowFlags_NoScrollWithMouse  +  im.WindowFlags_NoScrollbar +  im.WindowFlags_AlwaysAutoResize
 
             end
         end
@@ -1671,9 +1721,9 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         
         --[[ + (    Hv or 0) ]]
 
-        if FX[FxGUID].Cont_Collapse ==1 then 
+        if fx.Cont_Collapse ==1 then 
 
-            FX[FxGUID].LastSpc = FX_Id + (v.scale or 0)
+            fx.LastSpc = FX_Id + (v.scale or 0)
 
         end
         
@@ -1685,7 +1735,7 @@ end
 AddTitleBgClr ()
 
 titleBar()
-FX[FxGUID].BgClr = nil
+fx.BgClr = nil
 
 
 ---------------------------------------------
@@ -1726,17 +1776,17 @@ else
         local FX_Id = v.addr_fxid
         local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
-        
 
-        if  FX[FxGUID].Cont_Collapse == 1  then 
+
+        if  fx.Cont_Collapse == 1  then 
 
 
             local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
             if W then PreviewW = W end 
-            --FX[FxGUID].BgClr = 0xffffff44
+            --fx.BgClr = 0xffffff44
 
         else       -- if not collapsed
-            --FX[FxGUID].BgClr = 0xff22ff44
+            --fx.BgClr = 0xff22ff44
             local function Render_Normal()
                 local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
                 
@@ -1777,7 +1827,7 @@ else
                 im.SetCursorPosY(ctx, 0 )
                 LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
-                FX[FxGUID].Width = (FX[FxGUID].Width or 0) + w +( LastSpc or 0)
+                fx.Width = (fx.Width or 0) + w +( LastSpc or 0)
                 
                 if Hover then  DisableScroll = false  end 
             end
@@ -1792,23 +1842,23 @@ else
 
 
     local Add_FX_Btn_Ypos
-    if FX[FxGUID].Cont_Collapse == 1   and FX[FxGUID].Sel_Preview then 
+    if fx.Cont_Collapse == 1   and fx.Sel_Preview then 
         SL()
         Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
         im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
 
-        Hv = createFXWindow(FX[FxGUID].Sel_Preview)
+        Hv = createFXWindow(fx.Sel_Preview)
         if Hv then PreviewW = Hv end 
-        if PreviewW then FX[FxGUID].Width = 50 + 150 + PreviewW end
+        if PreviewW then fx.Width = 50 + 150 + PreviewW end
     end
-    if FX[FxGUID].Cont_Collapse == 1 then
+    if fx.Cont_Collapse == 1 then
         if Add_FX_Btn_Ypos then im.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
         im.SetCursorPosX(ctx,tonumber( CollapseXPos)  )
-        DragDropToCollapseView (FX[FxGUID].LastSpc, CollapseXPos_screen)
+        DragDropToCollapseView (fx.LastSpc, CollapseXPos_screen)
         if im.Button(ctx,'+' , 130) then 
-            im.OpenPopup(ctx, 'Btwn FX Windows' .. FX[FxGUID].LastSpc)
+            im.OpenPopup(ctx, 'Btwn FX Windows' .. fx.LastSpc)
         end 
-        AddFX_Menu(FX[FxGUID].LastSpc)
+        AddFX_Menu(fx.LastSpc)
     end
 
     if Upcoming_Container  then 
@@ -1827,10 +1877,10 @@ else
 
 
     
-    if not FX[FxGUID].Collapse then 
+    if not fx.Collapse then 
         local WDL = im.GetWindowDrawList(ctx)
-        --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+FX[FxGUID].Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (FX[FxGUID].Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
+        --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
+        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
     end 
 
 

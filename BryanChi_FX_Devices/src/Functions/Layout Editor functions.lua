@@ -796,6 +796,13 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         FP.ModBipolar = FP.ModBipolar or {}
         local Amt = FP.ModAMT or FP.Cont_ModAMT
 
+        local IndicClr = EightColors.HighSat_MidBright[Macro]
+        local rangeClr = EightColors.Bright[Macro]
+        if Amt ==FP.Cont_ModAMT then 
+            IndicClr = CustomColorsDefault.Container_Accent_Clr
+            rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr , -0.3)
+        end
+
         for Macro, v in ipairs(MacroNums) do
             if Amt[Macro] then
                 --if Modulation has been assigned to params
@@ -809,7 +816,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 end
 
                 im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
-                im.DrawList_PathStroke(draw_list, EightColors.Bright[Macro], nil, radius_outer / 2)
+                im.DrawList_PathStroke(draw_list, rangeClr, nil, radius_outer / 2)
                 im.DrawList_PathClear(draw_list)
 
                 --- shows modulation range
@@ -818,13 +825,13 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if BipOfs ~= 0 then
                     local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
                     im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-                    im.DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
+                    im.DrawList_PathStroke(draw_list, IndicClr, nil,
                         radius_outer * 0.1)
                     im.DrawList_PathClear(draw_list)
                 end
                 im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
 
-                im.DrawList_PathStroke(draw_list, EightColors.HighSat_MidBright[Macro], nil,
+                im.DrawList_PathStroke(draw_list, IndicClr, nil,
                     radius_outer * 0.1)
                 im.DrawList_PathClear(draw_list)
 

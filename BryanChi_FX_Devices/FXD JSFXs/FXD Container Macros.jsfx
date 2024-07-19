@@ -1,6 +1,6 @@
 noindex: true
 
-desc:FXD Macros
+desc:FXD Containr Macro
 import cookdsp.jsfx-inc
 
 
@@ -37,21 +37,24 @@ slider24:0<0,1>Automatable Param 8
 in_pin:none
 out_pin:none
 
-options:gmem=ParamValues
+options:gmem=ContainerMacro
 
 
 
 @init 
 
+Cont_ID = gmem[0];
+ext_midi_bus = 1;
 
 ext_noinit=1;
-ext_midi_bus = 1;
 is_init = 0;
 midiamp = midinote = 0;
 
+midi_bus=Cont_ID+15; // 0-based so 1 = bus 2
 
-totalTrackCount =  gmem[0];
-trkGUID_Num = gmem[1];
+
+//totalTrackount =  gmem[0];
+DIY_ID = gmem[1];
 
 //  Follower Gain 
   Mc1.Fol_Gain= 0.7 ; 
@@ -211,7 +214,6 @@ function fmod (n, k) (
   );
 
 
-midi_bus=15;   
 
 Mc1.follow(10);
 Mc2.follow(10);
@@ -658,7 +660,7 @@ play_state === 0 ? (
 sendMidi = 0;
 );  
 play_state != 0 && sendMidi === 0 ? (
-midi_bus=15;   
+ 
 midisend(0, $x81, 30, 127); //Channel is the numb after $x9
 sendMidi= 1;
 );
@@ -691,17 +693,16 @@ Sldr16=Slider16;
 
 
 mode= gmem[4];
-midi_bus=15;   
 
 
 //if user tweaking track that matches trkGUID
-trkGUID_Num === gmem[2]? (
+DIY_ID === gmem[2]? (
   Macro = gmem[5];
   mode ==1?(   // if User is right-dragging on param in ImGui...
     P.Inst = gmem[3];    
     Param = gmem[6];
     Macro = gmem[5];
-    a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // prm's value before modulation
+    a[Param+ Macro*1000] = gmem[Param+ Macro*1000];
         
   );
   mode ==2?(   // if User is adjusting atk...  
@@ -966,9 +967,11 @@ trkGUID_Num === gmem[2]? (
 
 
 
+midi_bus=Cont_ID+15; // 0-based so 1 = bus 2
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
-
+  
+  midi_bus=Cont_ID+15; // 0-based so 1 = bus 2
   (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
       msg3 != 0 ? (
         // noteon 
@@ -988,7 +991,7 @@ while (midirecv(offset, msg1, msg2, msg3)) (
         midisend(offset,msg1,msg2,msg3);
       );
   ) : (
-
+    
       // passthrough other events
       midisend(offset,msg1,msg2,msg3);
   );
@@ -1025,10 +1028,11 @@ Mc6.CalculatMacroAmt();
 Mc7.CalculatMacroAmt();
 Mc8.CalculatMacroAmt();
  
-i=1;    
+
+i=1; // Main Send Midi    
 while ( i <= P.Inst)(
   SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
-    
+  AAAABC = CalculateTotalOut ( i );
   midisend(0, $xBf, i, SendAmt);
       
   i+=1;
@@ -1036,7 +1040,7 @@ while ( i <= P.Inst)(
 
 
 ///  ---------------- Send info back to ImGui ------------------ 
-trkGUID_Num === gmem[2]? (
+DIY_ID === gmem[2]? (
   Mc1.SendInfoBackToImGui();
   Mc2.SendInfoBackToImGui();
   Mc3.SendInfoBackToImGui();
@@ -1057,7 +1061,10 @@ playstate_started ? ( playstate_started = 0 );
 //------------------------------------------------------------------------------------------------
 
 
+midi_bus=Cont_ID+15; // 0-based so 1 = bus 2
 while (midirecv(offset, msg1, msg2, msg3)) (
+
+midi_bus=Cont_ID+15; // 0-based so 1 = bus 2
     // get noteons and noteoffs from all channels
     (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
         msg3 != 0 ? (
@@ -1085,3 +1092,24 @@ play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;
 );
 
+
+@gfx
+
+gfx_set(1.0);
+gfx_x = gfx_y = 8;
+i = 0;
+loop(10,
+gfx_printf("%d = %g", i, gmem[i]);
+  i += 1;
+);
+
+A11001 = a[11001];
+A11000 = a[11000];
+A_gmem1 = gmem[1];
+A_gmem2_DIY_ID = gmem[2];
+A_gmem7 = gmem[7];
+A_gmem11000 = gmem[11000];
+A_gmem11001 = gmem[11001];
+A_gmem11002 = gmem[11002];
+A_gmem3 = gmem[3];
+A_gmem4_Mode = gmem[4];
