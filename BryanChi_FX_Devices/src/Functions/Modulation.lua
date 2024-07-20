@@ -743,8 +743,37 @@ local function get_Global_Shapes()
     end
     return Shapes
 end
+function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
 
-function LFO_Small_Shape_Selector(Mc)
+    r.gmem_attach('ContainerMacro')
+
+    r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+
+    r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
+    r.gmem_write(5, Macro)    -- Tells jsfx which macro
+    r.gmem_write(gmem or 9, V)
+
+    if StrName then
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID.. 'Mod '.. Macro .. StrName, V, true)
+        
+    end
+end
+
+function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc)
+    r.gmem_attach('ContainerMacro')
+
+    for i, v in ipairs(All_Coord.X) do
+
+        r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+        r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
+        r.gmem_write(5, Macro)
+        r.gmem_write(6, #Mc.Node * 11)
+        r.gmem_write(1000 + i, v)
+        r.gmem_write(2000 + i, All_Coord.Y[i])
+    end
+
+end
+function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
     local x , y  = im.GetCursorScreenPos(ctx)
     local Shapes = get_Global_Shapes()
     local Box_Sz = 50
@@ -758,21 +787,29 @@ function LFO_Small_Shape_Selector(Mc)
         for i, v in pairs(Shapes) do
             local W = Box_Sz 
             local H = Box_Sz
-            if im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) then
+            local clickBtn =  im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) 
+            if clickBtn then 
                 Mc.Node = v
                 LFO.NewShapeChosen = v
+                Cont_Send_All_Coord(fx, macronum, v.AllCoord, Mc)
+                --Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, macronum,FxGUID)
             end
-            if im.IsItemHovered(ctx) then
-                Mc.Node = v
-                AnyShapeHovered = true
-                LFO.AnyShapeHovered = true
-                --Cont_Send_All_Coord()
-            end
+            
             local L, T = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
             im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0x55555511)
             im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
-            Cont_DrawShape(v, L, w, h, T, 0xffffffaa,2)
+            v.AllCoord =  Cont_DrawShape(v, L, w, h, T, 0xffffffaa,2 , 'SaveAllCoord')
+            if im.IsItemHovered(ctx) then
+                Mc.Node = v
+
+                AnyShapeHovered = true
+                LFO.AnyShapeHovered = true
+                Cont_Send_All_Coord(fx, macronum, v.AllCoord, Mc)
+                --Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, macronum,FxGUID)
+            end
+
+
         end
         if not im.IsWindowHovered(ctx) and not OpenSamllShapeSelect then
             im.CloseCurrentPopup(ctx)

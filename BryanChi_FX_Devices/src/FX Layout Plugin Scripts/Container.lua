@@ -28,13 +28,14 @@ local function GetAll_Container_Data()
     end
 
     Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
-    local rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
+    local rv, _, _ = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     if not rv  then 
         table.insert(Trk[TrkID].Container_Id , FxGUID)
             rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     end
+    return Cont_ID
 end
-GetAll_Container_Data()
+local Cont_ID = GetAll_Container_Data()
 
 local Accent_Clr = CustomColorsDefault.Container_Accent_Clr
 local function SaveAll_Container_IDs ()
@@ -101,6 +102,7 @@ local function SetTypeToMacro(type,i)
     end
 end
 local function SetTypeToLFO(type,i)
+
     if type == "LFO" then return end 
     if im.Selectable(ctx, 'Set Type to LFO', false) then
 
@@ -109,6 +111,8 @@ local function SetTypeToLFO(type,i)
 
         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
         r.gmem_write(5, i)  -- tells jsfx which macro
+
+        Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, i,FxGUID)
         return true 
     end
 end
@@ -122,23 +126,19 @@ local function Modulation_Icon(LT_Track, slot)
     if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
         fx.MacroPageActive = toggle (fx.MacroPageActive)
         Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
-        local Cont_ID
+
         
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , #Trk[TrkID].Container_Id , true )
         if not slot then slot  = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1)end 
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
-
+        
 
         if not string.find(FirstFX, 'FXD Containr Macro') then 
 
             r.gmem_attach('ContainerMacro')
             r.gmem_write(0, Cont_ID )
-            if not fx.DIY_FxGUID then 
-                fx.DIY_FxGUID = math.random(100000000, 999999999)
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
-                r.gmem_write(1, fx.DIY_FxGUID)
-                
-            end
+            r.gmem_write(1, fx.DIY_FxGUID)
+
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
             AddMacroJSFX('JS: FXD Container Macros', slot)
             TREE = BuildFXTree(LT_Track)
@@ -175,9 +175,10 @@ local function titleBar()
         local FDL = im.GetForegroundDrawList(ctx)
     end
 end
-function Cont_DrawShape(Node, L, W, H, T, Clr, thick)
+function Cont_DrawShape(Node, L, W, H, T, Clr, thick, SaveAllCoord)
     if Node then
-
+        local All_Coord = { X = {}; Y = {}}
+        
         for i, v in ipairs(Node) do
             local W, H = W or w, H or h
             
@@ -208,7 +209,19 @@ function Cont_DrawShape(Node, L, W, H, T, Clr, thick)
                         Clr or EightColors.LFO[Macro], thick)
                 end
             end
+
+            if SaveAllCoord == 'SaveAllCoord' then 
+
+                for i, v in ipairs(PtsX) do 
+
+                    local NormX = (PtsX[i] - L) / W
+                    local NormY = (T+H - PtsY[i]) / (H) -- i think 3 is the window padding
+                    table.insert(All_Coord.X, NormX or 0)
+                    table.insert(All_Coord.Y, NormY or 0)
+                end
+            end 
         end
+        return All_Coord
     end
 end
 function Global_Shapes()
@@ -1063,7 +1076,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                         im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff33)
                         im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
 
-                        Cont_DrawShape(v, L, w, h, T, 0xffffffaa)
+                        v.AllCoord = Cont_DrawShape(v, L, w, h, T, 0xffffffaa)
                     end
                     if im.BeginPopupModal(ctx, 'Delete shape prompt' .. i, true, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then
                         im.Text(ctx, 'Confirm deleting this shape:')
@@ -1384,44 +1397,58 @@ local function LFO_Box(mc, i )
 
         Cont_DrawShape(mc.Node, x, sz, sz, y, clr , 1.5)
         if IsLBtnClicked and im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and im.IsPopupOpen(ctx, 'Small Shape Select') then 
-            im.CloseCurrentPopup(ctx)
+            --[[ im.CloseCurrentPopup(ctx)
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
-            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
+            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID)  ]]
 
         end 
 
         if  im.InvisibleButton(ctx, 'Cont LFO Btn'.. i.. FxGUID, sz,sz) then 
             Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
-
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
         end 
-        if im.IsItemClicked(ctx, 1 ) then 
+        if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsRBtnClicked then 
             mc.TweakingKnob=  2 
         end 
-
-        if im.IsItemHovered(ctx) and not LFO.EditWinOpen then 
+        --msg(tostring(Open_Cont_LFO_Win))
+        if im.IsItemHovered(ctx) and not LFO.EditWinOpen and not mc.JustClosedLFO then 
             OpenSamllShapeSelect = FxGUID..i
         end
+
         if OpenSamllShapeSelect == FxGUID..i then 
             if not im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) then  
                 OpenSamllShapeSelect_unhoverTime = (OpenSamllShapeSelect_unhoverTime or 0) + 1
                 if OpenSamllShapeSelect_unhoverTime > 5 then 
+
                     OpenSamllShapeSelect = nil 
                     OpenSamllShapeSelect_unhoverTime = 0
                 end
             elseif im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsLBtnClicked  then  
-
                 im.CloseCurrentPopup(ctx)
-                LFO.EditWinOpen = toggle (LFO.EditWinOpen)
-            end
+                if Open_Cont_LFO_Win then 
 
+                    mc.JustClosedLFO = true
+                    OpenSamllShapeSelect=nil
+                end
+                LFO.EditWinOpen = toggle (LFO.EditWinOpen)
+                Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID)
+            end
+        end 
+
+
+        if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsLBtnClicked and mc.JustClosedLFO then 
+            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
+            LFO.EditWinOpen = toggle (LFO.EditWinOpen)
+        end 
+        if mc.JustClosedLFO and not im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) then 
+            mc.JustClosedLFO = nil 
         end 
         
         if im.IsItemHovered(ctx) and not im.IsPopupOpen(ctx, 'Small Shape Select') and not LFO.EditWinOpen then 
             im.OpenPopup(ctx, 'Small Shape Select')
         end
         
-        LFO_Small_Shape_Selector(mc)
+        LFO_Small_Shape_Selector(mc,fx,i+1, FxGUID)
 
         
 
@@ -1491,7 +1518,7 @@ local function  macroPage()
         im.SetCursorPos(ctx,45 + (Size*3 * (row-1)),  10+ (i-4*(row-1) ) * (Size*2+25))
 
         MacroKnob(mc,i, Size)
-            LFO_Box(mc,i)
+        LFO_Box(mc,i)
             
         if mc.TweakingKnob == 2   then  -- if right click on  knob 
             if Mods == 0 then 
