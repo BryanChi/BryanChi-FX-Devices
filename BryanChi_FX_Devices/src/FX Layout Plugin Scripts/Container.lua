@@ -125,6 +125,8 @@ local function Modulation_Icon(LT_Track, slot)
     if fx.MacroPageActive then clr = Accent_Clr end 
     if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
         fx.MacroPageActive = toggle (fx.MacroPageActive)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID..'Macro Active' , tostring(fx.MacroPageActive), true )
+
         Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
 
         
@@ -283,6 +285,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
             return NormV
         end
         function Cont_Send_All_Coord()
+
             for i, v in ipairs(All_Coord.X) do
 
                 r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
@@ -290,6 +293,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
                 r.gmem_write(5, Macro)
                 r.gmem_write(6, #Mc.Node * 11)
+
                 r.gmem_write(1000 + i, v)
                 r.gmem_write(2000 + i, All_Coord.Y[i])
             end
@@ -328,12 +332,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
         DrawListButton(WDL, "0", 0x00000000, false, true, icon1_middle, false)
         TooltipUI("Copy LFO", im.HoveredFlags_Stationary)
         if rv then
-            LFO.Clipboard = {}
-            for i, v in ipairs(Node) do
-                LFO.Clipboard[i] = LFO.Clipboard[i] or {}
-                LFO.Clipboard[i].x = v.x
-                LFO.Clipboard[i].y = v.y
-            end
+            LFO.Clipboard = Mc.Node
         end
 
         SL()
@@ -410,13 +409,13 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
             ClrBG,ClrTint)
         TooltipUI("Save LFO shape as preset", im.HoveredFlags_Stationary)
         if rv then
-            LFO.OpenSaveDialog = Macro
+            LFO.OpenSaveDialog = Macro..FxGUID
         end
 
+        Save_LFO_Dialog(Macro, x, y , mc, FxGUID)
         SL()
         local rv = im.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz * 2, BtnSz, nil,
-            nil, nil,
-            nil, 0xffffff00, ClrTint)
+            nil, nil, nil, 0xffffff00, ClrTint)
         TooltipUI("Open Shape preset window", im.HoveredFlags_Stationary)
         if rv then
             if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end
@@ -1404,13 +1403,13 @@ local function LFO_Box(mc, i )
         end 
 
         if  im.InvisibleButton(ctx, 'Cont LFO Btn'.. i.. FxGUID, sz,sz) then 
-            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
+            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID..i) 
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
         end 
         if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsRBtnClicked then 
             mc.TweakingKnob=  2 
         end 
-        --msg(tostring(Open_Cont_LFO_Win))
+
         if im.IsItemHovered(ctx) and not LFO.EditWinOpen and not mc.JustClosedLFO then 
             OpenSamllShapeSelect = FxGUID..i
         end
@@ -1431,13 +1430,13 @@ local function LFO_Box(mc, i )
                     OpenSamllShapeSelect=nil
                 end
                 LFO.EditWinOpen = toggle (LFO.EditWinOpen)
-                Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID)
+                Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID..i)
             end
         end 
 
 
         if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsLBtnClicked and mc.JustClosedLFO then 
-            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID) 
+            Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID..i) 
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
         end 
         if mc.JustClosedLFO and not im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) then 
@@ -1445,7 +1444,7 @@ local function LFO_Box(mc, i )
         end 
         
         if im.IsItemHovered(ctx) and not im.IsPopupOpen(ctx, 'Small Shape Select') and not LFO.EditWinOpen then 
-            im.OpenPopup(ctx, 'Small Shape Select')
+            im.OpenPopup(ctx, 'Small Shape Select'..(i+1)..FxGUID)
         end
         
         LFO_Small_Shape_Selector(mc,fx,i+1, FxGUID)
@@ -1455,7 +1454,7 @@ local function LFO_Box(mc, i )
         
 
 
-        if Open_Cont_LFO_Win and Open_Cont_LFO_Win == FxGUID then 
+        if Open_Cont_LFO_Win and Open_Cont_LFO_Win == FxGUID..i then 
 
             Cont_open_LFO_Win(LT_Track, i+1 , x , y, mc)
         end

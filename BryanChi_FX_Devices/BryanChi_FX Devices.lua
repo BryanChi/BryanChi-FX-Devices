@@ -259,6 +259,7 @@ CustomColorsDefault = {
     RDM_DnDFX = 0x00b4d8ff,
     RDM_DnD_Move = 0xFF0000FF;
     Container_Accent_Clr =  0x49CC85ff ;
+    
 }
 
 
@@ -881,6 +882,7 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
 
             FX[FxGUID] = FX[FxGUID] or {}
             FX[FxGUID].ModSlots = tonumber( select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Container Active Mod Slots '..FxGUID , '', false )))
+            FX[FxGUID].MacroPageActive = StringToBool[ select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Container ID of '..FxGUID..'Macro Active' , '',false ))]
 
 
 
@@ -943,12 +945,21 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                 local FP = FX[FxGUID][Fx_P]
                 _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
                 FP.WhichCC = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..(FP.Num or 0), '', false)))
+
                 _, FP.WhichMODs = r.GetSetMediaTrackInfo_String(Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '', false)
                 if FP.WhichMODs == '' then FP.WhichMODs = nil end
                 FP.ModAMT = {}
                 
                 FP.Cont_Which_CC = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P ..' Container Mod CC' , '' , false)))
                 FP.Cont_ModAMT = {}
+                if FP.Cont_Which_CC then
+                    local rv , parent = r.TrackFX_GetNamedConfigParm(Track, FX_Idx, 'parent_container')
+                    local parent_FxGUID =  r.TrackFX_GetFXGUID(Track, parent)
+                    FX[parent_FxGUID] = FX[parent_FxGUID] or {}
+                    local Ct = FX[parent_FxGUID]
+                    Ct.ModPrm = Ct.ModPrm or {}
+                    table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. FP.Num)
+                end
 
 
                 local CC = FX[FxGUID][Fx_P].WhichCC
@@ -1381,7 +1392,7 @@ function loop()
 
             r.gmem_attach('ParamValues')
 
-
+            
 
             if PM.DIY_TrkID[TrkID] == nil then
                 PM.DIY_TrkID[TrkID] = math.random(100000000, 999999999)
@@ -1436,19 +1447,6 @@ function loop()
 
 
 
-            if im.IsKeyDown(ctx, im.Key_0) then -- if number 1 is pressed
-                ShowKeyCode = true
-            end
-
-            -- if ShowKeyCode then
-            if ShowKeyCode then
-                for keynum = 0, 300, 1 do --
-                    KeyDown = im.IsKeyDown(ctx, keynum)
-                    if KeyDown then
-                        tooltip(tostring(keynum))
-                    end
-                end
-            end
 
 
             -- end
@@ -2441,11 +2439,12 @@ function loop()
                             DrawListButton(WDL, "1", 0x00000000, false, true, icon1_middle, false)
                             TooltipUI("Paste LFO", im.HoveredFlags_Stationary)
                             if rv then
-                                for i, v in ipairs(LFO.Clipboard) do
+                                Mc.Node = LFO.Clipboard
+                                --[[ for i, v in ipairs(LFO.Clipboard) do
                                     Mc.Node[i] = Mc.Node[i] or {}
                                     Mc.Node[i].x = v.x
                                     Mc.Node[i].y = v.y
-                                end
+                                end ]]
                             end
                             if not LFO.Clipboard then im.EndDisabled(ctx) end
 
@@ -2504,9 +2503,7 @@ function loop()
 
 
                             SL(nil, 30)
-                            local rv = im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil,
-                                ClrBG,
-                                ClrTint)
+                            local rv = im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil,ClrBG,ClrTint)
                             TooltipUI("Save LFO shape as preset", im.HoveredFlags_Stationary)
                             if rv then
                                 LFO.OpenSaveDialog = Macro
@@ -3270,56 +3267,8 @@ function loop()
                                 end
 
 
-                                local function Save_Shape_To_Track()
-                                    local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
 
-                                    if HowManySavedShapes then
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count',
-                                            (HowManySavedShapes or 0) + 1, true)
-                                    else
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', 1, true)
-                                    end
-                                    local I = (HowManySavedShapes or 0) + 1
-                                    for i, v in ipairs(Mc.Node) do
-                                        if i == 1 then
-                                            r.GetSetMediaTrackInfo_String(LT_Track,
-                                                'P_EXT: Shape' .. I .. 'LFO Node Count = ', #Mc.Node, true)
-                                        end
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
-                                            'Node ' .. i .. 'x = ', v.x, true)
-                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
-                                            'Node ' .. i .. 'y = ', v.y, true)
-
-                                        r.GetSetMediaTrackInfo_String(LT_Track,
-                                            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '', true)
-                                        r.GetSetMediaTrackInfo_String(LT_Track,
-                                            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '', true)
-                                    end
-                                end
-                                local function Save_Shape_To_Project()
-                                    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
-
-                                    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count',
-                                        (HowManySavedShapes or 0) + 1)
-
-
-                                    local I = (HowManySavedShapes or 0) + 1
-                                    for i, v in ipairs(Mc.Node) do
-                                        if i == 1 then
-                                            r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ',
-                                                #Mc.Node)
-                                        end
-                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ',
-                                            v.x)
-                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ',
-                                            v.y)
-
-                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
-                                            '.ctrlX = ', v.ctrlX or '')
-                                        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
-                                            '.ctrlY = ', v.ctrlY or '')
-                                    end
-                                end
+                                
 
                                 local function Track_Shapes()
                                     local Shapes = {}
@@ -3427,9 +3376,9 @@ function loop()
                                     if LFO.OpenedTab == 'Global' then
                                         LFO.OpenSaveDialog = Macro
                                     elseif LFO.OpenedTab == 'Project' then
-                                        Save_Shape_To_Project()
+                                        Save_Shape_To_Project(Mc)
                                     elseif LFO.OpenedTab == 'Track' then
-                                        Save_Shape_To_Track()
+                                        Save_Shape_To_Track(Mc)
                                     end
                                 end
                                 SL()
@@ -3536,57 +3485,9 @@ function loop()
                             T + H - (Mc.StepV[s] or 0), EightColors.LFO[i], 2)
                         --im.DrawList_PathLineTo(WDL, L+s,  Y_Mid+math.sin(s/Mc.Freq) * Mc.Gain)
                     end ]]
-                    if LFO.OpenSaveDialog == Macro then
-                        im.OpenPopup(ctx, 'Decide Name')
-                        im.SetNextWindowPos(ctx, L, T - LFO.DummyH)
-                        im.SetNextWindowFocus(ctx)
-
-                        if im.BeginPopupModal(ctx, 'Decide Name', true, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
-                            im.Text(ctx, 'Enter a name for the shape: ')
-                            --[[ im.Text(ctx, '(?)')
-                            if im.IsItemHovered(ctx) then
-                                tooltip('use / in file name to save into sub-directories')
-                            end ]]
-
-                            im.SetNextItemWidth(ctx, LFO.Def.DummyW)
-                            im.SetKeyboardFocusHere(ctx)
-                            local rv, buf = im.InputText(ctx, buf or '##Name', buf)
-                            im.Button(ctx, 'Enter')
-                            if im.IsItemClicked(ctx) or (im.IsItemFocused(ctx) and im.IsKeyPressed(ctx, im.Key_Enter) and Mods == 0) then
-                                local LFO_Name = buf
-                                local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
-                                local file_path = ConcatPath(path, LFO_Name .. '.ini')
-                                local file = io.open(file_path, 'w')
 
 
-                                for i, v in ipairs(Mc.Node) do
-                                    if i == 1 then
-                                        file:write('Total Number Of Nodes = ', #Mc.Node, '\n')
-                                    end
-                                    file:write(i, '.x = ', v.x, '\n')
-                                    file:write(i, '.y = ', v.y, '\n')
-                                    if v.ctrlX and v.ctrlY then
-                                        file:write(i, '.ctrlX = ', v.ctrlX, '\n')
-                                        file:write(i, '.ctrlY = ', v.ctrlY, '\n')
-                                    end
-                                    file:write('\n')
-                                end
-
-                                LFO.OpenSaveDialog = nil
-                                im.CloseCurrentPopup(ctx)
-                            end
-                            SL()
-                            im.Button(ctx, 'Cancel (Esc)')
-                            if im.IsItemClicked(ctx) or im.IsKeyPressed(ctx, im.Key_Escape) then
-                                im.CloseCurrentPopup(ctx)
-                                LFO.OpenSaveDialog = nil
-                            end
-
-
-
-                            im.EndPopup(ctx)
-                        end
-                    end
+                    Save_LFO_Dialog (Macro, L, T - LFO.DummyH, Mc)
                 end
 
 
@@ -3611,6 +3512,7 @@ function loop()
                         if im.Selectable(ctx, 'Set Type to Envelope', false) then
                             Trk[TrkID].Mod[i].Type = 'env'
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
+                            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                             r.gmem_write(4, 4) -- tells jsfx macro type = env
                             r.gmem_write(5, i) -- tells jsfx which macro
                         end
@@ -3621,6 +3523,7 @@ function loop()
                     if Trk[TrkID].Mod[i].Type  ~= 'Step' then 
                         if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
                             Trk[TrkID].Mod[i].Type = 'Step'
+                            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                             r.gmem_write(4, 6) -- tells jsfx macro type = step seq
                             r.gmem_write(5, i)
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Step', true)
@@ -3642,6 +3545,8 @@ function loop()
                 function SetTypeToFollower()
                     if Trk[TrkID].Mod[i].Type  ~= 'Follower' then 
                         if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
+                            AddMacroJSFX()
+                            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                             r.gmem_write(4, 9) -- tells jsfx macro type = Follower
                             r.gmem_write(5, i) -- tells jsfx which macro
                             Trk[TrkID].Mod[i].Type = 'Follower'
@@ -3654,6 +3559,7 @@ function loop()
                         if im.Selectable(ctx, 'Set Type to Macro', false) then
                             Trk[TrkID].Mod[i].Type = 'Macro'
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
+                            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                             r.gmem_write(4, 5) -- tells jsfx macro type = Macro
                             r.gmem_write(5, i) -- tells jsfx which macro
                             if I.Name == 'Env ' .. i then I.Name = 'Macro ' .. i end
@@ -3664,7 +3570,9 @@ function loop()
                     if Trk[TrkID].Mod[i].Type == "LFO" then return end 
                     if im.Selectable(ctx, 'Set Type to LFO', false) then
                         Trk[TrkID].Mod[i].Type = 'LFO'
+                        AddMacroJSFX()
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
+                        r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                         r.gmem_write(4, 12) -- tells jsfx macro type = LFO
                         r.gmem_write(5, i)  -- tells jsfx which macro
                         I.Name = 'LFO ' .. i
@@ -4074,10 +3982,6 @@ function loop()
                                             if im.Button(ctx, 'Copy Properties') then
                                                 CopyPrm = {}
                                                 CopyPrm = I
-
-                                                for i, v in pairs(LE.Sel_Items) do
-
-                                                end
                                             end
 
                                             SL()
@@ -4400,7 +4304,7 @@ function loop()
                                                         0.25, nil, nil, '%.2f')
                                                     SL()
                                                     if EditPosX then
-                                                        for i, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_X = PosX end
+                                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_X = PosX end
                                                     end
                                                     im.Text(ctx, 'Y:')
                                                     SL()
@@ -4411,7 +4315,7 @@ function loop()
                                                         0.25, nil, nil, '%.2f')
                                                     SL()
                                                     if EditPosY then
-                                                        for i, v in pairs(LE.Sel_Items) do FrstSelItm.V_Pos_Y = PosY end
+                                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_Y = PosY end
                                                     end
                                                 end
                                             end
@@ -4426,7 +4330,7 @@ function loop()
                                                         0.25, nil, nil, '%.2f')
                                                     SL()
                                                     if EditPosX then
-                                                        for i, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_X = PosX end
+                                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Pos_X = PosX end
                                                     end
                                                     im.Text(ctx, 'Y:')
                                                     SL()
@@ -4437,7 +4341,7 @@ function loop()
                                                         0.25, nil, nil, '%.2f')
                                                     SL()
                                                     if EditPosY then
-                                                        for i, v in pairs(LE.Sel_Items) do FrstSelItm.Lbl_Pos_Y = PosY end
+                                                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Pos_Y = PosY end
                                                     end
                                                 end
                                             end
@@ -7948,7 +7852,7 @@ function loop()
                     if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
                         Sendgmems = nil
                         waitForGmem = 0
-
+                        Open_Cont_LFO_Win = nil
                         if Sendgmems == nil then
                             r.gmem_attach('ParamValues')
                             for P = 1, 100, 1 do

@@ -16,8 +16,9 @@ ultraschall = ultraschall
 ---@param Amt number
 ---@param RangeClr number
 ---@param IndicClr number
+---@param UseCurrentVal boolean
 
-function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Vertical, FP, offset, Amt,RangeClr, IndicClr)
+function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Vertical, FP, offset, Amt,RangeClr, IndicClr, UseCurrentVal, FX_Idx)
     local drawlist = im.GetWindowDrawList(ctx) --[[add+ here]]
     local SldrGrabPos,ModAmt
     local BipOfs = 0
@@ -31,7 +32,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
     else ModAmt =  FP.ModAMT[Macro]
     end 
 
-    if FP then
+    if FP and Amt then
         FP.ModBipolar = FP.ModBipolar or {}
         if FP.ModBipolar[Macro] then
             ModAmt = Amt
@@ -65,26 +66,43 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
     if AddIndicator and ModAmt ~= 0 then
         local ModPosWithAmt
         local M = Trk[TrkID].Mod[Macro]
-        local MOD = McroV
-        if M.Type == 'env' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
-            r.gmem_attach('ParamValues')
-            MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
+
+        if FX[FxGUID].parent then 
+            local Cont_FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent  )
+            M  = FX[Cont_FxGUID].Mc[Macro]
         end
 
-
-        if MOD then
-            local ModAmt = ModAmt
-            if BipOfs ~= 0 then ModAmt = ModAmt * 2 end
+        if UseCurrentVal then 
+            local v = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
             if Vertical == 'Vert' then
-                ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs * Sldr_Width or 0,
-                    PosX_End_Of_Slider)
-                im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,
-                    Rounding)
-            else
-                ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs * Sldr_Width or 0,
-                    PosX_End_Of_Slider)
-                im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,
-                    Rounding)
+                ModPosWithAmt = math.max(B - (v * Sldr_Width ) - BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
+            else 
+                ModPosWithAmt = math.min(L + (v * Sldr_Width ) + BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,Rounding)
+            end
+        else 
+            local MOD = McroV
+            if M.Type == 'env' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
+                if FX[FxGUID].parent then 
+                    r.gmem_attach('ContainerMacro')
+                else
+                    r.gmem_attach('ParamValues')
+                end
+                MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
+            end
+
+
+            if MOD then
+                local ModAmt = ModAmt
+                if BipOfs ~= 0 then ModAmt = ModAmt * 2 end
+                if Vertical == 'Vert' then
+                    ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                    im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
+                else
+                    ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                    im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,Rounding)
+                end
             end
         end
     end
@@ -288,14 +306,14 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             end
             PM.DragOnModdedPrm = true
         end
-    elseif RC and FP.ModAMT and Mods == Shift then
+    elseif RC and FP.ModAMT and Mods == Shift and FP.WhichCC then
+
         for M, v in ipairs(MacroNums) do
             if FP.ModAMT[M] then
                 Trk.Prm.Assign = FP.WhichCC
                 BypassingMacro = M
                 r.gmem_write(5, BypassingMacro) --tells jsfx which macro is user tweaking
                 r.gmem_write(6, FP.WhichCC)
-
             end
         end
         DecideShortOrLongClick = FP
@@ -445,8 +463,11 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                 --- indicator of where the param is currently
                 FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+               -- local clr = CustomColorsDefault.Container_Accent_Clr 
 
-                DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, ModLineDir or Sldr_Width,FX[FxGUID][Fx_P].V, Vertical, FP, offset)
+               local w = Sldr_Width
+               if Vertical == 'Vert' then w = ModLineDir or Sldr_Width end 
+                DrawModLines(M, true, Trk[TrkID].Mod[M].Val, FxGUID, w,FX[FxGUID][Fx_P].V, Vertical, FP, offset, nil,nil,nil,true , FX_Idx)
                 Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
                 ParamHasMod_Any = true
                 offset = offset + OffsetForMultipleMOD
@@ -512,32 +533,39 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Container Mod Amt',FP.Cont_ModAMT[M], true)
 
                         -- Draw Mod Lines
-                    if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.Cont_ModAMT then
-                        local offset = 0
-                        for M, v in ipairs(MacroNums) do
-
-                            if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
-
-                                --- indicator of where the param is currently
-                                FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-                                local clr = CustomColorsDefault.Container_Accent_Clr
-                                DrawModLines(M, true, FX[AssignContMacro_FxGuID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr)
-
-                                Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
-                                ParamHasMod_Any = true
-                                offset = offset + OffsetForMultipleMOD
-
-                            end
-                        end -- of reapeat for every macro
-                    end 
+                    
                     r.gmem_attach('')
 
                 end
                 
             end 
 
-            if not IsRBtnHeld then AssigningCont_Prm_Mod = nil end 
+     
         end
+
+        --Draw mod lines
+        if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.Cont_ModAMT then
+            local offset = 0
+            for M, v in ipairs(MacroNums) do
+
+                if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
+
+                    --- indicator of where the param is currently
+                    FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+                    local clr = CustomColorsDefault.Container_Accent_Clr
+
+                    local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+                    DrawModLines(M, true, FX[cont_GUID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr, true,FX_Idx)
+
+                    Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
+                    ParamHasMod_Any = true
+                    offset = offset + OffsetForMultipleMOD
+
+                end
+            end -- of reapeat for every macro
+        end 
+
+        if not IsRBtnHeld then AssigningCont_Prm_Mod = nil end 
 
         if --[[Link CC back when mouse is up]] FP.Cont_Which_CC and  Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
             r.gmem_attach('ContainerMacro')
@@ -765,20 +793,152 @@ function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc)
     for i, v in ipairs(All_Coord.X) do
 
         r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
-        r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
         r.gmem_write(5, Macro)
+       
+        r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
+
         r.gmem_write(6, #Mc.Node * 11)
         r.gmem_write(1000 + i, v)
         r.gmem_write(2000 + i, All_Coord.Y[i])
     end
 
 end
+function Save_Shape_To_Project(Mc)
+    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+    msg('dasfadsfs')
+    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count',
+        (HowManySavedShapes or 0) + 1)
+
+
+    local I = (HowManySavedShapes or 0) + 1
+    for i, v in ipairs(Mc.Node) do
+        if i == 1 then
+            r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ',
+                #Mc.Node)
+        end
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ',
+            v.x)
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ',
+            v.y)
+
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
+            '.ctrlX = ', v.ctrlX or '')
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
+            '.ctrlY = ', v.ctrlY or '')
+    end
+end
+
+function Save_Shape_To_Track(Mc)
+    local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+
+    if HowManySavedShapes then
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count',
+            (HowManySavedShapes or 0) + 1, true)
+    else
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', 1, true)
+    end
+    local I = (HowManySavedShapes or 0) + 1
+    for i, v in ipairs(Mc.Node) do
+        if i == 1 then
+            r.GetSetMediaTrackInfo_String(LT_Track,
+                'P_EXT: Shape' .. I .. 'LFO Node Count = ', #Mc.Node, true)
+        end
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
+            'Node ' .. i .. 'x = ', v.x, true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
+            'Node ' .. i .. 'y = ', v.y, true)
+
+        r.GetSetMediaTrackInfo_String(LT_Track,
+            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '', true)
+        r.GetSetMediaTrackInfo_String(LT_Track,
+            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '', true)
+    end
+end
+
+function Save_LFO_Dialog (Macro, x, y , Mc, FxGUID)
+
+    local WinTitle = Macro 
+    if FxGUID then -- if it's a container's LFO
+        WinTitle = Macro..FxGUID 
+        x, y = im.GetWindowPos(ctx)
+        local sz = im.GetWindowSize(ctx)
+        y = y + 50
+    end 
+    if LFO.OpenSaveDialog == WinTitle then
+        im.OpenPopup(ctx, 'Decide Name')
+        im.SetNextWindowPos(ctx, x, y)
+        im.SetNextWindowFocus(ctx)
+
+        if im.BeginPopupModal(ctx, 'Decide Name', true, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
+            im.Text(ctx, 'Enter a name for the shape: ')
+            --[[ im.Text(ctx, '(?)')
+            if im.IsItemHovered(ctx) then
+                tooltip('use / in file name to save into sub-directories')
+            end ]]
+
+            im.SetNextItemWidth(ctx, LFO.Def.DummyW)
+            if im.IsWindowAppearing(ctx) then 
+                im.SetKeyboardFocusHere(ctx)
+            end
+            local rv, buf = im.InputText(ctx, buf or '##Name', buf)
+            im.Text(ctx,'Save to : ')
+            SL()
+            im.Button(ctx, 'Global (Enter)')
+            if im.IsItemClicked(ctx) or ( im.IsKeyPressed(ctx, im.Key_Enter) and Mods == 0) then
+                local LFO_Name = buf
+                local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
+                local file_path = ConcatPath(path, LFO_Name .. '.ini')
+                local file = io.open(file_path, 'w')
+
+
+                for i, v in ipairs(Mc.Node) do
+                    if i == 1 then
+                        file:write('Total Number Of Nodes = ', #Mc.Node, '\n')
+                    end
+                    file:write(i, '.x = ', v.x, '\n')
+                    file:write(i, '.y = ', v.y, '\n')
+                    if v.ctrlX and v.ctrlY then
+                        file:write(i, '.ctrlX = ', v.ctrlX, '\n')
+                        file:write(i, '.ctrlY = ', v.ctrlY, '\n')
+                    end
+                    file:write('\n')
+                end
+
+                LFO.OpenSaveDialog = nil
+                im.CloseCurrentPopup(ctx)
+            end
+            SL()
+            if im.Button(ctx, 'Project') then
+                Save_Shape_To_Project(Mc)
+                LFO.OpenSaveDialog = nil
+                im.CloseCurrentPopup(ctx)
+            end
+            SL()
+            if im.Button(ctx, 'Track') then 
+                Save_Shape_To_Track(Mc)
+                LFO.OpenSaveDialog = nil
+                im.CloseCurrentPopup(ctx)
+
+            end 
+            SL()
+            im.Button(ctx, 'Cancel (Esc)')
+            if im.IsItemClicked(ctx) or im.IsKeyPressed(ctx, im.Key_Escape) then
+                im.CloseCurrentPopup(ctx)
+                LFO.OpenSaveDialog = nil
+            end
+
+
+
+            im.EndPopup(ctx)
+        end
+    end
+end
 function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
     local x , y  = im.GetCursorScreenPos(ctx)
     local Shapes = get_Global_Shapes()
     local Box_Sz = 50
     im.SetNextWindowPos(ctx, x - (Box_Sz-5), y -LFO_Box_Size- #Shapes * Box_Sz/2 )
-    if im.BeginPopup(ctx, 'Small Shape Select') then 
+    if im.BeginPopup(ctx, 'Small Shape Select'..macronum..FxGUID) then 
         if im.IsWindowAppearing(ctx) then
             LFO.NodeBeforePreview = Mc.Node
         end

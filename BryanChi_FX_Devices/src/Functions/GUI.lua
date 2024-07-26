@@ -1640,7 +1640,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                 if DebugMode and im.IsItemHovered(ctx) then tooltip('FX_Idx = ' .. FX_Idx) end
-                if DebugMode and im.IsKeyDown(ctx, 84) then tooltip(TrkID) end
+                if DebugMode and im.IsKeyDown(ctx, im.Key_D) then tooltip(TrkID) end
 
 
 

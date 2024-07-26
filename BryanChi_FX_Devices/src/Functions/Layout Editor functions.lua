@@ -2448,7 +2448,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     FP.V_Pos         = RecallInfo(Ct, 'Value Pos', Fx_P)
                                     FP.Lbl_Clr       = RecallInfo(Ct, 'Lbl Clr', Fx_P, 'Num')
                                     FP.V_Clr         = RecallInfo(Ct, 'V Clr', Fx_P, 'Num')
-                                    FP.DragDir       = RecallInfo(Ct, 'Drag Direction', Fx_P, 'Num')
+                                    FP.DragDir       = RecallInfo(Ct, 'Drag Direction', Fx_P)
                                     FP.Value_Thick   = RecallInfo(Ct, 'Value Thickness', Fx_P, 'Num')
                                     FP.V_Pos_X       = RecallInfo(Ct, 'Value Free Pos X', Fx_P, 'Num')
                                     FP.V_Pos_Y       = RecallInfo(Ct, 'Value Free Pos Y', Fx_P, 'Num')
@@ -3310,8 +3310,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
                 FX[FxGUID][Fx_P].PosX = FX[FxGUID][Fx_P].PosX or PosX
                 FX[FxGUID][Fx_P].PosY = FX[FxGUID][Fx_P].PosY or PosY
-                FX[FxGUID][Fx_P].PosX = FX[FxGUID][Fx_P].PosX + Dx; FX[FxGUID][Fx_P].PosY = FX[FxGUID][Fx_P].PosY +
-                    Dy
+                FX[FxGUID][Fx_P].PosX = FX[FxGUID][Fx_P].PosX + Dx; FX[FxGUID][Fx_P].PosY = FX[FxGUID][Fx_P].PosY + Dy
                 AddGuideLines(0xffffff44, L, T, R, B)
             end
         end
@@ -3325,17 +3324,19 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 end
             end
         end
-
+        local LBtnRel = im.IsMouseReleased(ctx, 0)
+        msg(LE.ChangePos)
         if LBtnRel and LE.ChangePos == Fx_P and Max_L_MouseDownDuration > 0.1 then
+
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FX[FxGUID][Fx_P].PosX and FX[FxGUID][Fx_P].PosY then
                 FX[FxGUID][Fx_P].PosX = SetMinMax(roundUp(FX[FxGUID][Fx_P].PosX, LE.GridSize), 0,
                     Win_W - (FX[FxGUID][Fx_P].Sldr_W or 15))
+
                 FX[FxGUID][Fx_P].PosY = SetMinMax(roundUp(FX[FxGUID][Fx_P].PosY, LE.GridSize), 0, 220 - 10)
             end
-        end
-        if LBtnRel then
             LE.ChangePos = nil
         end
+
     end
 end
 

@@ -1014,7 +1014,11 @@ function AddMacroJSFX(FXname, InsertPos)
     local MacroGetLT_Track = r.GetLastTouchedTrack()
     local MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, name, 0--[[RecFX]], pos)
 
+
+    ---!!!! need to write DIY trk ID ----
     if MacrosJSFXExist == -1 then
+        r.gmem_attach('ParamValues')
+        r.gmem_write(1, PM.DIY_TrkID[TrkID])
         r.TrackFX_AddByName(MacroGetLT_Track, name, 0, (-1000-pos))
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
