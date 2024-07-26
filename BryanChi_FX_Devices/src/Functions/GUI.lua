@@ -14,13 +14,10 @@ function Container_CollapseIfTab(FxGUID, FX_Idx)
         local _ , name = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx,'original_name')
         if name == 'Container' and not Tab_Collapse_Win then 
             if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
-                
                 if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
                 elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
-
                 Tab_Collapse_Win = true 
                 NeedRetrieveLayout = true 
-
             end
         end
     end
@@ -760,7 +757,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         end
        local  _, orig_name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
         if orig_name == 'Container' --[[ and FX_Idx < 0x2000000 ]] then
-        
             ContainerX, ContainerY = im.GetCursorScreenPos(ctx)
         end
 
@@ -1539,7 +1535,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
 
                     for i = 1, Ct, 1 do
-                        if FX[FxGUID][i] then
+                        if FX[FxGUID][i] and FX[FxGUID][i].Num  then
                             CheckBox[FX[FxGUID][i].Num] = true
                         end
                     end
@@ -2244,10 +2240,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         for i, v in pairs(PluginScripts) do
                             if FX_Name:find(v) then
                                 FX_has_Plugin = true
-
                             end
                             local rv, name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
-
+                            
                             if name:find(v) then 
                                 FX_has_Plugin = true
                             end 
@@ -3138,13 +3133,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                 for i, v in pairs(PluginScripts) do
                     --local FX_Name = FX_Name
-                    local rv, FX_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+                    local rv, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
 
 
-                    if FX_Name:find(v) then
+                    if FX_Name:find(v) or (orig_Name == 'Container' and v == 'Container') then
                         r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                         PluginScript.FX_Idx = FX_Idx
                         PluginScript.Guid = FxGUID
+
                         dofile(pluginScriptPath .. '/' .. v .. '.lua')
                     end
                 end

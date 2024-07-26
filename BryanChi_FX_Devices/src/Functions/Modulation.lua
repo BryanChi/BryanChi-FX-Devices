@@ -805,7 +805,7 @@ function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc)
 end
 function Save_Shape_To_Project(Mc)
     local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
-    msg('dasfadsfs')
+
     r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count',
         (HowManySavedShapes or 0) + 1)
 

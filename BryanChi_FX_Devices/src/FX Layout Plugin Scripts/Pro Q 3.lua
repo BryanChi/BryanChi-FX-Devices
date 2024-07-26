@@ -1,7 +1,7 @@
 -- @noindex
 
 local FX_Idx = PluginScript.FX_Idx
-local FxGUID = PluginScript.Guid
+local FxGUID = PluginScript.Guid    ----!!!  is this the problem?
 --local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 --local _, FX_Name = r.TrackFX_GetFXName(LT_Track,FX_Idx)
 
@@ -73,11 +73,19 @@ end
 
 im.SameLine(ctx)
 im.SetNextItemWidth(ctx, 60)
+
 if ProQ3['Gain_LTBand - ' .. FxGUID] ~= nil then
     _, ProQ3.GainDrag[FX_Idx] = im.DragDouble(ctx, '##GainDrag',
         ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1,
         ProQ3['Gain_LTBand - ' .. FxGUID] .. 'dB')
     ProQ3.GainDragging = im.IsItemActive(ctx)
+end
+SL(120)
+im.SetNextItemWidth(ctx, 60)
+if ProQ3['Freq_LTBand - ' .. FxGUID] ~= nil then
+    local freq
+    _, freq =  im.DragDouble(ctx, '##FreqDrag', freq or 0, 0.01, 0, 1, FreqLbl)
+    ProQ3.FreqDragging = im.IsItemActive(ctx)
 end
 
 im.SameLine(ctx, 340 - 130)
@@ -880,7 +888,7 @@ if not FX[FxGUID].Collapse then
             
             --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
             local FP_gain = FX[FxGUID][Band]
-
+            FX[FxGUID][Band] = FX[FxGUID][Band] or {}
 
             
             
@@ -1017,7 +1025,7 @@ if not FX[FxGUID].Collapse then
                     if IsRBtnClicked == true and Mods == Ctrl then
                         im.OpenPopup(ctx, 'Pro-Q R Click')
                     end
-
+                    FX[FxGUID][gain_P_num] = FX[FxGUID][gain_P_num] or {}
                     AssignMod(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][gain_P_num].V, Sldr_Width, 'Pro-Q', 'No Item Trigger')
                 
                 
@@ -1143,6 +1151,7 @@ if not FX[FxGUID].Collapse then
                     _, tracknumber, fxnumber, paramnumber = r.GetLastTouchedFX()
                     proQ_LT_GUID = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
 
+
                     for i = 1, RepeatTimeForWindows, 1 do
                         GUIDtoCompare = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
                         if proQ_LT_GUID == GUIDtoCompare and proQ_LT_GUID ~= nil then
@@ -1155,6 +1164,7 @@ if not FX[FxGUID].Collapse then
                     end
                     if ProQ3.GainDragging == true then
                         MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
+
 
                         local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
                             ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3)
@@ -1179,6 +1189,7 @@ if not FX[FxGUID].Collapse then
                         end
                     end
                     if ProQ3.FreqDragging == true then
+
                         MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
                         if Mods == Shift then
                             HorizDragScale = 1300

@@ -4,11 +4,12 @@ local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
 fx.TitleWidth  = 0
-
 fx.CustomTitle =  'Container'
 fx.Width = 35
 fx.V_Win_Btn_Height = 130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
+
+
 
 local ModIconSz = 18 
 local Top_Spacing = 3
