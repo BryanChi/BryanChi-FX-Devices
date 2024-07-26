@@ -1078,11 +1078,14 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             Tweaking = P_Num .. FxGUID
         end
         if is_active or is_hovered then
-            if FP.V_Pos == 'None' then
+            if FP.V_Pos == 'None' or not FP.V_Pos then
                 local SzX, SzY = im.GetItemRectSize(ctx)
                 local MsX, MsY = im.GetMousePos(ctx)
-
+                if Vertical =='Vert' then 
+                    im.SetNextWindowPos(ctx, pos[1]+(Sldr_Width or 0), MsY)
+                else
                 im.SetNextWindowPos(ctx, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y)
+                end
                 im.BeginTooltip(ctx)
                 local Get, Pv = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
@@ -1520,12 +1523,14 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 im.EndCombo(ctx)
             else
                 for i = 1, #OPs, 1 do
-                    if im.Selectable(ctx, OPs[i], i) and WhichPrm ~= nil then
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, V[i])
-                        _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
-                        im.PopStyleColor(ctx, 3)
-                        im.EndCombo(ctx)
-                        return true, _G[LabelValue]
+                    if OPs[i] and OPs[i]~='' then 
+                        if im.Selectable(ctx, OPs[i], i) and WhichPrm ~= nil then
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, V[i])
+                            _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
+                            im.PopStyleColor(ctx, 3)
+                            im.EndCombo(ctx)
+                            return true, _G[LabelValue]
+                        end
                     end
                 end
                 im.PopStyleColor(ctx, 3)
@@ -3299,7 +3304,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
 
         function ChangeItmPos()
-            if LBtnDrag then
+            if LBtnDrag and not im.IsAnyItemActive(ctx) and not LE.ChangingTitleSize     then
                 HintMessage = 'Ctrl = Lock Y Axis | Alt = Lock X Axis | Shift = Disable grid snapping '
                 local Dx, Dy = im.GetMouseDelta(ctx)
                 if Mods == Ctrl or Mods == Ctrl + Shift then
@@ -3325,7 +3330,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             end
         end
         local LBtnRel = im.IsMouseReleased(ctx, 0)
-        msg(LE.ChangePos)
+
         if LBtnRel and LE.ChangePos == Fx_P and Max_L_MouseDownDuration > 0.1 then
 
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FX[FxGUID][Fx_P].PosX and FX[FxGUID][Fx_P].PosY then

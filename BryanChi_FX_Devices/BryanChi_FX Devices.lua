@@ -3987,11 +3987,12 @@ function loop()
                                             SL()
                                             if im.Button(ctx, 'Paste Properties') then
                                                 for i, v in pairs(LE.Sel_Items) do
+                                                    local I = FX[FxGUID][v]
                                                     I.Type        = CopyPrm.Type
                                                     I.Sldr_W      = CopyPrm.Sldr_W
                                                     I.Style       = CopyPrm.Style
                                                     I.V_FontSize  = CopyPrm.V_FontSize
-                                                    I.CustomLbl   = CopyPrm.CustomLbl
+                                                    --I.CustomLbl   = CopyPrm.CustomLbl
                                                     I.FontSize    = CopyPrm.FontSize
                                                     I.Sldr_H      = CopyPrm.Sldr_H
                                                     I.BgClr       = CopyPrm.BgClr
@@ -4005,6 +4006,7 @@ function loop()
                                                     I.V_Pos_X     = CopyPrm.V_Pos_X
                                                     I.V_Pos_Y     = CopyPrm.V_Pos_Y
                                                     I.ImagePath   = CopyPrm.ImagePath
+                                                    I.Height = CopyPrm.Height
                                                     if CopyPrm.Draw then
                                                         -- use this line to pool
                                                         --I.Draw = CopyPrm.Draw
