@@ -1064,6 +1064,7 @@ if not FX[FxGUID].Collapse then
                     local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,((Band - 1) * 13) + 2)
                     local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
                     local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 7)
+                    ProQ3.LT_EQBand[FxGUID] = Band
 
                     if IsLBtnHeld == false then
                         ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = false
