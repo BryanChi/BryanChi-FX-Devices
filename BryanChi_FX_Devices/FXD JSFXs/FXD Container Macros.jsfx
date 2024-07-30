@@ -164,9 +164,9 @@ DIY_ID = gmem[1];
 //gmem 111 = SEQ Denominator when user is tweaking
 //gmem 112 = step value of currently tweaking step
 //gmem 121 ~128 = SEQ 1 ~ 8 Current Pos 
-//gmem 1000~2000 = LFO Values
-
-
+//gmem 1000~2000 = Currently open lfo windows all coordinates for X axis 
+//gmem 2000~3000 = same as above, but for Y axis
+//gmem 11000+ = parameters' value before modulation 
 
 ModAmt = 1000;
 ModAmt2 = 2000;
@@ -639,6 +639,20 @@ Mc8.FOL_out  = Mc8.follow_do((spl0+spl1));
 
 
 @block
+
+A11001 = a[11001];
+A11000 = a[11000];
+A_gmem1 = gmem[1];
+A_gmem2_DIY_ID = gmem[2];
+A_gmem7 = gmem[7];
+A_gmem11000 = gmem[11000];
+A_gmem11001 = gmem[11001];
+A_gmem11002 = gmem[11002];
+A_gmem3 = gmem[3];
+A_gmem4_Mode = gmem[4];
+A_gmem6 = gmem[6];
+A_gmem5 = gmem[5];
+A_gmem_2001 = gmem[2001];
 Automate = 16; // first one will be 17 
 
 // Calculate current play position
@@ -1102,14 +1116,3 @@ loop(10,
 gfx_printf("%d = %g", i, gmem[i]);
   i += 1;
 );
-
-A11001 = a[11001];
-A11000 = a[11000];
-A_gmem1 = gmem[1];
-A_gmem2_DIY_ID = gmem[2];
-A_gmem7 = gmem[7];
-A_gmem11000 = gmem[11000];
-A_gmem11001 = gmem[11001];
-A_gmem11002 = gmem[11002];
-A_gmem3 = gmem[3];
-A_gmem4_Mode = gmem[4];

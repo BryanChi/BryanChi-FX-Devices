@@ -4,20 +4,31 @@ local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
 fx.TitleWidth  = 0
-fx.CustomTitle =  'Container'
+fx.CustomTitle = fx.Name
 fx.Width = 35
 fx.V_Win_Btn_Height = 130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
 
 
-
+local AnyMacroHovered
 local ModIconSz = 18 
-local Top_Spacing = 3
+local Top_Spacing = 0
 LFO_Box_Size = 38
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
 DEBUG_W = DEBUG_W or {}
+
+local function NotifyHoverState(I,Condition)
+    if Condition then 
+        fx.HvrMacro = I
+        AnyMacroHovered = true 
+    elseif Condition == nil then 
+        fx.HvrMacro = I
+        AnyMacroHovered = true 
+    end
+end 
+
 
 local function GetAll_Container_Data()
 
@@ -28,12 +39,16 @@ local function GetAll_Container_Data()
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
     end
 
+
     Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
     local rv, _, _ = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     if not rv  then 
         table.insert(Trk[TrkID].Container_Id , FxGUID)
             rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     end
+
+
+
     return Cont_ID
 end
 local Cont_ID = GetAll_Container_Data()
@@ -68,15 +83,13 @@ local function SetTypeToStepSEQ(type, i )
             r.gmem_write(5, i)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Step', true)
 
-            Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
+            --[[ Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
             Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-            Trk[TrkID].SEQL[i] = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
-            Trk[TrkID].SEQ_Dnom[i] = Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom
+            mc.SeqL = mc.SeqL or SEQ_Default_Num_of_Steps ]]
+            mc.Dnom = mc.Dnom or SEQ_Default_Denom
 
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length',
-                Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, true)
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator',
-                Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom, true)
+            --[[ r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length', mc.SeqL or SEQ_Default_Num_of_Steps, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator', mc.Dnom or SEQ_Default_Denom, true) ]]
 
             --if I.Name == 'Env ' .. i or I.Name == 'Macro ' .. i then I.Name = 'Step ' .. i end
             return true 
@@ -86,8 +99,15 @@ end
 
 local function SetTypeToFollower(type,i)
     if type  ~= 'Follower' then 
+        if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
+            r.gmem_write(2,  fx.DIY_FxGUID)
+            r.gmem_write(4, 9) -- tells jsfx macro type = Follower
+            msg(i)
+            r.gmem_write(5, i) -- tells jsfx which macro
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Follower', true)
+            return true
+        end
         
-
     end
 end
 local function SetTypeToMacro(type,i)
@@ -114,6 +134,7 @@ local function SetTypeToLFO(type,i)
         r.gmem_write(5, i)  -- tells jsfx which macro
 
         Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, i,FxGUID)
+       -- CONT_Send_All_Coord(I)
         return true 
     end
 end
@@ -143,10 +164,17 @@ local function Modulation_Icon(LT_Track, slot)
             r.gmem_write(1, fx.DIY_FxGUID)
 
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
-            AddMacroJSFX('JS: FXD Container Macros', slot)
+            local hide = AddMacroJSFX('JS: FXD Container Macros', slot)
+          
+
             TREE = BuildFXTree(LT_Track)
-
-
+            if hide then
+                local pos  = r.TrackFX_AddByName(LT_Track, 'JS: FXD Container Macros', 0, 0 --[[to query the pos]])
+                if TREE[FX_Idx] and  TREE[FX_Idx].children then 
+                    r.TrackFX_Show(LT_Track, TREE[FX_Idx].children[1].addr_fxid , 2)
+                end
+            end 
+            
         end 
         fx.ModSlots = fx.ModSlots or 4  
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , fx.ModSlots  , true )
@@ -178,7 +206,7 @@ local function titleBar()
         local FDL = im.GetForegroundDrawList(ctx)
     end
 end
-function Cont_DrawShape(Node, L, W, H, T, Clr, thick, SaveAllCoord)
+function Cont_DrawShape(Node, L, W, H, T, Clr, thick, SaveAllCoord )
     if Node then
         local All_Coord = { X = {}; Y = {}}
         
@@ -222,8 +250,10 @@ function Cont_DrawShape(Node, L, W, H, T, Clr, thick, SaveAllCoord)
                     table.insert(All_Coord.X, NormX or 0)
                     table.insert(All_Coord.Y, NormY or 0)
                 end
+
             end 
         end
+        
         return All_Coord
     end
 end
@@ -285,14 +315,16 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
             local Bipolar = -1 + (NormV) * 2
             return NormV
         end
-        function Cont_Send_All_Coord()
+        function CONT_Send_All_Coord(m)
 
+            local M = m or Macro
+            local All_Coord =  All_Coord or mc.All_Coord
             for i, v in ipairs(All_Coord.X) do
 
                 r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
-                r.gmem_write(5, Macro)
+                r.gmem_write(5, M)
                 r.gmem_write(6, #Mc.Node * 11)
 
                 r.gmem_write(1000 + i, v)
@@ -595,7 +627,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                 HideCursorTillMouseUp(nil, im.Key_X)
                 HideCursorTillMouseUp(0)
                 HoverNode = ID
-                Cont_Send_All_Coord()
+                CONT_Send_All_Coord()
 
                 local lastX = Node[math.max(ID - 1, 1)].x
                 local nextX = Node[math.min(ID + 1, #Node)].x
@@ -734,7 +766,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
 
                 SaveLFO('Node' .. i .. 'Ctrl X', Node[i].ctrlX)
                 SaveLFO('Node' .. i .. 'Ctrl Y', Node[i].ctrlY)
-                Cont_Send_All_Coord()
+                CONT_Send_All_Coord()
             end
 
 
@@ -883,7 +915,8 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
 
 
         if Mc.NeedSendAllCoord then
-            Cont_Send_All_Coord()
+            CONT_Send_All_Coord()
+
             Mc.NeedSendAllCoord = nil
         end
 
@@ -1026,7 +1059,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
             Save_All_LFO_Info(Node)
         end
         if im.IsWindowAppearing(ctx) then
-            Cont_Send_All_Coord()
+            CONT_Send_All_Coord()
         end
         im.End(ctx)
     end
@@ -1069,7 +1102,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
                             Mc.Node = v
                             AnyShapeHovered = true
                             LFO.AnyShapeHovered = true
-                            Cont_Send_All_Coord()
+                            CONT_Send_All_Coord()
                         end
                         local L, T = im.GetItemRectMin(ctx)
                         local w, h = im.GetItemRectSize(ctx)
@@ -1113,7 +1146,7 @@ local function Cont_open_LFO_Win(Track, Macro, x , y , mc )
             if NeedSendAllGmemLater == Macro then
                 timer = (timer or 0) + 1
                 if timer == 2 then
-                    Cont_Send_All_Coord()
+                    CONT_Send_All_Coord()
                     NeedSendAllGmemLater = nil
                     timer = nil
                 end
@@ -1363,6 +1396,7 @@ local function recall_LFO_Data(mc,i)
 
             m.Node[N].y       = RC('Mod ' .. i .. 'Node ' .. N .. ' Y')
             m.Node[N].ctrlX   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl X')
+            msg(m.Node[N].ctrlX  )
 
             m.Node[N].ctrlY   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl Y')
             m.NodeNeedConvert = true
@@ -1378,14 +1412,10 @@ local function LFO_Box(mc, i )
 
         end 
         local x , y = im.GetCursorScreenPos(ctx)
-
         local sz = LFO_Box_Size
         local x = x - 10
         im.DrawList_AddRectFilled(WDL,x, y, x+sz,y+sz , 0x00000055)
         im.DrawList_AddRect(WDL,x-1, y-1, x+sz +1 ,y+sz+1 , 0xffffff77)
-
-        mc.LFOx = x 
-        mc.LFOy = y 
 
         local clr = 0xffffffff
         if AssignContMacro == i and AssignContMacro_FxGuID == FxGUID then 
@@ -1393,9 +1423,11 @@ local function LFO_Box(mc, i )
                 clr = Accent_Clr
             end
         end
-        mc.Node = mc.Node or { { x = 0, y = 0 }, { x = 1, y = 1 } } -- create two default tables for first and last point
+        mc.Node = mc.Node or { { x = 0, y = 1 }, { x = 1, y = 1 } } -- create two default tables for first and last point
 
-        Cont_DrawShape(mc.Node, x, sz, sz, y, clr , 1.5)
+        mc.All_Coord = Cont_DrawShape(mc.Node, x, sz, sz, y, clr , 1.5, 'SaveAllCoord')
+
+
         if IsLBtnClicked and im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and im.IsPopupOpen(ctx, 'Small Shape Select') then 
             --[[ im.CloseCurrentPopup(ctx)
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
@@ -1407,6 +1439,7 @@ local function LFO_Box(mc, i )
             Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID..i) 
             LFO.EditWinOpen = toggle (LFO.EditWinOpen)
         end 
+       
         if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsRBtnClicked then 
             mc.TweakingKnob=  2 
         end 
@@ -1433,6 +1466,8 @@ local function LFO_Box(mc, i )
                 LFO.EditWinOpen = toggle (LFO.EditWinOpen)
                 Open_Cont_LFO_Win = toggle(Open_Cont_LFO_Win , FxGUID..i)
             end
+            NotifyHoverState(i+1)
+
         end 
 
 
@@ -1459,18 +1494,317 @@ local function LFO_Box(mc, i )
 
             Cont_open_LFO_Win(LT_Track, i+1 , x , y, mc)
         end
+        if Mc.NeedSendAllCoord and mc.All_Coord  and mc.Node then
+
+            Cont_Send_All_Coord(fx, i+1, mc.All_Coord, mc, #mc.Node)
+            Mc.NeedSendAllCoord = nil
+        end
     end 
+
+    
+end
+
+local function Follower_Box(mc,i)
+    if  mc.Type ~= 'Follower' then return end 
+    local x , y = im.GetCursorScreenPos(ctx)
+    local sz = LFO_Box_Size
+    local x = x - 10
+    local I = i+1
+    im.DrawList_AddRectFilled(WDL,x, y, x+sz,y+sz , 0x00000055)
+    im.DrawList_AddRect(WDL,x-1, y-1, x+sz +1 ,y+sz+1 , 0xffffff77)
+    local rv = im.InvisibleButton(ctx, 'Follower Box'.. i.. FxGUID, sz,sz)  
+    if im.IsItemClicked(ctx,1 )then 
+        mc.TweakingKnob = 2 
+    elseif rv then 
+        local x , y = im.GetCursorScreenPos(ctx)
+        im.SetNextWindowPos(ctx, x -sz , y - sz*2.75 )
+        im.OpenPopup(ctx, 'Follower Window'..i..FxGUID)
+    end 
+    NotifyHoverState(I, im.IsItemHovered(ctx))
+    local clr 
+    if AssignContMacro == i and AssignContMacro_FxGuID == FxGUID then 
+        if  RepeatAtInterval(0.3, nil) then
+            clr = Accent_Clr
+        end
+    end
+    DrawFollowerLine (mc, I, 'ContainerMacro', clr)
+
+    if im.BeginPopup(ctx, 'Follower Window'..i..FxGUID)then 
+        im.Text(ctx, 'Speed : ')
+        SL()
+        local m = mc
+        local CurX = im.GetCursorPosX(ctx)
+        im.SetNextItemWidth(ctx, 80)
+        retval, m.Smooth = im.DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,'%.1f')
+        
+
+
+        local x, y = im.GetWindowPos(ctx)
+        local w, h = im.GetWindowSize(ctx)
+
+        if retval then
+            r.gmem_attach('ContainerMacro')
+            m.smooth = SetMinMax(0.1 ^ (1 - m.Smooth * 0.01), 0.1, 100)
+            r.gmem_write(4, 10)       ---tells jsfx macro type = Follower, and user is adjusting smoothness
+            r.gmem_write(5, I)        ---tells jsfx which macro
+            r.gmem_write(9, m.smooth) -- Sets the smoothness
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro ' .. I .. ' Follower Speed',m.Smooth,true)
+        end
+
+        --im.Text(ctx, ('S = ' .. (m.Smooth or '') .. 's= ' .. (m.smooth or '')))
+        im.Text(ctx, 'Gain : ')
+        SL(CurX)
+        im.SetNextItemWidth(ctx, 80)
+
+        rv, m.Gain = im.DragDouble(ctx, '##Gain' .. I, m.Gain or 100, 1, 0, 400, '%.0f' .. '%%')
+        if im.IsItemActive(ctx) then
+            r.gmem_attach('ContainerMacro')
+
+            r.gmem_write(4, 11) ---tells jsfx macro type = Follower, and user is adjusting gain
+            r.gmem_write(5, I)
+            r.gmem_write(9, m.Gain / 100)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro ' .. I .. ' Follower Gain',m.Gain, true)
+        end
+
+        im.EndPopup(ctx)
+    end 
+
+end 
+
+local function Cont_Open_SEQ_Win(MacroNum,FxGUID, mc )
+    local i = MacroNum
+
+    if im.BeginPopup(ctx, 'SEQ Window' .. i..FxGUID, im.WindowFlags_NoResize + im.WindowFlags_NoDocking  + im.WindowFlags_AlwaysAutoResize) then
+        local WDL = im.GetWindowDrawList(ctx)
+        local function writeSEQDNom()
+            if AddMacroJSFX() then
+                r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
+                r.gmem_write(5, i) --[[tells JSFX the macro]]
+                r.gmem_write(10, mc.Dnom)
+                r.gmem_write(9, mc.SeqL or SEQ_Default_Num_of_Steps)
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Denominator',mc.Dnom, true)
+            end
+        end
+
+        local function writeSEQGmem()
+            if AddMacroJSFX() then
+                r.gmem_write(4, 8)
+                r.gmem_write(5, i)
+                r.gmem_write(9, mc.SeqL)
+                r.gmem_write(10, mc.Dnom or SEQ_Default_Denom)
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Length', mc.SeqL, true)
+            end
+        end
+        local function Btns ()
+
+
+            im.Text(ctx, 'Sequence Length : ')
+
+            rv, mc.SeqL = im.SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',mc.SeqL or SEQ_Default_Num_of_Steps, 2, 64)
+            if im.IsItemActive(ctx) then writeSEQGmem() end
+            SL()
+            if im.Button(ctx, 'x2##' .. i) then
+                mc.SeqL = math.floor((mc.SeqL or SEQ_Default_Num_of_Steps) * 2)
+                writeSEQGmem()
+            end
+            SL()
+            if im.Button(ctx, '/2##' .. i) then
+                mc.SeqL = math.floor((mc.SeqL or SEQ_Default_Num_of_Steps) / 2)
+                writeSEQGmem()
+            end
+
+            im.Text(ctx, 'Step Length : ')
+            if im.Button(ctx, '2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 0.125
+                writeSEQDNom()
+            end
+            if mc.Dnom == 0.125 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 0.25
+                writeSEQDNom()
+            end
+            if mc.Dnom == 0.25 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
+                    R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1/2 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 0.5
+                writeSEQDNom()
+            end
+            if mc.Dnom == 0.5 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T,
+                    R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1/4 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 1
+                writeSEQDNom()
+            end
+            if mc.Dnom == 1 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                    B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1/8 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 2
+                writeSEQDNom()
+            end
+            if mc.Dnom == 2 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                    B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1/16 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 4
+                writeSEQDNom()
+            end
+            if mc.Dnom == 4 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                    B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            SL()
+            if im.Button(ctx, '1/32 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 8
+                writeSEQDNom()
+            end
+            SL()
+            if mc.Dnom == 8 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                    B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+            if im.Button(ctx, '1/64 ##' .. 'Macro' .. i .. 'SEQ Denom') then
+                mc.Dnom = 16
+                writeSEQDNom()
+            end
+            if mc.Dnom == 16 then
+                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R,
+                    B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', Foreground)
+            end
+
+        end
+
+        local function Steps()
+            local MsX, MsY = im.GetMousePos(ctx)
+            for St = 1, mc.SeqL or SEQ_Default_Num_of_Steps, 1 do
+                im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, StepSEQ_W, StepSEQ_H)
+                local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx); local w, h =
+                    im.GetItemRectSize(ctx)
+                im.DrawList_AddText(WDL, L + StepSEQ_W / 2 / 2, B - 15, 0x999999ff, St)
+                SL(nil, 0)
+                local FillClr = 0x00000000
+
+                if im.IsItemClicked(ctx) then
+                    Mc.AdjustingSteps = true 
+                elseif Mc.AdjustingSteps and not IsLBtnHeld then 
+                    Mc.AdjustingSteps = nil
+                end
+                local AdjustingStep
+                if Mc.AdjustingSteps and MsX >= L and MsX < R then
+                    AdjustingStep = St
+                end
+                local S = mc.SEQ
+
+
+                if AdjustingStep == St then
+                    --Calculate Value at Mouse pos
+                    local MsX, MsY = im.GetMousePos(ctx)
+
+                    S[St] = SetMinMax(((B - MsY) / StepSEQ_H), 0, 1) --[[ *(-1) ]]
+                    r.gmem_write(4, 7)                        -- tells jsfx user is changing a step's value
+                    r.gmem_write(5, i)                        -- tells which macro user is tweaking
+                    r.gmem_write(112, SetMinMax(S[St], 0, 1)) -- tells the step's value
+                    r.gmem_write(113, St)                     -- tells which step
+
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', S[St], true)
+                elseif IsRBtnHeld and im.IsMouseHoveringRect(ctx, L, T, R, B)  then
+                    SEQ_RMB_Val = 0
+                    S[St] = SEQ_RMB_Val
+                    r.gmem_write(4, 7)             -- tells jsfx user is changing a step's value
+                    r.gmem_write(5, i)             -- tells which macro user is tweaking
+                    r.gmem_write(112, SEQ_RMB_Val) -- tells the step's value
+                    r.gmem_write(113, St)          -- tells which step
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', SEQ_RMB_Val, true)
+                end
+                local Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.5)
+
+                if im.IsItemHovered(ctx, im.HoveredFlags_RectOnly)  then
+                    FillClr = 0xffffff22
+                    Clr = Change_Clr_A(EightColors.Bright_HighSat[i], -0.3)
+                end
+                HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1, GetItemRect, Foreground)
+
+                im.DrawList_AddRectFilled(WDL, L, T + StepSEQ_H, L + StepSEQ_W - 1, math.max(B - StepSEQ_H * (mc.SEQ[St] or 0), T), Clr)
+
+                if CurrentPos == St or (CurrentPos == 0 and St == (mc.SeqL or SEQ_Default_Num_of_Steps)) then -- if Step SEQ 'playhead' is now on current step
+                    im.DrawList_AddRect(WDL, L, B, L + StepSEQ_W - 1, T, 0xffffff88)
+                end
+            end
+        end
+
+        Btns ()
+        Steps()
+
+        local x, y = im.GetWindowPos(ctx)
+        local w, h = im.GetWindowSize(ctx)
+
+
+        if im.IsMouseHoveringRect(ctx, x, y, x + w, y + h) then notHoverSEQ_Time = 0 end
+
+        im.EndPopup(ctx)
+    end
 
 end
 
+local function StepSeq_Box(mc,i)
+    if  mc.Type ~= 'Step' then return end 
+    local x , y = im.GetCursorScreenPos(ctx)
+    local sz = LFO_Box_Size
+    local x = x - 10
+    local I = i+1
+    im.DrawList_AddRectFilled(WDL,x, y, x+sz,y+sz , 0x00000055)
+    im.DrawList_AddRect(WDL,x-1, y-1, x+sz +1 ,y+sz+1 , 0xffffff77)
+    if  im.InvisibleButton(ctx, 'Step Seq Box'.. i.. FxGUID, sz,sz)  then 
+        im.OpenPopup(ctx, 'SEQ Window' .. I..FxGUID)
+    end 
+    if im.IsItemClicked(ctx,1) then 
+        mc.TweakingKnob=2
+    end 
+    NotifyHoverState(I,im.IsItemHovered(ctx))
+    Cont_Open_SEQ_Win(I,FxGUID, mc )
+    mc.SeqL = mc.SeqL or SEQ_Default_Num_of_Steps
+    mc.SEQ = mc.SEQ or {}
+    local S = mc.SEQ
+    local clr = 0xffffffff
+    if AssignContMacro == i and AssignContMacro_FxGuID == FxGUID then 
+        if  RepeatAtInterval(0.3, nil) then
+            clr = Accent_Clr
+        end
+    end
+    for St = 1, mc.SeqL, 1 do -- create all steps
+        local W =  sz/mc.SeqL
+        im.DrawList_AddRectFilled(Macros_WDL, x+W*(St-1) , y+sz, x+W*St-1 , y +sz -  sz * ((S[St] or 0 )),clr)
+    end 
+end
 
 
-local function MacroKnob(mc, i, Size )
+local function MacroKnob(mc, i, Size , TB)
     local I = i +1
     local row = math.ceil ( I /4 )
 
-    if mc.Type =='Macro' then 
-        mc.TweakingKnob , mc.Val , mc.center = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or 0, Size)
+    if mc.Type =='Macro' and TB then 
+        mc.Val = mc.Val 
+        local Macro_FXid = TB[1].addr_fxid
+
+        local v = r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, i)
+        mc.TweakingKnob , mc.Val , mc.center = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or v, Size)
+        if im.IsItemHovered(ctx) then 
+            fx.HvrMacro =  i
+            AnyMacroHovered = true 
+        end
         im.SetNextItemWidth(ctx, Size*2.7)
         im.SetCursorPos(ctx,35 + (Size*3 * (row-1)),  10+ (i-4*(row-1)) * (Size*2+25) + Size*1.6)
 
@@ -1490,7 +1824,7 @@ local function MacroKnob(mc, i, Size )
     end
 end
 
-local function  macroPage()
+local function  macroPage(TB)
     if not fx.MacroPageActive then return end 
 
     local Size = 15 
@@ -1514,17 +1848,24 @@ local function  macroPage()
             if mc.Type == '' then mc.Type = 'Macro' end 
         end
 
+        mc.Gain = tonumber(select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro ' .. I .. ' Follower Gain','', false)))
+        mc.Smooth =tonumber(select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro ' .. I .. ' Follower Speed','',false)))
+
+
 
         im.SetCursorPos(ctx,45 + (Size*3 * (row-1)),  10+ (i-4*(row-1) ) * (Size*2+25))
 
-        MacroKnob(mc,i, Size)
+        MacroKnob(mc,i, Size,TB)
         LFO_Box(mc,i)
-            
+        Follower_Box(mc,i)
+        StepSeq_Box(mc,i)
+        
         if mc.TweakingKnob == 2   then  -- if right click on  knob 
             if Mods == 0 then 
                 if not AssignContMacro then 
                     AssignContMacro = i
                     AssignContMacro_FxGuID = FxGUID
+
                 else AssignContMacro = nil 
                 end 
                 if I == 4 then 
@@ -1543,7 +1884,14 @@ local function  macroPage()
             if SetTypeToEnv(mc.Type,I) then mc.Type = 'env'    end
             if SetTypeToStepSEQ(mc.Type,I) then mc.Type = 'Step'    end
             if SetTypeToFollower(mc.Type,I) then mc.Type = 'Follower'   end
-            if SetTypeToLFO(mc.Type,I) then mc.Type = 'LFO'     end
+            if SetTypeToLFO(mc.Type,I) then 
+                mc.Type = 'LFO'     
+                Mc.NeedSendAllCoord = true 
+
+               --[[  if mc.All_Coord.X then 
+                    CONT_Send_All_Coord(fx, I , mc.All_Coord, mc)
+                end ]]
+            end
             im.EndPopup(ctx)
             
         end 
@@ -1551,12 +1899,12 @@ local function  macroPage()
 
         if AssignContMacro == i and AssignContMacro_FxGuID == FxGUID then 
             
-            if  RepeatAtInterval(0.2, nil) then
+            if  RepeatAtInterval(0.3, nil) then
                 if mc.Type == 'Macro' then  
                     Draw_Simple_Knobs_Arc (mc.center, Accent_Clr, Size)
-                elseif mc.Type == 'LFO' then 
+                --[[ elseif mc.Type == 'LFO' or mc.Type == 'Follower' then 
                     local sz = LFO_Box_Size
-                    im.DrawList_AddRectFilled(WDL, mc.LFOx , mc.LFOy , mc.LFOx + sz, mc.LFOy+sz, 0xffffff11)
+                    im.DrawList_AddRectFilled(WDL, mc.LFOx , mc.LFOy , mc.LFOx + sz, mc.LFOy+sz, 0xffffff11) ]]
                 end 
             end 
         end 
@@ -1566,6 +1914,7 @@ local function  macroPage()
 
     im.SetCursorPos(ctx,  x_before +  (Size*3 * lastrow)  , y_before)
 
+    if not AnyMacroHovered then fx.HvrMacro = nil end 
 end  
 
 
@@ -1774,12 +2123,14 @@ local WinW = 0
 local AllW = 0
 
 local X , Y = im.GetCursorScreenPos(ctx)
+local TB = Upcoming_Container 
+if not Upcoming_Container and TREE[Root_ID+1]  then 
+    TB = TREE[Root_ID+1].children
+end 
+
+macroPage(TB)
 
 
-macroPage()
-
-
-local TB = Upcoming_Container or TREE[Root_ID+1].children
 
 if tonumber( FX_Count) == 0 then 
 
@@ -1795,75 +2146,74 @@ else
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
     im.SetCursorPosY(ctx, Top_Spacing )
+    if TB then 
+        for i, v in ipairs(TB) do 
+            if i == 1 then 
+                fx.LowestID =  v.addr_fxid
+            end 
+            local FX_Id = v.addr_fxid
+            local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
-    for i, v in ipairs(Upcoming_Container or TREE[Root_ID+1].children) do 
-        if i == 1 then 
-            fx.LowestID =  v.addr_fxid
-        end 
-        local FX_Id = v.addr_fxid
-        local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
-
-
-
-        if  fx.Cont_Collapse == 1  then 
+            if  fx.Cont_Collapse == 1  then 
 
 
-            local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
-            if W then PreviewW = W end 
-            --fx.BgClr = 0xffffff44
+                local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
+                if W then PreviewW = W end 
+                --fx.BgClr = 0xffffff44
 
-        else       -- if not collapsed
-            --fx.BgClr = 0xff22ff44
-            local function Render_Normal()
-                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
+            else       -- if not collapsed
+                --fx.BgClr = 0xff22ff44
+                local function Render_Normal()
+                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
+                    
+                    local  diff, Cur_X_ofs
+                    if i == 1 then 
+                        SL(nil,0)
+                        im.SetCursorPosY(ctx, Top_Spacing )
+
+                        AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
+                        SL(nil,0)
+
+                    end
+
+                    
+
+                    If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
+                    im.SetCursorPosY(ctx,Top_Spacing)
                 
-                local  diff, Cur_X_ofs
-                if i == 1 then 
+                    if v.children then 
+                        Upcoming_Container = v.children
+                        Upcoming_Container_Parent = v 
+                    end
+
+                    
+                    local Hv = createFXWindow(FX_Id)
                     SL(nil,0)
-                    im.SetCursorPosY(ctx, Top_Spacing )
+                    
+                    if v.scale and GUID  then 
+                        FX[GUID] = FX[GUID] or {}   
+                        FX[GUID].parent =  v.addr_fxid - v.scale * i   
+                    end 
+                
+                    local w = im.GetItemRectSize(ctx)
+                    local TB = Upcoming_Container or TREE[Root_ID+1].children
+                    local FX_Id_next = FX_Id + (v.scale or 0)
 
-                     AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
-                    SL(nil,0)
+                    if im.IsItemHovered(ctx) then Hover = true end 
+                    im.SetCursorPosY(ctx, 0 )
+                    LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
+                    fx.Width = (fx.Width or 0) + w +( LastSpc or 0)
+                    
+                    if Hover then  DisableScroll = false  end 
                 end
+                local W= Render_Normal()
 
-                
-
-                If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
-                im.SetCursorPosY(ctx,Top_Spacing)
-            
-                if v.children then 
-                    Upcoming_Container = v.children
-                    Upcoming_Container_Parent = v 
-                end
-
-                
-                local Hv = createFXWindow(FX_Id)
-                SL(nil,0)
-                
-                if v.scale and GUID  then 
-                    FX[GUID] = FX[GUID] or {}   
-                    FX[GUID].parent =  v.addr_fxid - v.scale * i   
-                end 
-            
-                local w = im.GetItemRectSize(ctx)
-                local TB = Upcoming_Container or TREE[Root_ID+1].children
-                local FX_Id_next = FX_Id + (v.scale or 0)
-
-                if im.IsItemHovered(ctx) then Hover = true end 
-                im.SetCursorPosY(ctx, 0 )
-                LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
-
-                fx.Width = (fx.Width or 0) + w +( LastSpc or 0)
-                
-                if Hover then  DisableScroll = false  end 
             end
-            local W= Render_Normal()
 
-        end
-
-        if Upcoming_Container and tonumber(i) == (#Upcoming_Container or #TREE[Root_ID+1].children) then 
-            Upcoming_Container = nil
+            if Upcoming_Container and tonumber(i) == (#Upcoming_Container or #TREE[Root_ID+1].children) then 
+                Upcoming_Container = nil
+            end
         end
     end
 
@@ -1907,7 +2257,7 @@ else
     if not fx.Collapse then 
         local WDL = im.GetWindowDrawList(ctx)
         --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+218, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
+        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+220, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
     end 
 
 

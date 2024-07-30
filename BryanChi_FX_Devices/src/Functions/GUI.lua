@@ -3537,7 +3537,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 im.SameLine(ctx, 100, 10)
 
-
                 if dropped and Mods == 0 then
                     DropFXtoLayer(FX_Idx, LyrID)
                     Dvdr.Width[TblIdxForSpace] = 0

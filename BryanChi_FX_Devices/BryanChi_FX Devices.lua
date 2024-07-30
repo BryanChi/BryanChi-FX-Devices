@@ -2,7 +2,8 @@
 -- @author Bryan Chi
 -- @version 1.0beta13.35
 -- @changelog
---  - Added missing image file
+--  - NEW FEATURE: Modulators inside Containers 
+--  - Layout editor : Fix items not snapping to grid
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -259,7 +260,7 @@ CustomColorsDefault = {
     RDM_DnDFX = 0x00b4d8ff,
     RDM_DnD_Move = 0xFF0000FF;
     Container_Accent_Clr =  0x49CC85ff ;
-    
+    Container_Accent_Clr_Not_Focused = 0x49CC8577;
 }
 
 
@@ -954,11 +955,13 @@ for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
                 FP.Cont_ModAMT = {}
                 if FP.Cont_Which_CC then
                     local rv , parent = r.TrackFX_GetNamedConfigParm(Track, FX_Idx, 'parent_container')
-                    local parent_FxGUID =  r.TrackFX_GetFXGUID(Track, parent)
-                    FX[parent_FxGUID] = FX[parent_FxGUID] or {}
-                    local Ct = FX[parent_FxGUID]
-                    Ct.ModPrm = Ct.ModPrm or {}
-                    table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. FP.Num)
+                    if parent ~= '' then 
+                        local parent_FxGUID =  r.TrackFX_GetFXGUID(Track, parent)
+                        FX[parent_FxGUID] = FX[parent_FxGUID] or {}
+                        local Ct = FX[parent_FxGUID]
+                        Ct.ModPrm = Ct.ModPrm or {}
+                        table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. FP.Num)
+                    end
                 end
 
 
@@ -1131,7 +1134,6 @@ function loop()
     GetLT_FX_Num()
     GetLTParam()
     CheckDnDType() -- Defined in Layout Editor functions
-    local focused_window, hwnd = GetFocusedWindow()
     if ChangeFont then
         im.Attach(ctx, _G
             [(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)])
@@ -1140,6 +1142,7 @@ function loop()
         ChangeFont_Font = nil
         ChangeFont_Var = nil
     end
+    local focused_window, hwnd = GetFocusedWindow()
 
 
 
@@ -1283,6 +1286,8 @@ function loop()
 
                         SyncAnalyzerPinWithFX(AddFX.Pos[i], AddFX.Pos[i] - 1, FX_Name)
                     end
+                    TREE = BuildFXTree(LT_Track)
+
                 end
 
 
@@ -1335,6 +1340,8 @@ function loop()
                             Do(FX_Idx)
                         end
                     end
+                    TREE = BuildFXTree(LT_Track)
+
                 end
 
                 ----- Move FX -----
@@ -1356,6 +1363,7 @@ function loop()
                     MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} }
                     NeedCopyFX = nil
                     DropPos = nil
+                    TREE = BuildFXTree(LT_Track)
                 end
             end
 
@@ -1686,8 +1694,9 @@ function loop()
                     local weight, flag
                     if Trk[TrkID].Mod[m / 2] then
                         if Trk[TrkID].Mod[m / 2].Type == 'Step' then
-                            weight, flag = 0,
-                                im.TableColumnFlags_WidthFixed
+                            weight, flag = 0, im.TableColumnFlags_WidthFixed
+                        elseif Trk[TrkID].Mod[m / 2].Type == 'Follower' then 
+                            weight, flag = 2, im.TableColumnFlags_WidthFixed
                         end
                     end
                     im.TableSetupColumn(ctx, '', flag or im.TableColumnFlags_WidthStretch, weight or 1)
@@ -1917,18 +1926,19 @@ function loop()
                     local HoverOnAnyStep
                     local SmallSEQActive
                     local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
-                    for St = 1, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 1 do -- create all steps
+                    local len = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
+
+                    for St = 1, len, 1 do -- create all steps
                         local W = (VP.w - 10) / 12
                         local L, T = im.GetCursorScreenPos(ctx)
                         if St == 1 and AssigningMacro == i then
                             local H = 20
                             local W = (VP.w - 10) / 12
                             BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
-
                             --HighlightSelectedItem(0xffffff77,0xffffff33, 0, L,T,L+W,T+H,H,W, 1, 1,GetItemRect, Foreground)
                         end
                         --_, S[St]= im.DragDouble(ctx, '##SEQ '..St ,  S[St], 0 ,0, 1, ' ',im.SliderFlags_NoInput)
-                        im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, W / 8, 20)
+                        im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, W / len, 20)
                         local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx); local w, h =
                             im.GetItemRectSize(ctx)
                         local FillClr = 0x00000000
@@ -2207,14 +2217,16 @@ function loop()
                     end
                 elseif Trk[TrkID].Mod[i].Type == 'Follower' then
                     im.TableSetColumnIndex(ctx, (i - 1) * 2)
-
-                    im.Button(ctx, 'Follower     ')
+                    im.PushItemWidth(ctx, -FLT_MIN)
+                    im.Button(ctx, '                       ')
                     if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
                         im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
                     end
                     WhenRightClickOnModulators(Macro)
                     if im.IsItemHovered(ctx) then FolMacroHover = i end
 
+                    
+                    DrawFollowerLine (Trk[TrkID].Mod[i], i)
 
 
                     function openFollowerWin(Track, i)
@@ -2229,8 +2241,7 @@ function loop()
                             SL()
                             local m = Trk[TrkID].Mod[i]
                             local CurX = im.GetCursorPosX(ctx)
-                            retval, m.Smooth = im.DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,
-                                '%.1f')
+                            retval, m.Smooth = im.DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,'%.1f')
 
 
                             if im.IsItemHovered(ctx) or im.IsItemActive(ctx) then
@@ -7900,6 +7911,14 @@ function loop()
                             r.gmem_write(2, PM.DIY_TrkID[TrkID] or 0)
 
                             Sendgmems = true
+                        end
+
+                        for i=1, 8, 1  do 
+                            if Trk[TrkID].Mod[i] then 
+                                if Trk[TrkID].Mod[i].FOL_PastY then 
+                                    Trk[TrkID].Mod[i].FOL_PastY = {}
+                                end 
+                            end 
                         end
                     end
                 end

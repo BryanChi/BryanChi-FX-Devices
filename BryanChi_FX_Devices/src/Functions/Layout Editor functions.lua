@@ -796,15 +796,26 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         FP.ModBipolar = FP.ModBipolar or {}
         local Amt = FP.ModAMT or FP.Cont_ModAMT
 
-        local IndicClr = EightColors.HighSat_MidBright[Macro]
-        local rangeClr = EightColors.Bright[Macro]
-        if Amt ==FP.Cont_ModAMT then 
-            IndicClr = CustomColorsDefault.Container_Accent_Clr
-            rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr , -0.3)
-        end
+       
 
         for Macro, v in ipairs(MacroNums) do
             if Amt[Macro] then
+                local IndicClr = EightColors.HighSat_MidBright[Macro]
+                local rangeClr = EightColors.Bright[Macro]
+                if Amt ==FP.Cont_ModAMT then 
+                    IndicClr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
+                    rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr_Not_Focused , -0.3)
+                    --[[     msg(tostring(FX[FxGUID].HvrMacro).. '      '..Macro)
+                    local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+                    if FX[FxGUID].HvrMacro == Macro then 
+                        IndicClr = CustomColorsDefault.Container_Accent_Clr
+                        rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr , -0.3)    
+                    end  ]]
+                    if If_Hvr_or_Macro_Active (FxGUID, Macro) then 
+                        IndicClr = CustomColorsDefault.Container_Accent_Clr
+                        rangeClr = Change_Clr_A(IndicClr , - 0.3)
+                    end 
+                end
                 --if Modulation has been assigned to params
                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 

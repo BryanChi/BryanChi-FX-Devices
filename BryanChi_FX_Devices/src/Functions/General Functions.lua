@@ -243,6 +243,11 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
         addr_fxid = fxid,
         scale = oldscale
     }
+    local fxGUID = r.TrackFX_GetFXGUID(tr, fxid)
+    FX = FX or {}
+    FX[fxGUID] = FX[fxGUID] or {}
+    FX[fxGUID].addr_fxid =  fxid
+
 
     if ccok then -- if fx in container is a container
         ret.children = {}
@@ -1445,6 +1450,10 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             end
         end
 
+        if Name =='Container' then 
+            r.TrackFX_Show(LT_Track, FX_Idx , 2)
+        end
+
         ADDFX_FILTER = nil
     end
     if ADDFX_FILTER ~= '' and ADDFX_FILTER then
@@ -1702,6 +1711,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
             r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
             AddedFX = true
             LAST_USED_FX = "Container"
+            r.TrackFX_Show(TRACK, FX_Idx , 2)
         end
         DndAddFX_SRC("Container")
         if im.Selectable(ctx, "VIDEO PROCESSOR") then

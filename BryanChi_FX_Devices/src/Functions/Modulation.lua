@@ -266,7 +266,15 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trig
         end 
     end
 end
+function If_Hvr_or_Macro_Active (FxGUID, M )
+    if not FX[FxGUID].parent then return end 
+    local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+    local mc = FX[cont_GUID].Mc[M]
 
+    if AssignContMacro == M-1 or ( FX[cont_GUID].HvrMacro and  M == FX[cont_GUID].HvrMacro) or mc.TweakingKnob == M
+    then    return true    end 
+
+end
 
 ---@param FxGUID string
 ---@param Fx_P string|number
@@ -543,19 +551,22 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
      
         end
 
-        --Draw mod lines
+        --Draw mod lines  CONTAINER
         if Type ~= 'knob' and Type ~= 'Pro-Q' and FP.Cont_ModAMT then
             local offset = 0
             for M, v in ipairs(MacroNums) do
 
                 if FP.Cont_ModAMT[M] and FP.Cont_ModAMT[M] ~= 0 then--if Modulation has been assigned to params
-
                     --- indicator of where the param is currently
                     FP.V = FP.V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-                    local clr = CustomColorsDefault.Container_Accent_Clr
-
+                    local clr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
                     local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
-                    DrawModLines(M, true, FX[cont_GUID].Mc[M].Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr, true,FX_Idx)
+                    local mc = FX[cont_GUID].Mc[M]
+                    if If_Hvr_or_Macro_Active (FxGUID, M) then 
+                        clr = CustomColorsDefault.Container_Accent_Clr
+                    end 
+
+                    DrawModLines(M, true, mc.Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr, true,FX_Idx)
 
                     Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
                     ParamHasMod_Any = true
@@ -787,7 +798,36 @@ function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
     end
 end
 
-function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc)
+function DrawFollowerLine (mc, Macro, GmemAttach, clr)
+    r.gmem_attach(GmemAttach or 'ParamValues')
+    local MOD  = math.abs(SetMinMax((r.gmem_read(100 + Macro) or 0) / 127, -1, 1))
+
+    local x , y = im.GetCursorScreenPos(ctx) 
+    local DL = im.GetWindowDrawList(ctx )  
+    local SzX, SzY = im.GetItemRectSize(ctx)
+    local Y = y- 3 -MOD*SzY
+    mc.FOL_PastY =  mc.FOL_PastY or {}
+
+    if GmemAttach then 
+        x = x + SzX*0.9
+    end 
+
+
+
+    for i, v in ipairs(mc.FOL_PastY) do 
+        if i > 3 then 
+            im.DrawList_AddLine(DL, x+i ,  v, x+i - 1  ,  mc.FOL_PastY [i-1], clr or  0xffffffff, 1.5) 
+        end 
+    end 
+
+    table.insert(mc.FOL_PastY, Y )
+    if #mc.FOL_PastY > SzX then 
+        table.remove(mc.FOL_PastY , 1 )
+    end 
+end     
+
+function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc, numb_of_Nodes)
+
     r.gmem_attach('ContainerMacro')
 
     for i, v in ipairs(All_Coord.X) do
@@ -797,7 +837,7 @@ function Cont_Send_All_Coord(fx, Macro, All_Coord, Mc)
        
         r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
 
-        r.gmem_write(6, #Mc.Node * 11)
+        r.gmem_write(6, numb_of_Nodes or #Mc.Node * 11)
         r.gmem_write(1000 + i, v)
         r.gmem_write(2000 + i, All_Coord.Y[i])
     end
@@ -933,11 +973,30 @@ function Save_LFO_Dialog (Macro, x, y , Mc, FxGUID)
         end
     end
 end
+function SAVE_ALL_LFO_INFO(Node, FxGUID, Macro)
+    local function SaveLFO(StrName, V)
+        if StrName then
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID.. 'Mod ' .. Macro .. StrName, V, true)
+        end
+    end
+    for i, v in ipairs(Node) do
+
+
+        SaveLFO('Node' .. i .. 'Ctrl X', Node[i].ctrlX  or '')
+        SaveLFO('Node' .. i .. 'Ctrl Y', Node[i].ctrlY  or '')
+
+
+        SaveLFO('Node ' .. i .. ' X', Node[i].x)
+        SaveLFO('Node ' .. i .. ' Y', Node[i].y)
+        SaveLFO('Total Number of Nodes', #Node)
+    end
+end
+
 function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
     local x , y  = im.GetCursorScreenPos(ctx)
     local Shapes = get_Global_Shapes()
     local Box_Sz = 50
-    im.SetNextWindowPos(ctx, x - (Box_Sz-5), y -LFO_Box_Size- #Shapes * Box_Sz/2 )
+    im.SetNextWindowPos(ctx, x - (Box_Sz)+18 , y -LFO_Box_Size- #Shapes * Box_Sz/2 )
     if im.BeginPopup(ctx, 'Small Shape Select'..macronum..FxGUID) then 
         if im.IsWindowAppearing(ctx) then
             LFO.NodeBeforePreview = Mc.Node
@@ -947,13 +1006,7 @@ function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
         for i, v in pairs(Shapes) do
             local W = Box_Sz 
             local H = Box_Sz
-            local clickBtn =  im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) 
-            if clickBtn then 
-                Mc.Node = v
-                LFO.NewShapeChosen = v
-                Cont_Send_All_Coord(fx, macronum, v.AllCoord, Mc)
-                --Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, macronum,FxGUID)
-            end
+            im.Button(ctx, '##' .. (v.Name or i) .. i, W, H)
             
             local L, T = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
@@ -962,14 +1015,15 @@ function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
             v.AllCoord =  Cont_DrawShape(v, L, w, h, T, 0xffffffaa,2 , 'SaveAllCoord')
             if im.IsItemHovered(ctx) then
                 Mc.Node = v
-
                 AnyShapeHovered = true
                 LFO.AnyShapeHovered = true
                 Cont_Send_All_Coord(fx, macronum, v.AllCoord, Mc)
+                if IsLBtnClicked then 
+                    LFO.NewShapeChosen = v
+                    SAVE_ALL_LFO_INFO(v, FxGUID,macronum)
+                end
                 --Cont_ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed',fx, macronum,FxGUID)
             end
-
-
         end
         if not im.IsWindowHovered(ctx) and not OpenSamllShapeSelect then
             im.CloseCurrentPopup(ctx)
