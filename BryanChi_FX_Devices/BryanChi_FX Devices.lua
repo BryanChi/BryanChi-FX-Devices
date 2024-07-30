@@ -672,16 +672,20 @@ local function attachImagesAndFonts()
         ModIcon = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon.png'),
         ModIconHollow = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon hollow.png')
     }
-    for i = 6, 64, 1 do
+    --[[ for i = 6, 64, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)
+        im.Attach(ctx, _G['Font_Andale_Mono_' .. i])
+    end ]]
+    for i = 6, 30, 1 do
+        _G['Arial_' .. i] = im.CreateFont('Arial', i)
+        im.Attach(ctx, _G['Arial_' .. i])
     end
+
     System_Font = im.CreateFont('sans-serif', 14)
     im.Attach(ctx, System_Font)
     Font_Andale_Mono_20_B = im.CreateFont('andale mono', 20, im.FontFlags_Bold) -- TODO move to constants
     im.Attach(ctx, Font_Andale_Mono_20_B)
-    for i = 6, 64, 1 do
-        im.Attach(ctx, _G['Font_Andale_Mono_' .. i])
-    end
+
     im.Attach(ctx, icon1)
     im.Attach(ctx, icon1_middle)
     im.Attach(ctx, icon1_small)
@@ -1131,17 +1135,29 @@ local function Horizontal_Scroll(value)
 end
 
 function loop()
+    if ChangeFont then
+        local ft =  _G[(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)]
+        if r.ImGui_ValidatePtr(ft, 'ImGui_Font') then 
+            msg('!!!!!!!'.. ChangeFont_Font)
+            im.Attach(ctx, _G[(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)])
+            ChangeFont = nil
+            ChangeFont_Size = nil
+            ChangeFont_Font = nil
+            ChangeFont_Var = nil
+        end
+    end
+    --[[ if ChangeFontSize_TB then 
+        for i, v in ipairs(ChangeFontSize_TB) do 
+            v.FontSize = ChangeFontSize_Size
+        end 
+        ChangeFontSize_TB = nil
+        ChangeFontSize_Size = nil 
+    end  ]]    
     GetLT_FX_Num()
     GetLTParam()
+    
     CheckDnDType() -- Defined in Layout Editor functions
-    if ChangeFont then
-        im.Attach(ctx, _G
-            [(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)])
-        ChangeFont = nil
-        ChangeFont_Size = nil
-        ChangeFont_Font = nil
-        ChangeFont_Var = nil
-    end
+    
     local focused_window, hwnd = GetFocusedWindow()
 
 
@@ -4591,9 +4607,12 @@ function loop()
                                                     ChangeFont_Size = sz
                                                 end
 
+                                                ChangeFontSize_TB = {}
                                                 for i, v in pairs(LE.Sel_Items) do
+                                                    table.insert(ChangeFontSize_TB, FX[FxGUID][v])
                                                     FX[FxGUID][v].FontSize = ft
                                                 end
+                                                ChangeFontSize_Size = ft
                                             end
 
 
@@ -4604,22 +4623,24 @@ function loop()
                                             SL()
                                             im.Text(ctx, 'Value Font Size: '); im.SameLine(ctx)
                                             im.SetNextItemWidth(ctx, 50)
-                                            local Drag, ft = im.DragDouble(ctx,
-                                                '##EditV_FontSize' .. FxGUID .. (LE.Sel_Items[1] or ''),
-                                                FX[FxGUID][LE.Sel_Items[1]].V_FontSize or Knob_DefaultFontSize, 0.25, 6,
-                                                64,
-                                                '%.2f')
+                                            local Drag, ft = im.DragDouble(ctx,'##EditV_FontSize' .. FxGUID .. (LE.Sel_Items[1] or ''),FX[FxGUID][LE.Sel_Items[1]].V_FontSize or Knob_DefaultFontSize, 0.25, 6,64,'%.2f')
                                             if Drag then
                                                 local sz = roundUp(ft, 1)
                                                 if not _G['Arial' .. '_' .. sz] then
-                                                    _G['Arial' .. '_' .. sz] = im.CreateFont('Arial', sz)
+                                                   -- _G['Arial' .. '_' .. sz] = im.CreateFont('Arial', sz)
                                                     ChangeFont = FrstSelItm
                                                     ChangeFont_Size = sz
                                                     ChangeFont_Font = 'Arial'
                                                 end
+                                                --[[ for i, v in pairs(LE.Sel_Items) do
+                                                    FX[FxGUID][v].V_FontSize = ft
+                                                end ]]
+                                                ChangeFontSize_TB = {}
                                                 for i, v in pairs(LE.Sel_Items) do
+                                                    table.insert(ChangeFontSize_TB, FX[FxGUID][v])
                                                     FX[FxGUID][v].V_FontSize = ft
                                                 end
+                                                ChangeFontSize_Size = ft
                                             end
 
 
@@ -5786,7 +5807,7 @@ function loop()
 
 
                                         for Pal = 1, NumOfColumns or 1, 1 do
-                                            if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2, im.WindowFlags_NoScrollbar) then
+                                            if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
                                                 local NumOfPaletteClr = 9
 
                                                 for i, v in ipairs(FX[FxGUID]) do

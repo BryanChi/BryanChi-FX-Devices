@@ -254,8 +254,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local FP = FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
     if LblTextSize ~= 'No Font' then
-        Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
         V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+        
         im.PushFont(ctx, _G[Font])
     end
     local Radius       = Radius or 0
@@ -332,12 +333,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         AdjustParamWheel(LT_Track, FX_Idx, P_Num)
     end
 
-    if V_Pos == 'Free' then
-        local Ox, Oy = im.GetCursorScreenPos(ctx)
-        im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
-            pos[1] + (FP.V_Pos_X or 0), pos[2] + (FP.V_Pos_Y or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV,
-            (Radius or 20) * 2)
-    end
 
     if FP.Lbl_Pos == 'Free' then
         local Cx, Cy = im.GetCursorScreenPos(ctx)
@@ -668,12 +663,13 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
 
         im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,
-            labeltoShow or FX[FxGUID][Fx_P].Name, (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2)
+            labeltoShow or FX[FxGUID][Fx_P].Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
     end
     RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-
+    local FormatPV
     if V_Pos ~= 'None' and V_Pos then
         im.PushFont(ctx, _G[V_Font])
+
         _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         if FX[FxGUID][Fx_P].ValToNoteL then
             FormatPV = StrToNum(FormatPV)
@@ -713,11 +709,16 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if V_Pos ~= 'Free' then
             im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
                 CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0),
-                FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV, (Radius or 20) * 2)
+                FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV--[[ , (Radius or 20) * 2 ]])
         end
         im.PopFont(ctx)
     end
 
+    if V_Pos == 'Free' then
+        local Ox, Oy = im.GetCursorScreenPos(ctx)
+        im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
+            pos[1] + (FP.V_Pos_X or 0), pos[2] + (FP.V_Pos_Y or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV)--,(Radius or 20) * 2)
+    end
     if Lbl_Pos == 'Within' and Style == 'FX Layering' then
         local ValueTxtW = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
         CenteredVPos = pos[1] + Radius - ValueTxtW / 2 + 0.5
@@ -725,7 +726,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos,
             pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88,
-            labeltoShow, (Radius or 20) * 2)
+            labeltoShow--[[ , (Radius or 20) * 2 ]])
     end
 
 
@@ -2421,7 +2422,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                 --ChangeFont = FP
 
                                 CF = CF or {}
-
 
                                 ChangeFont_Size = roundUp(sz, 1)
                                 _G[var .. '_' .. roundUp(sz, 1)] = im.CreateFont(ft, roundUp(sz, 1))
