@@ -672,10 +672,10 @@ local function attachImagesAndFonts()
         ModIcon = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon.png'),
         ModIconHollow = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon hollow.png')
     }
-    --[[ for i = 6, 64, 1 do
+    for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)
         im.Attach(ctx, _G['Font_Andale_Mono_' .. i])
-    end ]]
+    end
     for i = 6, 30, 1 do
         _G['Arial_' .. i] = im.CreateFont('Arial', i)
         im.Attach(ctx, _G['Arial_' .. i])

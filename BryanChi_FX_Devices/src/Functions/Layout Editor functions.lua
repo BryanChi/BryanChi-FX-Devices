@@ -10,18 +10,34 @@ end
 function Show_Value_Tooltip(trigger, x, y , V )
     if trigger then 
 
-            local SzX, SzY = im.GetItemRectSize(ctx)
-            local MsX, MsY = im.GetMousePos(ctx)
+        local SzX, SzY = im.GetItemRectSize(ctx)
+        local MsX, MsY = im.GetMousePos(ctx)
 
-            im.SetNextWindowPos(ctx,x, y)
-            im.BeginTooltip(ctx)
-            im.Text(ctx, V)
-            im.EndTooltip(ctx)
+        im.SetNextWindowPos(ctx,x, y)
+        im.BeginTooltip(ctx)
+        im.Text(ctx, V)
+        im.EndTooltip(ctx)
 
     end 
 end
 
+function Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB, FP,FxGUID)
+    if LT_ParamNum == FP.Num and focusedFXState == 1 and LT_FXGUID == FxGUID  then
+        if not FP.WhichCC then 
+            local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
+            FP.V = LT_ParamValue
+        end
 
+        im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, 0x99999922, Rounding)
+        im.DrawList_AddRect(draw_list, PosL, PosT, PosR, PosB, 0x99999966, Rounding)
+
+        for m = 1, 8, 1 do
+            if AssigningMacro == m then
+                im.PopStyleColor(ctx, 2)
+            end
+        end
+    end
+end
 
 function CheckDnDType()
     local dnd_type = GetPayload()
@@ -333,7 +349,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
     local radius_inner = radius_outer * 0.40
     local ClrBg = im.GetColor(ctx, im.Col_FrameBg)
-   
+
     local function Knob_Interaction()
             
         if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
@@ -870,6 +886,33 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID,
                 FP.ModAMT[M])
         end
+
+
+
+        if AssigningMacro  then
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, EightColors.bgWhenAsgnMod[AssigningMacro], 16)
+        end
+    end
+
+
+    local function Highlight_Prm_If_User_Use_Actual_UI_To_Tweak()
+        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID   then
+            if not FP.WhichCC then 
+                local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
+                p_value = LT_ParamValue
+                FP.V = p_value
+            end
+    
+            local L, T = im.GetItemRectMin(ctx);
+    
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffffff, 16)
+            for m = 1, 8, 1 do
+                if AssigningMacro == m then
+                    im.PopStyleColor(ctx, 2)
+                end
+            end
+        end
+    
     end
 
     Knob_Interaction()
@@ -883,36 +926,16 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
     Write_Bottom_Labels_And_Values()
 
-    Modulation_related()
+    Modulation_related()    
+    Highlight_Prm_If_User_Use_Actual_UI_To_Tweak()
 
 
 
-
-
-    if AssigningMacro ~= nil then
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-            EightColors.bgWhenAsgnMod[AssigningMacro], 16)
-    end
 
 
     local AlreadyAddPrm = false
 
-    if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
-        local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
-
-        p_value = LT_ParamValue
-        FX[FxGUID][Fx_P].V = p_value
-
-        local L, T = im.GetItemRectMin(ctx);
-
-        im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffffff, 16)
-        for m = 1, 8, 1 do
-            if AssigningMacro == m then
-                im.PopStyleColor(ctx, 2)
-            end
-        end
-    end
-
+    
 
 
     IfTryingToAddExistingPrm(Fx_P, FxGUID, 'Circle', center[1], center[2], nil, nil, radius_outer)
@@ -1198,21 +1221,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         local AlreadyAddPrm = false
 
-        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and not FP.WhichCC then
-            local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
-
-            FX[FxGUID][Fx_P].V = LT_ParamValue
-
-            im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, 0x99999922, Rounding)
-            im.DrawList_AddRect(draw_list, PosL, PosT, PosR, PosB, 0x99999966, Rounding)
-
-            for m = 1, 8, 1 do
-                if AssigningMacro == m then
-                    im.PopStyleColor(ctx, 2)
-                end
-            end
-        end
-
+        Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB,FP,FxGUID)
+        
+        
 
 
         -- if IsLBtnHeld ==false then Tweaking= nil end
@@ -1342,8 +1353,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         if FX[FxGUID][Fx_P].V_Round then Format_P_V = RoundPrmV(StrToNum(Format_P_V), FX[FxGUID][Fx_P].V_Round) end
 
         local function Bottom_Label_or_Value()
+            local Cx, Cy = im.GetCursorScreenPos(ctx)
             if Vertical ~= 'Vert' then
-                local Cx, Cy = im.GetCursorScreenPos(ctx)
+                
                 if not FP.Lbl_Pos or FP.Lbl_Pos == 'Bottom' then
                     im.DrawList_AddTextEx(draw_list, _G[Font],FP.FontSize or LblTextSize or Knob_DefaultFontSize,Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0), LblClr, labeltoShow or FX[FxGUID][Fx_P].Name, nil, PosL, PosT, SldrR - TextW - 3,PosB + 20)
                 end
@@ -2150,20 +2162,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         local AlreadyAddPrm = false
 
-        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID and FX[FxGUID][Fx_P].Name and not FP.WhichCC then
-            local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
-
-            FX[FxGUID][Fx_P].V = LT_ParamValue
-            im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, 0x99999922, Rounding)
-            im.DrawList_AddRect(draw_list, PosL, PosT, PosR, PosB, 0x99999966, Rounding)
-
-            for m = 1, 8, 1 do
-                if AssigningMacro == m then
-                    im.PopStyleColor(ctx, 2)
-                end
-            end
-        end
-
+        Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB, FP,FxGUID)
         --[[ if Tweaking == P_Num..FxGUID and IsLBtnHeld == false then
             if FP.WhichMODs  then
                 r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX'..FxGUID..'Prm'..Fx_P.. 'Value before modulation' , FX[FxGUID][Fx_P].V, true    )

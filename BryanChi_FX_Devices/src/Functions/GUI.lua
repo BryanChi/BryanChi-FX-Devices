@@ -2688,7 +2688,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
                                             local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
                                             local t = (Val- 0) / (1 - 0)
-                                            msg(Prm.V)
                                             local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
                                             local angle_cos, angle_sin = math.cos(angle),
                                                 math.sin(angle)
