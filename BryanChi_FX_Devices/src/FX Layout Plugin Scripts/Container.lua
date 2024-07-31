@@ -1861,8 +1861,11 @@ local function  macroPage(TB)
         StepSeq_Box(mc,i)
         
         if mc.TweakingKnob == 2   then  -- if right click on  knob 
+
             if Mods == 0 then 
+
                 if not AssignContMacro then 
+                    
                     AssignContMacro = i
                     AssignContMacro_FxGuID = FxGUID
 

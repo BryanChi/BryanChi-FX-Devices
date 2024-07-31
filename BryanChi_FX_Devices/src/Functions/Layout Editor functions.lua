@@ -612,7 +612,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
                 local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
                 local MsX, MsY = im.GetMousePos(ctx)
-                msg(tostring(ClrA))
+
                 if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
                     --im.DrawList_PathArcTo( draw_list,  center[1] , center[2],(radius_inner+ radius_outer)/2, A , B)
                     FX[FxGUID].Angle1 = angle

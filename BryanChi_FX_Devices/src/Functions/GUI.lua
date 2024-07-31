@@ -3814,7 +3814,7 @@ function AddKnob_Simple(ctx, label , p_value ,  Size)
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
     local BtnOffset
-
+    local Knob_Active
 
 
 
