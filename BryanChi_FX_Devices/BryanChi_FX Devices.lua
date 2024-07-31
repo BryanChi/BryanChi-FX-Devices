@@ -4025,6 +4025,8 @@ function loop()
                                                     I.BgClr       = CopyPrm.BgClr
                                                     I.GrbClr      = CopyPrm.GrbClr
                                                     I.Lbl_Pos     = CopyPrm.Lbl_Pos
+                                                    I.Lbl_Pos_X   = CopyPrm.Lbl_Pos_X
+                                                    I.Lbl_Pos_Y   = CopyPrm.Lbl_Pos_Y
                                                     I.V_Pos       = CopyPrm.V_Pos
                                                     I.Lbl_Clr     = CopyPrm.Lbl_Clr
                                                     I.V_Clr       = CopyPrm.V_Clr
@@ -4323,7 +4325,7 @@ function loop()
                                                 ID = FxGUID .. LE.Sel_Items[1]
                                             end
                                             local function FreeValuePosSettings()
-                                                if FrstSelItm.V_Pos == 'Free' then
+                                                if FrstSelItm.V_Pos ~= 'None' then
                                                     im.Text(ctx, 'X:')
                                                     SL()
                                                     im.SetNextItemWidth(ctx, 50)
@@ -4348,8 +4350,9 @@ function loop()
                                                     end
                                                 end
                                             end
+
                                             local function FreeLblPosSettings()
-                                                if FrstSelItm.Lbl_Pos == 'Free' then
+                                                if FrstSelItm.Lbl_Pos ~= 'None' then
                                                     im.Text(ctx, 'X:')
                                                     SL()
                                                     im.SetNextItemWidth(ctx, 50)
@@ -5429,7 +5432,7 @@ function loop()
 
 
                                                         if D.Type == 'Image' or D.Type == 'Knob Image' then
-                                                            if im.BeginChildFrame(ctx, '##drop_files', -R_ofs, 25) then
+                                                            if im.BeginChild(ctx, '##drop_files', -R_ofs, 25) then
                                                                 if D.Image then
                                                                     if TrashIcon(13, 'Image Delete', ClrBG, ClrTint) then
                                                                         D.Image, D.FilePath = nil
@@ -5445,7 +5448,7 @@ function loop()
                                                                     im.Bullet(ctx)
                                                                     im.TextWrapped(ctx, D.FilePath)
                                                                 end
-                                                                im.EndChildFrame(ctx)
+                                                                im.EndChild(ctx)
                                                             end
 
                                                             if im.BeginDragDropTarget(ctx) then

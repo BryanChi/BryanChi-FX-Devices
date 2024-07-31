@@ -45,6 +45,18 @@ function CalculateColor(color)
         (PLink_Edge_DarkBG or CustomColorsDefault.PLink_Edge_DarkBG)
 end
 
+function Align_Text_To_Center_Of_X(text, width, x_offset, y_offset)
+    local CurX = im.GetCursorPosX(ctx)
+    local w = im.CalcTextSize(ctx, text)
+    im.SetCursorPosX(ctx, CurX - w / 2 + width / 2 + (x_offset or 0))
+    if y_offset and y_offset ~= 0  then 
+        local CurY = im.GetCursorPosY(ctx)
+        im.SetCursorPosY(ctx, CurY+ (y_offset or 0))
+    end 
+    --MyText(text, _G[Font], LblClr)
+end 
+
+
 function ButtonDraw(color, center, radius_outer) -- for drawing to clarify which destination (target) DND goes to
     color = im.IsItemHovered(ctx) and IncreaseDecreaseBrightness(color, 30) or color
     local draw_list = im.GetWindowDrawList(ctx)
@@ -264,12 +276,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local pos          = { im.GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
-
-
     local TextW = im.CalcTextSize(ctx, labeltoShow or FX[FxGUID][Fx_P].Name, nil, nil, true)
-
     local CenteredLblPos, CenteredVPos
-
+    im.BeginGroup(ctx)
     if TextW < (Radius or 0) * 2 then
         CenteredLblPos = pos[1] + Radius - TextW / 2
     else
@@ -344,10 +353,12 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local BtnL, BtnT = im.GetItemRectMin(ctx)
     local BtnR, BtnB = im.GetItemRectMax(ctx)
+
     if Lbl_Pos == 'Top' then
-        im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize,
-            CenteredLblPos or pos[1], BtnT - line_height + item_inner_spacing[2], FP.Lbl_Clr or 0xffffffff,
-            labeltoShow or FP.Name, nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height)
+        local Y = BtnT - line_height + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0)
+        local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
+        im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, FP.Lbl_Clr or 0xffffffff,
+            labeltoShow or FP.Name--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
     end
 
     local value_changed = false
@@ -655,10 +666,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     if Lbl_Pos == 'Bottom' then --Write Bottom Label
-        local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =
-            pos
-            [1]
-        local X, Y = CenteredLblPos or pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2]
+        local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =pos[1]
+        local X, Y = CenteredLblPos or pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
         local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
         local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
 
@@ -706,10 +715,12 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         if V_Pos == 'Within' then Y_Offset = radius_outer * 1.2 end
         if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
-        if V_Pos ~= 'Free' then
-            im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
+        if V_Pos == 'Bottom' then
+            Align_Text_To_Center_Of_X(FormatPV, radius_outer * 2, FP.V_Pos_X, FP.V_Pos_Y)
+            MyText(FormatPV,  _G[V_Font], FX[FxGUID][Fx_P].V_Clr or 0xffffffff)
+            --[[ im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
                 CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0),
-                FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV--[[ , (Radius or 20) * 2 ]])
+                FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV--[[ , (Radius or 20) * 2 ]]
         end
         im.PopFont(ctx)
     end
@@ -895,7 +906,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     if LblTextSize ~= 'No Font' then im.PopFont(ctx) end
     --im.DrawListSplitter_Merge(FX[FxGUID].SPLITTER)
-
+    im.EndGroup(ctx)
     return value_changed, p_value
 end
 
@@ -942,7 +953,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
 
@@ -1002,17 +1012,13 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         if Vertical == 'Vert' then
             if FP.Lbl_Pos == 'Top' then
-                local CurX = im.GetCursorPosX(ctx)
-                local w = im.CalcTextSize(ctx, labeltoShow or FP.Name)
-                im.SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                --im.TextColored(ctx, FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text)  ,labeltoShow or FP.Name )
+
+                Align_Text_To_Center_Of_X(labeltoShow or FP.Name, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
                 MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text))
             end
             if FP.V_Pos == 'Top' then
-                local CurX             = im.GetCursorPosX(ctx)
                 local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-                local w                = im.CalcTextSize(ctx, Param_Value)
-                im.SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
+                Align_Text_To_Center_Of_X(Param_Value, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
                 if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text)) end
             end
         end
@@ -1051,7 +1057,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         local button_x, button_y = im.GetCursorPos(ctx)
-        im.SetCursorPosY(ctx, button_y - (PosB - PosT))
+        --im.SetCursorPosY(ctx, button_y - (PosB - PosT))
         --WhichClick()
         --[[ im.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
         if ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
@@ -1299,30 +1305,31 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         if FX[FxGUID][Fx_P].V_Round then Format_P_V = RoundPrmV(StrToNum(Format_P_V), FX[FxGUID][Fx_P].V_Round) end
 
-
-        if BtmLbl ~= 'No BtmLbl' then
-            local Cx, Cy = im.GetCursorScreenPos(ctx)
+        local function Bottom_Label_or_Value()
             if Vertical ~= 'Vert' then
+                local Cx, Cy = im.GetCursorScreenPos(ctx)
                 if not FP.Lbl_Pos or FP.Lbl_Pos == 'Bottom' then
-                    im.DrawList_AddTextEx(draw_list, _G[Font],
-                        FP.FontSize or LblTextSize or Knob_DefaultFontSize,
-                        Cx, Cy, LblClr, labeltoShow or FX[FxGUID][Fx_P].Name, nil, PosL, PosT, SldrR - TextW - 3,
-                        PosB + 20)
+                    im.DrawList_AddTextEx(draw_list, _G[Font],FP.FontSize or LblTextSize or Knob_DefaultFontSize,Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0), LblClr, labeltoShow or FX[FxGUID][Fx_P].Name, nil, PosL, PosT, SldrR - TextW - 3,PosB + 20)
                 end
             else -- if vertical
                 if FP.Lbl_Pos == 'Bottom' or not FP.Lbl_Pos then
-                    local CurX = im.GetCursorPosX(ctx)
-                    local w = im.CalcTextSize(ctx, labeltoShow or FP.Name)
-                    im.SetCursorPosX(ctx, CurX - w / 2 + Sldr_Width / 2)
-                    MyText(labeltoShow or FP.Name, _G[Font], LblClr)
+
+                    Align_Text_To_Center_Of_X(labeltoShow or FP.Name, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
+                    MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text))
                 end
                 if FP.V_Pos == 'Bottom' then
+                    Align_Text_To_Center_Of_X(Format_P_V, Sldr_Width, FP.V_Pos_X, FP.V_Pos_Y)
+                    --[[ 
                     local Cx = im.GetCursorPosX(ctx)
                     local txtW = im.CalcTextSize(ctx, Format_P_V, nil, nil, true)
-                    im.SetCursorPosX(ctx, Cx + Sldr_Width / 2 - txtW / 2)
-                    MyText(Format_P_V, _G[V_Font], FP.V_Clr or LblClr)
+                    im.SetCursorPosX(ctx, Cx + Sldr_Width / 2 - txtW / 2) ]]
+                    MyText(Format_P_V, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text))
                 end
             end
+        end
+
+        Bottom_Label_or_Value()
+        if BtmLbl ~= 'No BtmLbl' then
             if FP.Lbl_Pos == 'Free' then
                 im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
                     Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or LblClr,
@@ -1340,7 +1347,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         if Vertical ~= 'Vert' and (not FP.V_Pos or FP.V_Pos == 'Right') then
             im.PushFont(ctx, Arial_11); local X, Y = im.GetCursorScreenPos(ctx)
             im.SetCursorScreenPos(ctx, SldrR - TextW, Y)
-
 
             MyText(Format_P_V, _G[V_Font], V_Clr)
 
@@ -1683,10 +1689,17 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     else -- if there's an image
         uvmin, uvmax, w, h = Calc_strip_uv(FP.Image, FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
 
+        im.InvisibleButton(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Sldr_W or 30, FP.Sldr_W or 30)
+        local l, t = im.GetItemRectMin(ctx)
+        local r, b = im.GetItemRectMax(ctx)
+        local clr = FP.BgClr
+        if FX[FxGUID][Fx_P].V == 1 then
+            clr = FP.Switch_On_Clr
+        end
+        im.DrawList_AddImage(WDL, FP.Image, l, t , r,b, 0, uvmin, 1, uvmax, clr)
+        --[[ im.ImageButton(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Image, FP.Sldr_W or 30, FP.Sldr_W or 30, 0,
+            uvmin, 1, uvmax, FP.BgClr or 0xffffff00) ]]
 
-
-        im.ImageButton(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Image, FP.Sldr_W or 30, FP.Sldr_W or 30, 0,
-            uvmin, 1, uvmax, FP.BgClr or 0xffffff00)
     end
 
 
@@ -1752,7 +1765,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     im.EndGroup(ctx)
 
-    im.DrawList_AddRectFilled(DL, X, Y, X + W, Y + H, clr, FX.Round[FxGUID] or 0)
+    --im.DrawList_AddRectFilled(DL, X, Y, X + W, Y + H, clr, FX.Round[FxGUID] or 0)
     im.PopStyleVar(ctx)
     if FontSize then im.PopFont(ctx) end
     if popClr then im.PopStyleColor(ctx, popClr) end
@@ -1979,11 +1992,11 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if FP.GrbClr and FX.LayEdit == FxGUID then
             local ActV
             local R, G, B, A = im.ColorConvertU32ToDouble4(FP.GrbClr)
-            local HSV, _, H, S, V = im.ColorConvertRGBtoHSV(R, G, B) ---TODO I think this function only returns 3 values, not 5
+            local H, S, V = im.ColorConvertRGBtoHSV(R, G, B) ---TODO I think this function only returns 3 values, not 5
             if V > 0.9 then ActV = V - 0.2 end
-            local RGB, _, R, G, B = im.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
+            local  R, G, B = im.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
             local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
-            local RGB, _, R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
+            local R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
             local HvrClr = im.ColorConvertDouble4ToU32(R, G, B, A)
             FP.GrbAct = ActClr
             FP.GrbHvr = HvrClr
@@ -3102,11 +3115,11 @@ end
 function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
     if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then
         local DeltaX, DeltaY = im.GetMouseDelta(ctx); local MouseX, MouseY = im.GetMousePos(ctx)
-
+        local FP = FX[FxGUID][Fx_P]
         WinDrawList = im.GetWindowDrawList(ctx)
-        local L, T = im.GetItemRectMin(ctx); local w, h = im.GetItemRectSize(ctx); local R = L + w; local B =
-            T +
-            h;
+        local L, T = im.GetItemRectMin(ctx); local w, h = im.GetItemRectSize(ctx); 
+        local R = L + w; 
+        local B =T +h;
         im.DrawList_AddRect(WinDrawList, L, T, R, B, 0x999999ff)
 
 
@@ -3117,7 +3130,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 LE.SelectedItemType = ItemType
             end
         end
-
+        local LongClickDuration = 0.1
 
 
 
@@ -3125,9 +3138,10 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         --- if mouse is on an item
         if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
             if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
-                if LBtnRel and Max_L_MouseDownDuration < 0.1 and Mods == 0 then
+                if LBtnRel and Max_L_MouseDownDuration < LongClickDuration and Mods == 0 then
                     LE.Sel_Items = {}
                     table.insert(LE.Sel_Items, Fx_P)
+
                 end
 
                 if IsLBtnClicked and Mods == 0 then
@@ -3143,20 +3157,27 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     if ClickedItmNum then
                         table.remove(LE.Sel_Items, ClickedItmNum)
                     else
-                        table.insert(LE.Sel_Items,
-                            Fx_P)
+                        table.insert(LE.Sel_Items,Fx_P)
                     end
                 end
 
+
                 if IsLBtnClicked then
                     ClickOnAnyItem = true
-                    FX[FxGUID][Fx_P].PosX = PosX
-                    FX[FxGUID][Fx_P].PosY = PosY
+                    FP.PosX = PosX
+                    FP.PosY = PosY
+                    DetermineIfLongClick = true 
+                end
+
+                if DetermineIfLongClick and Max_L_MouseDownDuration > LongClickDuration and Mods == 0 then
                     if #LE.Sel_Items > 1 then
                         LE.ChangePos = LE.Sel_Items
                     else
                         LE.ChangePos = Fx_P
                     end
+
+                    Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
+                    DetermineIfLongClick = nil 
                 end
             end
         end
@@ -3246,9 +3267,9 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 if ItemType == 'Sldr' or ItemType == 'Drag' then
                     ItemWidth = 160
                 elseif ItemType == 'Selection' then
-                    ItemWidth = FX[FxGUID][Fx_P].Combo_W
+                    ItemWidth = FP.Combo_W
                 elseif ItemType == 'Switch' then
-                    ItemWidth = FX[FxGUID][Fx_P].Switch_W
+                    ItemWidth = FP.Switch_W
                 elseif ItemType == 'Knob' then
                     ItemWidth = Df.KnobRadius
                 elseif ItemType == 'V-Slider' then
@@ -3263,10 +3284,10 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             if Mods == 0 then ItemWidth = ItemWidth + Dx end
 
             if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
-                FX[FxGUID][Fx_P].Sldr_W = ItemWidth
+                FP.Sldr_W = ItemWidth
             end
             if LBtnRel and ChangePrmW == Fx_P then
-                FX[FxGUID][Fx_P].Sldr_W = roundUp(FX[FxGUID][Fx_P].Sldr_W, LE
+                FP.Sldr_W = roundUp(FP.Sldr_W, LE
                     .GridSize)
             end
             if LBtnRel then ChangePrmW = nil end
@@ -3277,18 +3298,18 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
             im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x444444ff)
             local Dx, Dy = im.GetMouseDelta(ctx)
-            if not FX[FxGUID][Fx_P].Sldr_W then FX[FxGUID][Fx_P].Sldr_W = Df.KnobRadius end
+            if not FP.Sldr_W then FP.Sldr_W = Df.KnobRadius end
             local DiagDrag = (Dx + Dy) / 2
             if Mods == 0 then
-                FX[FxGUID][Fx_P].Sldr_W = FX[FxGUID][Fx_P].Sldr_W + DiagDrag;
+                FP.Sldr_W = FP.Sldr_W + DiagDrag;
             end
             if LBtnRel and LE.ChangeRaius == Fx_P then
-                FX[FxGUID][Fx_P].Sldr_W = roundUp(FX[FxGUID][Fx_P].Sldr_W,
+                FP.Sldr_W = roundUp(FP.Sldr_W,
                     LE.GridSize / 2)
             end
             if LBtnRel then LE.ChangeRadius = nil end
             ClickOnAnyItem = true
-            FX[FxGUID][Fx_P].Sldr_W = math.max(FX[FxGUID][Fx_P].Sldr_W, 10)
+            FP.Sldr_W = math.max(FP.Sldr_W, 10)
         end
 
         if LE.ChangeRadius == Fx_P then
@@ -3324,9 +3345,9 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     Dy = 0
                 end
                 im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
-                FX[FxGUID][Fx_P].PosX = FX[FxGUID][Fx_P].PosX or PosX
-                FX[FxGUID][Fx_P].PosY = FX[FxGUID][Fx_P].PosY or PosY
-                FX[FxGUID][Fx_P].PosX = FX[FxGUID][Fx_P].PosX + Dx; FX[FxGUID][Fx_P].PosY = FX[FxGUID][Fx_P].PosY + Dy
+                FP.PosX = FP.PosX or PosX
+                FP.PosY = FP.PosY or PosY
+                FP.PosX = FP.PosX + Dx; FP.PosY = FP.PosY + Dy
                 AddGuideLines(0xffffff44, L, T, R, B)
             end
         end
@@ -3342,15 +3363,21 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         end
         local LBtnRel = im.IsMouseReleased(ctx, 0)
 
-        if LBtnRel and LE.ChangePos == Fx_P and Max_L_MouseDownDuration > 0.1 then
+        if LBtnRel and LE.ChangePos == Fx_P and Max_L_MouseDownDuration > LongClickDuration then
 
-            if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FX[FxGUID][Fx_P].PosX and FX[FxGUID][Fx_P].PosY then
-                FX[FxGUID][Fx_P].PosX = SetMinMax(roundUp(FX[FxGUID][Fx_P].PosX, LE.GridSize), 0,
-                    Win_W - (FX[FxGUID][Fx_P].Sldr_W or 15))
-
-                FX[FxGUID][Fx_P].PosY = SetMinMax(roundUp(FX[FxGUID][Fx_P].PosY, LE.GridSize), 0, 220 - 10)
+            if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FP.PosX and FP.PosY then
+                local X_Dif, Y_Dif = math.abs(Orig_Item_Pos_X - FP.PosX), math.abs(Orig_Item_Pos_Y - FP.PosY)
+                if X_Dif > LE.GridSize*0.55 or Y_Dif > LE.GridSize*0.55 then -- if item is moved more than grid size
+                    -- qunatize pos to grid 
+                    FP.PosX = SetMinMax(roundUp(FP.PosX, LE.GridSize), 0,Win_W - (FP.Sldr_W or 15))
+                    FP.PosY = SetMinMax(roundUp(FP.PosY, LE.GridSize), 0, 220 - 10)
+                else -- move items back to original pos
+                    FP.PosX = Orig_Item_Pos_X
+                    FP.PosY = Orig_Item_Pos_Y
+                end
             end
             LE.ChangePos = nil
+
         end
 
     end

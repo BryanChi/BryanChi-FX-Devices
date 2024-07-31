@@ -2731,17 +2731,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             elseif v.Type == 'Knob Range' then
                                                 local function AddRange(G)
                                                     for i = IN, OUT, (1 + (v.Gap or 0)) do
-                                                        im.DrawList_PathArcTo(WDL, x, y, i,
-                                                            ANGLE_MIN,
-                                                            SetMinMax(
-                                                                ANGLE_MIN +
-                                                                (ANGLE_MAX - ANGLE_MIN) * Prm.V,
-                                                                ANGLE_MIN, ANGLE_MAX))
-                                                        im.DrawList_PathStroke(WDL,
-                                                            Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                                                        im.DrawList_PathArcTo(WDL, x, y-4 --[[ !!! not sure why but adding this will align it with circle ]], i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Prm.V,ANGLE_MIN, ANGLE_MAX))
+                                                        im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                                         im.DrawList_PathClear(WDL)
                                                     end
                                                 end
+
 
 
                                                 Repeat(1, 0, X_Gap, X_Gap, AddRange)
