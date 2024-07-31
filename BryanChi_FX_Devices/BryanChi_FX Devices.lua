@@ -4445,6 +4445,7 @@ function loop()
                                                     AddOption('Bottom', 'Lbl_Pos')
                                                 elseif FrstSelItm.Type == 'Slider' or FrstSelItm.Type == 'Drag' then
                                                     AddOption('Left', 'Lbl_Pos')
+                                                    AddOption('Top', 'Lbl_Pos')
                                                     AddOption('Bottom', 'Lbl_Pos')
                                                 elseif FrstSelItm.Type == 'Selection' or FrstSelItm.Type == 'Switch' then
                                                     AddOption('Top', 'Lbl_Pos')
@@ -4475,6 +4476,7 @@ function loop()
                                                 if FrstSelItm.Type == 'V-Slider' then
                                                     AddOption('Bottom', 'V_Pos')
                                                     AddOption('Top', 'V_Pos')
+                                                    
                                                 elseif FrstSelItm.Type == 'Knob' then
                                                     AddOption('Bottom', 'V_Pos')
                                                     AddOption('Within', 'V_Pos')
@@ -4485,6 +4487,8 @@ function loop()
                                                     AddOption('Within', 'V_Pos')
                                                 elseif FrstSelItm.Type == 'Slider' then
                                                     AddOption('Right', 'V_Pos')
+                                                    AddOption('Top', 'V_Pos')
+
                                                 end
                                                 if FrstSelItm.Type ~= 'Selection' then AddOption('None', 'V_Pos') end
 

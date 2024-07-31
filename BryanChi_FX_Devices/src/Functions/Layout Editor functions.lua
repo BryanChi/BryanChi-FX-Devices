@@ -7,6 +7,22 @@ local function GetPayload()
     end
 end
 
+function Show_Value_Tooltip(trigger, x, y , V )
+    if trigger then 
+
+            local SzX, SzY = im.GetItemRectSize(ctx)
+            local MsX, MsY = im.GetMousePos(ctx)
+
+            im.SetNextWindowPos(ctx,x, y)
+            im.BeginTooltip(ctx)
+            im.Text(ctx, V)
+            im.EndTooltip(ctx)
+
+    end 
+end
+
+
+
 function CheckDnDType()
     local dnd_type = GetPayload()
     DND_ADD_FX = dnd_type == "DND ADD FX"
@@ -291,9 +307,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local line_height = im.GetTextLineHeight(ctx)
     local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
-    --[[ if not FX[FxGUID].SPLITTER then FX[FxGUID].SPLITTER = im.CreateDrawListSplitter(draw_list) end 
-    im.DrawListSplitter_Split(FX[FxGUID].SPLITTER, 2) ]]
-
     local item_inner_spacing = { item_inner_spacing, item_inner_spacing } or
         { { im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing) } }
     local mouse_delta = { im.GetMouseDelta(ctx) }
@@ -305,458 +318,573 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     if Lbl_Pos == 'Top' then BtnOffset = -line_height end
 
+
+
+
+
+
     WhichClick()
-    im.InvisibleButton(ctx, label, radius_outer * 2,
-        radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), ClickButton) -- ClickButton to alternate left/right dragging
-    if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
-        if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
-            im.SetDragDropPayload(ctx, 'my_type', 'my_data')
-            Knob_Active  = true
-            Clr_SldrGrab = getClr(im.Col_Text)
+    im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), ClickButton) -- ClickButton to alternate left/right dragging
 
-            HideCursorTillMouseUp(0)
-            im.SetMouseCursor(ctx, im.MouseCursor_None)
-            if -mouse_delta[2] ~= 0.0 then
-                local stepscale = 1
-                if Mods == Shift then stepscale = 3 end
-                local step = (v_max - v_min) / (200.0 * stepscale)
-                p_value = p_value + (-mouse_delta[2] * step)
-                if p_value < v_min then p_value = v_min end
-                if p_value > v_max then p_value = v_max end
-                value_changed = true
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                MvingP_Idx = F_Tp
-                Tweaking = P_Num .. FxGUID
-            end
-            im.EndDragDropSource(ctx)
-        end
-    elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro and not AssignContMacro then -- right drag to link parameters
-        DnD_PLink_SOURCE(FX_Idx, P_Num)
-    end
-    KNOB = true
-    DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num) 
-    ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
-    local focused_window, hwnd = GetFocusedWindow()
-    if focused_window == "FX Devices" then
-        r.JS_Window_SetFocus(hwnd)
-        AdjustParamWheel(LT_Track, FX_Idx, P_Num)
-    end
-
-
-    if FP.Lbl_Pos == 'Free' then
-        local Cx, Cy = im.GetCursorScreenPos(ctx)
-        im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
-            pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or getClr(im.Col_Text),
-            FP.CustomLbl or FP.Name)
-    end
-
-
-    local BtnL, BtnT = im.GetItemRectMin(ctx)
-    local BtnR, BtnB = im.GetItemRectMax(ctx)
-
-    if Lbl_Pos == 'Top' then
-        local Y = BtnT - line_height + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0)
-        local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
-        im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, FP.Lbl_Clr or 0xffffffff,
-            labeltoShow or FP.Name--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
-    end
-
-    local value_changed = false
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
-    if (is_hovered or Tweaking == P_Num .. FxGUID) and (V_Pos == 'None' or not V_Pos) then
-        local get, PV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-        if get then
-            local Y_Pos
-            if Lbl_Pos == 'Top' then _, Y_Pos = im.GetCursorScreenPos(ctx) end
-            local window_padding = { im.GetStyleVar(ctx, im.StyleVar_WindowPadding) }
-            im.SetNextWindowPos(ctx, pos[1] + radius_outer / 2,
-                Y_Pos or pos[2] - line_height - window_padding[2] - 8)
-            im.BeginTooltip(ctx)
-            im.Text(ctx, PV)
-            im.EndTooltip(ctx)
-        end
-        Clr_SldrGrab = getClr(im.Col_SliderGrabActive)
-    end
-
-
-    if Knob_Active == true then
-        if IsLBtnHeld == false then Knob_Active = false end
-    end
-
-
     local t = (p_value - v_min) / (v_max - v_min)
-
     local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-
     local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
     local radius_inner = radius_outer * 0.40
-
-
     local ClrBg = im.GetColor(ctx, im.Col_FrameBg)
-    if Style == 'Pro C' then
-        local offset; local TxtClr = 0xD9D9D9ff
-        if labeltoShow == 'Release' then offset = 5 else offset = nil end
+   
+    local function Knob_Interaction()
+            
+        if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
+            if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
+                im.SetDragDropPayload(ctx, 'my_type', 'my_data')
+                --[[ Knob_Active  = true ]]
+                Clr_SldrGrab = getClr(im.Col_Text)
+        
+                HideCursorTillMouseUp(0)
+                im.SetMouseCursor(ctx, im.MouseCursor_None)
+                if -mouse_delta[2] ~= 0.0 then
+                    local stepscale = 1
+                    if Mods == Shift then stepscale = 3 end
+                    local step = (v_max - v_min) / (200.0 * stepscale)
+                    p_value = p_value + (-mouse_delta[2] * step)
+                    if p_value < v_min then p_value = v_min end
+                    if p_value > v_max then p_value = v_max end
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                    MvingP_Idx = F_Tp
+                    Tweaking = P_Num .. FxGUID
+                end
+                im.EndDragDropSource(ctx)
+            elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro and not AssignContMacro then -- right drag to link parameters
+                DnD_PLink_SOURCE(FX_Idx, P_Num)
+            end
+            KNOB = true
+            DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num) 
+            ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, center, radius_outer)
+            local focused_window, hwnd = GetFocusedWindow()
+            if focused_window == "FX Devices" then
+                r.JS_Window_SetFocus(hwnd)
+                AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+            end
+        end 
 
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-            FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
-        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin *
-            radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
-            FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
-        local TextW, h = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
-        if Disabled == 'Pro C Ratio Disabled' then
-            local CompStyle = 'CompStyle##Value'
-            if _G[CompStyle] == 'Vocal' then
-                im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, 0x000000aa)
-                TxtClr = 0x55555577
+
+        --if user turn knob on ImGui
+        if Tweaking == P_Num .. FxGUID then
+            FX[FxGUID][Fx_P].V = p_value
+            if not FP.WhichCC and not FP.Cont_Which_CC then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+            else
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
             end
         end
-        --if string.find(FX_Name, 'Pro%-C 2') then
-        --    im.DrawList_AddText(draw_list, center[1]-TextW/2+ (offset or 0)   , pos[2] + radius_outer * 2 + item_inner_spacing[2], TxtClr, labeltoShow)
-        --end
+
+    end
+
+    local function ShowTooltip_if_Active()
+        if (is_hovered or Tweaking == P_Num .. FxGUID) and (V_Pos == 'None' or not V_Pos) then
+            local get, PV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            if get then
+                local Y_Pos
+                if Lbl_Pos == 'Top' then _, Y_Pos = im.GetCursorScreenPos(ctx) end
+                local window_padding = { im.GetStyleVar(ctx, im.StyleVar_WindowPadding) }
+                im.SetNextWindowPos(ctx, pos[1] + radius_outer / 2,
+                    Y_Pos or pos[2] - line_height - window_padding[2] - 8)
+                im.BeginTooltip(ctx)
+                im.Text(ctx, PV)
+                im.EndTooltip(ctx)
+            end
+            Clr_SldrGrab = getClr(im.Col_SliderGrabActive)
+        end
+    end
+
+    local function Write_Label_And_Value()
+
+        if FP.Lbl_Pos == 'Free' then
+            local Cx, Cy = im.GetCursorScreenPos(ctx)
+            im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
+                pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or getClr(im.Col_Text),
+                FP.CustomLbl or FP.Name)
+        end
+
+
+        local BtnL, BtnT = im.GetItemRectMin(ctx)
+        local BtnR, BtnB = im.GetItemRectMax(ctx)
+
+        if Lbl_Pos == 'Top' then
+            
+            local Y = BtnT - line_height + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0)
+            local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
+            im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, FP.Lbl_Clr or 0xffffffff,
+                labeltoShow or FP.Name--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
+        end
+    end
+
+    local function Drawings_For_Styles()
+        if Style == 'Pro C' then
+            local offset; local TxtClr = 0xD9D9D9ff
+            if labeltoShow == 'Release' then offset = 5 else offset = nil end
+
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+                FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin *
+                radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
+                FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
+            local TextW, h = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
+            if Disabled == 'Pro C Ratio Disabled' then
+                local CompStyle = 'CompStyle##Value'
+                if _G[CompStyle] == 'Vocal' then
+                    im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, 0x000000aa)
+                    TxtClr = 0x55555577
+                end
+            end
+            --if string.find(FX_Name, 'Pro%-C 2') then
+            --    im.DrawList_AddText(draw_list, center[1]-TextW/2+ (offset or 0)   , pos[2] + radius_outer * 2 + item_inner_spacing[2], TxtClr, labeltoShow)
+            --end
 
 
 
 
 
-        local txtX = center[1] - TextW / 2; local txtY = pos[2] + radius_outer * 2 + item_inner_spacing[2]
+            local txtX = center[1] - TextW / 2; local txtY = pos[2] + radius_outer * 2 + item_inner_spacing[2]
 
-        ---@param Label string
-        ---@param offset number
-        ---@param Rect_offset? number
-        local function AutoBtn(Label, offset, Rect_offset)
-            if labeltoShow == Label then
-                MouseX, MouseY = im.GetMousePos(ctx)
-                im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
-                    pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD57144, 'A')
-
-                if MouseX > txtX and MouseX < txtX + TextW and MouseY > txtY - 4 and MouseY < txtY + 10 then
-                    im.DrawList_AddRectFilled(draw_list, txtX + (Rect_offset or 0), txtY,
-                        txtX + TextW + (Rect_offset or 0), txtY + 10, 0x99999955, 3)
+            ---@param Label string
+            ---@param offset number
+            ---@param Rect_offset? number
+            local function AutoBtn(Label, offset, Rect_offset)
+                if labeltoShow == Label then
+                    MouseX, MouseY = im.GetMousePos(ctx)
                     im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
-                        pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD57166, 'A')
-                    if IsLBtnClicked and Label == 'Release' then
-                        AutoRelease = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 7)
+                        pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD57144, 'A')
+
+                    if MouseX > txtX and MouseX < txtX + TextW and MouseY > txtY - 4 and MouseY < txtY + 10 then
+                        im.DrawList_AddRectFilled(draw_list, txtX + (Rect_offset or 0), txtY,
+                            txtX + TextW + (Rect_offset or 0), txtY + 10, 0x99999955, 3)
+                        im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
+                            pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD57166, 'A')
+                        if IsLBtnClicked and Label == 'Release' then
+                            AutoRelease = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 7)
+                            if AutoRelease == 1 then
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 7, 0)
+                                AutoRelease = 0
+                            else
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 7, 1)
+                                AutoRelease = 1
+                            end
+                        elseif IsLBtnClicked and Label == 'Gain' then
+                            AutoGain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 14)
+                            if AutoGain == 1 then
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 14, 0)
+                                AutoGain = 0
+                            else
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 14, 1)
+                                AutoGain = 1
+                            end
+                        end
+                    end
+
+                    if Label == 'Release' then
+                        if not AutoRelease then AutoRelease = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 7) end
                         if AutoRelease == 1 then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 7, 0)
-                            AutoRelease = 0
-                        else
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 7, 1)
-                            AutoRelease = 1
+                            im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
+                                pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD571ff, 'A')
                         end
-                    elseif IsLBtnClicked and Label == 'Gain' then
-                        AutoGain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 14)
+                    end
+                    if Label == 'Gain' then
+                        if not AutoGain then AutoGain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 14) end
                         if AutoGain == 1 then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 14, 0)
-                            AutoGain = 0
-                        else
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 14, 1)
-                            AutoGain = 1
+                            im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
+                                pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD571ff, 'A')
                         end
                     end
                 end
+            end
 
-                if Label == 'Release' then
-                    if not AutoRelease then AutoRelease = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 7) end
-                    if AutoRelease == 1 then
-                        im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
-                            pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD571ff, 'A')
+            AutoBtn('Release', -8, 3)
+            AutoBtn('Gain', -8)
+
+            if is_active or is_hovered then
+                if labeltoShow == 'Release' or labeltoShow == 'Gain' and MouseX > txtX and MouseX < txtX + TextW and MouseY > txtY - 4 and MouseY < txtY + 10 then
+                else
+                    if is_active then
+                        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+                            FX[FxGUID][Fx_P].BgClrAct or 0xE4B96B99)
+                        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
+                            center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2),
+                            center[2] + angle_sin * (radius_outer - 2), FP.V_Clr or 0xDBDBDBff, 2.0)
+                    elseif is_hovered then
+                        im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xE4B96B99)
+                        --im.DrawList_AddLine(draw_list, center[1] + angle_cos*radius_inner, center[2] + angle_sin*radius_inner, center[1] + angle_cos*(radius_outer-2), center[2] + angle_sin*(radius_outer-2), FP.V_Clr or  0xDBDBDBff, 2.0)
                     end
                 end
-                if Label == 'Gain' then
-                    if not AutoGain then AutoGain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 14) end
-                    if AutoGain == 1 then
-                        im.DrawList_AddText(draw_list, center[1] - TextW / 2 + (offset or 0),
-                            pos[2] + radius_outer * 2 + item_inner_spacing[2], 0xFFD571ff, 'A')
-                    end
+            end
+        elseif Style == 'FX Layering' then
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+                FX[FxGUID][Fx_P].BgClr or im.GetColor(ctx, im.Col_Button), 16)
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
+                center[2] + angle_sin * radius_inner,
+                center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
+                FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab, 2.0)
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MAX - ANGLE_MIN, angle)
+            im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
+            im.DrawList_PathClear(draw_list)
+
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MAX + 1.35,
+                ANGLE_MAX + 0.15)
+            im.DrawList_PathStroke(draw_list, im.GetColor(ctx, im.Col_FrameBg), nil, radius_outer)
+
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
+                im.GetColor(ctx,
+                    is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
+                    im.Col_FrameBg), 16)
+        elseif Style == 'Custom Image' then
+            local Image = ImgPath or FP.Image
+            if Image then
+                local w, h = im.Image_GetSize(Image)
+
+                if h > w * 5 then -- It's probably a strip knob file
+                    local scale = 2
+                    local sz = radius_outer * scale
+
+
+                    uvmin, uvmax = Calc_strip_uv(Image, FP.V or FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
+
+
+                    im.DrawList_AddImage(WDL, Image, center[1] - sz / 2, center[2] - sz / 2, center[1] + sz / 2,
+                        center[2] + sz / 2, 0, uvmin, 1, uvmax, FP.BgClr or 0xffffffff)
+                else
+                    local scale = 2
+                    local sz = radius_outer * scale
+                    ImageAngle(ctx, Image, 4 + FP.V * 4.5, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
                 end
             end
+        elseif Style == 'Invisible' then
+        else -- for all generic FXs
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
+                FX[FxGUID][Fx_P].BgClr or im.GetColor(ctx, im.Col_Button))
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
+                center[2] + angle_sin * radius_inner,
+                center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
+                FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab, FX[FxGUID][Fx_P].Value_Thick or 2)
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
+            im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
+            im.DrawList_PathClear(draw_list)
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
+                im.GetColor(ctx,
+                    is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
+                    im.Col_FrameBg))
         end
-
-        AutoBtn('Release', -8, 3)
-        AutoBtn('Gain', -8)
-
-        if is_active or is_hovered then
-            if labeltoShow == 'Release' or labeltoShow == 'Gain' and MouseX > txtX and MouseX < txtX + TextW and MouseY > txtY - 4 and MouseY < txtY + 10 then
-            else
-                if is_active then
-                    im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-                        FX[FxGUID][Fx_P].BgClrAct or 0xE4B96B99)
-                    im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
-                        center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2),
-                        center[2] + angle_sin * (radius_outer - 2), FP.V_Clr or 0xDBDBDBff, 2.0)
-                elseif is_hovered then
-                    im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xE4B96B99)
-                    --im.DrawList_AddLine(draw_list, center[1] + angle_cos*radius_inner, center[2] + angle_sin*radius_inner, center[1] + angle_cos*(radius_outer-2), center[2] + angle_sin*(radius_outer-2), FP.V_Clr or  0xDBDBDBff, 2.0)
-                end
-            end
-        end
-    elseif Style == 'FX Layering' then
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-            FX[FxGUID][Fx_P].BgClr or im.GetColor(ctx, im.Col_Button), 16)
-        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
-            center[2] + angle_sin * radius_inner,
-            center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
-            FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab, 2.0)
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MAX - ANGLE_MIN, angle)
-        im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
-        im.DrawList_PathClear(draw_list)
-
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MAX + 1.35,
-            ANGLE_MAX + 0.15)
-        im.DrawList_PathStroke(draw_list, im.GetColor(ctx, im.Col_FrameBg), nil, radius_outer)
-
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
-            im.GetColor(ctx,
-                is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
-                im.Col_FrameBg), 16)
-    elseif Style == 'Custom Image' then
-        local Image = ImgPath or FP.Image
-        if Image then
-            local w, h = im.Image_GetSize(Image)
-
-            if h > w * 5 then -- It's probably a strip knob file
-                local scale = 2
-                local sz = radius_outer * scale
-
-
-                uvmin, uvmax = Calc_strip_uv(Image, FP.V or FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
-
-
-                im.DrawList_AddImage(WDL, Image, center[1] - sz / 2, center[2] - sz / 2, center[1] + sz / 2,
-                    center[2] + sz / 2, 0, uvmin, 1, uvmax, FP.BgClr or 0xffffffff)
-            else
-                local scale = 2
-                local sz = radius_outer * scale
-                ImageAngle(ctx, Image, 4 + FP.V * 4.5, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
-            end
-        end
-    elseif Style == 'Invisible' then
-    else -- for all generic FXs
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-            FX[FxGUID][Fx_P].BgClr or im.GetColor(ctx, im.Col_Button))
-        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
-            center[2] + angle_sin * radius_inner,
-            center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
-            FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab, FX[FxGUID][Fx_P].Value_Thick or 2)
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
-        im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
-        im.DrawList_PathClear(draw_list)
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
-            im.GetColor(ctx,
-                is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
-                im.Col_FrameBg))
     end
 
+    local function Enable_Preset_Morph_Edit()
+        if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl and FX[FxGUID].MorphA and FX[FxGUID].MorphB then
+            im.EndDisabled(ctx)
+
+            if FX[FxGUID].MorphA[P_Num] and FX[FxGUID].MorphB[P_Num] then
+                im.SetCursorScreenPos(ctx, pos[1], pos[2])
+                local sizeX, sizeY = im.GetItemRectSize(ctx)
+                im.InvisibleButton(ctx, label, sizeX, sizeY)
 
 
 
+                --local A = SetMinMax(PosL+ sizeX*FX[FxGUID].MorphA[P_Num],PosL, PosR)
+                --local B = SetMinMax(PosL+ sizeX*FX[FxGUID].MorphB[P_Num],PosL,PosR)
+                local A = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphA[P_Num]
+                local B = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphB[P_Num]
 
-    if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl and FX[FxGUID].MorphA and FX[FxGUID].MorphB then
-        im.EndDisabled(ctx)
-
-        if FX[FxGUID].MorphA[P_Num] and FX[FxGUID].MorphB[P_Num] then
-            im.SetCursorScreenPos(ctx, pos[1], pos[2])
-            local sizeX, sizeY = im.GetItemRectSize(ctx)
-            im.InvisibleButton(ctx, label, sizeX, sizeY)
-
-
-
-            --local A = SetMinMax(PosL+ sizeX*FX[FxGUID].MorphA[P_Num],PosL, PosR)
-            --local B = SetMinMax(PosL+ sizeX*FX[FxGUID].MorphB[P_Num],PosL,PosR)
-            local A = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphA[P_Num]
-            local B = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphB[P_Num]
-
-            local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
-            local MsX, MsY = im.GetMousePos(ctx)
-
-            if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
-                --im.DrawList_PathArcTo( draw_list,  center[1] , center[2],(radius_inner+ radius_outer)/2, A , B)
-                FX[FxGUID].Angle1 = angle
-                FX[FxGUID].Angle2 = angle + (ANGLE_MAX - ANGLE_MIN) * 0.5
-                local angle_cos, angle_sin = math.cos(A), math.sin(A)
-                im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
-                    center[2] + angle_sin * (radius_outer - 2), ClrA, 2.0)
-                local angle_cos, angle_sin = math.cos(B), math.sin(B)
-                im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
-                    center[2] + angle_sin * (radius_outer - 2), ClrB, 2.0)
+                local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
+                local MsX, MsY = im.GetMousePos(ctx)
+                msg(tostring(ClrA))
+                if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
+                    --im.DrawList_PathArcTo( draw_list,  center[1] , center[2],(radius_inner+ radius_outer)/2, A , B)
+                    FX[FxGUID].Angle1 = angle
+                    FX[FxGUID].Angle2 = angle + (ANGLE_MAX - ANGLE_MIN) * 0.5
+                    local angle_cos, angle_sin = math.cos(A), math.sin(A)
+                    im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
+                        center[2] + angle_sin * (radius_outer - 2), ClrA, 2.0)
+                    local angle_cos, angle_sin = math.cos(B), math.sin(B)
+                    im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
+                        center[2] + angle_sin * (radius_outer - 2), ClrB, 2.0)
 
 
-                im.DrawList_PathStroke(draw_list, ClrA, nil, radius_outer * 0.2)
-                im.DrawList_PathClear(draw_list)
-                --im.DrawList_AddRectFilledMultiColor(WDL,A,PosT,B,PosB,ClrA, ClrB, ClrB,ClrA)
-            end
-
-            local txtClr = im.GetStyleColor(ctx, im.Col_Text)
-
-            if im.IsItemClicked(ctx) or im.IsItemClicked(ctx, 1) then
-                if IsLBtnClicked or IsRBtnClicked then
-                    FP.TweakingAB_Val = P_Num
-                    retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                        "param." .. P_Num .. ".mod.baseline")
+                    im.DrawList_PathStroke(draw_list, ClrA, nil, radius_outer * 0.2)
+                    im.DrawList_PathClear(draw_list)
+                    --im.DrawList_AddRectFilledMultiColor(WDL,A,PosT,B,PosB,ClrA, ClrB, ClrB,ClrA)
                 end
-                if not FP.TweakingAB_Val then
+
+                local txtClr = im.GetStyleColor(ctx, im.Col_Text)
+
+                if im.IsItemClicked(ctx) or im.IsItemClicked(ctx, 1) then
+                    if IsLBtnClicked or IsRBtnClicked then
+                        FP.TweakingAB_Val = P_Num
+                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline")
+                    end
+                    if not FP.TweakingAB_Val then
+                        local offsetA, offsetB
+                        --if A<B+5 and A>B-14 then offsetA=-10      offsetB = 10 end
+                        --im.DrawList_AddTextEx(WDL,Font_Andale_Mono_20_B, 16, A, PosT+(offsetA or 0), txtClr,'A')
+                        --im.DrawList_AddTextEx(WDL,Font_Andale_Mono_20_B, 16, B, PosT+(offsetB or 0), txtClr, 'B')
+                    end
+                end
+
+                if FP.TweakingAB_Val == P_Num and not MorphingMenuOpen then
+                    local X_A, X_B
                     local offsetA, offsetB
-                    --if A<B+5 and A>B-14 then offsetA=-10      offsetB = 10 end
-                    --im.DrawList_AddTextEx(WDL,Font_Andale_Mono_20_B, 16, A, PosT+(offsetA or 0), txtClr,'A')
-                    --im.DrawList_AddTextEx(WDL,Font_Andale_Mono_20_B, 16, B, PosT+(offsetB or 0), txtClr, 'B')
+                    if IsLBtnHeld then
+                        local drag = FX[FxGUID].MorphA[P_Num] + select(2, im.GetMouseDelta(ctx)) * -0.01
+                        FX[FxGUID].MorphA[P_Num] = SetMinMax(drag, 0, 1)
+                        if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
+                            local A = (MsY - BtnT) / sizeY
+                            local Scale = FX[FxGUID].MorphB[P_Num] - A
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale", Scale)  -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", A)     -- Baseline
+                        end
+                    elseif IsRBtnHeld then
+                        local drag = FX[FxGUID].MorphB[P_Num] + select(2, im.GetMouseDelta(ctx, 1)) * -0.01
+                        FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
+                        if FX[FxGUID].Morph_ID then                                                                     -- if Morph Sldr is linked to a CC
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale",
+                                FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])                                    -- Scale
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
+                                FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
+                                Orig_Baseline)                                                                          -- Baseline
+                        end
+                    end
+                    if IsLBtnHeld then
+                        X_A = MsX
+                        Y_A = MsY - 15
+                        offsetA = -10
+                        if MsX < B + 5 and MsX > B - 14 then offsetB = 10 end
+                    elseif IsRBtnHeld then
+                        X_B = MsX
+                        offsetB = -10
+                        if MsX < A + 5 and MsX > A - 14 then offsetA = 10 end
+                    end
+
+                    im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, A, BtnT + (offsetA or 0), txtClr, 'A')
+                    im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, B, BtnT + (offsetB or 0), txtClr, 'B')
+                    if LBtnRel or RBtnRel then
+                        StoreAllPrmVal('A', 'Dont')
+                        StoreAllPrmVal('B', 'Dont')
+                        FP.TweakingAB_Val = nil
+                    end
                 end
             end
+            im.BeginDisabled(ctx)
+        end
+    end
 
-            if FP.TweakingAB_Val == P_Num and not MorphingMenuOpen then
-                local X_A, X_B
-                local offsetA, offsetB
-                if IsLBtnHeld then
-                    local drag = FX[FxGUID].MorphA[P_Num] + select(2, im.GetMouseDelta(ctx)) * -0.01
-                    FX[FxGUID].MorphA[P_Num] = SetMinMax(drag, 0, 1)
-                    if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
-                        local A = (MsY - BtnT) / sizeY
-                        local Scale = FX[FxGUID].MorphB[P_Num] - A
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale", Scale)  -- Scale
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
-                            FX[FxGUID].Morph_ID)                                                                    -- CC value
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", A)     -- Baseline
-                    end
-                elseif IsRBtnHeld then
-                    local drag = FX[FxGUID].MorphB[P_Num] + select(2, im.GetMouseDelta(ctx, 1)) * -0.01
-                    FX[FxGUID].MorphB[P_Num] = SetMinMax(drag, 0, 1)
-                    if FX[FxGUID].Morph_ID then                                                                     -- if Morph Sldr is linked to a CC
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.scale",
-                            FX[FxGUID].MorphB[P_Num] - FX[FxGUID].MorphA[P_Num])                                    -- Scale
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -100)  -- -100 enables midi_msg*
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.param", -1)     -- -1 not parameter link
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
-                            FX[FxGUID].Morph_ID)                                                                    -- CC value
-                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
-                            Orig_Baseline)                                                                          -- Baseline
-                    end
-                end
-                if IsLBtnHeld then
-                    X_A = MsX
-                    Y_A = MsY - 15
-                    offsetA = -10
-                    if MsX < B + 5 and MsX > B - 14 then offsetB = 10 end
-                elseif IsRBtnHeld then
-                    X_B = MsX
-                    offsetB = -10
-                    if MsX < A + 5 and MsX > A - 14 then offsetA = 10 end
-                end
+    local function Write_Bottom_Labels_And_Values()
 
-                im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, A, BtnT + (offsetA or 0), txtClr, 'A')
-                im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, B, BtnT + (offsetB or 0), txtClr, 'B')
-                if LBtnRel or RBtnRel then
-                    StoreAllPrmVal('A', 'Dont')
-                    StoreAllPrmVal('B', 'Dont')
-                    FP.TweakingAB_Val = nil
+        if Lbl_Pos == 'Bottom' then --Write Bottom Label
+            local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =pos[1]
+            local X, Y = CenteredLblPos or pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
+            local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
+            local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
+
+            im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,labeltoShow or FX[FxGUID][Fx_P].Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
+        end 
+        if V_Pos ~= 'None' and V_Pos then
+            im.PushFont(ctx, _G[V_Font])
+    
+            _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            if FX[FxGUID][Fx_P].ValToNoteL then
+                FormatPV = StrToNum(FormatPV)
+                tempo = r.Master_GetTempo()
+                local num = FormatPV:gsub('[^%p%d]', '')
+                noteL = num * tempo / 60000
+    
+    
+                if noteL > 0.99 and noteL < 1.99 then
+                    FormatPV = roundUp(noteL, 1) .. '/4'
+                elseif noteL > 1.99 then
+                    FormatPV = roundUp(noteL, 2) .. '/4'
+                elseif noteL > 0.49 and noteL < 0.99 then
+                    FormatPV = '1/8'
+                elseif noteL > 0.24 and noteL < 0.49 then
+                    FormatPV = '1/16'
+                elseif noteL > 0.124 and noteL < 0.24 then
+                    FormatPV = '1/32'
+                elseif noteL < 0.124 then
+                    FormatPV = '1/64'
                 end
+            end
+    
+            if FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FX[FxGUID][Fx_P].V_Round) end
+    
+    
+            local ValueTxtW = im.CalcTextSize(ctx, FormatPV, nil, nil, true)
+            if ValueTxtW < Radius * 2 then
+                CenteredVPos = pos[1] + Radius - ValueTxtW / 2
+            else
+                CenteredVPos = pos[1]
+            end
+            local Y_Offset, drawlist
+    
+            if V_Pos == 'Within' then 
+                Y_Offset = radius_outer * 1.2 
+            end
+            if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
+            if V_Pos ~='Free' then
+                Align_Text_To_Center_Of_X(FormatPV, radius_outer * 2, FP.V_Pos_X, (FP.V_Pos_Y or 0) - (Y_Offset or 0))
+                MyText(FormatPV,  _G[V_Font], FX[FxGUID][Fx_P].V_Clr or 0xffffffff)
+                --[[ im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
+                    CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0),
+                    FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV--[[ , (Radius or 20) * 2 ]]
+            end
+            im.PopFont(ctx)
+        end
+    
+        if V_Pos == 'Free' then
+            local Ox, Oy = im.GetCursorScreenPos(ctx)
+            im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
+                pos[1] + (FP.V_Pos_X or 0), pos[2] + (FP.V_Pos_Y or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV)--,(Radius or 20) * 2)
+        end
+        if Lbl_Pos == 'Within' and Style == 'FX Layering' then
+            local ValueTxtW = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
+            CenteredVPos = pos[1] + Radius - ValueTxtW / 2 + 0.5
+            Y_Offset = radius_outer * 1.3 - 1
+    
+            im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos,
+                pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88,
+                labeltoShow--[[ , (Radius or 20) * 2 ]])
+        end
+    end
+
+    local function Modulation_related()
+        if PM.TimeNow ~= nil then
+            if r.time_precise() > PM.TimeNow + 1 then
+                r.gmem_write(7, 0) --tells jsfx to stop retrieving P value
+                r.gmem_write(8, 0)
+                PM.TimeNow = nil
             end
         end
-        im.BeginDisabled(ctx)
+
+        if FP.ModAMT or FP.Cont_ModAMT then -- Draw modlines  circular
+            local offset = 0
+            local BipOfs = 0
+            FP.ModBipolar = FP.ModBipolar or {}
+            local Amt = FP.ModAMT or FP.Cont_ModAMT
+
+        
+
+            for Macro, v in ipairs(MacroNums) do
+                if Amt[Macro] then
+                    local IndicClr = EightColors.HighSat_MidBright[Macro]
+                    local rangeClr = EightColors.Bright[Macro]
+                    if Amt ==FP.Cont_ModAMT then 
+                        IndicClr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
+                        rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr_Not_Focused , -0.3)
+                        --[[     msg(tostring(FX[FxGUID].HvrMacro).. '      '..Macro)
+                        local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+                        if FX[FxGUID].HvrMacro == Macro then 
+                            IndicClr = CustomColorsDefault.Container_Accent_Clr
+                            rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr , -0.3)    
+                        end  ]]
+                        if If_Hvr_or_Macro_Active (FxGUID, Macro) then 
+                            IndicClr = CustomColorsDefault.Container_Accent_Clr
+                            rangeClr = Change_Clr_A(IndicClr , - 0.3)
+                        end 
+                    end
+                    --if Modulation has been assigned to params
+                    local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+
+                    --- indicator of where the param is currently
+                    local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
+
+                    if FP.ModBipolar[Macro] then
+                        BipOfs = -Amt[Macro] 
+                    end
+
+                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
+                    im.DrawList_PathStroke(draw_list, rangeClr, nil, radius_outer / 2)
+                    im.DrawList_PathClear(draw_list)
+
+                    --- shows modulation range
+                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt[Macro] , ANGLE_MIN, ANGLE_MAX)
+                    local angle = angle
+                    if BipOfs ~= 0 then
+                        local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
+                        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
+                        im.DrawList_PathStroke(draw_list, IndicClr, nil,
+                            radius_outer * 0.1)
+                        im.DrawList_PathClear(draw_list)
+                    end
+                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
+
+                    im.DrawList_PathStroke(draw_list, IndicClr, nil,
+                        radius_outer * 0.1)
+                    im.DrawList_PathClear(draw_list)
+
+                    ParamHasMod_Any = true
+
+                    offset = offset + OffsetForMultipleMOD
+                end
+            end
+        end -- of reapeat for every macro
+
+        if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro then
+            local M = AssigningMacro
+
+            RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1)
+
+            FP.ModAMT[M] = ((-RightBtnDragY / 100) or 0) + (FP.ModAMT[M] or 0)
+
+            if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
+            if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
+
+            local BipolarOut
+            if Mods == Alt then
+                FP.ModAMT[M] = math.abs(FP.ModAMT[M])
+                BipolarOut = FP.ModAMT[M] + 100
+
+                FP.ModBipolar[M] = true
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', 'True', true)
+            else
+                FP.ModBipolar[M] = nil
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', '', true)
+            end
+
+
+            r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
+            r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or FP.ModAMT[M])
+            im.ResetMouseDragDelta(ctx, 1)
+
+            r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID,
+                FP.ModAMT[M])
+        end
     end
 
+    Knob_Interaction()
+    MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
 
-    if Lbl_Pos == 'Bottom' then --Write Bottom Label
-        local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =pos[1]
-        local X, Y = CenteredLblPos or pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
-        local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
-        local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
 
-        im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,
-            labeltoShow or FX[FxGUID][Fx_P].Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
-    end
+    Write_Label_And_Value()
+    ShowTooltip_if_Active()
+    Drawings_For_Styles()
+    Enable_Preset_Morph_Edit()
     RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
-    local FormatPV
-    if V_Pos ~= 'None' and V_Pos then
-        im.PushFont(ctx, _G[V_Font])
+    Write_Bottom_Labels_And_Values()
 
-        _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-        if FX[FxGUID][Fx_P].ValToNoteL then
-            FormatPV = StrToNum(FormatPV)
-            tempo = r.Master_GetTempo()
-            local num = FormatPV:gsub('[^%p%d]', '')
-            noteL = num * tempo / 60000
+    Modulation_related()
 
-
-            if noteL > 0.99 and noteL < 1.99 then
-                FormatPV = roundUp(noteL, 1) .. '/4'
-            elseif noteL > 1.99 then
-                FormatPV = roundUp(noteL, 2) .. '/4'
-            elseif noteL > 0.49 and noteL < 0.99 then
-                FormatPV = '1/8'
-            elseif noteL > 0.24 and noteL < 0.49 then
-                FormatPV = '1/16'
-            elseif noteL > 0.124 and noteL < 0.24 then
-                FormatPV = '1/32'
-            elseif noteL < 0.124 then
-                FormatPV = '1/64'
-            end
-        end
-
-        if FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FX[FxGUID][Fx_P].V_Round) end
-
-
-        local ValueTxtW = im.CalcTextSize(ctx, FormatPV, nil, nil, true)
-        if ValueTxtW < Radius * 2 then
-            CenteredVPos = pos[1] + Radius - ValueTxtW / 2
-        else
-            CenteredVPos = pos[1]
-        end
-        local Y_Offset, drawlist
-
-        if V_Pos == 'Within' then Y_Offset = radius_outer * 1.2 end
-        if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
-        if V_Pos == 'Bottom' then
-            Align_Text_To_Center_Of_X(FormatPV, radius_outer * 2, FP.V_Pos_X, FP.V_Pos_Y)
-            MyText(FormatPV,  _G[V_Font], FX[FxGUID][Fx_P].V_Clr or 0xffffffff)
-            --[[ im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
-                CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0),
-                FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV--[[ , (Radius or 20) * 2 ]]
-        end
-        im.PopFont(ctx)
-    end
-
-    if V_Pos == 'Free' then
-        local Ox, Oy = im.GetCursorScreenPos(ctx)
-        im.DrawList_AddTextEx(draw_list, _G[V_Font], FX[FxGUID][Fx_P].V_FontSize or Knob_DefaultFontSize,
-            pos[1] + (FP.V_Pos_X or 0), pos[2] + (FP.V_Pos_Y or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffffff, FormatPV)--,(Radius or 20) * 2)
-    end
-    if Lbl_Pos == 'Within' and Style == 'FX Layering' then
-        local ValueTxtW = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
-        CenteredVPos = pos[1] + Radius - ValueTxtW / 2 + 0.5
-        Y_Offset = radius_outer * 1.3 - 1
-
-        im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos,
-            pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88,
-            labeltoShow--[[ , (Radius or 20) * 2 ]])
-    end
-
-
-
-
-    --if user turn knob on ImGui
-    if Tweaking == P_Num .. FxGUID then
-        FX[FxGUID][Fx_P].V = p_value
-        if not FP.WhichCC and not FP.Cont_Which_CC then
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-
-        else
-
-            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
-
-
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
-        end
-    end
 
 
 
@@ -786,117 +914,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     end
 
 
-    if PM.TimeNow ~= nil then
-        if r.time_precise() > PM.TimeNow + 1 then
-            r.gmem_write(7, 0) --tells jsfx to stop retrieving P value
-            r.gmem_write(8, 0)
-            PM.TimeNow = nil
-        end
-    end
 
     IfTryingToAddExistingPrm(Fx_P, FxGUID, 'Circle', center[1], center[2], nil, nil, radius_outer)
 
 
-
-    MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
-
-
-
-    if FP.ModAMT or FP.Cont_ModAMT then -- Draw modlines  circular
-        local offset = 0
-        local BipOfs = 0
-        FP.ModBipolar = FP.ModBipolar or {}
-        local Amt = FP.ModAMT or FP.Cont_ModAMT
-
-       
-
-        for Macro, v in ipairs(MacroNums) do
-            if Amt[Macro] then
-                local IndicClr = EightColors.HighSat_MidBright[Macro]
-                local rangeClr = EightColors.Bright[Macro]
-                if Amt ==FP.Cont_ModAMT then 
-                    IndicClr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
-                    rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr_Not_Focused , -0.3)
-                    --[[     msg(tostring(FX[FxGUID].HvrMacro).. '      '..Macro)
-                    local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
-                    if FX[FxGUID].HvrMacro == Macro then 
-                        IndicClr = CustomColorsDefault.Container_Accent_Clr
-                        rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr , -0.3)    
-                    end  ]]
-                    if If_Hvr_or_Macro_Active (FxGUID, Macro) then 
-                        IndicClr = CustomColorsDefault.Container_Accent_Clr
-                        rangeClr = Change_Clr_A(IndicClr , - 0.3)
-                    end 
-                end
-                --if Modulation has been assigned to params
-                local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-
-                --- indicator of where the param is currently
-                local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
-
-                if FP.ModBipolar[Macro] then
-                    BipOfs = -Amt[Macro] 
-                end
-
-                im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
-                im.DrawList_PathStroke(draw_list, rangeClr, nil, radius_outer / 2)
-                im.DrawList_PathClear(draw_list)
-
-                --- shows modulation range
-                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt[Macro] , ANGLE_MIN, ANGLE_MAX)
-                local angle = angle
-                if BipOfs ~= 0 then
-                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
-                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-                    im.DrawList_PathStroke(draw_list, IndicClr, nil,
-                        radius_outer * 0.1)
-                    im.DrawList_PathClear(draw_list)
-                end
-                im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-
-                im.DrawList_PathStroke(draw_list, IndicClr, nil,
-                    radius_outer * 0.1)
-                im.DrawList_PathClear(draw_list)
-
-                ParamHasMod_Any = true
-
-                offset = offset + OffsetForMultipleMOD
-            end
-        end
-    end -- of reapeat for every macro
-
-    if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro then
-        local M = AssigningMacro
-
-        RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1)
-
-        FP.ModAMT[M] = ((-RightBtnDragY / 100) or 0) + (FP.ModAMT[M] or 0)
-
-        if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
-        if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
-
-        local BipolarOut
-        if Mods == Alt then
-            FP.ModAMT[M] = math.abs(FP.ModAMT[M])
-            BipolarOut = FP.ModAMT[M] + 100
-
-            FP.ModBipolar[M] = true
-            r.GetSetMediaTrackInfo_String(LT_Track,
-                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', 'True', true)
-        else
-            FP.ModBipolar[M] = nil
-            r.GetSetMediaTrackInfo_String(LT_Track,
-                'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Bipolar', '', true)
-        end
-
-
-        r.gmem_write(4, 1) --tells jsfx that user is changing Mod Amount
-        r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or FP.ModAMT[M])
-        im.ResetMouseDragDelta(ctx, 1)
-
-        r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID,
-            FP.ModAMT[M])
-    end
 
     --repeat for every param stored on track...
 
@@ -907,7 +928,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if LblTextSize ~= 'No Font' then im.PopFont(ctx) end
     --im.DrawListSplitter_Merge(FX[FxGUID].SPLITTER)
     im.EndGroup(ctx)
-    return value_changed, p_value
 end
 
 ---@param ctx ImGui_Context
@@ -941,10 +961,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local line_height = im.GetTextLineHeight(ctx)
     local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
+    local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+
 
    --[[  if not FX[FxGUID].SPLITTER then  FX[FxGUID].SPLITTER = im.CreateDrawListSplitter(draw_list) end 
     im.DrawListSplitter_Split(FX[FxGUID].SPLITTER, 2)
- ]]
+    ]]
     local mouse_delta = { im.GetMouseDelta(ctx) }
     if not FxGUID then return end
 
@@ -955,19 +977,14 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
+    if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
 
 
 
 
-    if FP.Lbl_Pos == 'Left' then
-        im.PushFont(ctx, _G[Font])
-        im.AlignTextToFramePadding(ctx)
-        im.TextColored(ctx, FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text), labeltoShow or FP.Name)
-        SL()
-        im.PopFont(ctx)
-    end
 
-    if LBtnDC then im.PushStyleVar(ctx, im.StyleVar_DisabledAlpha, 1) end
+
+    if LBtnDC then  im.PushStyleVar(ctx, im.StyleVar_DisabledAlpha, 1) end
     if FX[FxGUID][Fx_P].Name then
         local CC = FP.WhichCC or -1
 
@@ -978,70 +995,111 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, item_inner_spacing, item_inner_spacing)
         end
 
-        if not Sldr_Width or Sldr_Width == '' then Sldr_Width = FX.Def_Sldr_W[FxGUID] or Def_Sldr_W or 160 end
-        im.SetNextItemWidth(ctx, Sldr_Width)
         im.BeginGroup(ctx)
-
-        if SliderStyle == 'Pro C Thresh' then
-            im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999900); im.PushStyleColor(ctx,
-                im.Col_FrameBgActive, 0x99999922)
-            im.PushStyleColor(ctx, im.Col_FrameBgHovered, 0x99999922)
-            ClrPop = 3;
-        elseif FX[FxGUID][Fx_P].BgClr and SliderStyle == nil then
-            im.PushStyleColor(ctx, im.Col_FrameBg, FX[FxGUID][Fx_P].BgClr)
-            im.PushStyleColor(ctx, im.Col_FrameBgHovered, FX[FxGUID][Fx_P].BgClrHvr)
-            im.PushStyleColor(ctx, im.Col_FrameBgActive, FX[FxGUID][Fx_P].BgClrAct)
-            ClrPop = 3
-        else
-            ClrPop = 0 --im.PushStyleColor(ctx, im.Col_FrameBg, 0x474747ff) ClrPop =1
-        end
-        if GrabSize then im.PushStyleVar(ctx, im.StyleVar_GrabMinSize, GrabSize) end
-
-        if FP.GrbClr then
-            local ActV
-            local R, G, B, A = im.ColorConvertU32ToDouble4(FP.GrbClr)
-            local H, S, V = im.ColorConvertRGBtoHSV(R, G, B)
-            if V > 0.9 then ActV = V - 0.2 end
-            local R, G, B = im.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
-            local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
-            im.PushStyleColor(ctx, im.Col_SliderGrab, FP.GrbClr)
-            im.PushStyleColor(ctx, im.Col_SliderGrabActive, ActClr)
-            ClrPop = ClrPop + 2
-        end
-
-
-        if Vertical == 'Vert' then
-            if FP.Lbl_Pos == 'Top' then
-
-                Align_Text_To_Center_Of_X(labeltoShow or FP.Name, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
-                MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text))
+        local function PushClrs()
+            if SliderStyle == 'Pro C Thresh' then
+                im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999900); im.PushStyleColor(ctx,
+                    im.Col_FrameBgActive, 0x99999922)
+                im.PushStyleColor(ctx, im.Col_FrameBgHovered, 0x99999922)
+                ClrPop = 3;
+            elseif FX[FxGUID][Fx_P].BgClr and SliderStyle == nil then
+                im.PushStyleColor(ctx, im.Col_FrameBg, FX[FxGUID][Fx_P].BgClr)
+                im.PushStyleColor(ctx, im.Col_FrameBgHovered, FX[FxGUID][Fx_P].BgClrHvr)
+                im.PushStyleColor(ctx, im.Col_FrameBgActive, FX[FxGUID][Fx_P].BgClrAct)
+                ClrPop = 3
+            else
+                ClrPop = 0 --im.PushStyleColor(ctx, im.Col_FrameBg, 0x474747ff) ClrPop =1
             end
-            if FP.V_Pos == 'Top' then
-                local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-                Align_Text_To_Center_Of_X(Param_Value, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
-                if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text)) end
+            if GrabSize then im.PushStyleVar(ctx, im.StyleVar_GrabMinSize, GrabSize) end
+
+            if FP.GrbClr then
+                local ActV
+                local R, G, B, A = im.ColorConvertU32ToDouble4(FP.GrbClr)
+                local H, S, V = im.ColorConvertRGBtoHSV(R, G, B)
+                if V > 0.9 then ActV = V - 0.2 end
+                local R, G, B = im.ColorConvertHSVtoRGB(H, S, ActV or V + 0.2)
+                local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
+                im.PushStyleColor(ctx, im.Col_SliderGrab, FP.GrbClr)
+                im.PushStyleColor(ctx, im.Col_SliderGrabActive, ActClr)
+                ClrPop = ClrPop + 2
             end
         end
+
+        local function Write_Label_And_Value()
+
+
+            if Vertical == 'Vert' then
+                if FP.Lbl_Pos == 'Top' then
+                    Align_Text_To_Center_Of_X(labeltoShow or FP.Name, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
+                    MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text))
+                end
+                if FP.V_Pos == 'Top' then
+                    local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+                    Align_Text_To_Center_Of_X(Param_Value, Sldr_Width, FP.Lbl_Pos_X, FP.Lbl_Pos_Y)
+                    if Get then MyText(Param_Value, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text)) end
+                end
+            else
+                if FP.Lbl_Pos == 'Top' then
+                    MyText(labeltoShow or FP.Name, _G[Font], FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text))
+                end
+                if FP.V_Pos == 'Top' then
+                    local Get, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+
+                    local x = im.GetCursorPosX(ctx)
+                    local TextW = im.CalcTextSize(ctx, Param_Value, nil, nil, true, -100)
+
+                    im.SetCursorPosX(ctx, x+ Sldr_Width - TextW)
+                    if Get then  MyText(Param_Value, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text)) end 
+                end
+            end
+
+            if FP.Lbl_Pos == 'Left' then
+                im.PushFont(ctx, _G[Font])
+                im.AlignTextToFramePadding(ctx)
+                im.TextColored(ctx, FP.Lbl_Clr or im.GetColor(ctx, im.Col_Text), labeltoShow or FP.Name)
+                SL()
+                im.PopFont(ctx)
+            end
+        end
+
+        local function MakeSlider()
+            if not Sldr_Width or Sldr_Width == '' then Sldr_Width = FX.Def_Sldr_W[FxGUID] or Def_Sldr_W or 160 end
+            im.SetNextItemWidth(ctx, Sldr_Width)
+            if Vertical == 'Vert' then
+                _, p_value = im.VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height, p_value, v_min, v_max, ' ')
+            else
+                _, p_value = im.SliderDouble(ctx, label, p_value, v_min, v_max, ' ', im.SliderFlags_NoInput)
+            end
+        end
+
+        local function Suzukis_Work_ParamLink_And_MouseWheelAdjust()
+
+            im.SetNextItemAllowOverlap( ctx)
+            KNOB = false
+            DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
+            ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, nil, nil)
+            local focused_window, hwnd = GetFocusedWindow()
+            if focused_window == "FX Devices" then
+                r.JS_Window_SetFocus(hwnd)
+                AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+            end
+            --[[ im.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
+            if ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
+                DnD_PLink_SOURCE(FX_Idx, P_Num)
+            end ]]
+        end
+
+        PushClrs()
+        Write_Label_And_Value()
 
 
         FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
         if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
+        MakeSlider()
+        Suzukis_Work_ParamLink_And_MouseWheelAdjust()
 
-        if Vertical == 'Vert' then
-            _, p_value = im.VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height, p_value, v_min, v_max, ' ')
-        else
-            _, p_value = im.SliderDouble(ctx, label, p_value, v_min, v_max, ' ', im.SliderFlags_NoInput)
-        end
-        im.SetNextItemAllowOverlap( ctx)
-        KNOB = false
-        DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
-        ButtonDraw(FX[FxGUID].BgClr or CustomColorsDefault.FX_Devices_Bg, nil, nil)
-        local focused_window, hwnd = GetFocusedWindow()
-        if focused_window == "FX Devices" then
-            r.JS_Window_SetFocus(hwnd)
-            AdjustParamWheel(LT_Track, FX_Idx, P_Num)
-        end
+
         if GrabSize then im.PopStyleVar(ctx) end
         im.PopStyleColor(ctx, ClrPop)
 
@@ -1055,21 +1113,17 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         local is_active = im.IsItemActive(ctx)
         local is_hovered = im.IsItemHovered(ctx)
 
-
         local button_x, button_y = im.GetCursorPos(ctx)
         --im.SetCursorPosY(ctx, button_y - (PosB - PosT))
         --WhichClick()
-        --[[ im.InvisibleButton(ctx, '##plink' .. P_Num, PosR - PosL, PosB - PosT, ClickButton) -- for parameter link
-        if ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then    -- right drag to link parameters
-            DnD_PLink_SOURCE(FX_Idx, P_Num)
-        end ]]
+
 
         local value_changed = false
 
-        if is_active == true then Knob_Active = true end
+        --[[ if is_active == true then Knob_Active = true end
         if Knob_Active == true then
             if IsLBtnHeld == false then Knob_Active = false end
-        end
+        end ]]
 
         if SliderStyle == 'Pro C' then
             SldrLength = PosR - PosL
@@ -1092,27 +1146,15 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             value_changed = true
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             MvingP_Idx = CC
-
             Tweaking = P_Num .. FxGUID
         end
-        if is_active or is_hovered then
-            if FP.V_Pos == 'None' or not FP.V_Pos then
-                local SzX, SzY = im.GetItemRectSize(ctx)
-                local MsX, MsY = im.GetMousePos(ctx)
-                if Vertical =='Vert' then 
-                    im.SetNextWindowPos(ctx, pos[1]+(Sldr_Width or 0), MsY)
-                else
-                im.SetNextWindowPos(ctx, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y)
-                end
-                im.BeginTooltip(ctx)
-                local Get, Pv = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
-                im.Text(ctx, Pv)
-                im.EndTooltip(ctx)
-            end
-        end
+        local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or not FP.V_Pos )
+        local SzX, SzY = im.GetItemRectSize(ctx)
+        local MsX, MsY = im.GetMousePos(ctx)
+        Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y , Format_P_V )
+
         local t            = (p_value - v_min) / (v_max - v_min)
-
         local Clr_SldrGrab = im.GetColor(ctx, im.Col_SliderGrabActive)
         local ClrBg        = im.GetColor(ctx, im.Col_FrameBg)
 
@@ -1151,8 +1193,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
         if AssigningMacro ~= nil then
-            im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB,
-                EightColors.bgWhenAsgnMod[AssigningMacro])
+            im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, EightColors.bgWhenAsgnMod[AssigningMacro])
         end
 
         local AlreadyAddPrm = false
@@ -1194,7 +1235,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
                 local MsX, MsY = im.GetMousePos(ctx)
 
-
                 if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
                     im.DrawList_AddRectFilledMultiColor(WDL, A, PosT, B, PosB, ClrA, ClrB, ClrB, ClrA)
                 end
@@ -1204,8 +1244,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 if im.IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and not MorphingMenuOpen then
                     if IsLBtnClicked or IsRBtnClicked then
                         FP.TweakingAB_Val = P_Num
-                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                            "param." .. P_Num .. ".mod.baseline")
+                        retval, Orig_Baseline = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline")
                     end
                     if not FP.TweakingAB_Val then
                         local offsetA, offsetB
@@ -1213,10 +1252,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                             offsetA = -10
                             offsetB = 10
                         end
-                        im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, A, PosT + (offsetA or 0), txtClr,
-                            'A')
-                        im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, B, PosT + (offsetB or 0), txtClr,
-                            'B')
+                        im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, A, PosT + (offsetA or 0), txtClr, 'A')
+                        im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 16, B, PosT + (offsetB or 0), txtClr, 'B')
                     end
                 end
 
@@ -1281,7 +1318,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
         IfTryingToAddExistingPrm(Fx_P, FxGUID, 'Rect', PosL, PosT, PosR, PosB)
 
-        if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
 
         Tweaking = MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Vertical)
 
@@ -1326,33 +1362,33 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                     MyText(Format_P_V, _G[V_Font], FP.V_Clr or im.GetColor(ctx, im.Col_Text))
                 end
             end
+            if BtmLbl ~= 'No BtmLbl' then
+                if FP.Lbl_Pos == 'Free' then
+                    im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
+                        Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or LblClr,
+                        labeltoShow or FX[FxGUID][Fx_P].Name)
+                end
+            end
+    
+            if FP.V_Pos == 'Free' then
+                local Ox, Oy = im.GetCursorScreenPos(ctx)
+                im.DrawList_AddTextEx(draw_list, _G[V_Font], FP.V_FontSize or Knob_DefaultFontSize,
+                    Ox + Sldr_Width - TextW + (FP.V_Pos_X or 0), Oy + (FP.V_Pos_Y or 0), V_Clr,
+                    Format_P_V)
+            end
+    
+            if Vertical ~= 'Vert' and (not FP.V_Pos or FP.V_Pos == 'Right') then
+                im.PushFont(ctx, Arial_11); local X, Y = im.GetCursorScreenPos(ctx)
+                im.SetCursorScreenPos(ctx, SldrR - TextW, Y)
+                MyText(Format_P_V, _G[V_Font], V_Clr)
+    
+                im.PopFont(ctx)
+            end
+    
         end
 
         Bottom_Label_or_Value()
-        if BtmLbl ~= 'No BtmLbl' then
-            if FP.Lbl_Pos == 'Free' then
-                im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize,
-                    Cx + (FP.Lbl_Pos_X or 0), Cy + (FP.Lbl_Pos_Y or 0), FP.Lbl_Clr or LblClr,
-                    labeltoShow or FX[FxGUID][Fx_P].Name)
-            end
-        end
-
-        if FP.V_Pos == 'Free' then
-            local Ox, Oy = im.GetCursorScreenPos(ctx)
-            im.DrawList_AddTextEx(draw_list, _G[V_Font], FP.V_FontSize or Knob_DefaultFontSize,
-                Ox + Sldr_Width - TextW + (FP.V_Pos_X or 0), Oy + (FP.V_Pos_Y or 0), V_Clr,
-                Format_P_V)
-        end
-
-        if Vertical ~= 'Vert' and (not FP.V_Pos or FP.V_Pos == 'Right') then
-            im.PushFont(ctx, Arial_11); local X, Y = im.GetCursorScreenPos(ctx)
-            im.SetCursorScreenPos(ctx, SldrR - TextW, Y)
-
-            MyText(Format_P_V, _G[V_Font], V_Clr)
-
-            im.PopFont(ctx)
-        end
-
+        
 
 
 
@@ -1366,8 +1402,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         if SpacingBelow then
             for i = 1, SpacingBelow, 1 do im.Spacing(ctx) end
         else
-            im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(
-                ctx)
+            im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx)
         end
     end
 
@@ -1843,12 +1878,9 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         im.BeginGroup(ctx)
         local BgClr
         if SliderStyle == 'Pro C' or SliderStyle == 'Pro C Lookahead' then BgClr = 0x55555544 end
-        im.PushStyleColor(ctx, im.Col_FrameBg,
-            BgClr or FP.BgClr or im.GetColor(ctx, im.Col_FrameBg))
-        im.PushStyleColor(ctx, im.Col_FrameBgActive,
-            FP.BgClrAct or im.GetColor(ctx, im.Col_FrameBgActive))
-        im.PushStyleColor(ctx, im.Col_FrameBgHovered,
-            FP.BgClrHvr or im.GetColor(ctx, im.Col_FrameBgHovered))
+        im.PushStyleColor(ctx, im.Col_FrameBg, BgClr or FP.BgClr or im.GetColor(ctx, im.Col_FrameBg))
+        im.PushStyleColor(ctx, im.Col_FrameBgActive, FP.BgClrAct or im.GetColor(ctx, im.Col_FrameBgActive))
+        im.PushStyleColor(ctx, im.Col_FrameBgHovered, FP.BgClrHvr or im.GetColor(ctx, im.Col_FrameBgHovered))
 
         if Lbl_Pos == 'Left' then
             im.AlignTextToFramePadding(ctx)
@@ -1889,10 +1921,10 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local is_active = im.IsItemActive(ctx)
         local is_hovered = im.IsItemHovered(ctx)
 
-        if is_active == true then Knob_Active = true end
+        --[[ if is_active == true then Knob_Active = true end
         if Knob_Active == true then
             if IsLBtnHeld == false then Knob_Active = false end
-        end
+        end ]]
         SldrLength = PosR - PosL
 
         SldrGrbPos = SldrLength * (p_value or 1)

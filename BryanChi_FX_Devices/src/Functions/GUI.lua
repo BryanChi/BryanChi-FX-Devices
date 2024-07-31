@@ -2538,17 +2538,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                 if FP.Draw then
                                     --im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].DL_SPLITER, 0)
-
+                                    local Val = Prm.V  or 0 
+                                        if DraggingMorph == FxGUID then
+                                            Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
+                                        end
                                     local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
                                         if rpt and rpt ~= 0 then
                                             local RPT = rpt
-                                            if va and va ~= 0 then RPT = rpt * Prm.V * va end
+                                            if va and va ~= 0 then RPT = rpt * Val * va end
                                             for i = 0, RPT - 1, 1 do
-                                                local Clr = BlendColors(CLR or 0xffffffff,
-                                                    RPTClr or 0xffffffff, i / RPT)
+                                                local Clr = BlendColors(CLR or 0xffffffff, RPTClr or 0xffffffff, i / RPT)
 
-                                                func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0),
-                                                    Clr)
+                                                func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
                                             end
                                         else
                                             func(Xgap)
@@ -2558,39 +2559,36 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-                                    local GR = tonumber(select(2,
-                                        r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
+                                    local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
 
                                     for i, v in ipairs(FP.Draw) do
                                         local x, y              = im.GetItemRectMin(ctx)
-                                        Prm.V                   = Prm.V or 0
-                                        local x                 = x + (v.X_Offset or 0) + (Prm.V * (v.X_Offset_VA or 0)) +
-                                            ((GR or 0) * (v.X_Offset_VA_GR or 0))
-                                        local y                 = y + (v.Y_Offset or 0) + (Prm.V * (v.Y_Offset_VA or 0)) +
-                                            ((GR or 0) * (v.Y_Offset_VA_GR or 0))
+                                        
+
+                                        local x                 = x + (v.X_Offset or 0) + (Val * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
+                                        local y                 = y + (v.Y_Offset or 0) + (Val * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
                                         local Thick             = (v.Thick or 2)
                                         local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
                                         local Clr_VA
                                         if v.Clr_VA then
-                                            Clr_VA = BlendColors(v.Clr or 0xffffffff,
-                                                v.Clr_VA, Prm.V)
+                                            Clr_VA = BlendColors(v.Clr or 0xffffffff, v.Clr_VA, Val)
                                         end
 
 
 
                                         if v.X_Gap_VA and v.X_Gap_VA ~= 0 then
-                                            X_Gap = (v.X_Gap or 0) * Prm.V * v.X_Gap_VA
+                                            X_Gap = (v.X_Gap or 0) * Val * v.X_Gap_VA
                                         end
                                         if v.Y_Gap_VA and v.Y_Gap_VA ~= 0 then
-                                            Y_Gap = (v.Y_Gap or 0) * Prm.V * v.Y_Gap_VA
+                                            Y_Gap = (v.Y_Gap or 0) * Val * v.Y_Gap_VA
                                         end
 
                                         if v.Gap_VA and v.Gap_VA ~= 0 and v.Gap then
-                                            Gap = v.Gap * Prm.V * v.Gap_VA
+                                            Gap = v.Gap * Val * v.Gap_VA
                                         end
 
                                         if v.Thick_VA then
-                                            Thick = (v.Thick or 2) * (v.Thick_VA * Prm.V)
+                                            Thick = (v.Thick or 2) * (v.Thick_VA * Val)
                                         end
 
                                         if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
@@ -2602,14 +2600,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             local GR = GR or 0
 
                                             if v.Width_VA and v.Width_VA ~= 0 then
-                                                x2 = x + (w or 10) * Prm.V * (v.Width_VA)
+                                                x2 = x + (w or 10) * Val * (v.Width_VA)
                                             end
                                             if v.Width_VA_GR then
                                                 x2 = x + (w or 10) * (GR * (v.Width_VA_GR or 0))
                                             end
 
                                             if v.Height_VA and v.Height_VA ~= 0 then
-                                                y2 = y + (h or 10) * Prm.V * (v.Height_VA)
+                                                y2 = y + (h or 10) * Val * (v.Height_VA)
                                             end
                                             if v.Height_VA_GR and v.Height_VA_GR ~= 0 then
                                                 y2 = y + (h or 10) * GR * (v.Height_VA_GR)
@@ -2628,86 +2626,60 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                                                 local function Addline(Xg, Yg, none, RptClr)
-                                                    im.DrawList_AddLine(WDL, x + (Xg or 0),
-                                                        y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
-                                                        RptClr or Clr_VA or v.Clr or 0xffffffff,
-                                                        Thick)
+                                                    im.DrawList_AddLine(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, Thick)
                                                 end
 
                                                 Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline,
                                                     nil, v.RPT_Clr, v.Clr)
                                             elseif v.Type == 'Rect' then
                                                 local function AddRect(Xg, Yg, none, RptClr)
-                                                    im.DrawList_AddRect(WDL, x + (Xg or 0),
-                                                        y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
-                                                        RptClr or Clr_VA or v.Clr or 0xffffffff,
-                                                        v.Round, flag, Thick)
+                                                    im.DrawList_AddRect(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
                                                 end
                                                 Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect,
                                                     nil, v.RPT_Clr, v.Clr)
                                             elseif v.Type == 'Rect Filled' then
                                                 local function AddRectFill(Xg, Yg, none, RptClr)
-                                                    im.DrawList_AddRectFilled(WDL, x + (Xg or 0),
-                                                        y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0),
-                                                        RptClr or Clr_VA or v.Clr or 0xffffffff,
-                                                        v.Round)
+                                                    im.DrawList_AddRectFilled(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round)
                                                 end
-                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap,
-                                                    AddRectFill, nil, v.RPT_Clr, v.Clr)
+                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr)
                                             end
 
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
-                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
-                                                    y + l, 0xffffffdd)
-                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
-                                                    y - l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
                                             local w, h = 10
                                             if Prm.Type == 'Knob' then
-                                                w, h = r
-                                                    .ImGui_GetItemRectSize(ctx)
+                                                w, h = r .ImGui_GetItemRectSize(ctx)
                                             else
-                                                v.Width = v.Width or
-                                                    10
+                                                v.Width = v.Width or 10
                                             end
                                             local Rad = v.Width or w
                                             if v.Width_VA and v.Width_VA ~= 0 then
-                                                Rad = Rad * Prm.V *
-                                                    v.Width_VA
+                                                Rad = Rad * Val * v.Width_VA
                                             end
 
                                             local function AddCircle(X_Gap, Y_Gap, Gap, RptClr)
-                                                im.DrawList_AddCircle(WDL,
-                                                    x + w / 2 + (X_Gap or 0),
-                                                    y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0),
-                                                    RptClr or Clr_VA or v.Clr or 0xffffffff, nil,
-                                                    Thick)
+                                                im.DrawList_AddCircle(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, nil,Thick)
                                             end
                                             local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr)
-                                                im.DrawList_AddCircleFilled(WDL,
-                                                    x + w / 2 + (X_Gap or 0),
-                                                    y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0),
-                                                    RptClr or Clr_VA or v.Clr or 0xffffffff)
+                                                im.DrawList_AddCircleFilled(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff)
                                             end
 
 
                                             if v.Type == 'Circle' then
-                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle,
-                                                    Gap, v.RPT_Clr, v.Clr)
+                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr)
                                             elseif v.Type == 'Circle Filled' then
-                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap,
-                                                    AddCircleFill, Gap, v.RPT_Clr, v.Clr)
+                                                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr)
                                             end
 
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
                                                 local x, y = x + Rad / 2, y + Rad / 2
-                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
-                                                    y + l, 0xffffffdd)
-                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
-                                                    y - l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle' then
                                             local w, h = im.GetItemRectSize(ctx)
@@ -2715,23 +2687,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                 y + h / 2 + (v.Y_Offset or 0)
                                             local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
                                             local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
-                                            local t = (Prm.V - 0) / (1 - 0)
+                                            local t = (Val- 0) / (1 - 0)
+                                            msg(Prm.V)
                                             local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
                                             local angle_cos, angle_sin = math.cos(angle),
                                                 math.sin(angle)
-                                            local IN = v.Rad_In or
-                                                0 -- modify this for the center begin point
+                                            local IN = v.Rad_In or 0 -- modify this for the center begin point
                                             local OUT = v.Rad_Out or 30
 
                                             if v.Type == 'Knob Pointer' then
-                                                im.DrawList_AddLine(WDL, x + angle_cos * IN,
-                                                    y + angle_sin * IN, x + angle_cos * (OUT - Thick),
-                                                    y + angle_sin * (OUT - Thick),
-                                                    Clr_VA or v.Clr or 0x999999aa, Thick)
+                                                im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
                                             elseif v.Type == 'Knob Range' then
                                                 local function AddRange(G)
                                                     for i = IN, OUT, (1 + (v.Gap or 0)) do
-                                                        im.DrawList_PathArcTo(WDL, x, y-4 --[[ !!! not sure why but adding this will align it with circle ]], i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Prm.V,ANGLE_MIN, ANGLE_MAX))
+                                                        im.DrawList_PathArcTo(WDL, x, y-4 --[[ !!! not sure why but adding this will align it with circle ]], i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
                                                         im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                                         im.DrawList_PathClear(WDL)
                                                     end
@@ -2741,14 +2710,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                                 Repeat(1, 0, X_Gap, X_Gap, AddRange)
                                             elseif v.Type == 'Knob Circle' then
-                                                im.DrawList_AddCircle(WDL, x + angle_cos * IN,
-                                                    y + angle_sin * IN, v.Width,
-                                                    Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                                                im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN, v.Width, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                             elseif v.Type == 'Knob Image' and v.Image then
                                                 local X, Y = x + angle_cos * IN, y + angle_sin * IN
-                                                im.DrawList_AddImage(WDL, v.Image, X, Y,
-                                                    X + v.Width, Y + v.Width, nil, nil, nil, nil,
-                                                    Clr_VA or v.Clr or 0x999999aa)
+                                                im.DrawList_AddImage(WDL, v.Image, X, Y, X + v.Width, Y + v.Width, nil, nil, nil, nil, Clr_VA or v.Clr or 0x999999aa)
                                             end
 
 
@@ -2756,36 +2721,26 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             if v.AdjustingX or v.AdjustingY then
                                                 local l = 4
 
-                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l,
-                                                    y + l, 0xffffffdd)
-                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l,
-                                                    y - l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                                                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
                                             end
                                         elseif v.Type == 'Image' and v.Image then
                                             local w, h = im.Image_GetSize(v.Image)
                                             local w, h = (v.Width or w), (v.Height or h)
                                             if v.Width_VA and v.Width_VA ~= 0 then
-                                                w = (v.Width or w) *
-                                                    v.Width_VA * Prm.V
+                                                w = (v.Width or w) * v.Width_VA * Val
                                             end
                                             if v.Height_VA and v.Height_VA ~= 0 then
-                                                h = (v.Height or h) *
-                                                    v.Height_VA * Prm.V
+                                                h = (v.Height or h) * v.Height_VA * Val
                                             end
                                             local function AddImage(X_Gap, Y_Gap, none, RptClr)
-                                                im.DrawList_AddImage(WDL, v.Image, x + X_Gap,
-                                                    y + (Y_Gap or 0), x + w + X_Gap,
-                                                    y + h + (Y_Gap or 0), 0, 0, 1, 1,
-                                                    RptClr or Clr_VA or v.Clr)
+                                                im.DrawList_AddImage(WDL, v.Image, x + X_Gap, y + (Y_Gap or 0), x + w + X_Gap, y + h + (Y_Gap or 0), 0, 0, 1, 1, RptClr or Clr_VA or v.Clr)
                                             end
 
 
-                                            Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0,
-                                                AddImage, nil, v.RPT_Clr, v.Clr)
-                                        elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
+                                            Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr) elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
                                             local GR = round(GR, 1)
-                                            im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff,
-                                                GR or '')
+                                            im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
                                         end
                                     end
                                 end
