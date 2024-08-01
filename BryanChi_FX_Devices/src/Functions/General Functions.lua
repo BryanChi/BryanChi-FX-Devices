@@ -575,13 +575,21 @@ end
 ---@param el T
 ---@return Index|nil
 function tablefind(tab, el)
-    if tab then
+    
+    if tab and type(tab) == 'table' then
+        
         for index, value in pairs(tab) do
             if value == el then
                 return index
             end
         end
     end
+end
+
+function SplitDrawlist(splitter, layer)
+   --[[  if  im.ValidatePtr(splitter, 'ImGui_DrawListSplitter*') then  ]]
+        im.DrawListSplitter_SetCurrentChannel(splitter, layer)
+    --[[ end ]]
 end
 
 ---@param directory string path to directory
@@ -614,9 +622,6 @@ function StrToNum(str)
     return str:gsub('[^%p%d]', '')
 end
 
----TODO empty function
-function TableMaxVal()
-end
 
 ---@param num number
 ---@param multipleOf number
@@ -1335,6 +1340,83 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
         im.EndDragDropTarget(ctx)
     end
     im.PopStyleColor(ctx)
+end
+
+
+
+---@param h number
+---@param s number
+---@param v number
+---@param a number
+function HSV(h, s, v, a)
+    local r, g, b = im.ColorConvertHSVtoRGB(h, s, v)
+    return im.ColorConvertDouble4ToU32(r, g, b, a or 1.0)
+end
+
+
+
+
+function Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
+    ----------------- Keyboard Shortcuts ---------------
+    if not im.IsAnyItemActive(ctx) then
+        for i, v in pairs(KB_Shortcut) do
+            if not v:find('+') then --if shortcut has no modifier
+                if im.IsKeyPressed(ctx, AllAvailableKeys[v]) and Mods == 0 then
+                    --[[ local commandID = r.NamedCommandLookup('_BR_FOCUS_ARRANGE_WND')
+                    local CommandTxt =  r.CF_GetCommandText(0, commandID) -- 0 prob means arrange window, it's the section drop down from action window's top right corner
+                    r.Main_OnCommand(commandID, 0) ]]
+                    if Command_ID[i] then
+                        local Cmd_Num = r.NamedCommandLookup(Command_ID[i])
+                        r.Main_OnCommand(Cmd_Num, 0)
+                    end
+                end
+            else
+                local Mod = 0
+                if v:find('Shift') then Mod = Mod + im.Mod_Shift end
+                if v:find('Alt') then Mod = Mod + im.Mod_Alt end
+                if v:find('Ctrl') then Mod = Mod + im.Mod_Ctrl end
+                if v:find('Cmd') then Mod = Mod + im.Mod_Super end
+
+
+                local rev = v:reverse()
+                local lastPlus = rev:find('+')
+                local Ltr = rev:sub(1, rev:find('+') - 2)
+                local AftrLastPlus = Ltr:reverse()
+
+
+                if Mods == Mod and im.IsKeyPressed(ctx, AllAvailableKeys[AftrLastPlus]) then
+                    if Command_ID[i] then
+                        local Cmd_Num = r.NamedCommandLookup(Command_ID[i])
+                        r.Main_OnCommand(Cmd_Num, 0)
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+
+function HSV_Change(InClr, H, S, V, A)
+    local R, g, b, a = im.ColorConvertU32ToDouble4(InClr)
+
+    local h, s, v = im.ColorConvertRGBtoHSV(R, g, b)
+    local h, s, v, a = (H or 0) + h, s + (S or 0), v + (V or 0), a + (A or 0)
+    local R, g, b = im.ColorConvertHSVtoRGB(h, s, v)
+    return im.ColorConvertDouble4ToU32(R, g, b, a)
+end
+
+function BlendColors(Clr1, Clr2, pos)
+    local R1, G1, B1, A1 = im.ColorConvertU32ToDouble4(Clr1)
+
+    local R2, G2, B2, A2 = im.ColorConvertU32ToDouble4(Clr2)
+
+    local R3 = SetMinMax((R2 - R1) * pos + R1, 0, 1)
+    local G3 = SetMinMax((G2 - G1) * pos + G1, 0, 1)
+    local B3 = SetMinMax((B2 - B1) * pos + B1, 0, 1)
+    local A3 = SetMinMax((A2 - A1) * pos + A1, 0, 1)
+
+    return im.ColorConvertDouble4ToU32(R3, G3, B3, A3)
 end
 
 

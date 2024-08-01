@@ -74,7 +74,7 @@ local function SetTypeToEnv(type, i)
     end
 end
 
-local function SetTypeToStepSEQ(type, i )
+local function SetTypeToStepSEQ(type, i , mc)
     if type  ~= 'Step' then 
         if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
             r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
@@ -1571,9 +1571,9 @@ local function Follower_Box(mc,i)
 
 end 
 
-local function Cont_Open_SEQ_Win(MacroNum,FxGUID, mc )
+local function Cont_Open_SEQ_Win(MacroNum,FxGUID, mc, x, y )
     local i = MacroNum
-
+    im.SetNextWindowPos(ctx, x , y - 200)
     if im.BeginPopup(ctx, 'SEQ Window' .. i..FxGUID, im.WindowFlags_NoResize + im.WindowFlags_NoDocking  + im.WindowFlags_AlwaysAutoResize) then
         local WDL = im.GetWindowDrawList(ctx)
         local function writeSEQDNom()
@@ -1752,10 +1752,20 @@ local function Cont_Open_SEQ_Win(MacroNum,FxGUID, mc )
         local w, h = im.GetWindowSize(ctx)
 
 
-        if im.IsMouseHoveringRect(ctx, x, y, x + w, y + h) then notHoverSEQ_Time = 0 end
-
+        if im.IsMouseHoveringRect(ctx, x, y, x + w, y + h) then 
+            notHoverSEQ_Time = 0 
+          
+        end
+        FX[FxGUID].Highlight_Macro = i
         im.EndPopup(ctx)
+      
     end
+
+    if FX[FxGUID].Highlight_Macro then 
+        if not im.IsPopupOpen(ctx, 'SEQ Window' .. i..FxGUID) then 
+            FX[FxGUID].Highlight_Macro =nil 
+        end 
+    end 
 
 end
 
@@ -1774,7 +1784,7 @@ local function StepSeq_Box(mc,i)
         mc.TweakingKnob=2
     end 
     NotifyHoverState(I,im.IsItemHovered(ctx))
-    Cont_Open_SEQ_Win(I,FxGUID, mc )
+    Cont_Open_SEQ_Win(I,FxGUID, mc , x , y )
     mc.SeqL = mc.SeqL or SEQ_Default_Num_of_Steps
     mc.SEQ = mc.SEQ or {}
     local S = mc.SEQ
@@ -1786,7 +1796,7 @@ local function StepSeq_Box(mc,i)
     end
     for St = 1, mc.SeqL, 1 do -- create all steps
         local W =  sz/mc.SeqL
-        im.DrawList_AddRectFilled(Macros_WDL, x+W*(St-1) , y+sz, x+W*St-1 , y +sz -  sz * ((S[St] or 0 )),clr)
+        im.DrawList_AddRectFilled(WDL, x+W*(St-1) , y+sz, x+W*St-1 , y +sz -  sz * ((S[St] or 0 )),clr)
     end 
 end
 
@@ -1885,7 +1895,7 @@ local function  macroPage(TB)
 
             if SetTypeToMacro(mc.Type,I) then mc.Type = 'Macro' end    
             if SetTypeToEnv(mc.Type,I) then mc.Type = 'env'    end
-            if SetTypeToStepSEQ(mc.Type,I) then mc.Type = 'Step'    end
+            if SetTypeToStepSEQ(mc.Type,I, mc) then mc.Type = 'Step'    end
             if SetTypeToFollower(mc.Type,I) then mc.Type = 'Follower'   end
             if SetTypeToLFO(mc.Type,I) then 
                 mc.Type = 'LFO'     

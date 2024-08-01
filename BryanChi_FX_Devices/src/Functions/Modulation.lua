@@ -26,6 +26,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
     local SizeX, SizeY = im.GetItemRectSize(ctx)
     MacroModLineOffset = 0
 
+   -- im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].splitter,2)
 
 
     if Amt then ModAmt = Amt 
@@ -269,10 +270,16 @@ end
 function If_Hvr_or_Macro_Active (FxGUID, M )
     if not FX[FxGUID].parent then return end 
     local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
+    if not cont_GUID then return end 
     local mc = FX[cont_GUID].Mc[M]
+    local fx = FX[cont_GUID]
+    if AssignContMacro == M-1 or ( fx.HvrMacro and  M == fx.HvrMacro) or mc.TweakingKnob == M then    
+        return true    
+    end 
 
-    if AssignContMacro == M-1 or ( FX[cont_GUID].HvrMacro and  M == FX[cont_GUID].HvrMacro) or mc.TweakingKnob == M
-    then    return true    end 
+    if fx.Highlight_Macro and  fx.Highlight_Macro == M then 
+        return true 
+    end 
 
 end
 
@@ -471,7 +478,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
 
                 --- indicator of where the param is currently
                 FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-               -- local clr = CustomColorsDefault.Container_Accent_Clr 
 
                local w = Sldr_Width
                if Vertical == 'Vert' then w = ModLineDir or Sldr_Width end 

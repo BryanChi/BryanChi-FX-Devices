@@ -794,6 +794,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         end
 
         if FP.ModAMT or FP.Cont_ModAMT then -- Draw modlines  circular
+            --im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].splitter,2)
+
             local offset = 0
             local BipOfs = 0
             FP.ModBipolar = FP.ModBipolar or {}
@@ -803,8 +805,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
             for Macro, v in ipairs(MacroNums) do
                 if Amt[Macro] then
-                    local IndicClr = EightColors.HighSat_MidBright[Macro]
-                    local rangeClr = EightColors.Bright[Macro]
+                    local IndicClr = EightColors.bgWhenAsgnModAct[Macro]
+                    local rangeClr = EightColors.bgWhenAsgnModHvr[Macro]
                     if Amt ==FP.Cont_ModAMT then 
                         IndicClr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
                         rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr_Not_Focused , -0.3)
@@ -839,14 +841,12 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     if BipOfs ~= 0 then
                         local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
                         im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-                        im.DrawList_PathStroke(draw_list, IndicClr, nil,
-                            radius_outer * 0.1)
+                        im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
                         im.DrawList_PathClear(draw_list)
                     end
                     im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
 
-                    im.DrawList_PathStroke(draw_list, IndicClr, nil,
-                        radius_outer * 0.1)
+                    im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
                     im.DrawList_PathClear(draw_list)
 
                     ParamHasMod_Any = true
@@ -949,7 +949,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     if LblTextSize ~= 'No Font' then im.PopFont(ctx) end
-    --im.DrawListSplitter_Merge(FX[FxGUID].SPLITTER)
+
     im.EndGroup(ctx)
 end
 
@@ -986,10 +986,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local f_draw_list = im.GetForegroundDrawList(ctx)
     local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
-
-   --[[  if not FX[FxGUID].SPLITTER then  FX[FxGUID].SPLITTER = im.CreateDrawListSplitter(draw_list) end 
-    im.DrawListSplitter_Split(FX[FxGUID].SPLITTER, 2)
-    ]]
     local mouse_delta = { im.GetMouseDelta(ctx) }
     if not FxGUID then return end
 
@@ -1420,7 +1416,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
     if LBtnDC then im.PopStyleVar(ctx) end
     im.PopStyleVar(ctx)
-    --im.DrawListSplitter_Merge(FX[FxGUID].SPLITTER)
+
 
     return value_changed, p_value
 end
@@ -1866,8 +1862,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         local line_height = im.GetTextLineHeight(ctx); local draw_list = im.GetWindowDrawList(ctx)
 
         local f_draw_list = im.GetForegroundDrawList(ctx)
-       --[[  if not FX[FxGUID].SPLITTER then  FX[FxGUID].SPLITTER = im.CreateDrawListSplitter(draw_list) end 
-        im.DrawListSplitter_Split(FX[FxGUID].SPLITTER, 2) ]]
+
 
         local mouse_delta = { im.GetMouseDelta(ctx) }
         local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
@@ -2811,9 +2806,7 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     if AddingFromExtState == 'AddingFromExtState' then
         FX[FxGUID][P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     else
-        local rv, step, smallstep, largestep, istoggle = r.TrackFX_GetParameterStepSizes(LT_Track,
-            LT_FX_Number,
-            LT_ParamNum)
+        local rv, step, smallstep, largestep, istoggle = r.TrackFX_GetParameterStepSizes(LT_Track, LT_FX_Number, LT_ParamNum)
         if rv then --[[ if the param is a switch ]] end
         FX[FxGUID][P].V = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
     end
@@ -3169,14 +3162,13 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         --- if mouse is on an item
         if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
             if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
-                if LBtnRel and Max_L_MouseDownDuration < LongClickDuration and Mods == 0 then
-                    LE.Sel_Items = {}
-                    table.insert(LE.Sel_Items, Fx_P)
-
-                end
 
                 if IsLBtnClicked and Mods == 0 then
-                    LE.SelectedItem = Fx_P
+                    if #LE.Sel_Items > 1 then 
+                    else
+                    LE.Sel_Items = {Fx_P}
+                    end
+
                 elseif IsLBtnClicked and Mods == Shift then
                     local ClickOnSelItem, ClickedItmNum
                     for i, v in pairs(LE.Sel_Items) do
@@ -3197,19 +3189,17 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     ClickOnAnyItem = true
                     FP.PosX = PosX
                     FP.PosY = PosY
-                    DetermineIfLongClick = true 
-                end
-
-                if DetermineIfLongClick and Max_L_MouseDownDuration > LongClickDuration and Mods == 0 then
+                
                     if #LE.Sel_Items > 1 then
                         LE.ChangePos = LE.Sel_Items
                     else
                         LE.ChangePos = Fx_P
                     end
-
                     Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
-                    DetermineIfLongClick = nil 
+
                 end
+
+                
             end
         end
 
@@ -3380,22 +3370,13 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 FP.PosY = FP.PosY or PosY
                 FP.PosX = FP.PosX + Dx; FP.PosY = FP.PosY + Dy
                 AddGuideLines(0xffffff44, L, T, R, B)
+                
             end
         end
 
-        if LE.ChangePos == Fx_P then
-            ChangeItmPos()
-        elseif LBtnDrag and type(LE.ChangePos) == 'table' then
-            for i, v in pairs(LE.ChangePos) do
-                if v == Fx_P then
-                    ChangeItmPos()
-                end
-            end
-        end
-        local LBtnRel = im.IsMouseReleased(ctx, 0)
 
-        if LBtnRel and LE.ChangePos == Fx_P and Max_L_MouseDownDuration > LongClickDuration then
-
+        local function Qunantize_Item_Pos_To_Grid(FP)
+            
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FP.PosX and FP.PosY then
                 local X_Dif, Y_Dif = math.abs(Orig_Item_Pos_X - FP.PosX), math.abs(Orig_Item_Pos_Y - FP.PosY)
                 if X_Dif > LE.GridSize*0.55 or Y_Dif > LE.GridSize*0.55 then -- if item is moved more than grid size
@@ -3407,9 +3388,34 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     FP.PosY = Orig_Item_Pos_Y
                 end
             end
-            LE.ChangePos = nil
+        end 
 
+        if LE.ChangePos == Fx_P then
+         
+            ChangeItmPos()
+        elseif LBtnDrag and type(LE.ChangePos) == 'table' then
+            for i, v in pairs(LE.ChangePos) do
+                if v == Fx_P then
+                    ChangeItmPos()
+                end
+            end
         end
+        local LBtnRel = im.IsMouseReleased(ctx, 0)
+        
+        if LBtnRel and LE.ChangePos == Fx_P  then 
+           
+            Qunantize_Item_Pos_To_Grid(FP)
+
+        elseif LBtnRel and tablefind(LE.ChangePos, Fx_P)  then  
+                
+            for i, v in pairs(LE.ChangePos) do
+                Qunantize_Item_Pos_To_Grid(FX[FxGUID][v])
+            
+            end
+            
+            LE.ChangePos = nil
+        end
+        
 
     end
 end
