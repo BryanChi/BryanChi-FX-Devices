@@ -47,6 +47,201 @@ function CheckDnDType()
     FX_PLINK = dnd_type == "FX PLINK"
 end
 
+
+function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
+    if Draw.DrawMode[FxGUID] == true then
+        local D = Draw[FxNameS]
+        im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
+        -- add horizontal grid
+        for i = 0, 220, LE.GridSize do
+            im.DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
+        end
+        -- add vertical grid
+        for i = 0, FX[FxGUID].Width or DefaultWidth, LE.GridSize do
+            im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444411)
+        end
+        if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItm and Draw.Time == 0 then
+            if Draw.Type == 'Text' then
+                im.SetMouseCursor(ctx, im.MouseCursor_TextInput)
+            end
+            if im.IsMouseClicked(ctx, 0) and Mods == 0 then
+                Draw.CurrentylDrawing = true
+                MsX_Start, MsY_Start = im.GetMousePos(ctx);
+                CurX, CurY = im.GetCursorScreenPos(ctx)
+                Win_MsX_Start = MsX_Start - CurX; Win_MsY_Start = MsY_Start - CurY + 3
+            end
+
+            if Draw.CurrentylDrawing then
+                if IsLBtnHeld and Mods == 0 and MsX_Start then
+                    MsX, MsY   = im.GetMousePos(ctx)
+                    CurX, CurY = im.GetCursorScreenPos(ctx)
+                    Win_MsX    = MsX - CurX; Win_MsY = MsY - CurY
+
+                    Rad        = MsX - MsX_Start
+                    local Clr  = Draw.clr or 0xffffffff
+                    if Rad < 0 then Rad = Rad * (-1) end
+                    if Draw.Type == 'line' then
+                        im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY_Start, Clr)
+                    elseif Draw.Type == 'V-line' then
+                        im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX_Start, MsY, Clr)
+                    elseif Draw.Type == 'rectangle' then
+                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                    elseif Draw.Type == 'Picture' then
+                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                    elseif Draw.Type == 'rect fill' then
+                        im.DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
+                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                    elseif Draw.Type == 'circle' then
+                        im.DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad, Clr)
+                    elseif Draw.Type == 'circle fill' then
+                        im.DrawList_AddCircleFilled(WDL, MsX_Start, MsY_Start, Rad, Clr)
+                    elseif Draw.Type == 'Text' then
+                        im.SetMouseCursor(ctx, im.MouseCursor_TextInput)
+                    end
+                end
+
+                if im.IsMouseReleased(ctx, 0) and Mods == 0 and Draw.Type ~= 'Text' then
+                    FX[FxGUID].Draw[(#FX[FxGUID].Draw or 0) + 1] = {}
+                    local D = FX[FxGUID].Draw[(#FX[FxGUID].Draw or 1)]
+
+
+                    LE.BeenEdited = true
+                    --find the next available slot in table
+
+                    if Draw.Type == 'circle' or Draw.Type == 'circle fill' then
+                        D.R = Rad
+                    else
+                        D.R = Win_MsX
+                    end
+
+                    D.L = Win_MsX_Start
+                    D.T = Win_MsY_Start
+                    D.Type = Draw.Type
+                    D.B = Win_MsY
+                    D.clr = Draw.clr or 0xffffffff
+                    --if not Draw.SelItm then Draw.SelItm = #D.Type end
+                end
+
+
+
+
+                if Draw.Type == 'Text' and IsLBtnClicked and Mods == 0 then
+                    AddText = #D.Type + 1
+                end
+            end
+        end
+        HvringItmSelector = nil
+        if AddText then
+            im.OpenPopup(ctx, 'Drawlist Add Text Menu')
+        end
+
+        if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
+            im.SetKeyboardFocusHere(ctx)
+
+            enter, NewDrawTxt = im.InputText(ctx, '##' .. 'DrawTxt', NewDrawTxt)
+            --im.SetItemDefaultFocus( ctx)
+
+            if im.IsWindowAppearing(ctx) then
+                table.insert(D.L, Win_MsX_Start);
+                table.insert(D.T, Win_MsY_Start);;
+                table.insert(D.Type, Draw.Type)
+                table.insert(D.B, Win_MsY)
+                table.insert(D.clr, Draw.clr)
+            end
+
+
+            if AddText then
+                D.Txt[AddText] = NewDrawTxt
+            end
+
+            if im.IsItemDeactivatedAfterEdit(ctx) then
+                D.Txt[#D.Txt] = NewDrawTxt
+                AddText = nil;
+                NewDrawTxt = nil
+
+
+
+                im.CloseCurrentPopup(ctx)
+            end
+
+            im.SetItemDefaultFocus(ctx)
+
+
+
+            im.EndPopup(ctx)
+        end
+        if LBtnRel then Draw.CurrentylDrawing = nil end
+
+        if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil then
+            if IsLBtnClicked then
+                Draw.SelItm = nil
+                Draw.Time = 1
+            end
+        end
+        if Draw.Time > 0 then Draw.Time = Draw.Time + 1 end
+        if Draw.Time > 6 then Draw.Time = 0 end
+
+        if FX[FxGUID].Draw then
+            for i, D in ipairs(FX[FxGUID].Draw) do
+                local ID = FX_Name .. i
+                local CircleX, CircleY = Win_L + D.L, Win_T + D.T
+                local FDL = im.GetForegroundDrawList(ctx)
+                im.DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
+                im.DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
+
+
+                if Draw.SelItm == i then
+                    im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
+                end
+
+
+                --if hover on item node ...
+                if im.IsMouseHoveringRect(ctx, CircleX - 5, CircleY - 5, CircleX + 5, CircleY + 10) then
+                    HvringItmSelector = true
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
+                    if DragItm == nil then
+                        im.DrawList_AddCircle(WDL, CircleX, CircleY, 9, 0x999999ff)
+                    end
+                    if IsLBtnClicked and Mods == 0 then
+                        Draw.SelItm = i
+                        DragItm = i
+                    end
+
+
+                    if IsLBtnClicked and Mods == Alt then
+                        table.remove(D.Type, i)
+                        table.remove(D.L, i)
+                        table.remove(D.R, i)
+                        table.remove(D.T, i)
+                        table.remove(D.B, i)
+                        if D.Txt then table.remove(D.Txt, SetMinMax(i, 1, #D.Txt)) end
+                        if D.clr then table.remove(D.clr, SetMinMax(i, 1, #D.clr)) end
+                        if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
+                            im.CloseCurrentPopup(ctx)
+                            im.EndPopup(ctx)
+                        end
+                    end
+                end
+
+                if not IsLBtnHeld then DragItm = nil end
+                if LBtnDrag and DragItm == i then --- Drag node to reposition
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
+                    im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x00000033)
+                    local Dx, Dy = im.GetMouseDelta(ctx)
+                    if D.Type[DragItm] ~= 'circle' and D.Type[DragItm] ~= 'circle fill' then
+                        D.R = D.R + Dx -- this is circle's radius
+                    end
+                    D.L = D.L + Dx
+                    D.T = D.T + Dy
+                    D.B = D.B + Dy
+                end
+            end
+        end
+    end --- end of if draw mode is active
+end
+
 local min, max = math.min, math.max
 function IncreaseDecreaseBrightness(color, amt, no_alpha)
     function AdjustBrightness(channel, delta)

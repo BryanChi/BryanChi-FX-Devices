@@ -70,6 +70,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
 
         if FX[FxGUID].parent then 
             local Cont_FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent  )
+            FX[Cont_FxGUID].Mc = FX[Cont_FxGUID].Mc or {}
             M  = FX[Cont_FxGUID].Mc[Macro]
         end
 

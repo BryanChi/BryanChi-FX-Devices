@@ -722,7 +722,7 @@ function loop()
             Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
             HintMessage = nil
             GetAllInfoNeededEachLoop()
-
+            TREE = BuildFXTree(LT_Track)
             -- if action to record last touch is triggered
             if r.GetExtState('FXD', 'Record last touch') ~= '' then
                 if not IsPrmAlreadyAdded(true) then
