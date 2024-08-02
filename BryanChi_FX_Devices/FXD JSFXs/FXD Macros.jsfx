@@ -1,4 +1,4 @@
-noindex: true
+fnoindex: true
 
 desc:FXD Macros
 import cookdsp.jsfx-inc
@@ -189,6 +189,11 @@ function setNode(index, attribute, value) (
 function getNode(index, attribute) (
    address[index * Node_length + attribute];
 );
+
+
+
+
+
 
 
 
@@ -608,6 +613,154 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs)  /
   total *127 ; 
 );
 
+@gfx
+
+  // -------------------------------------------------------------
+  function display_memory (PstartA, PstartB, Plength, Pformat, PnameA, PnameB)
+  // -------------------------------------------------------------
+  local ( Ldigits Ldecimals Lsize Lwidth Lrows Lidx LX0 LX1 LY1 save_gfxx save_gfxa )
+  (
+      gfx_w - mouse_x > 400 ? 
+          Lwidth = 8
+        : Lwidth = 4;
+      Pformat == $'A' ? (
+          Ldigits   = 1;
+          Ldecimals = 0;
+          Lwidth *=2;
+      ):(
+          Ldigits   = floor(Pformat);
+          Ldecimals = (Pformat - Ldigits) * 10;
+      );
+      Lsize     = Ldigits + Ldecimals +1;
+      Ldecimals > 0 ? Lsize +=1; 
+      Lrows     = ceil((Plength / Lwidth));
+  // .... for unlimited rows
+  //Lrows = floor((gfx_h - mouse_y) / 12);
+
+      LX0 = gfx_w - (Lsize*8 +8) * Lwidth *2 -40;
+      LX1 = LX0 + (Lsize*8 +8) * Lwidth + 15;
+      LY1 = max(2+ gfx_h -Lrows *(12+1) -20, mouse_y -10);
+
+  // ----------------------------- 
+  // .... background
+      save_gfxa = gfx_a;
+      gfx_a = 0.75;
+  //
+
+      //    set_colour(PALE_YELLOW);
+      gfx_r =0.90; gfx_g =0.80; gfx_b =0.50;
+      gfx_x = LX0 -10; 
+      gfx_y = LY1 -15;
+      gfx_rectto(LX1 -15, gfx_h -10);
+      
+      //set_colour(GREY_1);
+      gfx_x = LX0 -5;
+      gfx_y = LY1 -10;
+      gfx_printf(PnameA);
+  //
+      //set_colour(CYAN);
+      gfx_r =0.10; gfx_g =0.85; gfx_b =0.85;
+      gfx_x = LX1 -10;
+      gfx_y = LY1 -15;
+      gfx_rectto(gfx_w -15, gfx_h -10);
+
+    // set_colour(GREY_1);
+      gfx_x = LX1 -5;
+      gfx_y = LY1 -10;
+      gfx_printf(PnameB);
+  //
+  // -----------------------------
+  //
+      //set_colour(GREY_1);
+    gfx_r =0.15; gfx_g =0.15; gfx_b =0.20;
+
+  // .... left-hand data
+      gfx_x = LX0; gfx_y = LY1 +5;
+      Lidx = 0;
+      loop(Lrows,
+          loop(Lwidth,
+              save_gfxx = gfx_x;
+              Pformat == $'A' ? ( 
+                  gfx_drawchar(PstartA[Lidx]);
+              ):(
+                  PstartA[Lidx] >= 0 ? gfx_x +=8;
+                  gfx_drawnumber(PstartA[Lidx], Ldecimals);
+                  gfx_x = save_gfxx + Lsize*8 +8;  
+              );
+              Lidx +=1;
+          );
+          gfx_x = LX0; gfx_y += 12;
+          Lidx % (Lwidth * 4) == 0 ? gfx_y +=4;
+      );
+
+  // .... right-hand data
+      gfx_x = LX1; gfx_y = LY1 +5;
+      Lidx = 0;
+      loop(Lrows,
+          loop(Lwidth,
+              save_gfxx = gfx_x;
+              Pformat == $'A' ? ( 
+                  gfx_drawchar(PstartB[Lidx]);
+              ):(
+                  PstartB[Lidx] >= 0 ? gfx_x +=8;
+                  gfx_drawnumber(PstartB[Lidx], Ldecimals);
+                  gfx_x = save_gfxx + Lsize*8 +8;  
+              );
+              Lidx +=1;
+          );
+          gfx_x = LX1; gfx_y += 12;
+          Lidx % (Lwidth * 4) == 0 ? gfx_y +=4;
+      );
+
+      gfx_a = save_gfxa;
+
+  ); // end of function 
+
+
+
+
+  // -------------------------------------------------------
+  function print_strings(Pfirst, Pnum)
+  // -------------------------------------------------------
+  local ( save_gfxx save_gfxy save_gfxa Lidx Lmaxchars LX1 LY1 )
+  (
+      Lmaxchars = 50;
+      save_gfxx = gfx_x;
+      save_gfxy = gfx_y;
+      save_gfxa = gfx_a;
+      Lidx = Pfirst;
+      LX1 = gfx_w - Lmaxchars * 8 -10;
+      LY1 = max(gfx_h -Pnum *12 -20, mouse_y -10);
+
+  // .... background
+      gfx_a = 0.75;
+      //set_colour(CYAN);
+      gfx_r =0.10; gfx_g =0.85; gfx_b =0.85;
+      gfx_x = LX1;
+      gfx_y = LY1;
+      gfx_rectto(gfx_w -15, gfx_h -10);
+      
+    // set_colour(GREY_1);
+      gfx_y = LY1 +4;
+      loop(Pnum,
+          gfx_x = LX1 +4;
+          gfx_printf("%3d %s", Lidx, Lidx);
+          Lidx +=1;
+          gfx_y +=12;
+      );
+
+      gfx_x = save_gfxx;
+      gfx_y = save_gfxy;
+      gfx_a = save_gfxa;
+  );  // end of function
+
+
+gfx_lineto(0 , 1000, 1);
+gfx_line(0, 0 , 1000, 1000,  1 );
+gfx_drawstr('adsf',0,  0, 0);
+
+print_strings(20, 100)
+
 @slider
 Mc1.Slider = slider1;
 Mc2.Slider = slider2;
@@ -617,6 +770,8 @@ Mc5.Slider = slider5;
 Mc6.Slider = slider6;
 Mc7.Slider = slider7;
 Mc8.Slider = slider8;
+
+
 
 
 
@@ -949,7 +1104,7 @@ trkGUID_Num === gmem[2]? (
       
   gmem[7] != 0?( // if user uses Imgui to tweak param...
     P_Id = gmem[7];
-    P_OrigV[P_Id]= gmem[11000+P_Id];    // stores parameter's value before modulation
+    P_OrigV[P_Id]= gmem[11000+P_Id];
     what=gmem[8];
     gmem[8] != 0?( // if paramV + Mod is over 1...
       a[Param+ Macro*1000] = gmem[Param+ Macro*1000]
@@ -965,10 +1120,10 @@ trkGUID_Num === gmem[2]? (
 
 
 
-
+    midi_bus = 15;
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
-
+  midi_bus = 15;
   (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
       msg3 != 0 ? (
         // noteon 
@@ -1029,7 +1184,7 @@ i=1;
 while ( i <= P.Inst)(
   SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
     
-  midisend(0, $xBf, 127+i, SendAmt);
+  midisend(0, $xBf, i, SendAmt);
       
   i+=1;
 );
@@ -1056,9 +1211,10 @@ playstate_started ? ( playstate_started = 0 );
 
 //------------------------------------------------------------------------------------------------
 
-
+    midi_bus = 15;
 while (midirecv(offset, msg1, msg2, msg3)) (
     // get noteons and noteoffs from all channels
+    midi_bus = 15;
     (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
         msg3 != 0 ? (
             // noteon 
@@ -1085,3 +1241,5 @@ play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;
 );
 
+
+//display_memory(note_ons, offsets, 64, 3, "Note Ons", "Offsets");
