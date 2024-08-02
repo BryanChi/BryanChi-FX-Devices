@@ -639,7 +639,7 @@ Mc8.FOL_out  = Mc8.follow_do((spl0+spl1));
 
 
 @block
-
+/*ABAABABA = 123;
 A11001 = a[11001];
 A11000 = a[11000];
 A_gmem1 = gmem[1];
@@ -652,7 +652,7 @@ A_gmem3 = gmem[3];
 A_gmem4_Mode = gmem[4];
 A_gmem6 = gmem[6];
 A_gmem5 = gmem[5];
-A_gmem_2001 = gmem[2001];
+A_gmem_2001 = gmem[2001];*/
 Automate = 16; // first one will be 17 
 
 // Calculate current play position
@@ -1106,9 +1106,8 @@ play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;
 );
 
-
+/*
 @gfx
-
 gfx_set(1.0);
 gfx_x = gfx_y = 8;
 i = 0;
