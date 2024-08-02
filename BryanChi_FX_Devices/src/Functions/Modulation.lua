@@ -272,6 +272,7 @@ function If_Hvr_or_Macro_Active (FxGUID, M )
     if not FX[FxGUID].parent then return end 
     local cont_GUID = r.TrackFX_GetFXGUID(LT_Track, FX[FxGUID].parent )
     if not cont_GUID then return end 
+    if not  FX[cont_GUID].Mc then return end 
     local mc = FX[cont_GUID].Mc[M]
     local fx = FX[cont_GUID]
     if AssignContMacro == M-1 or ( fx.HvrMacro and  M == fx.HvrMacro) or mc.TweakingKnob == M then    
