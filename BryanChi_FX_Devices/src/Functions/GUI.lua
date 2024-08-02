@@ -1135,9 +1135,10 @@ function Draw_Attached_Drawings(FP,FX_Idx)
                     im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
                     im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
                 end
-            elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle' then
+            elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle'or v.Type == 'Knob Circle Filled' then
                 local w, h = im.GetItemRectSize(ctx)
                 local x, y = x + w / 2 + (v.X_Offset or 0), y + h / 2 + (v.Y_Offset or 0)
+                local y = y-2.5   --- Idk why but it needs this to align with the knobs drawn by addknob funciton
 
                 local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
                 local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
@@ -1146,7 +1147,9 @@ function Draw_Attached_Drawings(FP,FX_Idx)
                 local angle_cos, angle_sin = math.cos(angle),
                     math.sin(angle)
                 local IN = v.Rad_In or 0 -- modify this for the center begin point
-                local OUT = v.Rad_Out or 30
+                local OUT = v.Rad_Out or 0
+                local Def_W = w / 2 
+                local W = v.Width or Def_W
 
                 if v.Type == 'Knob Pointer' then
                     im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
@@ -1163,10 +1166,14 @@ function Draw_Attached_Drawings(FP,FX_Idx)
 
                     Repeat(1, 0, X_Gap, X_Gap, AddRange)
                 elseif v.Type == 'Knob Circle' then
-                    im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN, v.Width, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+
+                    im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                elseif v.Type == 'Knob Circle Filled' then
+                    im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr_VA or v.Clr or 0x999999aa, nil)
+
                 elseif v.Type == 'Knob Image' and v.Image then
                     local X, Y = x + angle_cos * IN, y + angle_sin * IN
-                    im.DrawList_AddImage(WDL, v.Image, X, Y, X + v.Width, Y + v.Width, nil, nil, nil, nil, Clr_VA or v.Clr or 0x999999aa)
+                    im.DrawList_AddImage(WDL, v.Image, X, Y, X + W, Y + W, nil, nil, nil, nil, Clr_VA or v.Clr or 0x999999aa)
                 end
 
 

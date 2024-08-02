@@ -1055,3 +1055,7 @@ function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
     end 
 
 end
+
+
+function Create_Header_For_Track_Modulators()
+end
