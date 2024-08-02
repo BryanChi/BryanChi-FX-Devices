@@ -1,9 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta13.35
+-- @version 1.0beta14
 -- @changelog
 --  - NEW FEATURE: Modulators inside Containers 
 --  - Layout editor : Fix items not snapping to grid
+--  - Layout editor : changed default snapping behavior for labels and value indication when they're set to 'bottom' or top.
+--  - Layout editor : many misc changes
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
