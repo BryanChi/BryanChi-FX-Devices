@@ -102,7 +102,7 @@ local function SetTypeToFollower(type,i)
         if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
             r.gmem_write(2,  fx.DIY_FxGUID)
             r.gmem_write(4, 9) -- tells jsfx macro type = Follower
-            msg(i)
+    
             r.gmem_write(5, i) -- tells jsfx which macro
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Follower', true)
             return true
@@ -1396,7 +1396,7 @@ local function recall_LFO_Data(mc,i)
 
             m.Node[N].y       = RC('Mod ' .. i .. 'Node ' .. N .. ' Y')
             m.Node[N].ctrlX   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl X')
-            msg(m.Node[N].ctrlX  )
+        
 
             m.Node[N].ctrlY   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl Y')
             m.NodeNeedConvert = true

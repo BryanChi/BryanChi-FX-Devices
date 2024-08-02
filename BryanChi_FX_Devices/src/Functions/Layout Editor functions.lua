@@ -1291,9 +1291,7 @@ function Layout_Edit_Mode(FX, FX_Idx)
                             SL()
                             local LH = im.GetTextLineHeight(ctx)
                             local rv = im.Button(ctx, '##%', 20, 20) -- bin icon
-                            DrawListButton(WDL, '%',
-                                r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil,
-                                true, icon1_middle, false) -- trash bin
+                            DrawListButton(WDL, '%', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false) -- trash bin
                             if rv then
                                 table.remove(FX[FxGUID][Itm].ManualValuesFormat, i)
                                 table.remove(FX[FxGUID][Itm].ManualValues, i)
@@ -2075,7 +2073,10 @@ function Layout_Edit_Mode(FX, FX_Idx)
                                     local rv, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name .. '_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
 
                                     if rv and not D[Name .. '_GR'] then
-                                        D[Name] = V
+                                        for I, v in ipairs ( LE.Sel_Items) do 
+                                            FX[FxGUID][v].Draw[i][Name] = V
+                                        end 
+                                        --[[ D[Name] = V ]]
                                     elseif rv and D[Name .. '_GR'] then
                                         D[Name .. '_GR'] = V; D[Name] = nil
                                     end

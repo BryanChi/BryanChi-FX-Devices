@@ -1,0 +1,161 @@
+
+function MenuBar ()
+
+    im.BeginMenuBar(ctx)
+    Layout_Edit_MenuBar_Buttons()
+    Settings()
+    Record_Last_Touch_Btn()
+    Envelope_Btn()
+    ShowTrackName(not FX.LayEdit)
+    im.EndMenuBar(ctx)
+end 
+function StoreSettings()
+    local data = tableToString(
+        {
+            reverse_scroll = Reverse_Scroll,
+            ctrl_scroll = Ctrl_Scroll,
+            proc_gr_native = ProC.GR_NATIVE,
+            proq_analyzer = ProQ.Analyzer,
+            --use_systemfont = Use_SystemFont
+        }
+    )
+    r.SetExtState("FXDEVICES", "Settings", data, true)
+end
+
+function Settings()
+
+    if im.BeginMenu(ctx, 'Settings') then
+        if select(2, im.MenuItem(ctx, 'Style Editor', shoirtcutIn, p_selected, enabledIn)) then
+            OpenStyleEditor = toggle(OpenStyleEditor)
+        end
+
+        if select(2, im.MenuItem(ctx, 'Keyboard Shortcut Editor', shoirtcutIn, p_selected, enabledIn)) then
+            OpenKBEditor = toggle(OpenKBEditor)
+        end
+        if im.GetWindowDockID(ctx) ~= -1 then
+            if select(2, im.MenuItem(ctx, 'Dock script', shoirtcutIn, p_selected, enabledIn)) then
+                Dock_Now = true
+            end
+        end
+        if im.BeginMenu(ctx, "General Behavior") then
+            _, Reverse_Scroll = im.Checkbox(ctx, "Reverse Scroll", Reverse_Scroll)
+            SL()
+            QuestionHelpObject('Make horizontal scroll behavior reversed', im.HoveredFlags_Stationary)
+            _, Ctrl_Scroll = im.Checkbox(ctx, "Ctrl Scroll", Ctrl_Scroll)
+            SL()
+            QuestionHelpObject('Use ctrl + scroll to scroll horizontally and scroll to adjust parameters.',
+                im.HoveredFlags_Stationary)
+            _, ProC.GR_NATIVE = im.Checkbox(ctx, 'Use Native Gain Reduction for Pro-C', ProC.GR_NATIVE)
+            _, ProQ.Analyzer = im.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
+            --_, Use_SystemFont = im.Checkbox(ctx, 'Use System Font', Use_SystemFont)
+            StoreSettings()
+            im.EndMenu(ctx)
+        end
+        if select(2, im.MenuItem(ctx, "Rescan Plugin List")) then
+            FX_LIST, CAT = MakeFXFiles()
+        end
+
+        MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
+        im.EndMenu(ctx)
+    end
+
+    if OpenStyleEditor then ShowStyleEditor() end
+    if OpenKBEditor then Show_KBShortcutEditor() end     
+end   
+
+
+function Record_Last_Touch_Btn()
+
+    if im.Button(ctx, 'Record Last Touch') then
+        if not IsPrmAlreadyAdded(true) then
+            StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true)
+        end
+    end
+
+    if im.IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = toggle(Cont_Param_Add_Mode) end
+
+end 
+
+function Envelope_Btn()
+
+    local drawlist = im.GetWindowDrawList(ctx)
+    local env_color = GetEnvelopeColor(LT_Track)
+    local rv = HoverHighlightButton(0x00, "##Automation", 20, 20)
+    DrawListButton(drawlist, "E", env_color, false, true, icon1_middle)
+    ChangeAutomationModeByWheel(LT_Track)
+    if rv then
+        AutomationMode = { "Trim/Read", "Read", "Touch", "Write", "Latch", "Latch Preview" }
+        im.OpenPopup(ctx, 'automation_popup')
+    end
+
+
+    if im.BeginPopup(ctx, 'automation_popup') then
+        for k, v in ipairs(AutomationMode) do
+            if im.Selectable(ctx, v) then
+                r.SetTrackAutomationMode(LT_Track, k - 1)
+            end
+        end
+        im.EndPopup(ctx)
+    end
+end 
+
+
+
+function Layout_Edit_MenuBar_Buttons()
+
+
+    if FX.LayEdit then
+        local FxGUID = FX.LayEdit
+
+        if im.Button(ctx, 'Grid +') then
+            LE.GridSize = LE.GridSize + 5
+        elseif im.Button(ctx, 'Grid -') then
+            LE.GridSize = LE.GridSize - 5
+        end
+
+        if #LE.Sel_Items > 1 then
+            SL()
+            if im.Button(ctx, 'Align Y-Axis') then
+                for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosX = FX[FxGUID][LE.Sel_Items[1]].PosX end
+            elseif im.Button(ctx, 'Align X-Axis') then
+                for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosY = FX[FxGUID][LE.Sel_Items[1]].PosY end
+            end
+        end
+        if #LE.Sel_Items > 2 then
+            if im.Button(ctx, 'Equalize X Spacing') then
+                local Spc, max, min
+                local tab = {}
+                for i, v in ipairs(LE.Sel_Items) do
+                    table.insert(tab, FX[FxGUID][v].PosX)
+                end
+
+                max = math.max(table.unpack(tab))
+                min = math.min(table.unpack(tab))
+                Spc = (max - min) / (#LE.Sel_Items - 1)
+                for i, v in ipairs(LE.Sel_Items) do
+                    FX[FxGUID][v].PosX = min + Spc * (i - 1)
+                end
+            elseif im.Button(ctx, 'Equalize Y Spacing') then
+                local Spc, max, min
+                local tab = {}
+                for i, v in ipairs(LE.Sel_Items) do
+                    table.insert(tab, FX[FxGUID][v].PosY)
+                end
+                max = math.max(table.unpack(tab))
+                min = math.min(table.unpack(tab))
+                Spc = (max - min) / (#LE.Sel_Items - 1)
+                for i, v in ipairs(LE.Sel_Items) do
+                    FX[FxGUID][v].PosY = min + Spc * (i - 1)
+                end
+            end
+        end
+        im.Separator(ctx)
+    end
+end 
+
+
+function ShowTrackName(Condition)
+    if Condition then 
+        im.Text(ctx, TrkName)
+    end
+end 

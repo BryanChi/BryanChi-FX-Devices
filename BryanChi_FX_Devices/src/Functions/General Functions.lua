@@ -1136,6 +1136,23 @@ function ToggleCollapseAll(FX_Idx)
     return BlinkFX
 end
 
+---@param FXGUID string
+---@param FX_Idx integer
+
+function DeleteAllParamOfFX(FXGUID, TrkID)
+    for p, v in pairs(Trk.Prm.FXGUID) do
+        if Trk.Prm.FXGUID[p] == FXGUID and FXGUID ~= nil then
+            Trk.Prm.Inst[TrkID] = Trk.Prm.Inst[TrkID] - 1
+            Prm.Num[p] = nil
+            PM.HasMod[p] = nil
+
+            r.SetProjExtState(0, 'FX Devices', 'Params fxGUID of Param Inst' .. p, '')
+        elseif Trk.Prm.FXGUID[p] == nil and FXGUID == nil then
+
+        end
+    end
+end
+
 ---@param FX_Idx integer
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
@@ -2040,6 +2057,9 @@ function ChangeAutomationModeByWheel(track)
         elseif automation_mode > 5 then
           automation_mode = 5
         end
+      automation_mode = round(automation_mode , 0)
+
+
         r.SetTrackAutomationMode(track, automation_mode)
       else
         global_automation = global_automation + v
