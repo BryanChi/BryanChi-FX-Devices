@@ -1385,7 +1385,7 @@ function Create_Header_For_Track_Modulators()
 
 
 
-            im.SetNextWindowPos(ctx, HdrPosL, VP.y - StepSEQ_H - 100)
+            im.SetNextWindowPos(ctx, HdrPosL, VP.Y - StepSEQ_H - 100)
             if Mc.AdjustingSteps and not im.IsMouseDown(ctx, 0) then Mc.AdjustingSteps = nil end
 
             function open_SEQ_Win(Track, i)
@@ -1614,7 +1614,7 @@ function Create_Header_For_Track_Modulators()
 
                 local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
 
-                im.SetNextWindowPos(ctx, HdrPosL, VP.y - 55)
+                im.SetNextWindowPos(ctx, HdrPosL, VP.Y - 55)
                 im.SetNextWindowSize(ctx, 350, 55)
                 if im.Begin(ctx, 'Follower Windowww' .. i, true, im.WindowFlags_NoResize + im.WindowFlags_NoDocking + im.WindowFlags_NoCollapse + im.WindowFlags_NoScrollbar + im.WindowFlags_NoTitleBar) then
                     im.Text(ctx, 'Speed : ')
@@ -1784,7 +1784,7 @@ function Create_Header_For_Track_Modulators()
                 if LFO.EditWinOpen then return end 
                 local tweaking
                 -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
-                im.SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
+                im.SetNextWindowPos(ctx, HdrPosL, VP.Y - 385)
                 if im.Begin(ctx, 'LFO Shape Edit Window' .. Macro, true, im.WindowFlags_NoDecoration + im.WindowFlags_AlwaysAutoResize) then
                     local Node = Trk[TrkID].Mod[i].Node
                     local function ConverCtrlNodeY(lastY, Y)
@@ -3016,5 +3016,16 @@ function Create_Header_For_Track_Modulators()
 
     im.EndTable(ctx)
 
+
+end
+
+
+
+function Create_Diy_TrkID_If_None_Exist()
+
+    if PM.DIY_TrkID[TrkID] == nil then
+        PM.DIY_TrkID[TrkID] = math.random(100000000, 999999999)
+        r.SetProjExtState(0, 'FX Devices', 'Track GUID Number for jsfx' .. TrkID, PM.DIY_TrkID[TrkID])
+    end
 
 end

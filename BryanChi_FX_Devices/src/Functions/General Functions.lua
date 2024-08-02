@@ -818,6 +818,7 @@ end
 
 function GetAllInfoNeededEachLoop()
     TimeEachFrame = im.GetDeltaTime(ctx)
+    
     if ImGUI_Time == nil then ImGUI_Time = 0 end
     ImGUI_Time             = ImGUI_Time + TimeEachFrame
     _, TrkName             = r.GetTrackName(LT_Track)
@@ -1452,7 +1453,14 @@ function SetMinMax(Input, Min, Max)
    end
    return Input
 end
-
+function PDefer(func)
+    r.defer(function()
+        local status, err = xpcall(func, debug.traceback)
+        if not status then
+            PrintTraceback(err)
+        end
+    end)
+end
 
 
 function DrawChildMenu(tbl, path, FX_Idx)
@@ -1692,6 +1700,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
 end
 
 function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+
     local function DrawFxChains(tbl, path)
         local extension = ".RfxChain"
         path = path or ""
@@ -1820,6 +1829,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
         DndAddFX_SRC("Video processor")
         if LAST_USED_FX then
+           
             if im.Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
                 r.TrackFX_AddByName(TRACK, LAST_USED_FX, false, -1000 - FX_Idx)
                 AddedFX = true
@@ -2073,4 +2083,215 @@ function ChangeAutomationModeByWheel(track)
     elseif not im.IsItemHovered(ctx) then
       window_flag = nil
     end
+end
+
+
+
+function Scroll_Main_Window_With_Mouse_Wheel()
+    msg(focused_window)
+    local focused_window = r.JS_Window_GetTitle(hwnd)
+
+    if Wheel_V ~= 0 and not DisableScroll and focused_window == 'FX Devices' then
+        r.JS_Window_SetFocus(hwnd)
+        if Ctrl_Scroll then
+            msg('a')
+            if Mods == Ctrl then
+                Horizontal_Scroll(20)
+            elseif Mods == Ctrl + Shift then
+                Horizontal_Scroll(10)
+            elseif Mods == Shift then -- to prevent a weird behavior which is not related to Horizontal_Scroll function
+                im.SetNextWindowScroll(ctx, -CursorStartX, 0)
+            end
+        else
+            msg('anj')
+            if Mods == 0 then -- 0 = not mods key
+                Horizontal_Scroll(20)
+            elseif Mods == Shift then
+                Horizontal_Scroll(10)
+            end
+        end
+    end
+end
+
+
+
+function Add_Del_Move_FX_At_Begining_of_Loop()
+    ------- Add FX ---------
+    for i, v in ipairs(AddFX.Name) do
+        if v:find('FXD Gain Reduction Scope') then
+            local FxGUID = ProC.GainSc_FXGUID
+
+            FX[FxGUID] = FX[FxGUID] or {}
+            FX[FxGUID].ProC_ID = math.random(1000000, 9999999)
+            r.gmem_attach('CompReductionScope')
+            r.gmem_write(2002, FX[FxGUID].ProC_ID)
+            r.gmem_write(FX[FxGUID].ProC_ID, AddFX.Pos[i])
+            r.gmem_write(2000, PM.DIY_TrkID[TrkID])
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProC_ID ' .. FxGUID, FX[FxGUID].ProC_ID, true)
+        elseif v:find('FXD Saike BandSplitter') then
+            r.gmem_attach('FXD_BandSplit')
+            BandSplitID = BandSplitID or math.random(1000000, 9999999)
+            r.gmem_write(0, BandSplitID)
+        elseif v:find('FXD Band Joiner') then
+
+        end
+
+
+
+        AddFX_HideWindow(LT_Track, v, -1000 - AddFX.Pos[i])
+        if v:find('FXD Band Joiner') then
+            local SplittrID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i] - 1)
+            local JoinerID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i])
+            FX[SplittrID] = FX[SplittrID] or {}
+            FX[SplittrID].AttachToJoiner = JoinerID
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID,
+                JoinerID, true)
+        elseif v:find('FXD Gain Reduction Scope') then
+            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, AddFX.Pos[i])
+
+            SyncAnalyzerPinWithFX(AddFX.Pos[i], AddFX.Pos[i] - 1, FX_Name)
+        end
+        TREE = BuildFXTree(LT_Track)
+
+    end
+
+
+
+
+    ----- Del FX ------
+    if Sel_Track_FX_Count then
+        for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
+            local function Do(FX_Idx)
+                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
+                local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+
+                if FX_Name == 'JS: FXD Gain Reduction Scope' then
+                    if string.find(PreviousFX, 'Pro%-C 2') == nil then
+                        r.TrackFX_Delete(LT_Track, FX_Idx)
+                    end
+                end
+                if FX_Name == 'JS: FXD Split to 4 channels' then
+                    if string.find(NextFX, 'Pro%-C 2') == nil and not AddFX.Name[1] then
+                        r.TrackFX_Delete(LT_Track, FX_Idx)
+                    end
+                    local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
+                    local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
+
+                    if ProC_pin ~= SplitPin then
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
+                        local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
+
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
+                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
+                    end
+                end
+            end
+
+            local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                'container_count')
+
+            if is_container then
+                for i = 1, container_count, 1 do
+                    local Idx = tonumber(select(2,
+                        r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
+                    if Idx then
+                        Do(Idx)
+                    end
+                end
+            else
+                Do(FX_Idx)
+            end
+        end
+        TREE = BuildFXTree(LT_Track)
+
+    end
+
+    ----- Move FX -----
+    if MovFX.FromPos[1] then
+        local UndoLbl
+        r.Undo_BeginBlock()
+        for i, v in ipairs(MovFX.FromPos) do
+            if NeedCopyFX then
+                --if v >= DropPos then offset = 1 else offset = 0 end
+                MovFX.ToPos[i] = math.max(MovFX.ToPos[i] - (offset or 0), 0)
+                r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, v, false)
+            end
+        end
+
+        for i, v in ipairs(MovFX.FromPos) do -- move FX
+            r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
+        end
+        r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
+        MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} }
+        NeedCopyFX = nil
+        DropPos = nil
+        TREE = BuildFXTree(LT_Track)
+    end
+
+
+
+    if AddFX.Name[1] then 
+        TREE = BuildFXTree(LT_Track)
+    end
+    AddFX.Name         = {}
+    AddFX.Pos          = {}
+    ProC.GainSc_FXGUID = nil 
+end
+
+
+
+
+
+function When_User_Switch_Track()
+
+    -- if user switch selected track...
+    local layoutRetrieved
+    if TrkID ~= TrkID_End then
+        if TrkID_End ~= nil and TrkID ~= nil then
+            NumOfTotalTracks = r.CountTracks(0)
+            --[[  r.gmem_attach('TrackNameForMacro')
+            reaper .gmem_write(0,NumOfTotalTracks )]]
+        end
+        for P = 0, Trk.Prm.Inst[TrkID] or 0, 1 do
+            for m = 1, 8, 1 do
+                r.gmem_write(1000 * m + P, 0)
+            end
+        end
+
+        RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+        TREE = BuildFXTree(LT_Track)
+
+        layoutRetrieved = true
+        SyncTrkPrmVtoActualValue()
+        LT_TrackNum = math.floor(r.GetMediaTrackInfo_Value(LT_Track, 'IP_TRACKNUMBER'))
+    end
+end 
+
+
+
+function Activate_Debug_Mode()
+
+    if im.IsKeyPressed(ctx, im.Key_D) and Mods == Shift + Alt then
+        DebugMode = true
+    end
+end
+
+
+function PrintTraceback(err)
+    local byLine = "([^\r\n]*)\r?\n?"
+    local trimPath = "[\\/]([^\\/]-:%d+:.+)$"
+    local stack = {}
+    for line in string.gmatch(err, byLine) do
+        local str = string.match(line, trimPath) or line
+        stack[#stack + 1] = str
+    end
+    r.ShowConsoleMsg(
+        "Error: " .. stack[1] .. "\n\n" ..
+        "Stack traceback:\n\t" .. table.concat(stack, "\n\t", 3) .. "\n\n" ..
+        "Reaper:       \t" .. r.GetAppVersion() .. "\n" ..
+        "Platform:     \t" .. r.GetOS()
+    )
 end

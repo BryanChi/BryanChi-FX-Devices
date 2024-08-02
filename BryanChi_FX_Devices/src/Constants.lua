@@ -99,3 +99,4 @@ FX_To_Delete_At_Close = {
 
     'JS: FXD ReSpectrum', 'JS: FXD Gain Reduction Scope', 'JS: FXD Split to 4 channels'
 }
+

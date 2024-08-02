@@ -88,7 +88,7 @@ end
 function open_LFO_Win(Track, Macro)
     local tweaking
     -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
-    im.SetNextWindowPos(ctx, HdrPosL, VP.y - 385)
+    im.SetNextWindowPos(ctx, HdrPosL, VP.Y - 385)
     if im.Begin(ctx, 'LFO Shape Edit Window'..Macro, true , im.WindowFlags_NoDecoration+ im.WindowFlags_AlwaysAutoResize) then
 
         

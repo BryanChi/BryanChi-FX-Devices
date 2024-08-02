@@ -1,3 +1,407 @@
+function ThirdPartyDeps()
+    local ultraschall_path = r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
+    local readrum_machine = r.GetResourcePath() ..
+        "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
+
+    local version = tonumber(string.sub(r.GetAppVersion(), 0, 4))
+    --reaper.ShowConsoleMsg((version))
+
+    local fx_browser_path
+    local n, arch = r.GetAppVersion():match("(.+)/(.+)")
+    local fx_browser_v6_path
+
+    if n:match("^7%.") then
+        fx_browser = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
+        fx_browser_reapack = '"sexan fx browser parser v7"'
+    else
+        fx_browser = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
+        fx_browser_v6_path = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
+        fx_browser_reapack = '"sexan fx browser parser v6"'
+    end
+    --local fx_browser_v6_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_Parser.lua"
+    --local fx_browser_v7_path = reaper.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
+
+    local reapack_process
+    local repos = {
+        { name = "Sexan_Scripts",   url = 'https://github.com/GoranKovac/ReaScripts/raw/master/index.xml' },
+        { name = "Suzuki Scripts",  url = 'https://github.com/Suzuki-Re/Suzuki-Scripts/raw/master/index.xml' },
+        { name = "Ultraschall-API", url = 'https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/raw/master/ultraschall_api_index.xml' },
+    }
+
+    for i = 1, #repos do
+        local retinfo, url, enabled, autoInstall = r.ReaPack_GetRepositoryInfo(repos[i].name)
+        if not retinfo then
+            retval, error = r.ReaPack_AddSetRepository(repos[i].name, repos[i].url, true, 0)
+            reapack_process = true
+        end
+    end
+
+    -- ADD NEEDED REPOSITORIES
+    if reapack_process then
+        r.ShowMessageBox("Added Third-Party ReaPack Repositories", "ADDING REPACK REPOSITORIES", 0)
+        r.ReaPack_ProcessQueue(true)
+        reapack_process = nil
+    end
+
+    if not reapack_process then
+        local deps = {}
+        -- FX BROWSER
+        if r.file_exists(fx_browser) then
+            dofile(fx_browser)
+        else
+            deps[#deps + 1] = fx_browser_reapack
+        end
+        -- js extension
+        if r.APIExists("JS_ReaScriptAPI_Version") then
+            local js_extension = true
+        else
+            deps[#deps + 1] = '"js_ReascriptAPI"'
+        end
+        -- ReaDrum Machine
+        if r.file_exists(readrum_machine) then
+            local found_readrum_machine = true
+        else
+            deps[#deps + 1] = '"readrum machine"'
+        end
+        -- ULTRASCHALL
+        if r.file_exists(ultraschall_path) then
+            dofile(ultraschall_path)
+        else
+            deps[#deps + 1] = '"ultraschall"'
+        end
+
+        if #deps ~= 0 then
+            r.ShowMessageBox("Need Additional Packages.\nPlease Install it in next window", "MISSING DEPENDENCIES", 0)
+            r.ReaPack_BrowsePackages(table.concat(deps, " OR "))
+            return true
+        end
+    end
+end
+
+function Default_Values()
+
+    FX_Add_Del_WaitTime = 2
+    LFO = { Win = { w = 400, h = 300 }, CtrlNodeSz = 6, NodeSz = 6, Def = { Len = 4 } }
+
+    LFOwin = { w = 400, h = 300 }
+
+    Default_FX_Width = 200
+    GapBtwnPrmColumns = 10
+    --Sequencer -----
+    StepSEQ_W = 20
+    StepSEQ_H = 100
+    SEQ_Default_Num_of_Steps = 8
+    SEQ_Default_Denom = 1
+
+    Knob_DefaultFontSize = 10
+    LBL_DefaultFontSize = 10
+    Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_W = 160, Dvdr_Width = 15, Dvdr_Hvr_W = 0 }
+end 
+
+
+function Create_Empty_Tables()
+    FXGUID = {}
+    -----------------------------------------
+    -----FX layering
+    -----------------------------------------
+    Lyr = {
+        Selected = {},
+        title = {},
+        ProgBarClick = {},
+        Title = {},
+        ProgBarVal = {},
+        SpltrID = {},
+        Count = {},
+        Solo = {},
+        Mute = {},
+        Rename = {},
+        FX_Ins = {},
+        ProgBarDrag = {},
+        EditingTitle = {},
+        LastFXPos = {},
+        FrstFXPos = {},
+        SplitrAttachTo = {},
+        PrevFX = {},
+        TitleToShow = {},
+    }
+
+    Spltr = {}
+
+
+    LE = { GridSize = 10, Sel_Items = {}, ChangeR_Bound = {} }
+    ----Preset Morph--------------
+    PresetMorph = { timer = 0 }
+
+    --- FX Chain -----------------------------
+    FXchain = { FxGUID = {}, wait = 0, }
+
+
+    ----track--------------------------------
+    Trk = {
+        GUID = {},
+        Prm = { FXGUID = {}, Inst = {}, AssignWhich = {}, V = {}, O_V = {}, Num = {}, WhichMcros = {} },
+        FxGUID = {},
+        PreFX = {}
+    }
+
+    ------------------Divider---------------
+    Dvdr = { Width = {}, Clr = {}, Spc_Hover = {}, RestoreNormWidthWait = 0, RestoreNormWidthWait = {}, JustDrop = {}, }
+
+
+    --------Pro C ------------------------
+    ProC = { Width = 280, Pt = { R = { m = {}, M = {} }, L = { m = {}, M = {} } } }
+
+
+    ------- Pro Q -------------------------
+    ProQ = {}
+
+
+    ------------------- Macros --------------------------
+    Mc = { Val_Trk = {}, V_Out = { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Name = {} }
+    Wet = { DragLbl = {}, Val = {}, P_Num = {} }
+    MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8 }
+
+    ClrPallet = {}
+    Glob = {} ---@class GLOB
+    Sel_Cross = {}
+    ToDef = {}
+    DraggingFXs = {}; DraggingFXs_Idx = {}
+    LO = {}; -- layout for plugins
+    VP = {} -- viewport info
+    -- demo = {}
+    app = {}
+    enum_cache = {}
+    cache = {}
+    Draw = {
+        Rect = {},
+        DrawMode = {},
+        ItemInst = {},
+        L = {},
+        R = {},
+        Y = {},
+        T = {},
+        B = {},
+        FxGUID = {},
+        Time = 0,
+        Df_EdgeRound = {}
+    }
+    AddFX = { Pos = {}, Name = {}, GUID = {} }
+    DelFX = { Pos = {}, Name = {} }
+    MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {} }
+
+
+    ----------Parameters --------------------
+    Prm = {
+        McroModAmt = {},
+        McroModAmt_Norm = {},
+        Pos_L = {},
+        Pos_T = {},
+        Pos_R = {},
+        Pos_B = {},
+        ModAngle = {},
+        SldrGrabXPos = {},
+        Val = {},
+        NameS = {},
+        FXGUID = {},
+        InstAdded = {},
+        Init_Val = {},
+        Num = {},
+        TrkID = {},
+        Deletable = {},
+        Name = {}
+    }
+
+    -----------------------------------------
+    -----Param Modulations
+    -----------------------------------------
+    PM = { Ins = {}, FXGUID = {}, Corres_Glob_ID = {}, HasMod = {}, Final_V = {}, DIY_TrkID = {} }
+
+end
+
+function PluginScripts()
+
+
+    PluginScript = {} ---@class PluginScript
+    ----- Get plugin scripts path -------
+    pluginScriptPath = CurrentDirectory .. 'src/FX Layout Plugin Scripts'
+    ---List of Plugin Scripts for FXD
+    PluginScripts = scandir(pluginScriptPath)
+    for i, v in ipairs(PluginScripts) do
+        if not v:find('.lua') then
+            PluginScripts[i] = nil
+        else
+            PluginScripts[i] = v:sub(0, v:find('.lua') - 1)
+        end
+    end
+
+end
+
+function Customizable_Colors()
+        ----------- Custom Colors-------------------
+    CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
+    'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP',
+    'FX_Adder_LV2',
+    'PLink', 'PLink_Edge_DarkBG', 'PLink_Edge_LightBG',
+    'RDM_BG', 'RDM_VTab', 'RDM_VTab_Highlight', 'RDM_VTab_Highlight_Edge', 'RDM_PadOff', 'RDM_PadOn', 'RDM_Pad_Highlight',
+    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move', 'Container_Accent_Clr' }
+    CustomColorsDefault = {
+    Window_BG = 0x000000ff,
+    FX_Devices_Bg = 0x151515ff,
+    FX_Layer_Container_BG = 0x262626ff,
+    Space_Between_FXs = 0x131313ff,
+    Morph_A = 0x22222266,
+    Morph_B = 0x78787877,
+    Layer_Solo = 0xDADF3775,
+    Layer_Mute = 0xBE01015C,
+    FX_Adder_VST = 0x6FB74BFF,
+    FX_Adder_VST3 = 0xC3DC5CFF,
+    FX_Adder_JS = 0x9348A9FF,
+    FX_Adder_AU = 0x526D97FF,
+    FX_Adder_CLAP = 0xB62424FF,
+    FX_Adder_LV2 = 0xFFA500FF,
+    PLink = 0x1E90FFFF,
+    PLink_Edge_DarkBG = 0x1E90FFFF,
+    PLink_Edge_LightBG = 0x191970FF,
+    RDM_BG = 0x141414ff,
+    RDM_VTab = 0x252525FF,
+    RDM_VTab_Highlight = 0x12345655,
+    RDM_VTab_Highlight_Edge = 0x184673ff,
+    RDM_PadOff = 0xff,
+    RDM_PadOn = 0x123456FF,
+    RDM_Pad_Highlight = 0x256BB155,
+    RDM_Play = 0xff,
+    RDM_Solo = 0xff,
+    RDM_Mute = 0xff,
+    RDM_DnDFX = 0x00b4d8ff,
+    RDM_DnD_Move = 0xFF0000FF;
+    Container_Accent_Clr =  0x49CC85ff ;
+    Container_Accent_Clr_Not_Focused = 0x49CC8577;
+    }
+
+
+end 
+
+
+function Colors()
+
+
+
+    ------- ==  Colors ----------
+
+    Clr = {
+        SliderGrab = 0x309D89ff,
+        Dvdr = {
+            Active = 0x777777aa,
+            In_Layer = 0x131313ff,
+            outline = 0x444444ff
+        }
+
+    }
+
+    CLR_BtwnFXs_Btn_Hover = 0x77777744
+    CLR_BtwnFXs_Btn_Active = 0x777777aa
+    FX_Window_Clr_When_Dragging = 0x44444433
+    FX_Window_Clr_Default = 0x262626ff
+    Btns_Hover_DefaultColor = 0x2d3b3aff
+
+    Btns_DefaultColor = 0x333333ff
+    Btns_ClickedColor = 0x358f8fff
+    BGColor_FXLayeringWindow = 0x262626ff
+
+    Macro1Color = 0xff2121ff
+    Macro2Color = 0xff5521ff
+    Macro3Color = 0xff8921ff
+    Macro4Color = 0xffd321ff
+    Macro5Color = 0xf4ff21ff
+    Macro6Color = 0xb9ff21ff
+    Macro7Color = 0x6fff21ff
+    Macro8Color = 0x21ff6bff
+
+    EightColors = {
+        LowMidSat = {},
+        LowSat = {},
+        MidSat = {},
+        Bright = {},
+        Bright_HighSat = {},
+        HighSat_MidBright = {},
+        bgWhenAsgnMod = {},
+        bgWhenAsgnModAct = {},
+        bgWhenAsgnModHvr = {},
+        LFO = {}
+    }
+
+    -----end of colors--------
+
+    Array_Macro_Colors = {
+        frameBgColor          = {},
+        frameBgHoveredColor   = {},
+        frameBgActiveColor    = {},
+        sliderGrabColor       = {},
+        sliderGrabActiveColor = {}
+    }
+
+
+    x = 0.5
+
+    Cont_Param_Add_Mode = false
+    OffsetForMultipleMOD = 2
+
+    Array = {}
+
+    for a = 1, 8, 1 do
+        table.insert(EightColors.LowSat, HSV(0.08 * (a - 1), 0.25, 0.33, 0.25))
+        table.insert(EightColors.LowMidSat, HSV(0.08 * (a - 1), 0.25, 0.33, 0.5))
+        table.insert(EightColors.MidSat, HSV(0.08 * (a - 1), 0.5, 0.5, 0.5))
+        table.insert(EightColors.Bright, HSV(0.08 * (a - 1), 1, 0.5, 0.2))
+        table.insert(EightColors.Bright_HighSat, HSV(0.08 * (a - 1), 1, 1, 0.9))
+        table.insert(EightColors.HighSat_MidBright, HSV(0.08 * (a - 1), 1, 0.5, 0.5))
+        table.insert(EightColors.bgWhenAsgnMod, HSV(0.08 * (a - 0.7), 0.7, 0.6, 0.2))
+        table.insert(EightColors.bgWhenAsgnModAct, HSV(0.08 * (a - 0.7), 0.8, 0.7, 0.9))
+        table.insert(EightColors.bgWhenAsgnModHvr, HSV(0.08 * (a - 0.7), 1, 0.2, 0.5))
+        table.insert(EightColors.LFO, HSV(0.08 * (a - 1), 0.7, 0.5, 1))
+    end
+end 
+
+function Tables_for_Special_FXs()
+
+
+    -- FXs listed here will not have a fx window in the script UI
+    BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
+    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
+    'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
+    'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
+    'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro'
+    }
+    UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
+    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
+    'JS: FXD ReSpectrum', 'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope', 'JS: FXD Band Joiner',
+    'FXD Split to 32 Channels'
+    }
+
+    SpecialLayoutFXs = { 'VST: FabFilter Pro C 2 ', 'Pro Q 3', 'VST: FabFilter Pro Q 3 ', 'VST3: Pro Q 3 FabFilter',
+    'VST3: Pro C 2 FabFilter', 'AU: Pro C 2 FabFilter' }
+end 
+
+
+function Retrieve_User_Settings()
+
+
+    if r.HasExtState("FXDEVICES", "Settings") then
+        stored_data = r.GetExtState("FXDEVICES", "Settings")
+        if stored_data ~= nil then
+            local storedTable = stringToTable(stored_data)
+            if storedTable ~= nil then
+                Reverse_Scroll = storedTable.reverse_scroll
+                Ctrl_Scroll = storedTable.ctrl_scroll
+                ProC.GR_NATIVE = storedTable.proc_gr_native
+                ProQ.Analyzer = storedTable.proq_analyzer
+                --Use_SystemFont = storedTable.use_systemfont
+            end
+        end
+    end
+end 
+
 function Retrieve_All_Saved_Data_Of_Project()
 
     NumOfTotalTracks = r.CountTracks(0)
@@ -455,3 +859,106 @@ function Retrieve_Keyboard_Shortcut_Settings()
         return KB_Shortcut, Command_ID
     end
 end
+
+
+
+
+function FX_State_Table()
+        -----------------FX State-----------------
+    FX = {
+        Enable = {},
+        InLyr = {},
+        Width = {},
+        Collapse = {},
+        LyrNum = {},
+        Win = {},
+        Win_Name = {},
+        Def_Type = {},
+        Win_Name_S = {},
+        TitleWidth = {},
+        Sldr_W = {},
+        WidthCollapse = {},
+        Round = {},
+        GrbRound = {},
+        BgClr = {},
+        Def_Sldr_W = {},
+        Prm = {
+            V_Round = {},
+            V_FontSize = {},
+            ShowCondition = {},
+            ConditionPrm = {},
+            ConditionPrm_V = {},
+            Switch_W = {},
+            Combo_W = {},
+            Options = {},
+            BgClrHvr = {},
+            BgClrAct = {},
+            Lbl_Clr = {},
+            V_Clr = {},
+            DragDir = {},
+            Lbl_Pos = {},
+            V_Pos = {},
+            Style = {},
+            GrbClr = {},
+            BgClr = {},
+            Count = {},
+            Name = {},
+            Num = {},
+            V = {},
+            InitV = {},
+            AssignWhichParam = {},
+            ToTrkPrm = {},
+            Lbl = {},
+            PosX = {},
+            PosY = {},
+            VertSldr = {},
+            Type = {},
+            CustomLbl = {},
+            FontSize = {},
+            Sldr_H = {}
+        }
+    }
+end 
+
+
+
+
+
+function Retrieve_All_Info_Needed_Before_Main_Loop()
+    ThirdPartyDeps()
+    Default_Values()
+    Create_Empty_Tables()
+    Customizable_Colors()
+    Retrieve_User_Settings()
+    Colors()
+    FX_State_Table()
+    Tables_for_Special_FXs()
+    Retrieve_All_Saved_Data_Of_Project()
+
+
+    attachImagesAndFonts()
+    PluginScripts()
+
+    FX_LIST, CAT = ReadFXFile()
+    if not FX_LIST or not CAT then
+        FX_LIST, CAT = MakeFXFiles()
+    end
+
+
+    FLT_MIN, FLT_MAX = im.NumericLimits_Float()
+    NumOfTotalTracks = r.CountTracks(0)
+    Sel_Track = r.GetSelectedTrack(0, 0)
+    if Sel_Track  then Sel_Track_FX_Count = r.TrackFX_GetCount(Sel_Track) end
+    ---------------------------------------------------------------
+    -----------Retrieve Keyboard Shortcut Settings ----------------
+    ---------------------------------------------------------------
+    KB_Shortcut, Command_ID = Retrieve_Keyboard_Shortcut_Settings()
+    KB_Shortcut = KB_Shortcut or {}
+    Command_ID = Command_ID or {}
+
+    FirstLoop = true
+    FX_DeviceWindow_NoScroll = 0
+
+    os_separator = package.config:sub(1, 1)
+
+end 

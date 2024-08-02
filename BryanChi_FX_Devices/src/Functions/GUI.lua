@@ -3653,3 +3653,48 @@ function Draw_Simple_Knobs_Arc (center, clr, radius)
     im.DrawList_PathStroke(draw_list, clr, nil, radius * 0.6)
     im.DrawList_PathClear(draw_list)
 end 
+
+
+function CreateSpace_first(FX_Idx, FxGUID)
+    if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
+        if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
+            and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted
+            and string.find(FX_Name, 'RackMixer') == nil
+            and FX_Idx ~= RepeatTimeForWindows                   --not last fx
+            and not FX[FxGUID].InWhichBand --[[Not in Band Split]] then
+            local Idx = FX_Idx
+            if FX_Idx == 1 then
+                local Nm = FX.Win_Name[0]
+                if Nm == 'JS: FXD Macros' or FindStringInTable(BlackListFXs, Nm) then Idx = 0 end
+            end
+            local CurX = im.GetCursorPosX(ctx)
+
+            local SpcW = AddSpaceBtwnFXs(Idx)
+        elseif FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID[FX_Idx] and FXGUID[FX_Idx] then
+            AddSpaceBtwnFXs(FX_Idx, true)
+        elseif FX_Idx == RepeatTimeForWindows then
+        end
+    end
+end
+
+
+
+function If_No_LT_Track()
+
+    if  LT_Track == nil then
+        local Viewport = im.GetWindowViewport(ctx)
+        im.DrawList_AddTextEx(VP.FDL, Font_Andale_Mono_20_B, 20, VP.X, VP.Y + VP.h / 2, 0xffffffff, 'Select a track to start')
+    end 
+
+end 
+
+
+function If_New_FX_Is_Added()
+
+
+        -- if new fx is added
+    if RepeatTimeForWindows ~= r.TrackFX_GetCount(LT_Track) and not layoutRetrieved then
+        RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+        --TREE = BuildFXTree(tr)
+    end
+end 

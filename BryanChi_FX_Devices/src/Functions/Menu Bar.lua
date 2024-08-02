@@ -74,6 +74,40 @@ function Record_Last_Touch_Btn()
 
     if im.IsItemClicked(ctx, 1) then Cont_Param_Add_Mode = toggle(Cont_Param_Add_Mode) end
 
+    if Cont_Param_Add_Mode == true then
+        --TimeAfter_ContAdd= TimeAfter_ContAdd+1
+
+        GetLT_FX_Num()
+        GetLTParam()
+        tooltip('Continuously Adding Last Touched Parameters..')
+
+        local F = FX[LT_FXGUID] or {}; local RptPrmFound
+        if LT_FXGUID and type(F) == 'table' then
+            for i, v in ipairs(F) do
+                F[i] = F[i] or {}
+                if F[i].Num == LT_ParamNum then
+                    RptPrmFound = true
+                    TryingToAddExistingPrm_Cont = i .. LT_FXGUID; TryingToAddExistingPrm = nil
+                    TimeNow = r.time_precise()
+                end
+            end
+            if not RptPrmFound then
+                StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum,
+                    true)
+            end
+        end
+    else
+        TryingToAddExistingPrm_Cont = nil
+    end
+
+
+     -- if action to record last touch is triggered
+     if r.GetExtState('FXD', 'Record last touch') ~= '' then
+        if not IsPrmAlreadyAdded(true) then
+            StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true)
+        end
+        r.SetExtState('FXD', 'Record last touch', '', false)
+    end
 end 
 
 function Envelope_Btn()
@@ -158,4 +192,17 @@ function ShowTrackName(Condition)
     if Condition then 
         im.Text(ctx, TrkName)
     end
+end 
+
+
+
+
+function GetAllMods( )
+    Mods  = im.GetKeyMods(ctx)
+    Alt   = im.Mod_Alt
+    Ctrl  = im.Mod_Ctrl
+    Shift = im.Mod_Shift
+    Apl   = im.Mod_Super
+
+   
 end 
