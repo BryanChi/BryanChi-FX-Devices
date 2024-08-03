@@ -1183,15 +1183,28 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 SL()
 
 
-                local _, W = im.DragDouble(ctx,
-                    '##EditWidth' .. FxGUID .. (LE.Sel_Items[1] or ''),
-                    FX[FxGUID][LE.Sel_Items[1] or ''].Sldr_W or DefaultW, LE.GridSize / 4,
-                    MinW, MaxW,
-                    '%.1f')
+                local _, W = im.DragDouble(ctx, '##EditWidth' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Sldr_W or DefaultW, LE.GridSize / 4, MinW, MaxW, '%.1f')
 
                 if im.IsItemEdited(ctx) then
                     for i, v in pairs(LE.Sel_Items) do
+                        if FX[FxGUID][v].Draw then 
+                            local dif = W-FX[FxGUID][v].Sldr_W 
+                            for i, v in ipairs(FX[FxGUID][v].Draw)  do
+                                local function Adjust_Width_Synced_Properties(Name)
+                                    if v[Name..'_WS'] then 
+                                        v[Name] = v[Name] + dif
+                                    end 
+                                end
+                                Adjust_Width_Synced_Properties('Rad_In')
+                                Adjust_Width_Synced_Properties('Rad_Out')
+                                Adjust_Width_Synced_Properties('Width')
+                                
+
+                                
+                            end
+                        end 
                         FX[FxGUID][v].Sldr_W = W
+                        
                     end
                 end
 
@@ -2057,13 +2070,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 --[[ if im.IsItemHovered(ctx) then
                                     tooltip('How much the value is affected by parameter"\"s value ')
                                 end ]]
-
-                                local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow)
+                                local WidthSyncBtnSz = 100
+                                local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn)
                                     local Column = 1
                                     if Name:find('_VA') then Column = 2 end
                                     im.TableSetColumnIndex(ctx, Column)
+                                    local itmW = WidthSyncBtn and -WidthSyncBtnSz or -FLT_MIN
 
-                                    im.PushItemWidth(ctx, -FLT_MIN)
+                                    im.PushItemWidth(ctx, itmW)
+
 
                                     local FORMAT = format
                                     if not D[Name .. '_GR'] and not D[Name] and not defaultV then
@@ -2114,6 +2129,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                         im.EndPopup(ctx)
                                     end
 
+
+                                    if WidthSyncBtn then 
+                                        SL()
+                                        _ , D[Name..'_WS'] = im.Checkbox(ctx, 'Width Sync ##'..Name,  D[Name..'_WS']) 
+                                    end 
+
                                     if Name:find('_VA') or NextRow then im.TableNextRow(ctx) end
 
                                     return im.IsItemActive(ctx)
@@ -2122,7 +2143,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                 im.TableSetupColumn(ctx, '##')
                                 im.TableSetupColumn(ctx, 'Values')
-                                im.TableSetupColumn(ctx, 'Affected Amount')
+                                im.TableSetupColumn(ctx, 'Affected By Value')
+
                                 im.TableNextRow(ctx, im.TableRowFlags_Headers)
 
 
@@ -2150,7 +2172,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 AddVal('Y_Offset', 0, LE.GridSize, -220, 220, nil)
                                 AddVal('Y_Offset_VA')
                                 if SetRowName(WidthLBL, BL_Width) then
-                                    AddVal('Width', nil, WidthStepSize, -Win_W, Win_W, nil)
+                                    AddVal('Width', nil, WidthStepSize, -Win_W, Win_W, nil , nil, true)
                                     AddVal('Width_VA', 0, 0.01, -1, 1)
                                 end --[[ local rv, R =  AddRatio('Width' ) if rv then D.Width = R end   ]]
                                 if SetRowName('Height', BL_Height) then
@@ -2183,13 +2205,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     AddVal('Angle_Max', 2.25, 0.01, 0, 3.14, '%.3f', true)
                                 end
                                 if SetRowName('Radius Inner', nil, RadiusInOut) then
-                                    AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.3f', true)
+                                    AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true)
                                 end
                                 if SetRowName('Radius Outer', nil, RadiusInOut) then
-                                    AddVal( 'Rad_Out', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.3f', true)
+                                    AddVal( 'Rad_Out', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true,true )
                                 end
                                 if SetRowName('Radius', nil, Radius) then
-                                    AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.3f', true)
+                                    AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true )
                                 end
 
                                 if SetRowName('Thickness', nil, Thick) then
@@ -2503,16 +2525,16 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
     local p_value = p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
+    msg('radius_outer = '..radius_outer)
     local FP = FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
     if LblTextSize ~= 'No Font' then
         Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
         V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-        
         im.PushFont(ctx, _G[Font])
     end
     local Radius       = Radius or 0
-
+    msg('Rad = '..radius_outer)
     local pos          = { im.GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
@@ -2651,11 +2673,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             local offset; local TxtClr = 0xD9D9D9ff
             if labeltoShow == 'Release' then offset = 5 else offset = nil end
 
-            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-                FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
-            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin *
-                radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
-                FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
+                msg('Minimal   X = '.. center[1]..'  Y = '.. center[2] )
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
             local TextW, h = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
             if Disabled == 'Pro C Ratio Disabled' then
                 local CompStyle = 'CompStyle##Value'
@@ -5412,7 +5432,6 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         local function Mouse_Interaction()
             local S = ResizeNode_sz
             --- if mouse is on an item
-            if Hover_On_Resize_Handle() then ttp('a') end 
             if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
                 if MouseX > L and MouseX < R - S and MouseY > T and MouseY < B and  not Hover_On_Resize_Handle() then
 
@@ -5657,9 +5676,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         local function Marquee_Select_Items()
 
             if  im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-
                 --if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
-
                 if im.IsMouseClicked(ctx,1) then 
                     Marq_Start = {im.GetMousePos(ctx)}
                     if Mods ~= Shift then 

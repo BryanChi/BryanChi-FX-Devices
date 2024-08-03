@@ -986,16 +986,19 @@ local function extract_enclosed_text(input_string)
     end
 end
 
-function Draw_Attached_Drawings(FP,FX_Idx)
+function Draw_Attached_Drawings(FP,FX_Idx, pos)
                             
     if FP.Draw then
         local prm = FP
+        
+        local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
+        local x, y              = pos[1], pos[2]
+        
+        local Val = prm.V  or 0 
+        if DraggingMorph == FXGUID[FX_Idx] then
+            Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
+        end
 
-
-        local Val = Prm.V  or 0 
-            if DraggingMorph == FxGUID then
-                Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
-            end
         local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
             if rpt and rpt ~= 0 then
                 local RPT = rpt
@@ -1010,16 +1013,13 @@ function Draw_Attached_Drawings(FP,FX_Idx)
             end
         end
 
-
-
-
-        local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
-        local x, y              = im.GetItemRectMin(ctx)
-
+        
         for i, v in ipairs(FP.Draw) do
-            
+
             local x                 = x + (v.X_Offset or 0) + (Val * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
             local y                 = y + (v.Y_Offset or 0) + (Val * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
+            
+          
             local Thick             = (v.Thick or 2)
             local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
             local Clr_VA
@@ -1139,9 +1139,9 @@ function Draw_Attached_Drawings(FP,FX_Idx)
                 end
             elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle'or v.Type == 'Knob Circle Filled' then
                 local w, h = im.GetItemRectSize(ctx)
-                local x, y = x + w / 2 + (v.X_Offset or 0), y + h / 2 + (v.Y_Offset or 0)
-                local y = y-2.5   --- Idk why but it needs this to align with the knobs drawn by addknob funciton
-
+                local h = w 
+                local x, y = x + w / 2 + (v.X_Offset or 0), y + w / 2 + (v.Y_Offset or 0)
+               
                 local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
                 local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
                 local t = (Val- 0) / (1 - 0)
@@ -1158,7 +1158,7 @@ function Draw_Attached_Drawings(FP,FX_Idx)
                 elseif v.Type == 'Knob Range' then
                     local function AddRange(G)
                         for i = IN, OUT, (1 + (v.Gap or 0)) do
-                            im.DrawList_PathArcTo(WDL, x, y-4 --[[ !!! not sure why but adding this will align it with circle ]], i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
+                            im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
                             im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                             im.DrawList_PathClear(WDL)
                         end
@@ -1696,7 +1696,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if im.IsKeyPressed(ctx, im.Key_Equal) then
                     LE.GridSize = LE.GridSize + 5
                 elseif im.IsKeyPressed(ctx, im.Key_Minus) then
-                    LE.GridSize = LE.GridSize - 5
+                    LE.GridSize = math.max(LE.GridSize - 5, 5)
                 end
 
                 for i = 0, FX[FXGUID[FX_Idx]].Width or DefaultWidth, LE.GridSize do
@@ -1707,8 +1707,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         Win_T + i, Win_R, Win_T + i, 0x44444455)
                 end
 
-                im.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B,
-                    0x66666677, 1)
+                im.DrawList_AddLine(WinDrawList, Win_R - 3, Win_T, Win_R - 3, Win_B, 0x66666677, 1)
 
 
                 if im.IsMouseHoveringRect(ctx, Win_R - 5, Win_T, Win_R + 5, Win_B) then
@@ -2429,7 +2428,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                         local function Create_Item()
-                            
+                            local pos =  { im.GetCursorScreenPos(ctx) }
+
                             --- Add Parameter controls ---------
                             if Prm.Type == 'Slider' or (not Prm.Type and not FX.Def_Type[FxGUID]) or FX.Def_Type[FxGUID] == 'Slider' then
                                 AddSlider(ctx, '##' .. (Prm.Name or Fx_P) .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, Prm.Lbl, 8)
@@ -2450,6 +2450,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 AddCombo(ctx, LT_Track, FX_Idx, Prm.Name .. FxGUID .. '## actual', Prm.Num, FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm.Style, FxGUID, Fx_P, FP.ManualValues)
                                 MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Selection', curX, CurY)
                             end
+                            return pos
                         end
 
                         local function Item_Interaction()
@@ -2503,10 +2504,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         ------ EXECUTION -----
 
                         --im.DrawListSplitter_SetCurrentChannel(fx.splitter,1)
-                        Create_Item()
+                        local pos = Create_Item()
                         
                         --im.DrawListSplitter_SetCurrentChannel(fx.splitter, 1)
-                        Draw_Attached_Drawings(FP,FX_Idx)
+                        Draw_Attached_Drawings(FP,FX_Idx, pos)
                         Item_Interaction()
                         Double_Click_To_Reset_Value()
 

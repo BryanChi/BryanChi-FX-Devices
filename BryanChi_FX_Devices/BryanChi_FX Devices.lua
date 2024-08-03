@@ -4,7 +4,9 @@
 -- @changelog
 --  - track modulator LFO : Fix having to touch speed to get LFO to start working.
 --  - Container modulator : Fix the container macro hijacking midi msgs that comes before it.
+--  - New feature!  Layout Editor :  Allow Marquee Selection by right dragging.
 --  - Layout Editor : allow changing multiple items' attached drawing properties at once when multi select
+--  - Layout Editor: fix item moving when changing parameter width by dragging node when it's the only one selected
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -518,68 +520,7 @@ function loop()
 
             end
 
-            local function When_User_Swtich_Track()
-                --when user switch selected track...
-                if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
-                    Sendgmems = nil
-                    
-                    Open_Cont_LFO_Win = nil
-                    if Sendgmems == nil then
-                        r.gmem_attach('ParamValues')
-                        for P = 1, 100, 1 do
-                            r.gmem_write(1000 + P, 0)
-                        end
-                        --[[ if Trk[TrkID].ModPrmInst then
-                            for P=1, Trk[TrkID].ModPrmInst , 1 do
-                                for m =1 , 8, 1 do
 
-                                    local ParamMacroMod_Label= 'Param:'..P..'Macro:'..m
-
-
-                                    if Prm.McroModAmt[ParamMacroMod_Label] ~= nil then
-                                        r.gmem_write( 1000*m+P  ,Prm.McroModAmt[ParamMacroMod_Label])
-                                    end
-
-                                end
-                            end
-                        end ]]
-
-                        for FX_Idx = 0, Sel_Track_FX_Count, 1 do
-                            local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-                            if FxGUID then
-                                for P, v in ipairs(FX[FxGUID]) do
-                                    local FP = FX[FxGUID][P]
-                                    FP.ModAMT = FP.ModAMT or {}
-                                    FP.ModBipolar = FP.ModBipolar or {}
-                                    if FP.WhichCC then
-                                        for m = 1, 8, 1 do
-                                            local Amt = FP.ModAMT[m]
-                                            if FP.ModBipolar[m] then Amt = FP.ModAMT[m] + 100 end
-
-                                            if FP.ModAMT[m] then r.gmem_write(1000 * m + P, Amt) end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-
-
-
-
-                        r.gmem_write(2, PM.DIY_TrkID[TrkID] or 0)
-
-                        Sendgmems = true
-                    end
-
-                    for i=1, 8, 1  do 
-                        if Trk[TrkID].Mod[i] then 
-                            if Trk[TrkID].Mod[i].FOL_PastY then 
-                                Trk[TrkID].Mod[i].FOL_PastY = {}
-                            end 
-                        end 
-                    end
-                end
-            end
 
 
 
@@ -587,7 +528,7 @@ function loop()
             Detect_If_FX_Deleted()
 
 
-            When_User_Swtich_Track()
+            When_User_Switch_Track()
 
             if Sel_Track_FX_Count == 0 then AddSpaceBtwnFXs(0, false, true) end
 
