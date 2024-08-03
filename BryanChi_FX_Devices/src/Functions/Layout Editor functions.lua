@@ -461,7 +461,8 @@ local function AdjustParamWheel(LT_Track, FX_Idx, P_Num)
 end
 
 
-function Layout_Edit_Mode(FX, FX_Idx)
+function Layout_Edit_Properties_Window(fx, FX_Idx)
+
     if FX.LayEdit == FXGUID[FX_Idx] then
         im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
         im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00)
@@ -2125,7 +2126,7 @@ function Layout_Edit_Mode(FX, FX_Idx)
                                 im.TableNextRow(ctx, im.TableRowFlags_Headers)
 
 
-                                local Win_W = FX[FxGUID].Width
+                                local Win_W = FX[FxGUID].Width or DefaultWidth or 220
 
 
                                 im.TableHeadersRow(ctx)
@@ -5347,218 +5348,10 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         local R = L + w; 
         local B =T +h;
         im.DrawList_AddRect(WinDrawList, L, T, R, B, 0x999999ff)
-
-
-
-        for i, v in pairs(LE.Sel_Items) do
-            if Fx_P == v then
-                HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
-                LE.SelectedItemType = ItemType
-            end
-        end
         local LongClickDuration = 0.1
+        local ResizeNode_sz = 5 
 
-
-
-
-        --- if mouse is on an item
-        if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-            if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
-
-                if IsLBtnClicked and Mods == 0 then
-                    if #LE.Sel_Items > 1 then 
-                    else
-                    LE.Sel_Items = {Fx_P}
-                    end
-
-                elseif IsLBtnClicked and Mods == Shift then
-                    local ClickOnSelItem, ClickedItmNum
-                    for i, v in pairs(LE.Sel_Items) do
-                        if v == Fx_P then
-                            ClickedItmNum = i
-                        else
-                        end
-                    end
-                    if ClickedItmNum then
-                        table.remove(LE.Sel_Items, ClickedItmNum)
-                    else
-                        table.insert(LE.Sel_Items,Fx_P)
-                    end
-                end
-
-
-                if IsLBtnClicked then
-                    ClickOnAnyItem = true
-                    FP.PosX = PosX
-                    FP.PosY = PosY
-                
-                    if #LE.Sel_Items > 1 then
-                        LE.ChangePos = LE.Sel_Items
-                    else
-                        LE.ChangePos = Fx_P
-                    end
-                    Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
-
-                end
-
-                
-            end
-        end
-
-
-        if LE.Sel_Items and not im.IsAnyItemActive(ctx) then
-            if im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == 0 then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + LE.GridSize end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == 0 then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - LE.GridSize end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == 0 then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - LE.GridSize end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == 0 then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + LE.GridSize end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == Shift then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + 1 end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == Shift then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - 1 end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == Shift then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - 1 end
-                end
-            elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == Shift then
-                for i, v in ipairs(LE.Sel_Items) do
-                    if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + 1 end
-                end
-            end
-        end
-
-        -- Right Bound
-        if ItemType == 'V-Slider' or ItemType == 'Sldr' or ItemType == 'Drag' or ItemType == 'Selection' then
-            im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 3, 0x999999dd)
-            if MouseX > R - 5 and MouseX < R + 5 and MouseY > T and MouseY < B then
-                im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 4, 0xbbbbbbff)
-                im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
-                if IsLBtnClicked then
-                    local ChangeSelectedItmBounds
-                    for i, v in pairs(LE.Sel_Items) do
-                        if v == Fx_P then
-                            ChangeSelectedItmBounds = true
-                        end
-                    end
-                    if ChangeSelectedItmBounds then
-                        ChangePrmW = 'group'
-                    else
-                        ChangePrmW = Fx_P
-                    end
-                end
-            end
-        elseif ItemType == 'Knob' or (not ItemType and FX.Def_Type[FxGUID] == 'Knob') then
-            im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x999999dd)
-            if MouseX > R - 5 and MouseX < R + 5 and MouseY > B - 5 and MouseY < B + 3 then
-                im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
-                im.DrawList_AddCircleFilled(WinDrawList, R, B, 4, 0xbbbbbbff)
-                if IsLBtnClicked then
-                    local ChangeSelItmRadius
-                    for i, v in pairs(LE.Sel_Items) do
-                        if v == Fx_P then ChangeSelItmRadius = true end
-                    end
-                    if ChangeSelItmRadius then LE.ChangeRadius = 'Group' else LE.ChangeRadius = Fx_P end
-                end
-            end
-        end
-
-
-
-
-        function ChangeParamWidth(Fx_P)
-            im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
-            im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 3, 0x444444ff)
-            local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy = im.GetMouseDelta(
-                ctx)
-
-            if ItemWidth == nil then
-                if ItemType == 'Sldr' or ItemType == 'Drag' then
-                    ItemWidth = 160
-                elseif ItemType == 'Selection' then
-                    ItemWidth = FP.Combo_W
-                elseif ItemType == 'Switch' then
-                    ItemWidth = FP.Switch_W
-                elseif ItemType == 'Knob' then
-                    ItemWidth = Df.KnobRadius
-                elseif ItemType == 'V-Slider' then
-                    ItemWidth = 15
-                end
-            elseif ItemWidth < LE.GridSize and ItemType ~= 'V-Slider' then
-                ItemWidth = LE.GridSize
-            elseif ItemWidth < 5 and ItemType == 'V-Slider' then
-                ItemWidth = 4
-            end
-
-            if Mods == 0 then ItemWidth = ItemWidth + Dx end
-
-            if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
-                FP.Sldr_W = ItemWidth
-            end
-            if LBtnRel and ChangePrmW == Fx_P then
-                FP.Sldr_W = roundUp(FP.Sldr_W, LE
-                    .GridSize)
-            end
-            if LBtnRel then ChangePrmW = nil end
-            AdjustPrmWidth = true
-        end
-
-        function ChangeKnobRadius(Fx_P)
-            im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
-            im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x444444ff)
-            local Dx, Dy = im.GetMouseDelta(ctx)
-            if not FP.Sldr_W then FP.Sldr_W = Df.KnobRadius end
-            local DiagDrag = (Dx + Dy) / 2
-            if Mods == 0 then
-                FP.Sldr_W = FP.Sldr_W + DiagDrag;
-            end
-            if LBtnRel and LE.ChangeRaius == Fx_P then
-                FP.Sldr_W = roundUp(FP.Sldr_W,
-                    LE.GridSize / 2)
-            end
-            if LBtnRel then LE.ChangeRadius = nil end
-            ClickOnAnyItem = true
-            FP.Sldr_W = math.max(FP.Sldr_W, 10)
-        end
-
-        if LE.ChangeRadius == Fx_P then
-            ChangeKnobRadius(Fx_P)
-        elseif LE.ChangeRadius == 'Group' then
-            for i, v in pairs(LE.Sel_Items) do
-                if v == Fx_P then
-                    ChangeKnobRadius(v)
-                end
-            end
-        end
-
-
-        if ChangePrmW == 'group' then
-            for i, v in pairs(LE.Sel_Items) do
-                if v == Fx_P then
-                    ChangeParamWidth(v)
-                end
-            end
-        elseif ChangePrmW == Fx_P then
-            ChangeParamWidth(Fx_P)
-        end
-
-
-
-        function ChangeItmPos()
+        local function ChangeItmPos()
             if LBtnDrag and not im.IsAnyItemActive(ctx) and not LE.ChangingTitleSize     then
                 HintMessage = 'Ctrl = Lock Y Axis | Alt = Lock X Axis | Shift = Disable grid snapping '
                 local Dx, Dy = im.GetMouseDelta(ctx)
@@ -5592,31 +5385,338 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             end
         end 
 
-        if LE.ChangePos == Fx_P then
-         
-            ChangeItmPos()
-        elseif LBtnDrag and type(LE.ChangePos) == 'table' then
-            for i, v in pairs(LE.ChangePos) do
-                if v == Fx_P then
-                    ChangeItmPos()
+
+        local function Highlight_Selected_Itms()
+            for i, v in pairs(LE.Sel_Items) do
+                if Fx_P == v then
+                    HighlightSelectedItem(0x66666644, 0xffffffff, 0, L, T, R, B, h, w, 5, 4)
+                    LE.SelectedItemType = ItemType
                 end
             end
         end
-        local LBtnRel = im.IsMouseReleased(ctx, 0)
-        
-        if LBtnRel and LE.ChangePos == Fx_P  then 
-           
-            Qunantize_Item_Pos_To_Grid(FP)
 
-        elseif LBtnRel and tablefind(LE.ChangePos, Fx_P)  then  
-                
-            for i, v in pairs(LE.ChangePos) do
-                Qunantize_Item_Pos_To_Grid(FX[FxGUID][v])
-            
+        local function Hover_On_Resize_Handle()
+            local S = ResizeNode_sz
+            if ItemType == 'V-Slider' or ItemType == 'Sldr' or ItemType == 'Drag' or ItemType == 'Selection' then
+                if MouseX > R - S and MouseX < R + S and MouseY > T and MouseY < B then
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
+                    return true 
+                end
+            elseif ItemType == 'Knob' or (not ItemType and FX.Def_Type[FxGUID] == 'Knob') then
+                if MouseX > R - S and MouseX < R + S and MouseY > B - S and MouseY < B + S then
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
+                    return true 
+                end
             end
-            
-            LE.ChangePos = nil
         end
+        local function Mouse_Interaction()
+            local S = ResizeNode_sz
+            --- if mouse is on an item
+            if Hover_On_Resize_Handle() then ttp('a') end 
+            if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
+                if MouseX > L and MouseX < R - S and MouseY > T and MouseY < B and  not Hover_On_Resize_Handle() then
+
+                    if IsLBtnClicked and Mods == 0 then
+                        if #LE.Sel_Items > 1 then 
+                        else
+                        LE.Sel_Items = {Fx_P}
+                        end
+
+                    elseif IsLBtnClicked and Mods == Shift then
+                        local ClickOnSelItem, ClickedItmNum
+                        for i, v in pairs(LE.Sel_Items) do
+                            if v == Fx_P then
+                                ClickedItmNum = i
+                            else
+                            end
+                        end
+                        if ClickedItmNum then
+                            table.remove(LE.Sel_Items, ClickedItmNum)
+                        else
+                            table.insert(LE.Sel_Items,Fx_P)
+                        end
+                    end
+
+                    if IsLBtnClicked and not ChangePrmW then
+                        ClickOnAnyItem = true
+                        FP.PosX = PosX
+                        FP.PosY = PosY
+
+                            if #LE.Sel_Items > 1 then
+                                LE.ChangePos = LE.Sel_Items
+                            else
+                                LE.ChangePos = Fx_P
+                            end
+
+                        Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
+
+                    end
+
+                    
+                end
+            end
+        end
+
+        local function Allow_Use_Keyboard_To_Edit()
+
+            if LE.Sel_Items and not im.IsAnyItemActive(ctx) then
+                if im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == 0 then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + LE.GridSize end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == 0 then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - LE.GridSize end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == 0 then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - LE.GridSize end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == 0 then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + LE.GridSize end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == Shift then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + 1 end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == Shift then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - 1 end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == Shift then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - 1 end
+                    end
+                elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == Shift then
+                    for i, v in ipairs(LE.Sel_Items) do
+                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + 1 end
+                    end
+                end
+            end
+        end
+
+
+        local function Item_Resize_Handles()
+
+
+
+            -- Right Bound
+            if ItemType == 'V-Slider' or ItemType == 'Sldr' or ItemType == 'Drag' or ItemType == 'Selection' then
+                im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 3, 0x999999dd)
+                if MouseX > R - 5 and MouseX < R + 5 and MouseY > T and MouseY < B then
+                    im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 4, 0xbbbbbbff)
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
+                    if IsLBtnClicked then
+                        local ChangeSelectedItmBounds 
+                        if #LE.Sel_Items > 1 then 
+                            for i, v in pairs(LE.Sel_Items) do
+                                if v == Fx_P then
+                                    ChangeSelectedItmBounds = true
+                                end
+                            end
+                            if ChangeSelectedItmBounds then
+                                ChangePrmW = 'group'
+                            end
+                        else
+                            ChangePrmW = Fx_P
+                        end
+                    end 
+                end
+            elseif ItemType == 'Knob' or (not ItemType and FX.Def_Type[FxGUID] == 'Knob') then
+                im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x999999dd)
+                if MouseX > R - 5 and MouseX < R + 5 and MouseY > B - 5 and MouseY < B + 3 then
+                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
+                    im.DrawList_AddCircleFilled(WinDrawList, R, B, 4, 0xbbbbbbff)
+                    if IsLBtnClicked then
+                        local ChangeSelItmRadius
+                        for i, v in pairs(LE.Sel_Items) do
+                            if v == Fx_P then ChangeSelItmRadius = true end
+                        end
+                        if ChangeSelItmRadius then LE.ChangeRadius = 'Group' else LE.ChangeRadius = Fx_P end
+                    end
+                end
+            end
+
+            --[[ if Hover_On_Resize_Handle() and IsLBtnClicked then 
+                local ChangeSelItmRadius
+                for i, v in pairs(LE.Sel_Items) do
+                    if v == Fx_P then ChangeSelItmRadius = true end
+                end
+                if ChangeSelItmRadius then LE.ChangeRadius = 'Group' else LE.ChangeRadius = Fx_P end
+
+            end 
+ ]]
+        end
+
+        function ChangeParamWidth(Fx_P)
+            im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
+            im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 3, 0x444444ff)
+            local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy = im.GetMouseDelta( ctx)
+
+            if ItemWidth == nil then
+                if ItemType == 'Sldr' or ItemType == 'Drag' then
+                    ItemWidth = 160
+                elseif ItemType == 'Selection' then
+                    ItemWidth = FP.Combo_W
+                elseif ItemType == 'Switch' then
+                    ItemWidth = FP.Switch_W
+                elseif ItemType == 'Knob' then
+                    ItemWidth = Df.KnobRadius
+                elseif ItemType == 'V-Slider' then
+                    ItemWidth = 15
+                end
+            elseif ItemWidth < LE.GridSize and ItemType ~= 'V-Slider' then
+                ItemWidth = LE.GridSize
+            elseif ItemWidth < 5 and ItemType == 'V-Slider' then
+                ItemWidth = 4
+            end
+
+            if Mods == 0 then ItemWidth = ItemWidth + Dx end
+
+            if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
+                FP.Sldr_W = ItemWidth
+            end
+            if LBtnRel and ChangePrmW == Fx_P then
+                FP.Sldr_W = roundUp(FP.Sldr_W, LE .GridSize)
+            end
+            if LBtnRel then ChangePrmW = nil end
+            AdjustPrmWidth = true
+        end
+
+        function ChangeKnobRadius(Fx_P)
+            im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
+            im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x444444ff)
+            local Dx, Dy = im.GetMouseDelta(ctx)
+            if not FP.Sldr_W then FP.Sldr_W = Df.KnobRadius end
+            local DiagDrag = (Dx + Dy) / 2
+            if Mods == 0 then
+                FP.Sldr_W = FP.Sldr_W + DiagDrag;
+            end
+            if LBtnRel and LE.ChangeRaius == Fx_P then
+                FP.Sldr_W = roundUp(FP.Sldr_W,
+                    LE.GridSize / 2)
+            end
+            if LBtnRel then LE.ChangeRadius = nil end
+            ClickOnAnyItem = true
+            FP.Sldr_W = math.max(FP.Sldr_W, 10)
+        end
+
+        local function Change_Size_or_Move()
+
+            if LE.ChangeRadius == Fx_P then
+                ChangeKnobRadius(Fx_P)
+            elseif LE.ChangeRadius == 'Group' then
+                for i, v in pairs(LE.Sel_Items) do
+                    if v == Fx_P then
+                        ChangeKnobRadius(v)
+                    end
+                end
+            end
+    
+    
+            if ChangePrmW == 'group' then
+                for i, v in pairs(LE.Sel_Items) do
+                    if v == Fx_P then
+                        ChangeParamWidth(v)
+                    end
+                end
+            elseif ChangePrmW == Fx_P then
+                ChangeParamWidth(Fx_P)
+            end
+    
+            
+            if LE.ChangePos == Fx_P then
+             
+                ChangeItmPos()
+            elseif LBtnDrag and type(LE.ChangePos) == 'table' then
+                for i, v in pairs(LE.ChangePos) do
+                    if v == Fx_P then
+                        ChangeItmPos()
+                    end
+                end
+            end
+            local Rl = im.IsMouseReleased(ctx, 0)
+            
+            if Rl and LE.ChangePos == Fx_P  then 
+               
+                Qunantize_Item_Pos_To_Grid(FP)
+    
+            elseif Rl and tablefind(LE.ChangePos, Fx_P)  then  
+                    
+                for i, v in pairs(LE.ChangePos) do
+                    Qunantize_Item_Pos_To_Grid(FX[FxGUID][v])
+                
+                end
+            end 
+            if Rl then 
+                LE.ChangePos = nil
+            end
+        end
+
+        local function Marquee_Select_Items()
+
+            if  im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
+
+                --if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
+
+                if im.IsMouseClicked(ctx,1) then 
+                    Marq_Start = {im.GetMousePos(ctx)}
+                    if Mods ~= Shift then 
+                        LE.Sel_Items ={}
+                    end
+                end 
+
+                if im.IsMouseDown(ctx,1)  then 
+                    local S = Marq_Start --Start
+                    local N = {im.GetMousePos(ctx)} --now
+                    local ItmCtX = L+ (R-L)/2
+                    local ItmCtY = T+ (B-T)/2
+
+                    local minX = math.min(S[1], N[1])
+                    local minY = math.min(S[2], N[2])
+                    im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff38)
+                    im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffffff)
+                    -- if marquee covers item center
+
+
+                    if minX+ math.abs(S[1]- N[1]) > ItmCtX and minX < ItmCtX 
+                        and minY+ math.abs(S[2] - N[2]) > ItmCtY and minY < ItmCtY   then 
+
+                        if not FindExactStringInTable(LE.Sel_Items , Fx_P) then 
+                            table.insert(LE.Sel_Items , Fx_P)
+                        end 
+
+                    end 
+                else 
+
+                    Marq_Start = nil
+
+                end 
+
+
+
+                --end
+            end
+        end
+
+
+
+
+
+
+
+        Item_Resize_Handles()
+
+        Highlight_Selected_Itms()
+        Mouse_Interaction()
+        Allow_Use_Keyboard_To_Edit()    
+        Change_Size_or_Move()
+        Marquee_Select_Items()
+
+
+
+        
         
 
     end

@@ -566,6 +566,8 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             if im.Button(ctx, 'Layout Edit mode', -FLT_MIN) then
                 if not FX.LayEdit then
                     FX.LayEdit = FxGUID
+
+                    
                 else
                     FX.LayEdit = false
                 end
@@ -1233,7 +1235,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     if not FxGUID then return end 
     FX[FxGUID] = FX[FxGUID] or {}
     local fx = FX[FxGUID]
-    
+    Layout_Edit_Properties_Window(fx,FX_Idx)
 
     FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)

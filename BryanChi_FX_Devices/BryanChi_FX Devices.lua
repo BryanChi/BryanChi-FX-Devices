@@ -65,16 +65,11 @@ require("src.Functions.Execute Before Loop")
 require("src.Functions.Menu Bar")
 
 
---------------------------==  Before GUI (No Loop) ----------------------------
-
 
 GetLTParam()
 
 ctx = im.CreateContext('FX Devices', im.ConfigFlags_DockingEnable)
 Retrieve_All_Info_Needed_Before_Main_Loop()
-
-
----------------------------- End For Before GUI ----------------------------
 
 
 function loop()
