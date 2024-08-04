@@ -1,4 +1,36 @@
 -- @noindex
+Size_Sync_Properties= {'Width_SS', 'Rad_In_SS', 'Rad_Out_SS'}  --- used when user drag node to resize items
+
+function Sync_Size_Height_Synced_Properties(FP, diff)
+    if FP.Draw then     
+        for I, V in ipairs(FP.Draw) do 
+            for i, v in ipairs(Size_Sync_Properties) do 
+                if V[v] then 
+                    V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff
+                else
+                end
+            end 
+        end 
+    end 
+end
+
+
+
+function Sync_Height_Synced_Properties(FP, diff, Table)
+    if FP.Draw  then  
+        local rt = 2    
+        if FP.Type == 'V-Slider' then
+            rt = 1 
+        end
+        for I, V in ipairs(FP.Draw) do 
+            if V.Height_SS then 
+                V.Height =  V.Height + diff * rt
+            end
+        end
+    end 
+end
+
+
 
 local function GetPayload()
     local retval, dndtype, payload = im.GetDragDropPayload(ctx)
@@ -536,7 +568,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         I.V_Pos_X     = CopyPrm.V_Pos_X
                         I.V_Pos_Y     = CopyPrm.V_Pos_Y
                         I.ImagePath   = CopyPrm.ImagePath
-                        I.Height = CopyPrm.Height
+                        I.Height      = CopyPrm.Height
                         if CopyPrm.Draw then
                             -- use this line to pool
                             --I.Draw = CopyPrm.Draw
@@ -1187,24 +1219,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                 if im.IsItemEdited(ctx) then
                     for i, v in pairs(LE.Sel_Items) do
-                        if FX[FxGUID][v].Draw then 
-                            local dif = W-FX[FxGUID][v].Sldr_W 
-                            for i, v in ipairs(FX[FxGUID][v].Draw)  do
-                                local function Adjust_Width_Synced_Properties(Name)
-                                    if v[Name..'_WS'] then 
-                                        v[Name] = v[Name] + dif
-                                    end 
-                                end
-                                Adjust_Width_Synced_Properties('Rad_In')
-                                Adjust_Width_Synced_Properties('Rad_Out')
-                                Adjust_Width_Synced_Properties('Width')
-                                
-
-                                
-                            end
-                        end 
+                        Sync_Size_Height_Synced_Properties(FX[FxGUID][v], W - FX[FxGUID][v].Sldr_W)
                         FX[FxGUID][v].Sldr_W = W
-                        
                     end
                 end
 
@@ -1219,14 +1235,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         max = 200
                         defaultH = 160
                     end
-                    local _, W = im.DragDouble(ctx,
-                        '##Height' .. FxGUID .. (LE.Sel_Items[1] or ''),
-                        FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or 3,
-                        LE.GridSize / 4,
-                        -5, max or 40, '%.1f')
+                    local _, W = im.DragDouble(ctx, '##Height' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or 3, LE.GridSize / 4, -5, max or 40, '%.1f')
                     if im.IsItemEdited(ctx) then
                         for i, v in pairs(LE.Sel_Items) do
+                            local w = FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or 3
+                            Sync_Height_Synced_Properties(FX[FxGUID][v], W-w, Height_Sync_Properties)
+
                             FX[FxGUID][v].Height = W
+
+
                         end
                     end
                 end
@@ -2132,7 +2149,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                     if WidthSyncBtn then 
                                         SL()
-                                        _ , D[Name..'_WS'] = im.Checkbox(ctx, 'Size Sync ##'..Name,  D[Name..'_WS']) 
+                                        _ , D[Name..'_SS'] = im.Checkbox(ctx, 'Size Sync ##'..Name,  D[Name..'_SS']) 
+
+
                                     end 
 
                                     if Name:find('_VA') or NextRow then im.TableNextRow(ctx) end
@@ -2176,7 +2195,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     AddVal('Width_VA', 0, 0.01, -1, 1)
                                 end --[[ local rv, R =  AddRatio('Width' ) if rv then D.Width = R end   ]]
                                 if SetRowName('Height', BL_Height) then
-                                    AddVal('Height', 0, LE.GridSize, -220, 220, nil)
+                                    AddVal('Height', 0, LE.GridSize, -220, 220, nil, nil, true )
                                     AddVal('Height_VA', 0, 0.01, -1, 1)
                                 end
                                 if SetRowName('Repeat', BL_Repeat) then
@@ -2229,9 +2248,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end ]]
                                 SetRowName('Color')
                                 im.TableSetColumnIndex(ctx, 1)
-                                if D.Repeat and D.Repeat ~= 0 then
-                                    
-                                end
+
                                 
                                 local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
                                 if rv then D.Clr = Clr end
@@ -4092,7 +4109,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         --local FxGUID = FXGUID[FX_Idx]
         local FP = FX[FxGUID][Fx_P]
         im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
-
+        
 
         if FX[FxGUID].Morph_Value_Edit or (Mods == Alt + Ctrl and is_hovered) then im.BeginDisabled(ctx) end
         local radius_outer = 20.0
@@ -4805,30 +4822,37 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                             FP.Draw[D] = FP.Draw[D] or {}
                                             local d = FP.Draw[D]
 
-                                            local function RC(name, type)
-                                                return RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                                            local function RC(name, type, omit_if_0)
+                                                local out = RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                                                if omit_if_0 and out == 0 then 
+                                                    out = nil 
+                                                end
+                                                return out
                                             end
 
                                             d.Type = RC('Type')
-                                            d.X_Offset = RC('X Offset', 'Num')
+                                            d.X_Offset = RC('X Offset', 'Num', true )
                                             d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
                                             d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
-                                            d.Y_Offset = RC('Y offset', 'Num')
+                                            d.Y_Offset = RC('Y offset', 'Num', true)
                                             d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
                                             d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
                                             d.Width = RC('Width', 'Num')
+                                            d.Width_SS = RC('Width SS', 'Bool')
                                             d.Width_VA = RC('Width Value Affect', 'Num')
                                             d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
                                             d.Clr = RC('Color', 'Num')
                                             d.Clr_VA = RC('Color_VA', 'Num')
-
                                             d.FillClr = RC('Fill Color', 'Num')
                                             d.Angle_Min = RC('Angle Min', 'Num')
                                             d.Angle_Max = RC('Angle Max', 'Num')
                                             d.Rad_In = RC('Radius Inner', 'Num')
+                                            d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
                                             d.Rad_Out = RC('Radius Outer', 'Num')
+                                            d.Rad_Out_SS = RC('Radius Outer SS', 'Bool')
                                             d.Height = RC('Height', 'Num')
                                             d.Height_VA = RC('Height_VA', 'Num')
+                                            d.Height_SS = RC('Height SS', 'Bool')
                                             d.Height_VA_GR = RC('Height_VA GR', 'Num')
                                             d.Round = RC('Round', 'Num')
                                             d.Thick = RC('Thick', 'Num')
@@ -5162,9 +5186,13 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             if type(i) ~= 'number' and i then
                 i = 1; FP = {}
             end
-            local function write(Name, Value)
-                if Value then
-                    file:write(i .. '. ' .. Name, ' = ', Value or '', '\n')
+            local function write(Name, v)
+                if v then
+
+                    if type(v)=='boolean' then 
+                        v = tostring(v)
+                    end 
+                    file:write(i .. '. ' .. Name, ' = ', v or '', '\n')
                 end
             end
 
@@ -5283,6 +5311,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
                     WRITE('Y Offset Value Affect', v.Y_Offset_VA)
                     WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
                     WRITE('Width', v.Width)
+                    WRITE('Width SS', v.Width_SS)
                     WRITE('Width Value Affect', v.Width_VA)
                     WRITE('Width Value Affect GR', v.Y_Offset_VA_GR)
                     WRITE('Color', v.Clr)
@@ -5291,9 +5320,13 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
                     WRITE('Angle Min', v.Angle_Min)
                     WRITE('Angle Max', v.Angle_Max)
                     WRITE('Radius Inner', v.Rad_In)
+                    WRITE('Radius Inner SS', v.Rad_In_SS)
                     WRITE('Radius Outer', v.Rad_Out)
+                    WRITE('Radius Outer SS', v.Rad_Out_SS)
                     WRITE('Thick', v.Thick)
                     WRITE('Height', v.Height)
+                    WRITE('Height SS', v.Height_SS)
+
                     WRITE('Height_VA', v.Height_VA)
                     WRITE('Height_VA GR', v.Height_VA_GR)
                     WRITE('Round', v.Round)
@@ -5314,6 +5347,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
                     WRITE('Y_Gap_VA GR', v.Y_Gap_VA_GR)
                     WRITE('RPT_Clr', v.RPT_Clr)
                     WRITE('Image_Path', v.FilePath)
+
                 end
             end
         end
@@ -5585,6 +5619,8 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
  ]]
         end
 
+
+
         function ChangeParamWidth(Fx_P)
             im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
             im.DrawList_AddCircleFilled(WinDrawList, R, T + h / 2, 3, 0x444444ff)
@@ -5608,13 +5644,19 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 ItemWidth = 4
             end
 
-            if Mods == 0 then ItemWidth = ItemWidth + Dx end
+            if Mods == 0 then 
+                ItemWidth = ItemWidth + Dx 
+                Sync_Size_Height_Synced_Properties(FP, Dx)
+            end
 
             if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
                 FP.Sldr_W = ItemWidth
             end
             if LBtnRel and ChangePrmW == Fx_P then
+                local w = FP.Sldr_W 
                 FP.Sldr_W = roundUp(FP.Sldr_W, LE .GridSize)
+                local dif = FP.Sldr_W - w
+                Sync_Size_Height_Synced_Properties(FP, dif)
             end
             if LBtnRel then ChangePrmW = nil end
             AdjustPrmWidth = true
@@ -5628,10 +5670,10 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             local DiagDrag = (Dx + Dy) / 2
             if Mods == 0 then
                 FP.Sldr_W = FP.Sldr_W + DiagDrag;
+                Sync_Size_Height_Synced_Properties(FP,DiagDrag)
             end
             if LBtnRel and LE.ChangeRaius == Fx_P then
-                FP.Sldr_W = roundUp(FP.Sldr_W,
-                    LE.GridSize / 2)
+                FP.Sldr_W = roundUp(FP.Sldr_W, LE.GridSize / 2)
             end
             if LBtnRel then LE.ChangeRadius = nil end
             ClickOnAnyItem = true

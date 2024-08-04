@@ -1047,7 +1047,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos)
             if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
                 local w = v.Width or im.GetItemRectSize(ctx)
                 local h = v.Height or select(2, im.GetItemRectSize(ctx))
-
+                
                 local x2 = x + w
                 local y2 = y + h
                 local GR = GR or 0
