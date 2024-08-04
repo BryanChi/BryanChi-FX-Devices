@@ -1975,7 +1975,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 'Gain Reduction Text' }
                             local Thick = { 'Knob Pointer', 'Line', 'Rect', 'Circle' }
                             local Round = { 'Rect', 'Rect Filled' }
-                            local Gap = { 'Circle', 'Circle Filled', 'Knob Range' }
+                            local Gap = { 'Circle', 'Circle Filled'}
                             local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Circle Filled',
                                 'Knob Image' }
                             local RadiusInOut = { 'Knob Pointer', 'Knob Range' }
@@ -2086,14 +2086,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     end
 
 
-                                    local rv, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name .. '_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
+                                    local tweak_Drag, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name .. '_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
 
-                                    if rv and not D[Name .. '_GR'] then
+                                    if tweak_Drag and not D[Name .. '_GR'] then
                                         for I, v in ipairs ( LE.Sel_Items) do 
                                             FX[FxGUID][v].Draw[i][Name] = V
                                         end 
                                         --[[ D[Name] = V ]]
-                                    elseif rv and D[Name .. '_GR'] then
+                                    elseif tweak_Drag and D[Name .. '_GR'] then
                                         D[Name .. '_GR'] = V; D[Name] = nil
                                     end
 
@@ -2132,12 +2132,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                     if WidthSyncBtn then 
                                         SL()
-                                        _ , D[Name..'_WS'] = im.Checkbox(ctx, 'Width Sync ##'..Name,  D[Name..'_WS']) 
+                                        _ , D[Name..'_WS'] = im.Checkbox(ctx, 'Size Sync ##'..Name,  D[Name..'_WS']) 
                                     end 
 
                                     if Name:find('_VA') or NextRow then im.TableNextRow(ctx) end
 
-                                    return im.IsItemActive(ctx)
+                                    return tweak_Drag
                                 end
 
 
@@ -2205,10 +2205,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     AddVal('Angle_Max', 2.25, 0.01, 0, 3.14, '%.3f', true)
                                 end
                                 if SetRowName('Radius Inner', nil, RadiusInOut) then
-                                    AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true)
+                                    if AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true) then 
+                                        D.Rad_Out = math.max(D.Rad_Out, D.Rad_In+0.1)
+                                    end
                                 end
                                 if SetRowName('Radius Outer', nil, RadiusInOut) then
-                                    AddVal( 'Rad_Out', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true,true )
+                                    if AddVal( 'Rad_Out', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true,true ) then 
+                                        D.Rad_In = math.min(D.Rad_In, D.Rad_Out-0.1)
+                                    end 
                                 end
                                 if SetRowName('Radius', nil, Radius) then
                                     AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true )
@@ -2225,26 +2229,40 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end ]]
                                 SetRowName('Color')
                                 im.TableSetColumnIndex(ctx, 1)
+                                if D.Repeat and D.Repeat ~= 0 then
+                                    
+                                end
                                 
                                 local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
                                 if rv then D.Clr = Clr end
+                                if D.Repeat and D.Repeat ~= 0 then
+                                    im.AlignTextToFramePadding(ctx)
+                                    SL()
+                                    im.Text(ctx, 'Start')
+                                    SL(nil, 20)
+                                    
+                                    local rv, Clr = im.ColorEdit4(ctx, 'Repeat Color' .. LBL, D.RPT_Clr or 0xffffffff, ClrFLG)
+                                    if rv then D.RPT_Clr = Clr end
+                                    SL()
+                                    im.Text(ctx, 'End')
 
+                                end 
                                 im.TableSetColumnIndex(ctx, 2)
                                 local rv, Clr_VA = im.ColorEdit4(ctx, 'Color_VA' .. LBL, D.Clr_VA or 0xffffffff, ClrFLG)
                                 if rv then D.Clr_VA = Clr_VA end
 
 
+
                                 im.TableNextRow(ctx)
 
-                                if D.Repeat and D.Repeat ~= 0 then
+                                --[[ if D.Repeat and D.Repeat ~= 0 then
                                     SetRowName('Last Repeat\'s Color')
                                     im.TableSetColumnIndex(ctx, 1)
 
-                                    local rv, Clr = im.ColorEdit4(ctx, 'Repeat Color' .. LBL,
-                                        D.RPT_Clr or 0xffffffff, ClrFLG)
+                                    local rv, Clr = im.ColorEdit4(ctx, 'Repeat Color' .. LBL, D.RPT_Clr or 0xffffffff, ClrFLG)
                                     if rv then D.RPT_Clr = Clr end
                                     im.TableNextRow(ctx)
-                                end
+                                end ]]
 
 
                                 im.EndTable(ctx)
@@ -2525,7 +2543,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
     local p_value = p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
-    msg('radius_outer = '..radius_outer)
+
     local FP = FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
     if LblTextSize ~= 'No Font' then
@@ -2534,7 +2552,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         im.PushFont(ctx, _G[Font])
     end
     local Radius       = Radius or 0
-    msg('Rad = '..radius_outer)
+
     local pos          = { im.GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
@@ -2674,7 +2692,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if labeltoShow == 'Release' then offset = 5 else offset = nil end
 
             im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, FX[FxGUID][Fx_P].BgClr or 0xC7A47399)
-                msg('Minimal   X = '.. center[1]..'  Y = '.. center[2] )
             im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), FX[FxGUID][Fx_P].GrbClr or 0xDBDBDBff, FX[FxGUID][Fx_P].Value_Thick or 2.0)
             local TextW, h = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
             if Disabled == 'Pro C Ratio Disabled' then

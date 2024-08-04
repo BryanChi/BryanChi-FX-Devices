@@ -7,6 +7,7 @@
 --  - New feature!  Layout Editor :  Allow Marquee Selection by right dragging.
 --  - Layout Editor : allow changing multiple items' attached drawing properties at once when multi select
 --  - Layout Editor: fix item moving when changing parameter width by dragging node when it's the only one selected
+--  - Layout Editor: Fix Knob pointer/range/circle alignment
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -67,8 +68,9 @@ require("src.Functions.Execute Before Loop")
 require("src.Functions.Menu Bar")
 
 
-
 GetLTParam()
+--[[ rv,  str = r.GetTrackStateChunk(LT_Track,  'CONTAINER_CFG')
+msg(str) ]]
 
 ctx = im.CreateContext('FX Devices', im.ConfigFlags_DockingEnable)
 Retrieve_All_Info_Needed_Before_Main_Loop()
