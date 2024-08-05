@@ -101,6 +101,7 @@ end
 
 function Create_Empty_Tables()
     FXGUID = {}
+    HelperMsg= { }
     -----------------------------------------
     -----FX layering
     -----------------------------------------
@@ -810,7 +811,9 @@ function attachImagesAndFonts()
         Save   = im.CreateImage(CurrentDirectory .. '/src/Images/save.png'),
         Sine   = im.CreateImage(CurrentDirectory .. '/src/Images/sinewave.png'),
         ModIcon = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon.png'),
-        ModIconHollow = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon hollow.png')
+        ModIconHollow = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon hollow.png'),
+        MouseL = im.CreateImage(CurrentDirectory .. '/src/Images/MouseL.png'),
+        MouseR = im.CreateImage(CurrentDirectory .. '/src/Images/MouseR.png')
     }
     for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)

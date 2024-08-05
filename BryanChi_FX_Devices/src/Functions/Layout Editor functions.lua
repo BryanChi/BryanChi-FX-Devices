@@ -3493,6 +3493,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             --im.EndDisabled(ctx)
             if FX[FxGUID].MorphA[P_Num] and FX[FxGUID].MorphB[P_Num] then
                 HintMessage = 'LMB : adjust A   RMB : adjust B    Alt + Ctrl : Quick Access to morph value edit mode'
+
                 local sizeX, sizeY = im.GetItemRectSize(ctx)
                 local A = SetMinMax(PosL + sizeX * FX[FxGUID].MorphA[P_Num], PosL, PosR)
                 local B = SetMinMax(PosL + sizeX * FX[FxGUID].MorphB[P_Num], PosL, PosR)
@@ -5424,7 +5425,12 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
         local function ChangeItmPos()
             if LBtnDrag and not im.IsAnyItemActive(ctx) and not LE.ChangingTitleSize     then
-                HintMessage = 'Ctrl = Lock Y Axis | Alt = Lock X Axis | Shift = Disable grid snapping '
+                HelperMsg.Need_Add_Mouse_Icon = 'L'
+                HelperMsg.Ctrl_L = 'Lock Y Axis'
+                HelperMsg.Alt_L = 'Lock X Axis'
+                HelperMsg.Shift_L = 'Disable grid snapping'
+
+
                 local Dx, Dy = im.GetMouseDelta(ctx)
                 if Mods == Ctrl or Mods == Ctrl + Shift then
                     Dx = 0

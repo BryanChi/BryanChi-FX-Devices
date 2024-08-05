@@ -265,7 +265,10 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
             end
             im.EndTooltip(ctx)
         end ]]
-        if is_hovered then HintMessage = 'Alt+Right-Click = Delta-Solo' end
+        if is_hovered then 
+            HelperMsg.Alt_R = 'Delta-Solo' 
+            HelperMsg.Need_Add_Mouse_Icon = 'R'
+        end
 
         return ActiveAny, value_changed, p_value
     end
@@ -380,8 +383,13 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
 
         if im.IsItemHovered(ctx) then
-            HintMessage =
-            'Mouse: L=Open FX Window | Shift+L = Toggle Bypass | Alt+L = Delete | R = Collapse | Alt+R = Collapse All'
+            HelperMsg.L = 'Open FX Window'
+            HelperMsg.R = 'Collapse'
+            HelperMsg.Shift_L = 'Toggle Bypass'
+            HelperMsg.Alt_L = 'Delete'
+            HelperMsg.Alt_R = 'Collapse All'
+            HelperMsg.Ctrl_R = 'Open Menu'
+            HelperMsg.Need_separator = true 
         end
 
 
@@ -665,6 +673,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
 
     end
+
 end
 
 ------------- Primitives -------------
@@ -831,10 +840,16 @@ function QuestionHelpObject(str, flags)
 end
 
 ---------- Highlight --------------
-function Highlight_Itm(WDL, FillClr, OutlineClr)
+function Highlight_Itm(WDL, FillClr, OutlineClr, rounding, padding)
     local L, T = im.GetItemRectMin(ctx);
     local R, B = im.GetItemRectMax(ctx);
-
+    if padding then 
+        local p = padding/2
+        L=L-p
+        T=T-p
+        R=R+p
+        B=B+p
+    end 
     if FillClr then im.DrawList_AddRectFilled(WDL, L, T, R, B, FillClr, rounding) end
     if OutlineClr then im.DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding) end
 end
@@ -3701,3 +3716,106 @@ function If_New_FX_Is_Added()
         --TREE = BuildFXTree(tr)
     end
 end 
+
+function MouseBtnIcon(lbl, img)
+    im.BeginDisabled(ctx)
+    im.ImageButton(ctx, lbl ..'## Mouse' , img,12,16, nil,nil,nil,nil,nil,0xffffffff)
+    im.EndDisabled(ctx)
+end
+
+function SetHelperMsg(...)
+    local arg = {...}
+    return  arg
+end
+
+function Show_Helper_Message()
+    if HelperMsg  then
+        local WDL = im.GetWindowDrawList(ctx)
+        local sz = 18
+
+
+        local function Set_Helper_Msg(img, msg, modifier, modifier_str)
+            if not msg then  return end
+            local function AddImg(img)
+                local x , y = im.GetCursorScreenPos(ctx)
+                local y = y - sz/3
+                im.Dummy(ctx, sz,sz*1.4)
+                local w, h = im.GetItemRectSize(ctx)
+                im.DrawList_AddImage(WDL,img  , x, y, x+w, y + h , nil,nil,nil,nil,0xffffffff) --1.4 is the mouse button's x y ratio
+                SL()
+            end
+            if modifier then    
+                if HelperMsg.Need_Add_Mouse_Icon then 
+                    AddImg(Img['Mouse'..HelperMsg.Need_Add_Mouse_Icon])
+                end 
+                MyText('+') SL()
+                MyText( modifier)
+                Highlight_Itm(WDL , nil, im.GetColor(ctx,im.Col_Text), 1, 2)
+
+                SL()
+                --[[ MyText(' : ')
+                SL() ]]
+            end
+            
+            if img then 
+                AddImg(img)
+            end
+            
+            MyText(': '.. msg)
+            SL(nil, sz*1.5 )
+
+            
+        end
+        Set_Helper_Msg(Img.MouseL, HelperMsg.L)
+        Set_Helper_Msg(nil, HelperMsg.Ctrl_L, 'Ctrl')
+        Set_Helper_Msg(nil, HelperMsg.Alt_L, 'Alt')
+        Set_Helper_Msg(nil, HelperMsg.Shift_L, 'Shift')
+
+        if HelperMsg.Need_separator then 
+            MyText('  |  ')
+            SL()
+        end
+        Set_Helper_Msg(Img.MouseR, HelperMsg.R)
+
+        Set_Helper_Msg(nil, HelperMsg.Ctrl_R, 'Ctrl')
+        Set_Helper_Msg(nil, HelperMsg.Alt_R, 'Alt')
+        Set_Helper_Msg(nil, HelperMsg.Shift_R, 'Shift')
+
+
+
+
+
+
+
+            --[[ if HelperMsg.L  then 
+                local x , y = im.GetCursorScreenPos(ctx)
+                local y = y - sz/2
+                im.Dummy(ctx, sz,sz*1.4)
+                local w, h = im.GetItemRectSize(ctx)
+                im.DrawList_AddImage(WDL,Img.MouseL  , x, y, x+w, y + h , nil,nil,nil,nil,0xffffffff) --1.4 is the mouse button's x y ratio
+                SL()
+                
+                MyText(': '.. HelperMsg.L)
+                SL(nil,sz *2)
+            end 
+            if HelperMsg.R then 
+                local x , y = im.GetCursorScreenPos(ctx)
+                local y = y - sz/2
+                im.Dummy(ctx, sz,sz*1.4)
+                local w, h = im.GetItemRectSize(ctx)
+                im.DrawList_AddImage(WDL,Img.MouseR  , x, y, x+w, y + h , nil,nil,nil,nil,0xffffffff) --1.4 is the mouse button's x y ratio
+                SL()
+                
+                MyText(': '.. HelperMsg.R)
+                SL(nil,sz *2)
+            end ]]
+
+
+
+       
+       
+
+
+    end
+
+    end

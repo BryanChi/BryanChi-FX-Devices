@@ -8,6 +8,8 @@
 --  - Layout Editor : allow changing multiple items' attached drawing properties at once when multi select
 --  - Layout Editor: fix item moving when changing parameter width by dragging node when it's the only one selected
 --  - Layout Editor: Fix Knob pointer/range/circle alignment
+--  - Layout editor : Add Size sync for attached drawings
+--  - Nicer looking helper messages with mouse button icons.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -138,7 +140,7 @@ function loop()
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
 
         Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
-        HintMessage = nil
+        HelperMsg= {} 
         GetAllInfoNeededEachLoop()
         TREE = BuildFXTree(LT_Track)
         Add_Del_Move_FX_At_Begining_of_Loop()
@@ -805,11 +807,9 @@ function loop()
 
         --[[ HintPos = HintPost or im.GetCursorPosY(ctx)
         im.SetCursorPosY(ctx, HintPos) ]]
-        if HintMessage then
-            im.Text(ctx, ' !')
-            SL()
-            MyText(HintMessage, Font_Andale_Mono_13, 0xffffff88)
-        end
+        
+
+        Show_Helper_Message()
         if not IsLBtnHeld then
             DraggingFXs = {}
             DraggingFXs_Idx = {}
