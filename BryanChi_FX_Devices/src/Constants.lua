@@ -1,4 +1,10 @@
 r = reaper
+
+COLLAPSED_FX_WIDTH = 27
+
+
+
+
 AllAvailableKeys = {
     ['0'] = r.ImGui_Key_0(),
     ['1'] = r.ImGui_Key_1(),

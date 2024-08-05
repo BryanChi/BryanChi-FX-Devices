@@ -40,7 +40,7 @@
 --   Please check the forum post for info:
 --   https://forum.cockos.com/showthread.php?t=263622
 
-VersionNumber = '1.0beta14.1'
+
 r = reaper
 OS = r.GetOS()
 

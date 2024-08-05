@@ -98,6 +98,14 @@ function Default_Values()
     Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_W = 160, Dvdr_Width = 15, Dvdr_Hvr_W = 0 }
 end 
 
+function GetVersionNum()
+    local script_path = select(2, reaper.get_action_context())
+    local pkg = reaper.ReaPack_GetOwner(script_path)
+    local version = select(7, reaper.ReaPack_GetEntryInfo(pkg))
+    reaper.ReaPack_FreeEntry(pkg)
+    return version 
+end
+
 
 function Create_Empty_Tables()
     FXGUID = {}
@@ -937,10 +945,9 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     FX_State_Table()
     Tables_for_Special_FXs()
     Retrieve_All_Saved_Data_Of_Project()
-
-
     attachImagesAndFonts()
     PluginScripts()
+    VersionNumber = GetVersionNum()
 
     FX_LIST, CAT = ReadFXFile()
     if not FX_LIST or not CAT then

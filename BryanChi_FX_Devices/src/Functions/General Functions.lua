@@ -1126,11 +1126,12 @@ function ToggleCollapseAll(FX_Idx)
     if All_Collapsed == false then
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             FX[FXGUID[i]].Collapse = true
+            FX[FXGUID[i]].Width_Collapse = COLLAPSED_FX_WIDTH
         end
     else -- if all is collapsed
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             FX[FXGUID[i]].Collapse = false
-            FX.WidthCollapse[FXGUID[i]] = nil
+            FX[FXGUID[i]].Width_Collapse = nil
         end
         BlinkFX = FX_Idx
     end
@@ -2242,6 +2243,33 @@ function Add_Del_Move_FX_At_Begining_of_Loop()
 end
 
 
+function quadraticEaseInOut(t)
+-- Define the quadratic easing function
+
+    if t < 0.5 then
+        return 2 * t * t
+    else
+        return -1 + (4 - 2 * t) * t
+    end
+end
+
+
+function Anim_Update(dt, duration,  startValue,endValue, time )
+
+    local time = time + dt
+    if time > duration then
+        time = duration
+    end
+
+    -- Calculate the normalized time
+    local t = time / duration
+    -- Calculate the current value using the easing function
+    local currentValue = quadraticEaseInOut(t) * (endValue - startValue) + startValue
+
+
+    return currentValue, time,  time >=duration
+
+end
 
 
 

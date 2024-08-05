@@ -276,6 +276,7 @@ end
 
 function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer)
     if FX[FxGUID] then
+        local fx = FX[FxGUID]
         if FX[FxGUID].TitleClr then
             WinbtnClrPop = 3
             if not FX[FxGUID].TitleClrHvr then
@@ -335,7 +336,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
             -- im.PopStyleVar(ctx)             --StyleVar#3 POP
         else -- if collapsed
-            FX.WidthCollapse[FxGUID] = 27
+            --[[ fx.Width_Collapse= 27 ]]
             local Name = (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
@@ -353,9 +354,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         if not FX.Enable[FX_Idx] then
             BgClr = 0x00000088
         end
-        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL,
-            FX[FxGUID].Round --[[rounding]])
-
+        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, FX[FxGUID].Round --[[rounding]])
 
         -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
         local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
@@ -365,14 +364,39 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             if R_ClickOnWindowBtn and Mods == Ctrl then
                 im.OpenPopup(ctx, 'Fx Module Menu')
             elseif R_ClickOnWindowBtn and Mods == 0 then
-                FX[FxGUID].Collapse = toggle(FX[FxGUID].Collapse)
-                if not FX[FxGUID].Collapse then FX.WidthCollapse[FxGUID] = nil end
+                fx.Collapse = toggle(fx.Collapse)
+                
+                if not fx.Collapse then fx.Width_Collapse= nil end
+                Animate_FX_Width= toggle(Animate_FX_Width , FxGUID)
+                Anim_Time = 0
             elseif R_ClickOnWindowBtn and Mods == Alt then
                 -- check if all are collapsed
                 BlinkFX = ToggleCollapseAll(FX_Idx)
             end
         end
+        if Animate_FX_Width==FxGUID then 
+            
+            if fx.Collapse then  -- if user is collapsing 
 
+                fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
+                fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth , COLLAPSED_FX_WIDTH, Anim_Time)
+
+                if fx.AnimComplete  then 
+
+                    Animate_FX_Width = nil 
+                    Anim_Time=nil
+                end
+            else        --- if uncollapsing
+
+                fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, COLLAPSED_FX_WIDTH, fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
+
+                if fx.AnimComplete then 
+                    Animate_FX_Width = nil 
+                    fx.Width_Before_Collapse = nil 
+                    Anim_Time=nil
+                end 
+            end
+        end
 
         if WindowBtn and Mods == 0 then
             openFXwindow(LT_Track, FX_Idx)
@@ -1612,6 +1636,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
     FX[FxGUID] = FX[FxGUID] or {}
+    local fx = FX[FxGUID]
 
     local PrmCount = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID))) or 0
     local Def_Sldr_W = 160
@@ -1660,7 +1685,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         --[[ CurPosX = im.GetCursorPosX(ctx)
         im.SetCursorPosX(ctx,VP.X+VP.w- (FX[FxGUID].PostWin_SzX or 0)) ]]
     end
-    local Width = FX.WidthCollapse[FxGUID] or FX[FxGUID].Width or DefaultWidth or 220
+    local Width = fx.Width_Collapse or FX[FxGUID].Width or DefaultWidth or 220
     -- local winFlg = im.ChildFlags_NoScrollWithMouse + im.ChildFlags_NoScrollbar
 
     local dummyH = 220
@@ -1743,7 +1768,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         Win_R or 0, Win_B, 0x00000055)
                     local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy =
                         im.GetMouseDelta(ctx)
-                    if not FX[FxGUID].Width then FX[FxGUID].Width = DefaultWidth end
+                    FX[FxGUID].Width = FX[FxGUID].Width or  DefaultWidth
                     FX[FxGUID].Width = FX[FxGUID].Width + Dx; LE.BeenEdited = true
                 end
                 if not IsLBtnHeld then LE.ResizingFX = nil end
