@@ -176,7 +176,7 @@ function ShowStyleEditor()
     local rv
 
 
-    if not ctx then ctx = im.CreateContext('Style Editor 2') end
+    --if not ctx then ctx = im.CreateContext('Style Editor 2') end
     if not styleEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
     open, OpenStyleEditor = im.Begin(ctx, 'FX Devices Style Editor', OpenStyleEditor,
         im.WindowFlags_TopMost + im.WindowFlags_NoCollapse +
@@ -513,7 +513,7 @@ end
 function Show_KBShortcutEditor()
     local rv
 
-    if not ctx then ctx = im.CreateContext('Shortcut Editor') end
+   -- if not ctx then ctx = im.CreateContext('Shortcut Editor') end
     if not KBEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
     open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor,
         im.WindowFlags_NoCollapse +

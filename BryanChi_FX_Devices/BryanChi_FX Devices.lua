@@ -71,6 +71,8 @@ Retrieve_All_Info_Needed_Before_Main_Loop()
 
 
 function loop()
+    local validctx = r.ImGui_ValidatePtr(ctx,'ImGui_Context*')
+    
     if ChangeFont then
         local ft =  _G[(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)]
         if r.ImGui_ValidatePtr(ft, 'ImGui_Font') then 
@@ -91,8 +93,8 @@ function loop()
     end  ]]    
     GetLT_FX_Num()
     GetLTParam()
-    
-    CheckDnDType(ctx) -- Defined in Layout Editor functions
+
+    --CheckDnDType() -- Defined in Layout Editor functions
     
     local focused_window, hwnd = GetFocusedWindow()
 
@@ -112,7 +114,7 @@ function loop()
     im.PushStyleColor(ctx, im.Col_MenuBarBg, TrkClr or 0x00000000)
     im.PushStyleColor(ctx, im.Col_WindowBg, Window_BG or CustomColorsDefault.Window_BG)
     --------------------------==  BEGIN GUI----------------------------------------------------------------------------
-    local visible, open = im.Begin(ctx, 'FX Devices', true, im.WindowFlags_NoScrollWithMouse + im.WindowFlags_NoScrollbar + im.WindowFlags_MenuBar + im.WindowFlags_NoCollapse + im.WindowFlags_NoNav)
+    local visible, open = im.Begin(ctx, 'FX Devices', true, im.WindowFlags_NoScrollWithMouse | im.WindowFlags_NoScrollbar | im.WindowFlags_MenuBar | im.WindowFlags_NoCollapse | im.WindowFlags_NoNav)
     im.PopStyleColor(ctx, 2) -- for menu  bar and window BG
 
     local Viewport = im.GetWindowViewport(ctx)
@@ -391,7 +393,7 @@ function loop()
         Scroll_Main_Window_With_Mouse_Wheel()
             
 
-        MainWin_Flg = im.WindowFlags_HorizontalScrollbar + FX_DeviceWindow_NoScroll
+        MainWin_Flg = im.WindowFlags_HorizontalScrollbar | FX_DeviceWindow_NoScroll
 
         if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 240, nil, MainWin_Flg) then
             ------------------------------------------------------
@@ -815,10 +817,10 @@ function loop()
         im.SetNextWindowSize(ctx, 500, 440, im.Cond_FirstUseEver)
         if LT_Track then FXCountEndLoop = r.TrackFX_GetCount(LT_Track) end
     
-        im.End(ctx)
-    end
-
+    end 
     If_No_LT_Track()
+
+    im.End(ctx)
     
 
     if open then
