@@ -5757,7 +5757,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
                     local minX = math.min(S[1], N[1])
                     local minY = math.min(S[2], N[2])
-                    im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff38)
+                    im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff05)
                     im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffffff)
                     -- if marquee covers item center
 
