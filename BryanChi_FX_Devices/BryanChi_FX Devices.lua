@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.1
+-- @version 1.0beta14.2
 -- @changelog
 --  - track modulator LFO : Fix having to touch speed to get LFO to start working.
 --  - Container modulator : Fix the container macro hijacking midi msgs that comes before it.
