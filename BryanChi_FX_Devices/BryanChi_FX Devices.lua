@@ -1,17 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.2
+-- @version 1.0beta14.2.1
 -- @changelog
---  - track modulator LFO : Fix having to touch speed to get LFO to start working.
---  - Container modulator : Fix the container macro hijacking midi msgs that comes before it.
---  - Container modulator : Fix Container Modulators blocking midi messages that comes before, by setting container's midi output to 'Merge container bus 1 to parent bus 1' rather than 'Replace'.
---  - New feature!  Layout Editor :  Allow Marquee Selection by right dragging.
---  - Layout Editor : allow changing multiple items' attached drawing properties at once when multi select
---  - Layout Editor: fix item moving when changing parameter width by dragging node when it's the only one selected
---  - Layout Editor: Fix Knob pointer/range/circle alignment
---  - Layout editor : Add Size sync for attached drawings
---  - Nicer looking helper messages with mouse button icons.
---  - add  animation when collapsing fx wtih right click  
+--  - change layout editor marquee selection color to more transparent 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
