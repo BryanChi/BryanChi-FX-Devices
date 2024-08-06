@@ -1,7 +1,7 @@
 r = reaper
 
 COLLAPSED_FX_WIDTH = 27
-
+Tooltip= {}
 
 
 

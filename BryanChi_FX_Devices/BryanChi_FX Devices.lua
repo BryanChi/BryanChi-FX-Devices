@@ -138,7 +138,7 @@ function loop()
         GetAllInfoNeededEachLoop()
         TREE = BuildFXTree(LT_Track)
         Add_Del_Move_FX_At_Begining_of_Loop()
-
+        Show_Tooltip_For_Duration(Tooltip.Txt, Tooltip.Dur )
 
 
         ----- Duplicating FX to Layer -------

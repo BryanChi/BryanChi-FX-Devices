@@ -60,6 +60,20 @@ function IconBtn(w, h, icon, BGClr, center, Identifier)
     if im.IsItemActivated(ctx) then return true end
 end
 
+function Show_Tooltip_For_Duration(text, duration )
+    local time = Tooltip.time
+    if text then 
+        Tooltip.time = Tooltip.time + 1 
+        if time < duration then 
+            ttp(text)
+        elseif time > duration then
+            Tooltip.Txt = nil 
+            Tooltip.Dur = nil 
+        end
+    end
+end
+
+
 function HoverHighlightButton(color, label, size_w, size_y)
     im.PushStyleColor(ctx, im.Col_Button, color)
     im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x9999993c)
