@@ -24,7 +24,6 @@ function ThirdPartyDeps()
     local readrum_machine = reaper.GetResourcePath() .. "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
 
     local version = tonumber (string.sub( reaper.GetAppVersion() ,  0, 4))
-    --reaper.ShowConsoleMsg((version))
 
     local fx_browser_path
     local n,arch = reaper.GetAppVersion():match("(.+)/(.+)")
@@ -2920,5 +2919,3 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
     return WinW
 end
-
-

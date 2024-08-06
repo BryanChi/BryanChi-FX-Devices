@@ -295,16 +295,16 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
 
-        if not FX[FxGUID].Collapse and not FX[FxGUID].V_Win_Btn_Height or isContainer then
-            if not FX[FxGUID].NoWindowBtn then
-                local Name = (FX[FxGUID].CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+        if not fx.Collapse and not fx.V_Win_Btn_Height or isContainer then
+            if not fx.NoWindowBtn then
+                local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
                 if DebugMode then Name = FxGUID end
                 WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,
-                    width or FX[FxGUID].TitleWidth or DefaultWidth - 38, 20) -- create window name button
+                    width or fx.TitleWidth or DefaultWidth - 38, 20) -- create window name button
 
 
                 if im.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
-                    FX[FxGUID].TtlHvr = true
+                    fx.TtlHvr = true
                     if not CantAddPrm then
                         TtlR, TtlB = im.GetItemRectMax(ctx)
                         if im.IsMouseHoveringRect(ctx, TtlR - 20, TtlB - 20, TtlR, TtlB) then
@@ -322,22 +322,22 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                         end
                     end
                 else
-                    FX[FxGUID].TtlHvr = nil
+                    fx.TtlHvr = nil
                 end
             end
-        elseif FX[FxGUID].V_Win_Btn_Height and not FX[FxGUID].Collapse then
-            local Name = (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+        elseif fx.V_Win_Btn_Height and not fx.Collapse then
+            local Name = (fx.CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
             -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
             --im.SameLine(ctx, nil, 0)
 
-            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, FX[FxGUID].V_Win_Btn_Height)
+            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
 
             -- im.PopStyleVar(ctx)             --StyleVar#3 POP
         else -- if collapsed
             --[[ fx.Width_Collapse= 27 ]]
-            local Name = (FX[FxGUID].CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+            local Name = (fx.CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
 
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
             im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
@@ -354,7 +354,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         if not FX.Enable[FX_Idx] then
             BgClr = 0x00000088
         end
-        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, FX[FxGUID].Round --[[rounding]])
+        HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
 
         -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
         local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
@@ -452,12 +452,12 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 for i = 0, r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 1, 1 do
                     local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i))
 
-                    if not FX[FxGUID][i + 1] then
+                    if not fx[i + 1] then
                         StoreNewParam(FxGUID, P_Name, i, FX_Idx, true)
                     else
                         local RptPrmFound
-                        for I = 1, #FX[FxGUID], 1 do
-                            if FX[FxGUID][I].Num == i then RptPrmFound = true end
+                        for I = 1, #fx, 1 do
+                            if fx[I].Num == i then RptPrmFound = true end
                         end
 
                         if not RptPrmFound then
@@ -481,7 +481,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
             im.SetNextItemWidth(ctx, 60)
 
-            if not FX[FxGUID].NotFirstOpenPrmWin then
+            if not fx.NotFirstOpenPrmWin then
                 im.SetKeyboardFocusHere(ctx, offsetIn)
             end
 
@@ -491,8 +491,8 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             end
 
             for i = 1, Ct, 1 do
-                if FX[FxGUID][i] and FX[FxGUID][i].Num  then
-                    CheckBox[FX[FxGUID][i].Num] = true
+                if fx[i] and fx[i].Num  then
+                    CheckBox[fx[i].Num] = true
                 end
             end
 
@@ -506,8 +506,8 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                         local RepeatPrmFound
 
                         for I = 1, Ct, 1 do
-                            if FX[FxGUID][I] then
-                                if FX[FxGUID][I].Num == i - 1 then RepeatPrmFound = I end
+                            if fx[I] then
+                                if fx[I].Num == i - 1 then RepeatPrmFound = I end
                             end
                         end
                         if RepeatPrmFound then
@@ -519,50 +519,50 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     end
                 end
             end
-            FX[FxGUID].NotFirstOpenPrmWin = true
+            fx.NotFirstOpenPrmWin = true
             im.EndPopup(ctx)
         elseif AddPrmPopupOpen == FxGUID then
             PrmFilterTxt = nil
-            FX[FxGUID].NotFirstOpenPrmWin = nil
+            fx.NotFirstOpenPrmWin = nil
         end
         
 
         if im.BeginPopup(ctx, 'Fx Module Menu') then
-            if not FX[FxGUID].MorphA then
+            if not fx.MorphA then
                 if im.Button(ctx, 'Preset Morphing', 160) then
-                    FX[FxGUID].MorphA = {}
-                    FX[FxGUID].MorphB = {}
+                    fx.MorphA = {}
+                    fx.MorphB = {}
                     local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
                     for i = 0, PrmCount - 4, 1 do
                         local Prm_Val, minval, maxval = r.TrackFX_GetParamNormalized(
                             LT_Track, FX_Idx, i)
-                        FX[FxGUID].MorphA[i] = Prm_Val
+                        fx.MorphA[i] = Prm_Val
                         r.GetSetMediaTrackInfo_String(LT_Track,
                             'P_EXT: FX Morph A' .. i .. FxGUID, Prm_Val, true)
                     end
                     RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, PrmCount)
                     --[[ r.SetProjExtState(r0oj, 'FX Devices', string key, string value) ]]
-                    FX[FxGUID].MorphHide = nil
+                    fx.MorphHide = nil
                     im.CloseCurrentPopup(ctx)
                 end
             else
-                if not FX[FxGUID].MorphHide then
+                if not fx.MorphHide then
                     if im.Button(ctx, 'Hide Morph Slider', 160) then
-                        FX[FxGUID].MorphHide = true
+                        fx.MorphHide = true
                         r.GetSetMediaTrackInfo_String(LT_Track,
                             'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
                         im.CloseCurrentPopup(ctx)
                     end
                 else
                     if im.Button(ctx, 'Show Morph Slider', 160) then
-                        FX[FxGUID].MorphHide = nil
+                        fx.MorphHide = nil
                         im.CloseCurrentPopup(ctx)
                     end
                 end
             end
 
             im.SameLine(ctx)
-            if not FX[FxGUID].MorphA then
+            if not fx.MorphA then
                
                 im.BeginDisabled(ctx)
                 im.PushStyleColor(ctx, im.Col_Text,
@@ -579,16 +579,16 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                         FxGUID
                 end
                 local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
-                FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
+                fx.PrmList = fx.PrmList or {}
                 for i = 0, Ct - 4, 1 do --get param names
-                    FX[FxGUID].PrmList[i]      = FX[FxGUID].PrmList[i] or {}
+                    fx.PrmList[i]      = fx.PrmList[i] or {}
                     local rv, name             = r.TrackFX_GetParamName(LT_Track,
                         FX_Idx, i)
-                    FX[FxGUID].PrmList[i].Name = name
+                    fx.PrmList[i].Name = name
                 end
                 im.CloseCurrentPopup(ctx)
             end
-            if not FX[FxGUID].MorphA then
+            if not fx.MorphA then
                 im.EndDisabled(ctx)
                 im.PopStyleColor(ctx)
             end

@@ -2089,13 +2089,13 @@ end
 
 
 function Scroll_Main_Window_With_Mouse_Wheel()
-    msg(focused_window)
+
     local focused_window = r.JS_Window_GetTitle(hwnd)
 
     if Wheel_V ~= 0 and not DisableScroll and focused_window == 'FX Devices' then
         r.JS_Window_SetFocus(hwnd)
         if Ctrl_Scroll then
-            msg('a')
+
             if Mods == Ctrl then
                 Horizontal_Scroll(20)
             elseif Mods == Ctrl + Shift then
@@ -2104,7 +2104,7 @@ function Scroll_Main_Window_With_Mouse_Wheel()
                 im.SetNextWindowScroll(ctx, -CursorStartX, 0)
             end
         else
-            msg('anj')
+
             if Mods == 0 then -- 0 = not mods key
                 Horizontal_Scroll(20)
             elseif Mods == Shift then
@@ -2366,4 +2366,112 @@ function PrintTraceback(err)
         "Reaper:       \t" .. r.GetAppVersion() .. "\n" ..
         "Platform:     \t" .. r.GetOS()
     )
+end
+
+
+
+
+function ExtractContainer(chunk, guid)
+    local r_chunk = chunk:reverse()
+    local r_guid = guid:reverse()
+    local s1 = string.find(r_chunk, r_guid, 1, true)
+    if s1 then
+        local s = s1
+        local indent, op, cl = nil, nil, nil
+        while (not indent or indent > 0) do
+            if not indent then indent = 0 end
+            cl = string.find(r_chunk, ('<\n'), s + 1, true) + 1 
+            op = string.find(r_chunk, ('>\n'), s + 1, true)
+            if op ~= nil then
+                op = op + 1
+                if op <= cl then
+                    indent = indent + 1
+                    s = op
+                else
+                    indent = indent - 1
+                    s = cl
+                end
+            else
+                indent = indent - 1
+                s = cl
+            end 
+        end
+        local chain_chunk = string.sub(r_chunk, s1, cl):reverse()
+        --local cont_fx_chunk = "BYPASS 0 0 0" .. chain_chunk .. "\nWAK 0 0" -- you dont need this line for your use
+        local cont_fx_chunk = chain_chunk
+        return cont_fx_chunk
+    end
+end
+
+-- Function to replace numbers
+local function Replace_Numbers_In_A_String(s)
+    local newValue = replacements[index]
+    index = index + 1
+    return tostring(newValue)
+end
+
+
+
+
+
+local text = [[
+Some other text
+CONTAINER_CFG 2 2 2 34
+Some more text
+Another line of text
+]]
+
+
+function Replace_Numbers_In_String(match)
+    local newValue = replacements[index]
+    index = index + 1
+    return tostring(newValue)
+end
+
+function number_Replacement_for_Containers(str, num1, num2, num3 , num4)
+    -- Replacement values
+    local replacements = {num1, num2, num3 , num4}
+    local index = 1
+
+    -- Function to replace numbers
+    local function replaceNumbers(match)
+        local newValue = replacements[index]
+        index = index + 1
+        return tostring(newValue)
+    end
+
+    -- Function to find and replace numbers in the specific line
+    local function findAndReplaceNumbers(text, targetLine)
+        local pattern = targetLine .. " %d+ %d+ %d+ %d+"
+        local line = text:match(pattern)
+        if line then
+            local newLine = string.gsub(line, "%d+", replaceNumbers)
+            text = string.gsub(text, line, newLine)
+        end
+        return text
+    end
+
+
+    
+
+
+    -- Target line to find and modify
+    local targetLine = "CONTAINER_CFG"
+
+
+    -- Perform the replacement
+    local newText = findAndReplaceNumbers(str, targetLine)
+    return newText
+end
+
+
+
+
+function Put_Long_String_Into_Table(chunk)
+    local chunk_lines = {}
+
+    for s in chunk:gmatch("[^\r\n]+") do
+        table.insert(chunk_lines, s)
+    end
+    return chunk_lines
 end

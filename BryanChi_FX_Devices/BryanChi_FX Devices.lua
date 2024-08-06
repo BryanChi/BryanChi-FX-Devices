@@ -4,12 +4,14 @@
 -- @changelog
 --  - track modulator LFO : Fix having to touch speed to get LFO to start working.
 --  - Container modulator : Fix the container macro hijacking midi msgs that comes before it.
+--  - Container modulator : Fix Container Modulators blocking midi messages that comes before, by setting container's midi output to 'Merge container bus 1 to parent bus 1' rather than 'Replace'.
 --  - New feature!  Layout Editor :  Allow Marquee Selection by right dragging.
 --  - Layout Editor : allow changing multiple items' attached drawing properties at once when multi select
 --  - Layout Editor: fix item moving when changing parameter width by dragging node when it's the only one selected
 --  - Layout Editor: Fix Knob pointer/range/circle alignment
 --  - Layout editor : Add Size sync for attached drawings
 --  - Nicer looking helper messages with mouse button icons.
+--  - add  animation when collapsing fx wtih right click  
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -71,8 +73,7 @@ require("src.Functions.Menu Bar")
 
 
 GetLTParam()
---[[ rv,  str = r.GetTrackStateChunk(LT_Track,  'CONTAINER_CFG')
-msg(str) ]]
+
 
 ctx = im.CreateContext('FX Devices', im.ConfigFlags_DockingEnable)
 Retrieve_All_Info_Needed_Before_Main_Loop()
@@ -100,7 +101,7 @@ function loop()
     GetLT_FX_Num()
     GetLTParam()
     
-    CheckDnDType() -- Defined in Layout Editor functions
+    CheckDnDType(ctx) -- Defined in Layout Editor functions
     
     local focused_window, hwnd = GetFocusedWindow()
 

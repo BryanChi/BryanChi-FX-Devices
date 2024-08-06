@@ -4,7 +4,7 @@ function ThirdPartyDeps()
         "/Scripts/Suzuki Scripts/ReaDrum Machine/Suzuki_ReaDrum_Machine_Instruments_Rack.lua"
 
     local version = tonumber(string.sub(r.GetAppVersion(), 0, 4))
-    --reaper.ShowConsoleMsg((version))
+
 
     local fx_browser_path
     local n, arch = r.GetAppVersion():match("(.+)/(.+)")

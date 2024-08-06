@@ -913,7 +913,7 @@ if not FX[FxGUID].Collapse then
                                 MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
                             end
                             --ttp(FP_gain.ModAMT[M])
-                            --msg(FP_gain.V )
+
                             im.DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
                             im.DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
                             im.DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])

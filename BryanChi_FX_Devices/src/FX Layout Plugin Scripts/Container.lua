@@ -3,10 +3,11 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
+
 fx.TitleWidth  = 0
 fx.CustomTitle = fx.Name
 fx.Width = 35
-fx.V_Win_Btn_Height = 130 
+fx.V_Win_Btn_Height = fx.V_Win_Btn_Height or  130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
 
 
@@ -138,8 +139,18 @@ local function SetTypeToLFO(type,i)
         return true 
     end
 end
+local function Set_Midi_Output_To_Bus1() --sets to 'Merge Container Bus1 to parent bus 1'
+    local rv, CHUNK = r.GetTrackStateChunk(LT_Track, "", false)
+    local FXStateChunk, int = ultraschall.GetFXStateChunk(CHUNK,FX_Idx)
+    local tb =  Put_Long_String_Into_Table(FXStateChunk)
+    tb[7] = number_Replacement_for_Containers(tb[7], 2, 2, 2 , 64)
+    local tb = table.concat(tb, '\n')
 
-
+    if  ultraschall.IsValidFXStateChunk(tb) then 
+        local rv,  alteredStateChunk = ultraschall.SetFXStateChunk(CHUNK, tb )
+        r.SetTrackStateChunk( LT_Track, alteredStateChunk, false )
+    end
+end
 
 local function Modulation_Icon(LT_Track, slot)
     im.PushStyleColor ( ctx, im.Col_Button, 0x000000000)
@@ -165,19 +176,25 @@ local function Modulation_Icon(LT_Track, slot)
 
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
             local hide = AddMacroJSFX('JS: FXD Container Macros', slot)
-          
 
-            TREE = BuildFXTree(LT_Track)
+
             if hide then
+
                 local pos  = r.TrackFX_AddByName(LT_Track, 'JS: FXD Container Macros', 0, 0 --[[to query the pos]])
-                if TREE[FX_Idx] and  TREE[FX_Idx].children then 
-                    r.TrackFX_Show(LT_Track, TREE[FX_Idx].children[1].addr_fxid , 2)
+                TREE = BuildFXTree(LT_Track)
+                local id = FX_Idx +1
+                if TREE[id] and  TREE[id].children then 
+                    r.TrackFX_Show(LT_Track, TREE[id].children[1].addr_fxid , 2)
                 end
             end 
             
         end 
+
+
         fx.ModSlots = fx.ModSlots or 4  
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , fx.ModSlots  , true )
+        Set_Midi_Output_To_Bus1()
+
 
     end 
     im.PopStyleColor(ctx)
@@ -194,7 +211,7 @@ local function titleBar()
         im.SetCursorPos(ctx, 3, 165)
 
         Modulation_Icon(LT_Track, fx.LowestID)
-    
+
         im.SetCursorPos(ctx, 3, 135)
         SyncWetValues(FX_Idx)
         
@@ -1805,7 +1822,7 @@ local function MacroKnob(mc, i, Size , TB)
     local I = i +1
     local row = math.ceil ( I /4 )
 
-    if mc.Type =='Macro' and TB then 
+    if mc.Type =='Macro' and TB and TB[1] then 
         mc.Val = mc.Val 
         local Macro_FXid = TB[1].addr_fxid
 

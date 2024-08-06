@@ -685,8 +685,13 @@ function WhenRightClickOnModulators(Macro)
         im.OpenPopup(ctx, Trk[TrkID].Mod[Macro].Type .. Macro .. 'Menu')
     end
     if im.IsItemClicked(ctx, 1) and Mods == 0 then
-        if not AssigningMacro then AssigningMacro = Macro
-        else AssigningMacro = nil
+
+        AssigningMacro = toggle(AssigningMacro , Macro)
+
+
+        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then
+            r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
+            AddMacroJSFX()
         end
     end
     if im.IsItemClicked(ctx, 1) and Mods == Alt then
@@ -1104,7 +1109,7 @@ function Create_Header_For_Track_Modulators()
         local Mc                    = Trk[TrkID].Mod[i]
         local Macro                 = i
 
-        local I, Name, CurX         = Trk[TrkID].Mod[i], nil, im.GetCursorPosX(ctx)
+        local I, Name, CurX         = Mc, nil, im.GetCursorPosX(ctx)
         local frameBgColor          = im.ColorConvertHSVtoRGB((i - 1) / 7.0, 0.5, 0.5, 0.2)
         local frameBgHoveredColor   = im.ColorConvertHSVtoRGB((i - 1) / 7.0, 0.6, 0.5, 0.2)
         local frameBgActiveColor    = im.ColorConvertHSVtoRGB((i - 1) / 7.0, 0.7, 0.5, 0.2)
@@ -1118,43 +1123,39 @@ function Create_Header_For_Track_Modulators()
             im.PushStyleColor(ctx, im.Col_SliderGrab, EightColors.HighSat_MidBright[i])
             im.PushStyleColor(ctx, im.Col_SliderGrabActive, EightColors.Bright_HighSat[i])
 
-            if AssigningMacro == i then
+            --[[ if AssigningMacro == i then
                 im.PushStyleColor(ctx, im.Col_FrameBg, EightColors.HighSat_MidBright[i])
                 im.PushStyleColor(ctx, im.Col_FrameBgHovered, EightColors.bgWhenAsgnModAct[i])
                 PopColorTime = 2
-            end
+            end ]]
             clrPop = 6
-            return PopColorTime
+
         end
 
 
 
-        Trk[TrkID].Mod[i].Type = Trk[TrkID].Mod[i].Type or 'Macro'
-        if Trk[TrkID].Mod[i].Type == 'Macro' then
-            PopColorTime = PushClr(AssigningMacro)
+        Mc.Type = Mc.Type or 'Macro'
+        if Mc.Type == 'Macro' then
+             PushClr(AssigningMacro)
 
             im.TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
             MacroX_Label = 'Macro' .. tostring(MacroNums[i])
-
-
             MacroValueLBL = TrkID .. 'Macro' .. MacroNums[i]
 
             im.PushItemWidth(ctx, -FLT_MIN)
 
             IsMacroSlidersEdited, I.Val = im.SliderDouble(ctx, i .. '##', I.Val, Slider1Min or 0, Slider1Max or 1)
             IsMacroActive = im.IsItemActive(ctx)
-            if IsMacroActive == true then Mc.AnyActive = true end
-            R_ClickOnMacroSliders = im.IsItemClicked(ctx, 1)
-            -- if im.IsItemClicked( ctx,1) ==true and Mods==nil then R_ClickOnMacroSliders = true end
-            if im.IsItemClicked(ctx, 1) == true and Mods == Ctrl then
-                im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
+            if IsMacroActive then 
+                Mc.AnyActive = true 
+                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then
+                    r.TrackFX_SetParamNormalized(LT_Track, 0, v - 1, I.Val)
+                    r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID, I.Val)
+                end
             end
 
-            if AssigningMacro == i then
-                BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink)
-            end
-
-
+            WhenRightClickOnModulators(i)
+            
 
             --- Macro Label
             im.TableSetColumnIndex(ctx, MacroNums[i] * 2 - 1)
@@ -1162,38 +1163,19 @@ function Create_Header_For_Track_Modulators()
             im.PushItemWidth(ctx, -FLT_MIN)
             MacroNameEdited, I.Name = im.InputText(ctx, '##', I.Name or 'Macro ' .. i)
             if MacroNameEdited then
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name,
-                    true)
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name, true)
             end
-
-            if IsMacroActive then
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then
-                    r.TrackFX_SetParamNormalized(LT_Track, 0, v - 1, I.Val)
-                    r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID, I.Val)
-                end
-            else
-            end
-
-
-            if AssigningMacro == i then im.PopStyleColor(ctx, PopColorTime) end
-
-            if R_ClickOnMacroSliders and AssigningMacro == nil and Mods == 0 then
-                AssigningMacro = i
-            elseif R_ClickOnMacroSliders and AssigningMacro ~= nil then
-                AssigningMacro = nil
-            end
-
 
 
 
             im.PopStyleColor(ctx, clrPop)
-        elseif Trk[TrkID].Mod[i].Type == 'env' then
+        elseif Mc.Type == 'env' then
             if Mods == Shift then DragSpeed = 0.0001 else DragSpeed = 0.01 end
-            PopColorTime = PushClr(AssigningMacro)
+            PushClr(AssigningMacro)
             im.TableSetColumnIndex(ctx, (i - 1) * 2)
             im.PushItemWidth(ctx, -FLT_MIN)
             im.SetNextItemWidth(ctx, 60)
-            local Mc = Trk[TrkID].Mod[i]
+            local Mc = Mc
 
             local atk, rel = Mc.atk, Mc.rel
             at, Mc.ATK = im.DragDouble(ctx, '## atk' .. i, Mc.ATK, DragSpeed, 0, 1, '',
@@ -1274,7 +1256,7 @@ function Create_Header_For_Track_Modulators()
 
 
 
-            if AssigningMacro == i then im.PopStyleColor(ctx, 2) end
+
 
             if (RCat or RCrel) and not AssigningMacro and Mods == 0 then
                 AssigningMacro = i
@@ -1288,17 +1270,17 @@ function Create_Header_For_Track_Modulators()
                 end
             end
             im.PopStyleColor(ctx, clrPop)
-        elseif Trk[TrkID].Mod[i].Type == 'Step' then
+        elseif Mc.Type == 'Step' then
             Macros_WDL = Macros_WDL or im.GetWindowDrawList(ctx)
             im.TableSetColumnIndex(ctx, (i - 1) * 2) --im.PushItemWidth( ctx, -FLT_MIN)
-            local Mc = Trk[TrkID].Mod[i]
+            local Mc = Mc
             r.gmem_attach('ParamValues')
             local CurrentPos = r.gmem_read(108 + Macro) + 1 --  +1 because to make zero-based start on 1
 
 
             --im.SetNextItemWidth(ctx, 20)
-            Trk[TrkID].Mod[i].SEQ  = Trk[TrkID].Mod[i].SEQ or {}
-            local S                = Trk[TrkID].Mod[i].SEQ
+            Mc.SEQ  = Mc.SEQ or {}
+            local S                = Mc.SEQ
 
             Trk[TrkID].SEQL        = Trk[TrkID].SEQL or {}
             Trk[TrkID].SEQ_Dnom    = Trk[TrkID].SEQ_Dnom or {}
@@ -1595,7 +1577,7 @@ function Create_Header_For_Track_Modulators()
                     notHoverSEQ_Time = 0
                 end
             end
-        elseif Trk[TrkID].Mod[i].Type == 'Follower' then
+        elseif Mc.Type == 'Follower' then
             im.TableSetColumnIndex(ctx, (i - 1) * 2)
             im.PushItemWidth(ctx, -FLT_MIN)
             im.Button(ctx, '                       ')
@@ -1606,7 +1588,7 @@ function Create_Header_For_Track_Modulators()
             if im.IsItemHovered(ctx) then FolMacroHover = i end
 
             
-            DrawFollowerLine (Trk[TrkID].Mod[i], i)
+            DrawFollowerLine (Mc, i)
 
 
             function openFollowerWin(Track, i)
@@ -1619,7 +1601,7 @@ function Create_Header_For_Track_Modulators()
                 if im.Begin(ctx, 'Follower Windowww' .. i, true, im.WindowFlags_NoResize + im.WindowFlags_NoDocking + im.WindowFlags_NoCollapse + im.WindowFlags_NoScrollbar + im.WindowFlags_NoTitleBar) then
                     im.Text(ctx, 'Speed : ')
                     SL()
-                    local m = Trk[TrkID].Mod[i]
+                    local m = Mc
                     local CurX = im.GetCursorPosX(ctx)
                     retval, m.Smooth = im.DragDouble(ctx, '##Smoothness', m.Smooth or 1, 1, 0, 300,'%.1f')
 
@@ -1684,7 +1666,7 @@ function Create_Header_For_Track_Modulators()
                     notHoverFOL_Time = 0
                 end
             end
-        elseif Trk[TrkID].Mod[i].Type == 'LFO' then
+        elseif Mc.Type == 'LFO' then
             local function ChangeLFO(mode, V, gmem, StrName)
                 r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
                 r.gmem_write(5, i)    -- Tells jsfx which macro
@@ -1786,7 +1768,7 @@ function Create_Header_For_Track_Modulators()
                 -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
                 im.SetNextWindowPos(ctx, HdrPosL, VP.Y - 385)
                 if im.Begin(ctx, 'LFO Shape Edit Window' .. Macro, true, im.WindowFlags_NoDecoration + im.WindowFlags_AlwaysAutoResize) then
-                    local Node = Trk[TrkID].Mod[i].Node
+                    local Node = Mc.Node
                     local function ConverCtrlNodeY(lastY, Y)
                         local Range = (math.max(lastY, Y) - math.min(lastY, Y))
                         local NormV = (math.min(lastY, Y) + Range - Y) / Range
@@ -1952,7 +1934,7 @@ function Create_Header_For_Track_Modulators()
                         end
                     end
 
-                    local Mc = Trk[TrkID].Mod[i]
+                    local Mc = Mc
 
                     Mc.NodeNeedConvert = Mc.NodeNeedConvert or nil
 
@@ -2885,9 +2867,9 @@ function Create_Header_For_Track_Modulators()
             else IsThereEnvOnMacro[i]=0
             end ]]
         function SetTypeToEnv()
-            if Trk[TrkID].Mod[i].Type  ~= 'env' then
+            if Mc.Type  ~= 'env' then
                 if im.Selectable(ctx, 'Set Type to Envelope', false) then
-                    Trk[TrkID].Mod[i].Type = 'env'
+                    Mc.Type = 'env'
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'env', true)
                     r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                     r.gmem_write(4, 4) -- tells jsfx macro type = env
@@ -2897,9 +2879,9 @@ function Create_Header_For_Track_Modulators()
         end
 
         function SetTypeToStepSEQ()
-            if Trk[TrkID].Mod[i].Type  ~= 'Step' then 
+            if Mc.Type  ~= 'Step' then 
                 if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
-                    Trk[TrkID].Mod[i].Type = 'Step'
+                    Mc.Type = 'Step'
                     r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                     r.gmem_write(4, 6) -- tells jsfx macro type = step seq
                     r.gmem_write(5, i)
@@ -2920,21 +2902,21 @@ function Create_Header_For_Track_Modulators()
         end
 
         function SetTypeToFollower()
-            if Trk[TrkID].Mod[i].Type  ~= 'Follower' then 
+            if Mc.Type  ~= 'Follower' then 
                 if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
                     AddMacroJSFX()
                     r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                     r.gmem_write(4, 9) -- tells jsfx macro type = Follower
                     r.gmem_write(5, i) -- tells jsfx which macro
-                    Trk[TrkID].Mod[i].Type = 'Follower'
+                    Mc.Type = 'Follower'
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Follower', true)
                 end
             end
         end
         function SetTypeToMacro()
-            if Trk[TrkID].Mod[i].Type  ~= 'Macro' then 
+            if Mc.Type  ~= 'Macro' then 
                 if im.Selectable(ctx, 'Set Type to Macro', false) then
-                    Trk[TrkID].Mod[i].Type = 'Macro'
+                    Mc.Type = 'Macro'
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Macro', true)
                     r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                     r.gmem_write(4, 5) -- tells jsfx macro type = Macro
@@ -2944,15 +2926,17 @@ function Create_Header_For_Track_Modulators()
             end
         end
         function SetTypeToLFO()
-            if Trk[TrkID].Mod[i].Type == "LFO" then return end 
+            if Mc.Type == "LFO" then return end 
             if im.Selectable(ctx, 'Set Type to LFO', false) then
-                Trk[TrkID].Mod[i].Type = 'LFO'
+                Mc.Type = 'LFO'
                 AddMacroJSFX()
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'LFO', true)
                 r.gmem_write(2,  PM.DIY_TrkID[TrkID])
                 r.gmem_write(4, 12) -- tells jsfx macro type = LFO
                 r.gmem_write(5, i)  -- tells jsfx which macro
                 I.Name = 'LFO ' .. i
+
+
             end
         end
 
@@ -2973,7 +2957,7 @@ function Create_Header_For_Track_Modulators()
                         r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                     end
                 end
-                SetPrmAlias(LT_TrackNum, 1, i, Trk[TrkID].Mod[i].Name or ('Macro' .. i)) -- Change parameter name to alias
+                SetPrmAlias(LT_TrackNum, 1, i, Mc.Name or ('Macro' .. i)) -- Change parameter name to alias
                 r.TrackList_AdjustWindows(false)
                 r.UpdateArrange()
             end

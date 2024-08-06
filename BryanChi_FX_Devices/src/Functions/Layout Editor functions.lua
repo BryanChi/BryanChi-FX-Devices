@@ -494,8 +494,8 @@ end
 
 
 function Layout_Edit_Properties_Window(fx, FX_Idx)
-
-    if FX.LayEdit == FXGUID[FX_Idx] then
+    local FxGUID = r.TrackFX_GetFXGUID( LT_Track, FX_Idx)
+    if FX.LayEdit == FxGUID then
         im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
         im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00)
 
@@ -2391,27 +2391,27 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
 
 
-
-
             for Pal = 1, NumOfColumns or 1, 1 do
                 if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
                     local NumOfPaletteClr = 9
+                    if FX[FxGUID] then 
+                        for i, v in ipairs(FX[FxGUID]) do
 
-                    for i, v in ipairs(FX[FxGUID]) do
-                        local function CheckClr(Clr)
-                            if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
-                                if not tablefind(ClrPallet, Clr) and ClrPallet then
-                                    local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
-                                    if A ~= 0 then
-                                        table.insert(ClrPallet, Clr)
+                            local function CheckClr(Clr)
+                                if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
+                                    if not tablefind(ClrPallet, Clr) and ClrPallet then
+                                        local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
+                                        if A ~= 0 then
+                                            table.insert(ClrPallet, Clr)
+                                        end
                                     end
                                 end
                             end
+                            CheckClr(v.Lbl_Clr)
+                            CheckClr(v.V_Clr)
+                            CheckClr(v.BgClr)
+                            CheckClr(v.GrbClr)
                         end
-                        CheckClr(v.Lbl_Clr)
-                        CheckClr(v.V_Clr)
-                        CheckClr(v.BgClr)
-                        CheckClr(v.GrbClr)
                     end
 
                     if FX.Win_Name_S[FX_Idx] then
