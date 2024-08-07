@@ -5033,7 +5033,7 @@ end
 ---@param TrkID? string
 function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExtState, Fx_P, FX_Idx, TrkID)
     TrkID = TrkID or r.GetTrackGUID(r.GetLastTouchedTrack())
-    if not FxGUID then  Tooltip={ Txt = 'No FX Present'; Dur = 100 ;time=0  } return end 
+    if not FxGUID then  Tooltip={ Txt = 'No FX Present'; Dur = 100 ;time=0 ;clr = 0xD30000ff   } return end 
     --Trk.Prm.Inst[TrkID] = (Trk.Prm.Inst[TrkID] or 0 )+1
     --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Trk Prm Count',Trk.Prm.Inst[TrkID], true )
 

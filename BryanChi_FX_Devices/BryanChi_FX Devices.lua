@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.2.1
+-- @version 1.0beta14.2.2
 -- @changelog
---  - change layout editor marquee selection color to more transparent 
+--  - prevent crashing when user click record last touch without any track fx inserted 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

@@ -65,7 +65,8 @@ function Show_Tooltip_For_Duration(text, duration )
     if text then 
         Tooltip.time = Tooltip.time + 1 
         if time < duration then 
-            ttp(text)
+
+            tooltip(text, Tooltip.clr)
         elseif time > duration then
             Tooltip.Txt = nil 
             Tooltip.Dur = nil 
@@ -833,14 +834,20 @@ end
 
 ---TODO remove this duplicate of tooltip()
 ---@param A string text for tooltip
-function ttp(A)
+function tooltip(A, clr)
     im.BeginTooltip(ctx)
+    if clr then 
+        im.PushStyleColor(ctx, im.Col_Text, clr)
+    end
     im.SetTooltip(ctx, A)
+    if clr then 
+        im.PopStyleColor(ctx)
+    end
     im.EndTooltip(ctx)
 end
 
 ---@param A string text for tooltip
-function tooltip(A)
+function ttp(A)
     im.BeginTooltip(ctx)
     im.SetTooltip(ctx, A)
     im.EndTooltip(ctx)
