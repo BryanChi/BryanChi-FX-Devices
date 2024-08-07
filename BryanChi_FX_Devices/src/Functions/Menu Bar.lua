@@ -59,7 +59,7 @@ function Settings()
         im.EndMenu(ctx)
     end
 
-    if OpenStyleEditor then ShowStyleEditor() end
+    if OpenStyleEditor then OpenStyleEditor = ShowStyleEditor(OpenStyleEditor) end
     if OpenKBEditor then Show_KBShortcutEditor() end     
 end   
 

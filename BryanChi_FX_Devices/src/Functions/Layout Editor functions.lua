@@ -496,6 +496,9 @@ end
 function Layout_Edit_Properties_Window(fx, FX_Idx)
     local FxGUID = r.TrackFX_GetFXGUID( LT_Track, FX_Idx)
     if FX.LayEdit == FxGUID then
+        HelperMsg.R = 'Marquee Select Items'
+        HelperMsg.Shift_R = 'Add Marquee to Selection'
+
         im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
         im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00)
 
@@ -2614,6 +2617,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
     local radius_inner = radius_outer * 0.40
     local ClrBg = im.GetColor(ctx, im.Col_FrameBg)
+
+    local BtnL, BtnT = im.GetItemRectMin(ctx)
+    local BtnR, BtnB = im.GetItemRectMax(ctx)
 
     local function Knob_Interaction()
             
@@ -5758,16 +5764,20 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     local minX = math.min(S[1], N[1])
                     local minY = math.min(S[2], N[2])
                     im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff05)
-                    im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffffff)
-                    -- if marquee covers item center
+                    im.DrawList_AddCircle(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
 
+
+                    -- if marquee covers item center
 
                     if minX+ math.abs(S[1]- N[1]) > ItmCtX and minX < ItmCtX 
                         and minY+ math.abs(S[2] - N[2]) > ItmCtY and minY < ItmCtY   then 
-
+                        im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
+                        
                         if not FindExactStringInTable(LE.Sel_Items , Fx_P) then 
                             table.insert(LE.Sel_Items , Fx_P)
                         end 
+                    elseif FindExactStringInTable(LE.Sel_Items , Fx_P) then
+                        im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
 
                     end 
                 else 

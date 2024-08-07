@@ -15,45 +15,46 @@ function demo.HelpMarker(desc)
 end
 
 function demo.PopStyle()
-    if app.style_editor and app.style_editor.push_count > 0 then
+    --[[ if app.style_editor and app.style_editor.push_count > 0 then
         app.style_editor.push_count = app.style_editor.push_count - 1
-        im.PopStyleColor(ctx, #cache['Col'])
+
+        
+        --im.PopStyleColor(ctx, #app.style_editor.style.colors)
         --im.PopStyleVar(ctx, #cache['StyleVar'])
     elseif NeedtoPopStyle then
+
         for i in demo.EachEnum('Col') do
             im.PopStyleColor(ctx)
         end
     elseif DefaultThemeActive then
         im.PopStyleColor(ctx, DefaultStylePop)
+    end ]]
+
+    if app.style_editor and app.style_editor.push_count > 0 then
+
+        im.PopStyleColor(ctx, #app.style_editor.style.colors)   
+    else 
+
+        im.PopStyleColor(ctx, DefaultStylePop)
     end
+
+
+
 end
 
 function demo.PushStyle()
     if app.style_editor then
         app.style_editor.push_count = app.style_editor.push_count + 1
-        --[[ for i, value in pairs(app.style_editor.style.vars) do
-                    if type(value) == 'table' then
-                        im.PushStyleVar(ctx, i, table.unpack(value))
-                    else
-                        im.PushStyleVar(ctx, i, value)
-                    end
-            end ]]
-        for i, value in pairs(app.style_editor.style.colors) do
+        
+        for i, value in ipairs(app.style_editor.style.colors) do
             im.PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
-            'src', 'ThemeColors.ini')
+        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
-
-
 
         if file then
             local content = file:read("a+")
-
-
-
-
             for i, v in pairs(CustomColors) do
                 _G[v] = RecallGlobInfo(content, v .. ' = ', 'Num')
             end
@@ -172,15 +173,13 @@ function demo.CopyStyleData(source, target)
     end
 end
 
-function ShowStyleEditor()
+function ShowStyleEditor(OpenStyleEditor)
     local rv
 
 
     --if not ctx then ctx = im.CreateContext('Style Editor 2') end
     if not styleEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
-    open, OpenStyleEditor = im.Begin(ctx, 'FX Devices Style Editor', OpenStyleEditor,
-        im.WindowFlags_TopMost + im.WindowFlags_NoCollapse +
-        im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
+    local open, OpenStyleEditor = im.Begin(ctx, 'FX Devices Style Editor', OpenStyleEditor, im.WindowFlags_TopMost | im.WindowFlags_NoCollapse | im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
 
 
     if open then
@@ -197,8 +196,7 @@ function ShowStyleEditor()
 
         im.PushItemWidth(ctx, im.GetWindowWidth(ctx) * 0.50)
 
-        local FrameRounding, GrabRounding = im.StyleVar_FrameRounding,
-            im.StyleVar_GrabRounding
+        local FrameRounding, GrabRounding = im.StyleVar_FrameRounding, im.StyleVar_GrabRounding
         --[[ rv,app.style_editor.style.vars[FrameRounding] = im.SliderDouble(ctx, 'FrameRounding', app.style_editor.style.vars[FrameRounding], 0.0, 12.0, '%.0f')
             if rv then
             app.style_editor.style.vars[GrabRounding] = app.style_editor.style.vars[FrameRounding] -- Make GrabRounding always the same value as FrameRounding
@@ -404,8 +402,6 @@ function ShowStyleEditor()
 
 
 
-
-
         -- the filter object is destroyed once unused for one or more frames
         if not im.ValidatePtr(app.style_editor.colors.filter.inst, 'ImGui_TextFilter*') then
             app.style_editor.colors.filter.inst = im.CreateTextFilter(app.style_editor.colors.filter.text)
@@ -432,18 +428,13 @@ function ShowStyleEditor()
                 Left-click on color square to open color picker,\n\z
                 Right-click to open edit options menu.')
 
-        if im.BeginChild(ctx, '##colors', 0, 0, im.ChildFlags_Border,
-                im.WindowFlags_AlwaysVerticalScrollbar   |
-
-                -- im.WindowFlags_NavFlattened()) TODO: BETA/INTERNAL, not exposed yet
-                0) then
+        if im.BeginChild(ctx, '##colors', 0, 0, im.ChildFlags_Border, im.WindowFlags_AlwaysVerticalScrollbar  ) then
             im.PushItemWidth(ctx, -160)
             local inner_spacing = im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing)
 
             -- @todo  add custom colors here
             function addClr(str)
-                rv, _G[str] = im.ColorEdit4(ctx, '##' .. str, _G[str],
-                    im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
+                rv, _G[str] = im.ColorEdit4(ctx, '##' .. str, _G[str], im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
                 im.SameLine(ctx, 0.0, inner_spacing)
                 im.Text(ctx, str)
             end
@@ -453,8 +444,7 @@ function ShowStyleEditor()
 
             for i, v in pairs(CustomColors) do
                 if im.TextFilter_PassFilter(app.style_editor.colors.filter.inst, v) then
-                    rv, _G[v] = im.ColorEdit4(ctx, '##' .. v, _G[v] or CustomColorsDefault[v],
-                        im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
+                    rv, _G[v] = im.ColorEdit4(ctx, '##' .. v, _G[v] or CustomColorsDefault[v], im.ColorEditFlags_AlphaBar | app.style_editor.colors.alpha_flags)
                     im.SameLine(ctx, 0.0, inner_spacing)
                     local name = string.gsub(v, '_', ' ')
                     im.Text(ctx, name)
@@ -505,9 +495,16 @@ function ShowStyleEditor()
 
         im.PopItemWidth(ctx)
         im.End(ctx)
+
     else
+
         styleEditorIsOpen = false
+
+
     end
+
+    
+    return OpenStyleEditor
 end
 
 function Show_KBShortcutEditor()
@@ -515,9 +512,7 @@ function Show_KBShortcutEditor()
 
    -- if not ctx then ctx = im.CreateContext('Shortcut Editor') end
     if not KBEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
-    open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor,
-        im.WindowFlags_NoCollapse +
-        im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
+    local open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor, im.WindowFlags_NoCollapse + im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
 
 
     if open then

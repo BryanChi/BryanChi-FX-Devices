@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.2.2
+-- @version 1.0beta14.2.3
 -- @changelog
---  - prevent crashing when user click record last touch without any track fx inserted 
+--  - Layout Editor : optimize the look of marquee selection 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
