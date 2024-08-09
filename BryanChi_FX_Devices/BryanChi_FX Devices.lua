@@ -279,14 +279,12 @@ function loop()
 
         im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 0)
         Cx_LeftEdge, Cy_BeforeFXdevices = im.GetCursorScreenPos(ctx)
-        MouseAtLeftEdge = im.IsMouseHoveringRect(ctx, Cx_LeftEdge - 50, Cy_BeforeFXdevices, Cx_LeftEdge + 5,
-            Cy_BeforeFXdevices + 220)
+        MouseAtLeftEdge = im.IsMouseHoveringRect(ctx, Cx_LeftEdge - 50, Cy_BeforeFXdevices, Cx_LeftEdge + 5, Cy_BeforeFXdevices + 220)
 
         if MouseAtLeftEdge and not Trk[TrkID].PreFX[1] and string.len(Payload_Type) > 1 then
             rv = im.Button(ctx, 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
             SL(nil, 0)
-            HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
-                'GetItemRect', WDL)
+            HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
 
             if Payload_Type == 'FX_Drag' then
                 dropped, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
@@ -395,7 +393,7 @@ function loop()
 
         MainWin_Flg = im.WindowFlags_HorizontalScrollbar | FX_DeviceWindow_NoScroll
 
-        if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 240, nil, MainWin_Flg) then
+        if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 260, nil, MainWin_Flg) then
             ------------------------------------------------------
             ----- Loop for every FX on the track -----------------
             ------------------------------------------------------
@@ -459,40 +457,13 @@ function loop()
                 createFXWindow(FX_Idx)
 
 
-
                 im.SameLine(ctx, nil, 0)
 
                 local CurX = im.GetCursorPosX(ctx)
 
 
 
-                ------- Pre FX Chain --------------
-                local FXisInPreChain, offset = nil, 0
-                if MacroPos == 0 then offset = 1 end --else offset = 0
-                if Trk[TrkID].PreFX[1] then
-                    if Trk[TrkID].PreFX[FX_Idx + 1 - offset] == FXGUID[FX_Idx] then
-                        FXisInPreChain = true
-                    end
-                end
-
-                if Trk[TrkID].PreFX[1] and not Trk[TrkID].PreFX_Hide and FX_Idx == #Trk[TrkID].PreFX - 1 + offset then
-                    AddSpaceBtwnFXs(FX_Idx, 'End of PreFX', nil)
-                end
-
-                if FXisInPreChain then
-                    if FX_Idx + 1 - offset == #Trk[TrkID].PreFX and not Trk[TrkID].PreFX_Hide then
-                        local R, B = im.GetItemRectMax(ctx)
-                        im.DrawList_AddRect(FX_Dvs_BgDL, Cx_LeftEdge, Cy_BeforeFXdevices, R, B,
-                            im.GetColor(ctx, im.Col_Button))
-                        im.DrawList_AddRectFilled(FX_Dvs_BgDL, Cx_LeftEdge, Cy_BeforeFXdevices, R, B, 0xcccccc10)
-                    end
-                end
-                ------------------------------------------
-                if FX_Idx + 1 == RepeatTimeForWindows and not Trk[TrkID].PostFX[1] then -- add last space
-                    AddSpaceBtwnFXs(FX_Idx + 1, nil, 'LastSpc')
-                elseif FX_Idx + 1 == RepeatTimeForWindows and Trk[TrkID].PostFX[1] then
-                    AddSpaceBtwnFXs(Sel_Track_FX_Count - #Trk[TrkID].PostFX, nil, 'LastSpc', nil, nil, nil, 20)
-                end
+              
             end --for repeat as many times as FX instances
 
             local function Detect_If_FX_Deleted()
@@ -521,7 +492,7 @@ function loop()
 
 
 
-
+            Pre_FX_Chain(FX_Idx)
 
             Detect_If_FX_Deleted()
 
@@ -558,28 +529,11 @@ function loop()
             end
         end
 
-        function RemoveFXfromBS()
-            for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do -- check all fxs and see if it's a band splitter
-                if FX[FXGUID[FX_Idx]].FXsInBS then
-                    local FxID = tablefind(FX[FXGUID[FX_Idx]].FXsInBS, FXGUID[DragFX_ID])
-                    if FxID then
-                        table.remove(FX[FXGUID[FX_Idx]].FXsInBS, FxID)
-                        FX[FXGUID[DragFX_ID]].InWhichBand = nil
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FX is in which BS' .. FXGUID[DragFX_ID], '',
-                            true)
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FX is in which Band' .. FXGUID[DragFX_ID], '',
-                            true)
-                    end
-                end
-            end
-        end
+
 
         _, Payload_Type, Payload, is_preview, is_delivery = im.GetDragDropPayload(ctx)
         Payload = tonumber(Payload)
-        MouseAtRightEdge = im.IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.Y,
-            VP.X + VP.w, VP.Y + VP.h)
+        MouseAtRightEdge = im.IsMouseHoveringRect(ctx, VP.X + VP.w - 25, VP.Y, VP.X + VP.w, VP.Y + VP.h)
 
         if (Payload_Type == 'FX_Drag' or Payload_Type == 'DND ADD FX' and MouseAtRightEdge) and not Trk[TrkID].PostFX[1] then
             im.SameLine(ctx, nil, -5)
@@ -626,147 +580,19 @@ function loop()
             DndAddFXfromBrowser_TARGET(Sel_Track_FX_Count, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost) -- post fx
         end ]]
 
-        PostFX_Width = math.min(
-            (MakeSpaceForPostFX or 0) + ((Trk[TrkID].MakeSpcForPostFXchain or 0) + (PostFX_LastSpc or 0)) + 30,
-            VP.w / 2)
+        PostFX_Width = math.min( (MakeSpaceForPostFX or 0) + ((Trk[TrkID].MakeSpcForPostFXchain or 0) + (PostFX_LastSpc or 0)) + 30, VP.w / 2)
 
 
 
         if not Trk[TrkID].PostFX[1] then
             Trk[TrkID].MakeSpcForPostFXchain = 0
-        end
+        end 
 
-        if Trk[TrkID].PostFX[1] then
-            im.SameLine(ctx, nil, 0)
-            Line_L, Line_T = im.GetCursorScreenPos(ctx)
-            rv             = im.Button(ctx,
-                (#Trk[TrkID].PostFX or '') .. '\n\n' .. 'P\no\ns\nt\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
-            if im.IsItemClicked(ctx, 1) then
-                if Trk[TrkID].PostFX_Hide then Trk[TrkID].PostFX_Hide = false else Trk[TrkID].PostFX_Hide = true end
-            end
-            if im.BeginDragDropTarget(ctx) then -- if drop to post fx chain Btn
-                if Payload_Type == 'FX_Drag' then
-                    Drop, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
-                        'GetItemRect', WDL)
-
-                    if Drop and not tablefind(Trk[TrkID].PostFX, FXGUID[DragFX_ID]) then
-                        --r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, 999, true)
-                        table.insert(Trk[TrkID].PostFX, FXGUID[DragFX_ID])
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX,
-                            FXGUID[DragFX_ID], true)
-
-
-                        local IDinPre = tablefind(Trk[TrkID].PreFX, FXGUID[DragFX_ID])
-                        if IDinPre then MoveFX_Out_Of_Pre(IDinPre) end
-                    end
-                elseif Payload_Type == 'DND ADD FX' then
-                    dropped, payload = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
-                    HighlightSelectedItem(0xffffff22, 0xffffffff, -1, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc,
-                        'GetItemRect', WDL)
-                    if dropped then
-                        r.TrackFX_AddByName(LT_Track, payload, false, -1000 - Sel_Track_FX_Count)
-                        local FXid = r.TrackFX_GetFXGUID(LT_Track, Sel_Track_FX_Count)
-                        local _, Name = r.TrackFX_GetFXName(LT_Track, Sel_Track_FX_Count)
-                        table.insert(Trk[TrkID].PostFX, FXid)
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. #Trk[TrkID].PostFX, FXid,
-                            true)
-                    end
-                end
-
-                im.EndDragDropTarget(ctx)
-            end
-
-            im.SameLine(ctx, nil, 0)
-            im.PushStyleColor(ctx, im.Col_ChildBg, 0xffffff11)
-            local PostFX_Extend_W = 0
-            if PostFX_Width == VP.w / 2 then PostFX_Extend_W = 20 end
-            if not Trk[TrkID].PostFX_Hide then
-                if im.BeginChild(ctx, 'Post FX chain', PostFX_Width - PostFX_Extend_W, 220) then
-                    local clr = im.GetStyleColor(ctx, im.Col_Button)
-                    im.DrawList_AddLine(Glob.FDL, Line_L, Line_T - 1, Line_L + VP.w, Line_T - 1, clr)
-                    im.DrawList_AddLine(Glob.FDL, Line_L, Line_T + 220, Line_L + VP.w, Line_T + 220, clr)
-
-
-
-                    Trk[TrkID].MakeSpcForPostFXchain = 0
-
-                    if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = 0 else offset = 1 end
-
-                    for FX_Idx, V in pairs(Trk[TrkID].PostFX) do
-                        local I = --[[ tablefind(FXGUID, Trk[TrkID].PostFX[#Trk[TrkID].PostFX+1-FX_Idx])  ]]
-                            tablefind(FXGUID, V)
-
-                        local Spc
-                        if FX_Idx == 1 and I then AddSpaceBtwnFXs(I - 1, 'SpcInPost', nil, nil, 1) end
-                        if I then
-                            createFXWindow(I)
-                            im.SameLine(ctx, nil, 0)
-
-                            FX[FXGUID[I]].PostWin_SzX, _ = im.GetItemRectSize(ctx)
-                            Trk[TrkID].MakeSpcForPostFXchain = (Trk[TrkID].MakeSpcForPostFXchain or 0) +
-                                (FX.WidthCollapse[FXGUID[I]] or FX[FXGUID[I]].Width or (DefaultWidth)) +
-                                10 -- 10 is space btwn fxs
-
-                            if FX_Idx == #Trk[TrkID].PostFX then
-                                AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, #Trk[TrkID].PostFX + 1)
-                            else
-                                AddSpaceBtwnFXs(I, 'SpcInPost', nil, nil, FX_Idx + 1)
-                            end
-                            if FX_Idx == #Trk[TrkID].PostFX and im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) then
-                                MouseAtRightEdge = true --[[ else MouseAtRightEdge = nil ]]
-                            end
-                        end
-                    end
-
-
-
-
-                    offset = nil
-
-
-                    if InsertToPost_Src then
-                        table.insert(Trk[TrkID].PostFX, InsertToPost_Dest, FXGUID[InsertToPost_Src])
-                        for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i,
-                                Trk[TrkID].PostFX[i] or '',
-                                true)
-                        end
-                        InsertToPost_Src = nil
-                        InsertToPost_Dest = nil
-                    end
-                    im.EndChild(ctx)
-                end
-            else
-                Trk[TrkID].MakeSpcForPostFXchain = 0
-            end
-
-
-            for FX_Idx, V in pairs(Trk[TrkID].PostFX) do
-                local I = tablefind(FXGUID, V)
-                local P = Sel_Track_FX_Count - #Trk[TrkID].PostFX + (FX_Idx - 1)
-
-
-                if I ~= P then
-                    r.Undo_BeginBlock()
-                    if not MovFX.FromPos[1] then
-                        table.insert(MovFX.FromPos, I)
-                        table.insert(MovFX.ToPos, P)
-                        table.insert(MovFX.Lbl, 'Move FX into Post-FX Chain')
-                    end
-                    --r.TrackFX_CopyToTrack(LT_Track, I, LT_Track, P, true)
-                    r.Undo_EndBlock('Move FX out of Post-FX Chain', 0)
-                end
-            end
-            im.PopStyleColor(ctx)
-        end
+        Post_FX_Chain ()
 
 
         -- When Add or Delete Fx.....if  add fx or delete fx
         if Sel_Track_FX_Count ~= CompareFXCount then
-            for i in ipairs(FX.Win_Name) do
-
-            end
             if FX.Win_Name then
                 local rv, tab = FindStringInTable(FX.Win_Name, 'FX Devices Gain Reduction')
                 if tab then

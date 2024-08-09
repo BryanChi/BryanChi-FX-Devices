@@ -423,10 +423,7 @@ function ShowStyleEditor(OpenStyleEditor)
             app.style_editor.colors.alpha_flags = im.ColorEditFlags_AlphaPreviewHalf
         end
         im.SameLine(ctx)
-        demo.HelpMarker(
-            'In the color list:\n\z
-                Left-click on color square to open color picker,\n\z
-                Right-click to open edit options menu.')
+        demo.HelpMarker( 'In the color list:\n\z Left-click on color square to open color picker,\n\z Right-click to open edit options menu.')
 
         if im.BeginChild(ctx, '##colors', 0, 0, im.ChildFlags_Border, im.WindowFlags_AlwaysVerticalScrollbar  ) then
             im.PushItemWidth(ctx, -160)

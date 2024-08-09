@@ -1465,24 +1465,98 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     if not im.ValidatePtr(StyleWinFilter, "ImGui_TextFilter*") then
                         StyleWinFilter = im.CreateTextFilter(FilterText)
                     end
-                    if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then -- if all selected itms are knobs
+                    local function Get_Attach_Drawing_Styles()
+                        if im.IsWindowAppearing(ctx) then
+
+                            local Dir = CurrentDirectory .. 'src/Layout Editor Item Styles/'..FrstSelItm.Type
+                            local files = scandir(Dir)
+                            LE.DrawingStyles = LE.DrawingStyles or { [FrstSelItm.Type] = {} }
+
+                            if files then 
+                                for i, v in ipairs(files) do 
+                                    local file_path = ConcatPath(Dir, v)
+                                    local file = io.open(file_path, 'r')
+                                    local Ct = file:read('*a')
+                                    LE.DrawingStyles[FrstSelItm.Type][i] = LE.DrawingStyles[FrstSelItm.Type][i] or {}
+                                    LE.DrawingStyles[FrstSelItm.Type][i].Draw = {}
+                                    LE.DrawingStyles[FrstSelItm.Type][i].Name = string.sub(v, 1, -5 )
+                                    LE.DrawingStyles[FrstSelItm.Type][i].Draw = Retrieve_Attached_Drawings(Ct, nil, LE.DrawingStyles[FrstSelItm.Type][i].Draw)
+                                end
+                            end
+                           
+                        end
+                    end
+
+                    local function Add_Attach_Drawing_Styles(StyleWinFilter)
+                         -- add attached drawings
+                         if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then 
+                            for i, v in ipairs(LE.DrawingStyles[FrstSelItm.Type])do 
+                                if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                                    im.BeginGroup(ctx)
+                                    local pos = {im.GetCursorScreenPos(ctx)}
+                                    AddKnob(ctx, '##' .. FrstSelItm.Name, '', FrstSelItm.V, 0, 1, FItm, FX_Idx, FrstSelItm.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                                    local w, h = im.GetItemRectSize(ctx)
+                                    Draw_Attached_Drawings(v,FX_Idx, pos , FrstSelItm.V, FrstSelItm.Type)
+                                    SL()
+
+                                    im.Text(ctx, v.Name)
+                                    im.EndGroup(ctx)
+                                    if HighlightHvredItem() then --if clicked on highlighted itm
+                                        for i, V in ipairs(LE.Sel_Items) do 
+                                            FX[FxGUID][V].Draw = v.Draw
+                                        end
+                                        im.CloseCurrentPopup(ctx)
+                                    end
+                                    im.Separator(ctx)
+                                end
+                                
+                            end   
+                        end 
+                    end
+
+                    Get_Attach_Drawing_Styles()
+
+                    -- if all selected itms are knobs
+                    if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then 
                         StyleWinImg = StyleWinImg or {}
                         StyleWinImgName = StyleWinImgName or {}
                         local function SetStyle(Name, Style, Img, ImagePath)
                             if im.TextFilter_PassFilter(StyleWinFilter, Name) then
+                                im.BeginGroup(ctx)
+                                AddKnob(ctx, '##' .. FrstSelItm.V, '', 0, 0, 1, FItm, FX_Idx, FrstSelItm.Num, Style, 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                                SL()
                                 im.Text(ctx, Name)
-                                AddKnob(ctx, '##' .. FrstSelItm.Name, '', 0, 0, 1, FItm,
-                                    FX_Idx,
-                                    FrstSelItm.Num, Style, 15, 0, Disabled, 12, Lbl_Pos,
-                                    V_Pos, Img)
+                                im.EndGroup(ctx)
                                 if HighlightHvredItem() then --if clicked on highlighted itm
                                     setItmStyle(Style, Img, ImagePath)
                                     im.CloseCurrentPopup(ctx)
                                 end
-                                AddSpacing(6)
+                                
+                                im.Separator(ctx)
+                            end
+                        end
+                        local function Add_Image_Styles()
+                            local Dir = CurrentDirectory .. 'src/Images/Knobs'
+                            if im.IsWindowAppearing(ctx) then
+                                StyleWindowImgFiles = scandir(Dir)
+                                if StyleWindowImgFiles then
+                                    for i, v in ipairs(StyleWindowImgFiles) do
+                                        if v ~= '.DS_Store' then
+                                            StyleWinImg[i] = im.CreateImage(Dir .. '/' .. v)
+                                            im.Attach(ctx, StyleWinImg[i])
+                                            StyleWinImgName[i] = v
+                                        end
+                                    end
+                                end
+                            end
+
+                            for i, v in pairs(StyleWinImg) do
+                                local Dir = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Knobs/' 
+                                SetStyle(StyleWinImgName[i], 'Custom Image', StyleWinImg[i], Dir .. StyleWinImgName[i])
                             end
                         end
 
+                       
 
                         im.EndDisabled(ctx)
                         if im.TextFilter_Draw(StyleWinFilter, ctx, '##StyleWinFilterTxt', -1) then
@@ -1499,26 +1573,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         SetStyle('Default', Style)
                         SetStyle('Minimalistic', 'Pro C')
                         SetStyle('Invisible', 'Invisible')
-                        local Dir = CurrentDirectory .. 'src/Images/Knobs'
-                        if im.IsWindowAppearing(ctx) then
-                            StyleWindowImgFiles = scandir(Dir)
-                            if StyleWindowImgFiles then
-                                for i, v in ipairs(StyleWindowImgFiles) do
-                                    if v ~= '.DS_Store' then
-                                        StyleWinImg[i] = im.CreateImage(Dir .. '/' .. v)
-                                        im.Attach(ctx, StyleWinImg[i])
-                                        StyleWinImgName[i] = v
-                                    end
-                                end
-                            end
-                        end
+                        Add_Image_Styles()
+                        Add_Attach_Drawing_Styles(StyleWinFilter)
 
-                        for i, v in pairs(StyleWinImg) do
-                            local Dir =
-                            '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Knobs/'
-                            SetStyle(StyleWinImgName[i], 'Custom Image', StyleWinImg[i],
-                                Dir .. StyleWinImgName[i])
-                        end
+                        
                     end
 
                     if FrstSelItm.Type == 'Selection' then
@@ -1837,28 +1895,17 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                 if im.TreeNode(ctx, 'Conditional Parameter') then
-                    Condition('ConditionPrm', 'ConditionPrm_PID', 'ConditionPrm_V',
-                        'ConditionPrm_V_Norm',
-                        'Show only if:', 'ShowCondition')
+                    Condition('ConditionPrm', 'ConditionPrm_PID', 'ConditionPrm_V', 'ConditionPrm_V_Norm', 'Show only if:', 'ShowCondition')
                     if FrstSelItm.ConditionPrm then
-                        Condition('ConditionPrm2', 'ConditionPrm_PID2',
-                            'ConditionPrm_V2', 'ConditionPrm_V_Norm2', 'And if:',
-                            'ShowCondition2')
+                        Condition('ConditionPrm2', 'ConditionPrm_PID2', 'ConditionPrm_V2', 'ConditionPrm_V_Norm2', 'And if:', 'ShowCondition2')
                     end
                     if FrstSelItm.ConditionPrm2 then
-                        Condition('ConditionPrm3', 'ConditionPrm_PID3',
-                            'ConditionPrm_V3', 'ConditionPrm_V_Norm3', 'And if:',
-                            'ShowCondition3')
-                    end
+                        Condition('ConditionPrm3', 'ConditionPrm_PID3', 'ConditionPrm_V3', 'ConditionPrm_V_Norm3', 'And if:', 'ShowCondition3') end
                     if FrstSelItm.ConditionPrm3 then
-                        Condition('ConditionPrm4', 'ConditionPrm_PID4',
-                            'ConditionPrm_V4', 'ConditionPrm_V_Norm4', 'And if:',
-                            'ShowCondition4')
+                        Condition('ConditionPrm4', 'ConditionPrm_PID4', 'ConditionPrm_V4', 'ConditionPrm_V_Norm4', 'And if:', 'ShowCondition4')
                     end
                     if FrstSelItm.ConditionPrm4 then
-                        Condition('ConditionPrm5', 'ConditionPrm_PID5',
-                            'ConditionPrm_V5', 'ConditionPrm_V_Norm5', 'And if:',
-                            'ShowCondition5')
+                        Condition('ConditionPrm5', 'ConditionPrm_PID5', 'ConditionPrm_V5', 'ConditionPrm_V_Norm5', 'And if:', 'ShowCondition5')
                     end
                     im.TreePop(ctx)
                 end
@@ -2041,8 +2088,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                                 i)
 
 
-                                            path, D.FilePath = CopyImageFile(filename,
-                                                'Attached Drawings')
+                                            path, D.FilePath = CopyImageFile(filename, 'Attached Drawings')
 
 
                                             D.Image = im.CreateImage(path)
@@ -2300,7 +2346,31 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         table.insert(FrstSelItm.Draw, {})
                     end
 
+                    if im.Button(ctx, 'Save as a '..FrstSelItm.Type.. ' style') then 
+                        im.OpenPopup(ctx, 'Enter name for the style:')
+                        local x , y = im.GetCursorScreenPos(ctx)
+                        im.SetNextWindowPos(ctx, x ,y )
+                        im.SetNextWindowSize(ctx, 200, 100  )
 
+                    end
+                    if im.BeginPopupModal(ctx, 'Enter name for the style:') then
+
+
+                        EnterNewName, NewName = im.InputText(ctx, '## Style Name', NewName, im.InputTextFlags_EnterReturnsTrue)
+                        SL()
+                        if  EnterNewName then 
+                            Save_Attached_Drawings_As_Style(NewName, FrstSelItm.Type, FrstSelItm)
+                            im.CloseCurrentPopup(ctx)
+                            Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Saved Successfully', 60 , 0
+                        end
+                        if im.IsKeyPressed(ctx,im.Key_Escape)then 
+                            im.CloseCurrentPopup(ctx)
+                            Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Canceled', 60 , 0
+
+                        end
+                        im.EndPopup(ctx)
+                   end
+                    
                     im.TreePop(ctx)
                 end
 
@@ -2529,7 +2599,84 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 end
 
 
+function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
+    local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P , 'Num')
+
+    if DrawNum then
+
+
+        FP.Draw = FP.Draw or {}
+        for D = 1, DrawNum, 1 do
+
+            FP.Draw[D] = FP.Draw[D] or {}
+            local d = FP.Draw[D]
+         
+            local function RC(name, type, omit_if_0)
+                local out = RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
+                if omit_if_0 and out == 0 then 
+                    out = nil 
+                end
+
+                return out
+            end
+            d.Type = RC('Type')
+            d.X_Offset = RC('X Offset', 'Num', true )
+            d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
+            d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
+            d.Y_Offset = RC('Y offset', 'Num', true)
+            d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
+            d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
+            d.Width = RC('Width', 'Num')
+            d.Width_SS = RC('Width SS', 'Bool')
+            d.Width_VA = RC('Width Value Affect', 'Num')
+            d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
+            d.Clr = RC('Color', 'Num')
+            d.Clr_VA = RC('Color_VA', 'Num')
+            d.FillClr = RC('Fill Color', 'Num')
+            d.Angle_Min = RC('Angle Min', 'Num')
+            d.Angle_Max = RC('Angle Max', 'Num')
+            d.Rad_In = RC('Radius Inner', 'Num')
+            d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
+            d.Rad_Out = RC('Radius Outer', 'Num')
+            d.Rad_Out_SS = RC('Radius Outer SS', 'Bool')
+            d.Height = RC('Height', 'Num')
+            d.Height_VA = RC('Height_VA', 'Num')
+            d.Height_SS = RC('Height SS', 'Bool')
+            d.Height_VA_GR = RC('Height_VA GR', 'Num')
+            d.Round = RC('Round', 'Num')
+            d.Thick = RC('Thick', 'Num')
+            d.Repeat = RC('Repeat', 'Num')
+            d.Repeat_VA = RC('Repeat_VA', 'Num')
+            d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
+            d.Y_Repeat = RC('Y_Repeat', 'Num')
+            d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
+            d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
+            d.Gap = RC('Gap', 'Num')
+            d.Gap_VA = RC('Gap_VA', 'Num')
+            d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
+            d.X_Gap = RC('X_Gap', 'Num')
+            d.X_Gap_VA = RC('X_Gap_VA', 'Num')
+            d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
+            d.Y_Gap = RC('Y_Gap', 'Num')
+            d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
+            d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
+            d.RPT_Clr = RC('RPT_Clr', 'Num')
+
+
+            local path = RC('Image_Path')
+            msg(path)
+            if path and path~='nil' then
+                d.FilePath = path
+
+                d.Image = im.CreateImage(r.GetResourcePath() .. d.FilePath)
+                im.Attach(ctx, d.Image)
+            end
+        end
+
+        return FP.Draw
+    end
+end
 
 
 
@@ -2878,7 +3025,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local A = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphA[P_Num]
                 local B = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * FX[FxGUID].MorphB[P_Num]
 
-                local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
+                local ClrA, ClrB = Morph_A or CustomColorsDefault.Morph_A , Morph_B or CustomColorsDefault.Morph_B
                 local MsX, MsY = im.GetMousePos(ctx)
 
                 if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
@@ -3503,7 +3650,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
                 local sizeX, sizeY = im.GetItemRectSize(ctx)
                 local A = SetMinMax(PosL + sizeX * FX[FxGUID].MorphA[P_Num], PosL, PosR)
                 local B = SetMinMax(PosL + sizeX * FX[FxGUID].MorphB[P_Num], PosL, PosR)
-                local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
+                local ClrA, ClrB = Morph_A or CustomColorsDefault.Morph_A ,  Morph_B or CustomColorsDefault.Morph_B
                 local MsX, MsY = im.GetMousePos(ctx)
 
                 if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
@@ -4208,7 +4355,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local sizeX, sizeY = im.GetItemRectSize(ctx)
                 local A = SetMinMax(PosL + sizeX * FX[FxGUID].MorphA[P_Num], PosL, PosR)
                 local B = SetMinMax(PosL + sizeX * FX[FxGUID].MorphB[P_Num], PosL, PosR)
-                local ClrA, ClrB = DefClr_A_Hvr, DefClr_B_Hvr
+                local ClrA, ClrB = Morph_A or CustomColorsDefault.Morph_A,  Morph_B or CustomColorsDefault.Morph_B
                 local MsX, MsY = im.GetMousePos(ctx)
 
                 if FX[FxGUID].MorphA[P_Num] ~= FX[FxGUID].MorphB[P_Num] then
@@ -4819,78 +4966,9 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
                                     FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
                                     FP.ManualValuesFormat = RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
+                                    
+                                    Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
-
-
-                                    local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P, 'Num')
-                                    if DrawNum then
-                                        FP.Draw = FP.Draw or {}
-                                        for D = 1, DrawNum, 1 do
-                                            FP.Draw[D] = FP.Draw[D] or {}
-                                            local d = FP.Draw[D]
-
-                                            local function RC(name, type, omit_if_0)
-                                                local out = RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
-                                                if omit_if_0 and out == 0 then 
-                                                    out = nil 
-                                                end
-                                                return out
-                                            end
-
-                                            d.Type = RC('Type')
-                                            d.X_Offset = RC('X Offset', 'Num', true )
-                                            d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
-                                            d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
-                                            d.Y_Offset = RC('Y offset', 'Num', true)
-                                            d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
-                                            d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
-                                            d.Width = RC('Width', 'Num')
-                                            d.Width_SS = RC('Width SS', 'Bool')
-                                            d.Width_VA = RC('Width Value Affect', 'Num')
-                                            d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
-                                            d.Clr = RC('Color', 'Num')
-                                            d.Clr_VA = RC('Color_VA', 'Num')
-                                            d.FillClr = RC('Fill Color', 'Num')
-                                            d.Angle_Min = RC('Angle Min', 'Num')
-                                            d.Angle_Max = RC('Angle Max', 'Num')
-                                            d.Rad_In = RC('Radius Inner', 'Num')
-                                            d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
-                                            d.Rad_Out = RC('Radius Outer', 'Num')
-                                            d.Rad_Out_SS = RC('Radius Outer SS', 'Bool')
-                                            d.Height = RC('Height', 'Num')
-                                            d.Height_VA = RC('Height_VA', 'Num')
-                                            d.Height_SS = RC('Height SS', 'Bool')
-                                            d.Height_VA_GR = RC('Height_VA GR', 'Num')
-                                            d.Round = RC('Round', 'Num')
-                                            d.Thick = RC('Thick', 'Num')
-                                            d.Repeat = RC('Repeat', 'Num')
-                                            d.Repeat_VA = RC('Repeat_VA', 'Num')
-                                            d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
-                                            d.Y_Repeat = RC('Y_Repeat', 'Num')
-                                            d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
-                                            d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
-                                            d.Gap = RC('Gap', 'Num')
-                                            d.Gap_VA = RC('Gap_VA', 'Num')
-                                            d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
-
-                                            d.X_Gap = RC('X_Gap', 'Num')
-                                            d.X_Gap_VA = RC('X_Gap_VA', 'Num')
-                                            d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
-                                            d.Y_Gap = RC('Y_Gap', 'Num')
-                                            d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
-                                            d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
-                                            d.RPT_Clr = RC('RPT_Clr', 'Num')
-
-
-                                            local path = RC('Image_Path')
-                                            if path then
-                                                d.FilePath = path
-
-                                                d.Image = im.CreateImage(r.GetResourcePath() .. d.FilePath)
-                                                im.Attach(ctx, d.Image)
-                                            end
-                                        end
-                                    end
                                 end
                                 GetProjExt_FxNameNum(FxGUID)
                                 Prm.InstAdded[FxGUID] = true
@@ -5155,6 +5233,77 @@ function ImageAngle(ctx, img, angle, w, h, x, y)
     --im.Dummy(ctx, w, h)
 end
 
+
+---@param FP table 
+---@param file string
+function Save_Drawings(FP, file,Fx_P)
+
+    if FP.Draw then
+        if Fx_P then 
+            file:write(Fx_P.. '. Number of attached drawings = ', #FP.Draw or '', '\n')
+        else
+            file:write('Number of attached drawings = ', #FP.Draw or '', '\n')
+        end
+        for D, v in ipairs(FP.Draw) do
+
+            local function WRITE(name, val)
+                local val = tostring(val)
+                if val =='nil' then val = nil end 
+                if Fx_P then 
+                    file:write(Fx_P..'. Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
+                else
+                    file:write('Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
+                end
+            end
+            WRITE('Type', v.Type)
+            WRITE('X Offset', v.X_Offset)
+            WRITE('X Offset Value Affect', v.X_Offset_VA)
+            WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
+            WRITE('Y offset', v.Y_Offset)
+            WRITE('Y Offset Value Affect', v.Y_Offset_VA)
+            WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
+            WRITE('Width', v.Width)
+            WRITE('Width SS', v.Width_SS)
+            WRITE('Width Value Affect', v.Width_VA)
+            WRITE('Width Value Affect GR', v.Y_Offset_VA_GR)
+            WRITE('Color', v.Clr)
+            WRITE('Color_VA', v.Clr_VA)
+            WRITE('Fill Color', v.FillClr)
+            WRITE('Angle Min', v.Angle_Min)
+            WRITE('Angle Max', v.Angle_Max)
+            WRITE('Radius Inner', v.Rad_In)
+            WRITE('Radius Inner SS', v.Rad_In_SS)
+            WRITE('Radius Outer', v.Rad_Out)
+            WRITE('Radius Outer SS', v.Rad_Out_SS)
+            WRITE('Thick', v.Thick)
+            WRITE('Height', v.Height)
+            WRITE('Height SS', v.Height_SS)
+
+            WRITE('Height_VA', v.Height_VA)
+            WRITE('Height_VA GR', v.Height_VA_GR)
+            WRITE('Round', v.Round)
+            WRITE('Repeat', v.Repeat)
+            WRITE('Repeat_VA', v.Repeat_VA)
+            WRITE('Repeat_VA GR', v.Repeat_VA_GR)
+            WRITE('Y_Repeat', v.Y_Repeat)
+            WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
+            WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
+            WRITE('Gap', v.Gap)
+            WRITE('Gap_VA', v.Gap_VA)
+            WRITE('Gap_VA GR', v.Gap_VA_GR)
+            WRITE('X_Gap', v.X_Gap)
+            WRITE('X_Gap_VA', v.X_Gap_VA)
+            WRITE('X_Gap_VA GR', v.X_Gap_VA_GR)
+            WRITE('Y_Gap', v.Y_Gap)
+            WRITE('Y_Gap_VA', v.Y_Gap_VA)
+            WRITE('Y_Gap_VA GR', v.Y_Gap_VA_GR)
+            WRITE('RPT_Clr', v.RPT_Clr)
+            WRITE('Image_Path', v.FilePath)
+
+        end
+    end
+end
+
 ---@param FX_Name string
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
@@ -5304,59 +5453,9 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
                     file:write('\n')
                 end
             end
-            if FP.Draw then
-                write('Number of attached drawings', #FP.Draw)
-                for D, v in ipairs(FP.Draw) do
-                    local function WRITE(name, val)
-                        write('Draw Item ' .. D .. ': ' .. name, val)
-                    end
-                    WRITE('Type', v.Type)
-                    WRITE('X Offset', v.X_Offset)
-                    WRITE('X Offset Value Affect', v.X_Offset_VA)
-                    WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
-                    WRITE('Y offset', v.Y_Offset)
-                    WRITE('Y Offset Value Affect', v.Y_Offset_VA)
-                    WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
-                    WRITE('Width', v.Width)
-                    WRITE('Width SS', v.Width_SS)
-                    WRITE('Width Value Affect', v.Width_VA)
-                    WRITE('Width Value Affect GR', v.Y_Offset_VA_GR)
-                    WRITE('Color', v.Clr)
-                    WRITE('Color_VA', v.Clr_VA)
-                    WRITE('Fill Color', v.FillClr)
-                    WRITE('Angle Min', v.Angle_Min)
-                    WRITE('Angle Max', v.Angle_Max)
-                    WRITE('Radius Inner', v.Rad_In)
-                    WRITE('Radius Inner SS', v.Rad_In_SS)
-                    WRITE('Radius Outer', v.Rad_Out)
-                    WRITE('Radius Outer SS', v.Rad_Out_SS)
-                    WRITE('Thick', v.Thick)
-                    WRITE('Height', v.Height)
-                    WRITE('Height SS', v.Height_SS)
 
-                    WRITE('Height_VA', v.Height_VA)
-                    WRITE('Height_VA GR', v.Height_VA_GR)
-                    WRITE('Round', v.Round)
-                    WRITE('Repeat', v.Repeat)
-                    WRITE('Repeat_VA', v.Repeat_VA)
-                    WRITE('Repeat_VA GR', v.Repeat_VA_GR)
-                    WRITE('Y_Repeat', v.Y_Repeat)
-                    WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
-                    WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
-                    WRITE('Gap', v.Gap)
-                    WRITE('Gap_VA', v.Gap_VA)
-                    WRITE('Gap_VA GR', v.Gap_VA_GR)
-                    WRITE('X_Gap', v.X_Gap)
-                    WRITE('X_Gap_VA', v.X_Gap_VA)
-                    WRITE('X_Gap_VA GR', v.X_Gap_VA_GR)
-                    WRITE('Y_Gap', v.Y_Gap)
-                    WRITE('Y_Gap_VA', v.Y_Gap_VA)
-                    WRITE('Y_Gap_VA GR', v.Y_Gap_VA_GR)
-                    WRITE('RPT_Clr', v.RPT_Clr)
-                    WRITE('Image_Path', v.FilePath)
-
-                end
-            end
+            Save_Drawings(FP, file, Fx_P)
+ 
         end
         file:close()
     end
@@ -5410,6 +5509,30 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
 
     SaveDrawings(FX_Idx, FxGUID)
 end
+
+
+function Save_Attached_Drawings_As_Style(Name, Type, FP )
+    local dir_path = ConcatPath(CurrentDirectory , 'src', 'Layout Editor Item Styles', Type)
+
+    local file_path = ConcatPath(dir_path, tostring(Name) .. '.ini')
+
+    r.RecursiveCreateDirectory(dir_path, 0)
+    local file = io.open(file_path, 'w')
+    if not file then return end 
+    file:write('Prm type = '.. Type..'\n')
+    --set size to 15, and sync all drawing size
+    local orig_sz = FP.Sldr_W
+    FP.Sldr_W = 15 
+    Sync_Size_Height_Synced_Properties(FP, 15- orig_sz )
+
+    Save_Drawings(FP, file)
+    -- set size back to original size
+    FP.Sldr_W = orig_sz
+    Sync_Size_Height_Synced_Properties(FP, orig_sz- 15 )
+
+
+end
+
 
 ---@param FxGUID string
 ---@param Fx_P number

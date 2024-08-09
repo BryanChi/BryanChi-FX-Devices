@@ -54,7 +54,7 @@ local function GetAll_Container_Data()
 end
 local Cont_ID = GetAll_Container_Data()
 
-local Accent_Clr = CustomColorsDefault.Container_Accent_Clr
+local Accent_Clr = Container_Accent_Clr or CustomColorsDefault.Container_Accent_Clr
 local function SaveAll_Container_IDs ()
     for i , v in ipairs(Trk[TrkID].Container_Id) do 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )

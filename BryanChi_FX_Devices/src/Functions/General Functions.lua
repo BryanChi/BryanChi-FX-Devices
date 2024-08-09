@@ -420,8 +420,12 @@ end
 ---@param untilwhere? integer
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
-        local Out, LineChange
-        local ID = Fx_P .. '%. ' .. Id .. ' = '
+        local Out, LineChange, ID
+        if not Fx_P then
+             ID = Id.. ' = ' 
+        else     
+             ID = Fx_P .. '%. ' .. Id .. ' = '
+        end
         local Start, End = Str:find(ID)
         if untilwhere then
             LineChange = Str:find(untilwhere, Start)
@@ -2145,8 +2149,7 @@ function Add_Del_Move_FX_At_Begining_of_Loop()
             local JoinerID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i])
             FX[SplittrID] = FX[SplittrID] or {}
             FX[SplittrID].AttachToJoiner = JoinerID
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID,
-                JoinerID, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID, JoinerID, true)
         elseif v:find('FXD Gain Reduction Scope') then
             local _, FX_Name = r.TrackFX_GetFXName(LT_Track, AddFX.Pos[i])
 
