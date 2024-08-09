@@ -862,10 +862,17 @@ end
 ---@param font? ImGui_Font
 ---@param color? number rgba
 ---@param WrapPosX? number
-function MyText(text, font, color, WrapPosX)
+function MyText(text, font, color, WrapPosX, center)
     if WrapPosX then im.PushTextWrapPos(ctx, WrapPosX) end
 
+   
     if font then im.PushFont(ctx, font) end
+    if center then 
+        local W, h = im.CalcTextSize(ctx, text, nil, nil, true)
+        local X = im.GetCursorPosX(ctx)
+        im.SetCursorPosX(ctx ,X - W /2)
+    
+    end
     if color then
         im.TextColored(ctx, color, text)
     else

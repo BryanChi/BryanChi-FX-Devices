@@ -1,8 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.2.3
+-- @version 1.0beta14.3
 -- @changelog
---  - Layout Editor : optimize the look of marquee selection 
+--  - New! Layout Editor : Saving attached drawings as styles is now possible
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
