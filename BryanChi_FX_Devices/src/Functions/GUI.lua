@@ -23,6 +23,62 @@ function Container_CollapseIfTab(FxGUID, FX_Idx)
     end
 
 end
+function Cross_Out( clr, thick , DL )
+    local WDL = DL or WDL 
+    local clr = clr or 0xD30000ff
+    local thick = thick or 2 
+    local l, t = im.GetItemRectMin(ctx)
+    local r, b = im.GetItemRectMax(ctx)
+    im.DrawList_AddLine(WDL, l, t, r, b ,clr, thick)
+    im.DrawList_AddLine(WDL, r,t,l ,b ,clr, thick)
+
+
+end
+
+
+function Draw_A_Cursor_Shape( x, y, scale, col, angle )
+    local function rotatePoint(x, y, center_x, center_y, theta)
+        local cos_theta = math.cos(theta)
+        local sin_theta = math.sin(theta)
+    
+        -- Translate the point relative to the center
+        local translated_x = x - center_x
+        local translated_y = y - center_y
+    
+        -- Perform the rotation
+        local rotated_x = translated_x * cos_theta - translated_y * sin_theta
+        local rotated_y = translated_x * sin_theta + translated_y * cos_theta
+    
+        -- Translate the point back to the original position
+        return rotated_x + center_x, rotated_y + center_y
+    end
+
+    local  tx = x    ;
+    local  ty = y -2.5 * scale ;
+    local  rbx = x + 2 * scale ;
+    local  rby = y + 3 * scale;
+    local  bx = x ;
+    local  by = y + 2 * scale;
+    local  lbx = x - 2 * scale ;
+    local  lby = y + 3 * scale ;
+    local WDL = im.GetForegroundDrawList(ctx)
+
+     -- Rotate each point around the center (x, y) by theta
+    local tx, ty = rotatePoint(tx, ty, x, y, angle)
+    local rbx, rby = rotatePoint(rbx, rby, x, y, angle)
+    local bx, by = rotatePoint(bx, by, x, y, angle)
+    local lbx, lby = rotatePoint(lbx, lby, x, y, angle)
+
+    im.DrawList_PathLineTo(WDL, tx, ty)
+    im.DrawList_PathLineTo(WDL, rbx, rby)
+    im.DrawList_PathLineTo(WDL, bx, by)
+    im.DrawList_PathLineTo(WDL, lbx, lby)
+
+
+    im.DrawList_PathFillConvex(WDL, col)
+
+
+end
 
 ---@param w number
 ---@param h number
@@ -456,13 +512,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 end 
             end
         end
-
-        if WindowBtn and Mods == 0 then
-            openFXwindow(LT_Track, FX_Idx)
-        elseif WindowBtn and Mods == Shift then
-            ToggleBypassFX(LT_Track, FX_Idx)
-        elseif WindowBtn and Mods == Alt then
-            DeleteFX(FX_Idx, FxGUID)
+        if not FX.LayEdit ==FxGUID then 
+            if WindowBtn and Mods == 0 then
+                openFXwindow(LT_Track, FX_Idx)
+            elseif WindowBtn and Mods == Shift then
+                ToggleBypassFX(LT_Track, FX_Idx)
+            elseif WindowBtn and Mods == Alt then
+                DeleteFX(FX_Idx, FxGUID)
+            end
         end
 
         if im.IsItemHovered(ctx) then
@@ -1110,22 +1167,31 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
             Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
         end
 
-        local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
-            if rpt and rpt ~= 0 then
-                local RPT = rpt
-                if va and va ~= 0 then RPT = rpt * Val * va end
-                for i = 0, RPT - 1, 1 do
-                    local Clr = BlendColors(CLR or 0xffffffff, RPTClr or 0xffffffff, i / RPT)
-
-                    func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
-                end
-            else
-                func(Xgap)
-            end
-        end
+        
 
         
         for i, v in ipairs(FP.Draw) do
+            local fill = v.Fill ==true  and 'Filled' 
+
+            local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
+                if rpt and rpt ~= 0 then
+                    local RPT = rpt
+                    if va and va ~= 0 then RPT = rpt * Val * va end
+
+                    for i = 0, RPT - 1, 1 do
+    
+                        local Clr1 = (v.Clr_VA ) and BlendColors(CLR or 0xffffffff, v.Clr_VA,  Val) or CLR or 0xffffffff
+                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(RPTClr or 0xffffffff, v.RPT_Clr_VA ,  Val) or RPTClr or  0xffffffff
+    
+    
+                        local Clr = BlendColors(Clr1 , Clr2, i / RPT)
+    
+                        func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
+                    end
+                else
+                    func(Xgap)
+                end
+            end
 
             local x                 = x + (v.X_Offset or 0) + (Val * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
             local y                 = y + (v.Y_Offset or 0) + (Val * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
@@ -1154,8 +1220,15 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
             end
 
             if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
+                if   v.Type == 'Rect' or v.Type == 'Rect Filled' then
+                    v.Width, v.Height =v.Width or im.GetItemRectSize(ctx), v.Height or select(2, im.GetItemRectSize(ctx))
+                elseif v.Type == 'Line'  then
+                    v.Width = v.Width or im.GetItemRectSize(ctx)
+                    v.Height = v.Height or 0
+                end
                 local w = v.Width or im.GetItemRectSize(ctx)
                 local h = v.Height or select(2, im.GetItemRectSize(ctx))
+
                 
                 local x2 = x + w
                 local y2 = y + h
@@ -1191,19 +1264,22 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                         im.DrawList_AddLine(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, Thick)
                     end
 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline,
-                        nil, v.RPT_Clr, v.Clr)
-                elseif v.Type == 'Rect' then
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline, nil, v.RPT_Clr, v.Clr, v)
+                else
                     local function AddRect(Xg, Yg, none, RptClr)
                         im.DrawList_AddRect(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
                     end
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect,
-                        nil, v.RPT_Clr, v.Clr)
-                elseif v.Type == 'Rect Filled' then
+
+
                     local function AddRectFill(Xg, Yg, none, RptClr)
                         im.DrawList_AddRectFilled(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round)
                     end
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr)
+
+                    if v.Fill then 
+                        Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr, v)
+                    else 
+                        Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, nil, v.RPT_Clr, v.Clr, v)
+                    end
                 end
 
                 if v.AdjustingX or v.AdjustingY then
@@ -1234,10 +1310,11 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                 end
 
 
-                if v.Type == 'Circle' then
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr)
-                elseif v.Type == 'Circle Filled' then
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr)
+
+                if v.Fill  then
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr, v)
+                else 
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr, v)
                 end
 
                 if v.AdjustingX or v.AdjustingY then
@@ -1255,8 +1332,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                 local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
                 local t = (Val- 0) / (1 - 0)
                 local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                local angle_cos, angle_sin = math.cos(angle),
-                    math.sin(angle)
+                local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
                 local IN = v.Rad_In or 0 -- modify this for the center begin point
                 local OUT = v.Rad_Out or 0
                 local Def_W = w / 2 
@@ -1266,21 +1342,85 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                     im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
                 elseif v.Type == 'Knob Range' then
                     local function AddRange(G)
-                        for i = IN, OUT, (1 + (v.Gap or 0)) do
-                            im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
-                            im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
-                            im.DrawList_PathClear(WDL)
+                        if  v.Repeat then 
+                            local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
+                            local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1
+
+                            for i = 0, v.Repeat* (rpt ) , math.max(1*gap, 0.01) do 
+                                local t = (i/v.Repeat- 0) / (1 - 0)
+                                local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                                local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+
+                                local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                                local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                                local Clr = BlendColors(v.Clr or 0xffffffff, v.RPT_Clr or 0xff33ffff, i / v.Repeat)
+
+                                im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
+
+
+                            end
+                        else
+                            for i = IN, OUT, (1 + (v.Gap or 0)) do
+                                im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
+                                im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                                im.DrawList_PathClear(WDL)
+                            end
                         end
+                        --[[ for i = ANGLE_MIN, SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX), (0.01  + (v.Gap or 0) * 0.01) do
+                            im.DrawList_PathArcTo(WDL, x, y, OUT + (OUT-IN)/2 , i, SetMinMax( i+ (v.Gap or 0) * 0.01,ANGLE_MIN, ANGLE_MAX))
+                            im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, (OUT-IN))
+                            im.DrawList_PathClear(WDL)
+                        end ]]
                     end
 
 
 
                     Repeat(1, 0, X_Gap, X_Gap, AddRange)
-                elseif v.Type == 'Knob Circle' then
 
-                    im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
-                elseif v.Type == 'Knob Circle Filled' then
-                    im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr_VA or v.Clr or 0x999999aa, nil)
+                elseif v.Type == 'Knob Circle Filled' or v.Type == 'Knob Circle' then
+                    if v.Repeat and v.Repeat ~= 0 then 
+                        local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
+                        --local gap = (v.Gap_VA~= 0) and Val * (v.Gap or 1 )* (v.Gap_VA or 1)
+                        
+
+
+
+                        for i = 0, v.Repeat* (rpt ) , math.max(1, 0.01) do 
+
+                            local t = (i/v.Repeat- 0) / (1 - 0)
+                            local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                            local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                            local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                            local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                            local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
+                            local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
+
+                            local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat)
+
+                            if v.Fill then 
+                                im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil)
+                            else
+                                im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil, Thick)
+                            end
+                        end
+                    elseif not v.Repeat or v.Repeat == 0 then 
+                            local t = (Val- 0) / (1 - 0)
+                            local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                            local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                            local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                            local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                            --[[ local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
+                            local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
+
+                            local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat) ]]
+
+
+                        if v.Fill then 
+                            im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, v.Clr or 0x999999aa, nil)
+                        else
+                            im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W,  v.Clr or 0x999999aa, nil, Thick)
+                        end
+                    end
 
                 elseif v.Type == 'Knob Image' and v.Image then
                     local X, Y = x + angle_cos * IN, y + angle_sin * IN
@@ -1309,7 +1449,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                 end
 
 
-                Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr) elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
+                Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
                 local GR = round(GR, 1)
                 im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
             end
@@ -1580,7 +1720,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             im.InvisibleButton(ctx, '##Morph' .. FxGUID, 20, H)
 
             local BgClrA, isActive, V_Pos, DrgSpdMod, SldrActClr, BtnB_TxtClr, ifHvr
-            local M = PresetMorph
+            --local M = PresetMorph
 
 
             if im.IsItemActive(ctx) then
@@ -1752,23 +1892,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     if OpenMorphSettings then
                         OpenMorphSettings = FxGUID
                     else
-                        OpenMorphSettings =
-                            FxGUID
+                        OpenMorphSettings = FxGUID
                     end
                     local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
                     FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
                     for i = 0, Ct - 4, 1 do --get param names
                         FX[FxGUID].PrmList[i]      = FX[FxGUID].PrmList[i] or {}
-                        local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx,
-                            i)
+                        local rv, name             = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
                         FX[FxGUID].PrmList[i].Name = name
                     end
                 end
 
                 if im.Selectable(ctx, 'Hide Morph Slider', false) then
                     FX[FxGUID].MorphHide = true
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
-                        'true', true)
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
                 end
 
                 im.EndPopup(ctx)
@@ -1779,11 +1916,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-            if not ifHvr and M.JustHvrd then
+            --[[ if M and not ifHvr and M.JustHvrd then
                 M.timer = M.timer + 1
             else
                 M.timer = 0
-            end
+            end ]]
 
 
 
@@ -2526,12 +2663,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 --im.DrawList_AddText(WDL, 100,200, 0xffffffff, 'asd')
 
                 if FX[FxGUID].Round then
-                    im.PushStyleVar(ctx,
-                        im.StyleVar_FrameRounding, FX[FxGUID].Round)
+                    im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX[FxGUID].Round)
                 end
                 if FX[FxGUID].GrbRound then
-                    im.PushStyleVar(ctx,
-                        im.StyleVar_GrabRounding, FX[FxGUID].GrbRound)
+                    im.PushStyleVar(ctx, im.StyleVar_GrabRounding, FX[FxGUID].GrbRound)
                 end
 
                 
@@ -2731,7 +2866,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         if Prm.Deletable then
                                             DeletePrm(FxGUID, Fx_P, FX_Idx)
                                         end
+
                                     end
+
+
                                 end
                             end
                             local function Double_Click_To_Reset_Value()
@@ -2755,16 +2893,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 end
                             end
 
-                        
                             ------ EXECUTION -----
-
-                            --im.DrawListSplitter_SetCurrentChannel(fx.splitter,1)
                             local pos = Create_Item()
                             
-                            --im.DrawListSplitter_SetCurrentChannel(fx.splitter, 1)
-                            Draw_Attached_Drawings(FP,FX_Idx, pos)
+
+
+                            --Draw_Attached_Drawings(FP,FX_Idx, pos)
                             Item_Interaction()
                             Double_Click_To_Reset_Value()
+
 
                         end
                         if im.IsItemClicked(ctx, 1) and Mods == 0 and not AssigningMacro then

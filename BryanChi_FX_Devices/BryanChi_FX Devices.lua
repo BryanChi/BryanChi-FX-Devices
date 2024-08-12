@@ -3,6 +3,8 @@
 -- @version 1.0beta14.3
 -- @changelog
 --  - New! Layout Editor : Saving attached drawings as styles is now possible
+--  - Layout editor: for attached drawings , Add 'fill' parameter, get rid of types that contains 'Filled' to reduce the number of types to choose from.
+--  - fix double clicking crashes script when there's a slider parameter present.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -277,7 +279,7 @@ function loop()
         Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
 
 
-        im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 0)
+        im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 0) --  styleVar#2 Child Border size
         Cx_LeftEdge, Cy_BeforeFXdevices = im.GetCursorScreenPos(ctx)
         MouseAtLeftEdge = im.IsMouseHoveringRect(ctx, Cx_LeftEdge - 50, Cy_BeforeFXdevices, Cx_LeftEdge + 5, Cy_BeforeFXdevices + 220)
 
@@ -611,7 +613,7 @@ function loop()
         --[[  im.PopStyleColor(ctx)  --  For Menu Bar Color
             im.PopStyleColor(ctx)  --  For WindowBg ]]
 
-        im.PopStyleVar(ctx) --(Border Size for all fx devices)
+        im.PopStyleVar(ctx) -- styleVar#2 (Border Size for all fx devices)
         im.PopStyleVar(ctx) --StyleVar#1 (Child Frame for all FX Devices)
 
         im.PopFont(ctx)
