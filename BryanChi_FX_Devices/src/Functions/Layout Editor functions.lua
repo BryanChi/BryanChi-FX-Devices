@@ -3224,9 +3224,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     end
 
     local function Enable_Preset_Morph_Edit()
-        if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl and FX[FxGUID].MorphA and FX[FxGUID].MorphB then
+     
+        if (FX[FxGUID].Morph_Value_Edit or Mods == Ctrl + Alt) and FX[FxGUID].MorphA and FX[FxGUID].MorphB then
             im.EndDisabled(ctx)
-
+            
             if FX[FxGUID].MorphA[P_Num] and FX[FxGUID].MorphB[P_Num] then
                 im.SetCursorScreenPos(ctx, pos[1], pos[2])
                 local sizeX, sizeY = im.GetItemRectSize(ctx)
@@ -3281,6 +3282,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                         local drag = FX[FxGUID].MorphA[P_Num] + select(2, im.GetMouseDelta(ctx)) * -0.01
                         FX[FxGUID].MorphA[P_Num] = SetMinMax(drag, 0, 1)
                         if FX[FxGUID].Morph_ID then -- if Morph Sldr is linked to a CC
+                           
                             local A = (MsY - BtnT) / sizeY
                             local Scale = FX[FxGUID].MorphB[P_Num] - A
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 1)     -- 1 active, 0 inactive
@@ -3306,10 +3308,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 15)  -- 0 based, 15 = Bus 16
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 16) -- 0 based, 0 = Omni
                             r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg", 160) -- 160 is Aftertouch
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2",
-                                FX[FxGUID].Morph_ID)                                                                    -- CC value
-                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline",
-                                Orig_Baseline)                                                                          -- Baseline
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_msg2", FX[FxGUID].Morph_ID)                                                                    -- CC value
+                            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".mod.baseline", Orig_Baseline)                                                                          -- Baseline
                         end
                     end
                     if IsLBtnHeld then

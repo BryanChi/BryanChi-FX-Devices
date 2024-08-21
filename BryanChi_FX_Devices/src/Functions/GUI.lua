@@ -244,6 +244,7 @@ end
 function CreateWindowBtn_Vertical(Name, FX_Idx)
     local rv = im.Button(ctx, Name, 25, 220) -- create window name button
     if rv and Mods == 0 then
+      
         openFXwindow(LT_Track, FX_Idx)
     elseif rv and Mods == Shift then
         ToggleBypassFX(LT_Track, FX_Idx)
@@ -512,8 +513,11 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 end 
             end
         end
-        if not FX.LayEdit ==FxGUID then 
+
+        if FX.LayEdit ~=FxGUID then 
+            
             if WindowBtn and Mods == 0 then
+               
                 openFXwindow(LT_Track, FX_Idx)
             elseif WindowBtn and Mods == Shift then
                 ToggleBypassFX(LT_Track, FX_Idx)

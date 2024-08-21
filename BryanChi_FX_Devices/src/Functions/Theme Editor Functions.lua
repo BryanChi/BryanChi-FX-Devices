@@ -50,13 +50,14 @@ function demo.PushStyle()
             im.PushStyleColor(ctx, i, value)
         end
     else
-        local file_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'ThemeColors.ini')
+
+        local file_path = ConcatPath(CurrentDirectory, 'src', 'ThemeColors.ini')
         local file = io.open(file_path, 'r')
 
         if file then
             local content = file:read("a+")
             for i, v in pairs(CustomColors) do
-                _G[v] = RecallGlobInfo(content, v .. ' = ', 'Num')
+                _G[v] = _G[v]  or  RecallGlobInfo(content, v .. ' = ', 'Num')
             end
         end
         DefaultThemeActive = true
