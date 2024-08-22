@@ -1,8 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.3.1
+-- @version 1.0beta14.3.2
 -- @changelog
---  - bug fix
+--  - fix mod lines on sliders display incorrect
+--  - fix modulations can't be recalled when loading project
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

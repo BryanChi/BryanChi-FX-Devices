@@ -43,7 +43,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
 
     if Vertical ~= 'Vert' then
         PosX_End_Of_Slider = (Sldr_Width) + L
-        SldrGrabPos = SizeX * P_V
+        SldrGrabPos = Sldr_Width * P_V
         SliderCurPos = L + SldrGrabPos
         SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
         SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
@@ -80,6 +80,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
                 ModPosWithAmt = math.max(B - (v * Sldr_Width ) - BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
                 im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
             else 
+
                 ModPosWithAmt = math.min(L + (v * Sldr_Width ) + BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
                 im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,Rounding)
             end

@@ -63,6 +63,8 @@ trkGUID_Num = gmem[1];
   Mc7.Fol_Gain= 0.7 ; 
   Mc8.Fol_Gain= 0.7 ; 
 
+
+
 //LFO Gain auto 
   Mc1.LFO_Gain_Auto= 0 ;
   Mc2.LFO_Gain_Auto= 0 ;
@@ -614,7 +616,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs)  /
 );
 
 @gfx
-
+  /*
   // -------------------------------------------------------------
   function display_memory (PstartA, PstartB, Plength, Pformat, PnameA, PnameB)
   // -------------------------------------------------------------
@@ -760,7 +762,7 @@ gfx_line(0, 0 , 1000, 1000,  1 );
 gfx_drawstr('adsf',0,  0, 0);
 
 print_strings(20, 100)
-
+*/
 @slider
 Mc1.Slider = slider1;
 Mc2.Slider = slider2;
@@ -770,6 +772,29 @@ Mc5.Slider = slider5;
 Mc6.Slider = slider6;
 Mc7.Slider = slider7;
 Mc8.Slider = slider8;
+
+
+@serialize 
+
+
+P.Inst = file_var(0,P.Inst);
+
+
+
+
+i=1;    
+while ( i <= P.Inst)(
+  m = 1 ; 
+  while ( m <= 8)(
+   // file_var(i+m*1000, a[i+m*1000]);
+    a[i+m*1000] = file_var(0 , a[i+m*1000]);
+
+    m+=1;
+    
+  );
+  a[P_OrigV+i] = file_var(0, a[P_OrigV+i]);
+  i+=1;
+);
 
 
 
@@ -856,8 +881,8 @@ trkGUID_Num === gmem[2]? (
     P.Inst = gmem[3];    
     Param = gmem[6];
     Macro = gmem[5];
-    a[Param+ Macro*1000] = gmem[Param+ Macro*1000];
-        
+    a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script
+    AA_testtt = Param+ Macro*1000 
   );
   mode ==2?(   // if User is adjusting atk...  
     gmem[9] !=0?(Mc1.atk = gmem[9]); 
@@ -1107,7 +1132,7 @@ trkGUID_Num === gmem[2]? (
     P_OrigV[P_Id]= gmem[11000+P_Id];
     what=gmem[8];
     gmem[8] != 0?( // if paramV + Mod is over 1...
-      a[Param+ Macro*1000] = gmem[Param+ Macro*1000]
+      a[Param+ Macro*1000] = gmem[Param+ Macro*1000]  // this is mod amount for the modulator on the parameter
     );
    
   );
