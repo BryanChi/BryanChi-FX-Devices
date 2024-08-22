@@ -2159,7 +2159,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local DefW, DefH
 
                             local WidthLBL, WidthStepSize = 'Width: ', LE.GridSize
-
+                            local function Set_Property (prop, val, trigger)
+                                if trigger then 
+                                    for I, v in ipairs(LE.Sel_Items) do 
+                                        FX[FxGUID][v].Draw[i][prop] = val
+                                    end
+                                end
+                            end
 
                             if D.Type == 'Image' or D.Type == 'Knob Image' then
                                 if im.BeginChild(ctx, '##drop_files', -R_ofs, 25) then
@@ -2412,12 +2418,16 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 --[[ if SetRowName('Font Size',GR_Text ) then
 
                                 end ]]
+                                
                                 SetRowName('Color')
                                 im.TableSetColumnIndex(ctx, 1)
 
 
                                 local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
-                                if rv then D.Clr = Clr end
+
+                                Set_Property ('Clr', Clr, rv)
+                                
+                                
                                 if D.Repeat and D.Repeat ~= 0 and not FindExactStringInTable(BL_Repeat, D.Type) then
                                     im.AlignTextToFramePadding(ctx)
                                     SL()
@@ -2425,7 +2435,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     SL(nil, 20)
                                     
                                     local rv, Clr = im.ColorEdit4(ctx, 'Repeat Color' .. LBL, D.RPT_Clr or 0xffffffff, ClrFLG)
-                                    if rv then D.RPT_Clr = Clr end
+                                    Set_Property ('RPT_Clr', Clr, rv)
                                     SL()
                                     im.Text(ctx, 'End')
 

@@ -1383,7 +1383,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
 
                 elseif v.Type == 'Knob Circle Filled' or v.Type == 'Knob Circle' then
                     if v.Repeat and v.Repeat ~= 0 then 
-                        local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
+                        local rpt = (v.Repeat_VA and v.Repeat_VA ~= 0) and Val * v.Repeat_VA or 1
                         --local gap = (v.Gap_VA~= 0) and Val * (v.Gap or 1 )* (v.Gap_VA or 1)
                         
 

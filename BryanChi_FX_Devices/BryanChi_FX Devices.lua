@@ -1,10 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.3
+-- @version 1.0beta14.3.1
 -- @changelog
---  - New! Layout Editor : Saving attached drawings as styles is now possible
---  - Layout editor: for attached drawings , Add 'fill' parameter, get rid of types that contains 'Filled' to reduce the number of types to choose from.
---  - fix double clicking crashes script when there's a slider parameter present.
+--  - bug fix
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
