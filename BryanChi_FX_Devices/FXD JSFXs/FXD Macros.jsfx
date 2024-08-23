@@ -1,4 +1,4 @@
-fnoindex: true
+ fnoindex: true
 
 desc:FXD Macros
 import cookdsp.jsfx-inc
@@ -1145,13 +1145,14 @@ trkGUID_Num === gmem[2]? (
 
 
 
-    midi_bus = 15;
+  
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
-  midi_bus = 15;
+  
   (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
       msg3 != 0 ? (
         // noteon 
+     
         midinote = msg2;
         NoteOn = 1  ;
         // msg3 == Velocity
@@ -1235,7 +1236,7 @@ playstate_started ? ( playstate_started = 0 );
 
 
 //------------------------------------------------------------------------------------------------
-
+/*
     midi_bus = 15;
 while (midirecv(offset, msg1, msg2, msg3)) (
     // get noteons and noteoffs from all channels
@@ -1260,7 +1261,7 @@ while (midirecv(offset, msg1, msg2, msg3)) (
         midisend(offset,msg1,msg2,msg3);
     );
 );
-
+*/
 
 play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;
