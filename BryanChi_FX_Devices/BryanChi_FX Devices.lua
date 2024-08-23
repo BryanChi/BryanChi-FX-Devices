@@ -4,6 +4,7 @@
 -- @changelog
 --  - fix mod lines on sliders display incorrect
 --  - fix modulations can't be recalled when loading project
+--  - fix macros jsfx
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
