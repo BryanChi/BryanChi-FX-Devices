@@ -2,8 +2,8 @@
 -- @author Bryan Chi
 -- @version 1.0beta14.4
 -- @changelog
---  - fix many lfo modulation parameters not recalled when loading projects 
---  - add note filters to lfo modulators envelope mode. 
+--  - fix many lfo modulation parameters not recalled when loading projects.
+--  - add note filters to lfo modulators envelope mode.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
