@@ -1,4 +1,4 @@
- fnoindex: true
+  fnoindex: true
 
 desc:FXD Macros
 import cookdsp.jsfx-inc
@@ -43,6 +43,9 @@ options:gmem=ParamValues
 
 @init 
 
+G=333333;
+A123 =33;
+AB = A123 ?  A123 : 333;
 
 ext_noinit=1;
 ext_midi_bus = 1;
@@ -192,16 +195,48 @@ function getNode(index, attribute) (
    address[index * Node_length + attribute];
 );
 
+function Save(v)(
+v = file_var(0, v)
+);
+
+
+
+function SaveAllModulatorInfo()(
+  this.type = file_var(0,this.type);
+  this.LFO_Spd = file_var(0, this.LFO_Spd);
+  this.LFO_Len = file_var(0, this.LFO_Len);
+  this.LFO_Gain = file_var(0, this.LFO_Gain);
+
+  this.Legato = file_var(0, this.Legato);
+  this.EnvOrLoop = file_var(0, this.EnvOrLoop);
+  this.LFO_NodeCt = file_var(0, this.LFO_NodeCt);
+  this.Rel_Type = file_var(0, this.Rel_Type);
+  this.Rel_Node = file_var(0, this.Rel_Node);
+  this.LowestNote = file_var(0, this.LowestNote);
+  this.HighestNote = file_var(0, this.HighestNote);
+
+
+  this.atk =  file_var(0, this.atk);
+  this.Rel = file_var(0, this.Rel);
+
+  this.SEQ_Leng = file_var(0, this.SEQ_Leng);
+  this.SEQ_DNom = file_var(0, this.SEQ_DNom);
+
+  this.FOL_Gain = file_var(0, this.FOL_Gain);
+  this.freq = file_var(0,this.freq);
+  this.lp.c = file_var(0,this.lp.c);
+  this.lp.freq = file_var(0,this.lp.freq);
+);
 
 
 
 
 
-
-
-
-
-
+function DoFollower()(
+  this.type == 'Fol'? (
+    this.FOL_out  = this.follow_do((spl0+spl1));
+  );
+);
 
 
 
@@ -295,6 +330,7 @@ function SendInfoBackToImGui()
 function CalculateLFO()(
   //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
   this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
+
   loop (this.LFO_NodeCt  *11 ,
     N+=1;  // N means segment actually , there are 11 segments between each nodes
     X_idx = (this.Macro-1)*1000+N;
@@ -346,7 +382,7 @@ function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
     y2 = LFO[Y_idx+1];
 
     this.Rel_Type==3 ? ( // if it's no jump
-      AA_REL_NODE_VAL = LFO[(this.Macro-1)*1000+this.Rel_Node+ this.LFO_NodeCt*11];
+
       y1 = ChangeRange(this.Rel_V  , y1 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11] );
       y2 = ChangeRange(this.Rel_V  , y2 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11]);
     );
@@ -394,25 +430,31 @@ function DoMidi_Release()(
 );
 
 
-function SetBpTo0 ()(
+function SetBpTo0 (midinote) local (highestNote )(
   this.EnvOrLoop == 1 ? (
-    this.Legato == 0 ? ( 
-      this.bp =  0;
-    ):this.Legato == 1 && TotalNotesHeld == 1 ? ( // if this is the first note played, while not holding any other notes
-      this.bp =  0;
+    highestNote = this.HighestNote ? this.HighestNote : 127 ; 
+
+    midinote >= this.LowestNote && midinote <= highestNote  ? ( // if the note is within the set range
+      this.Legato == 0 ? ( 
+        this.bp =  0;
+      ):this.Legato == 1 && TotalNotesHeld == 1 ? ( // if this is the first note played, while not holding any other notes
+        this.bp =  0;
+      );
     );
   );
 );
 
-function SetBpTo0_All()(
-  Mc1.SetBpTo0();
-  Mc2.SetBpTo0();
-  Mc3.SetBpTo0();
-  Mc4.SetBpTo0();
-  Mc5.SetBpTo0();
-  Mc6.SetBpTo0();
-  Mc7.SetBpTo0();
-  Mc8.SetBpTo0();
+
+
+function SetBpTo0_All(midinote)(
+  Mc1.SetBpTo0(midinote);
+  Mc2.SetBpTo0(midinote);
+  Mc3.SetBpTo0(midinote);
+  Mc4.SetBpTo0(midinote);
+  Mc5.SetBpTo0(midinote);
+  Mc6.SetBpTo0(midinote);
+  Mc7.SetBpTo0(midinote);
+  Mc8.SetBpTo0(midinote);
 );
 
 
@@ -452,7 +494,7 @@ function LFO_Calc_Play_Pos ()(
     this.bp += beat_per_block * this.LFO_Spd;
     this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
 
-  ): play_state != 1 ? (   // if not playing
+  ): play_state != 1  ? (   // if not playing
     this.bp =  beat_position * this.LFO_Spd ;
     this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
   );
@@ -775,7 +817,7 @@ Mc8.Slider = slider8;
 
 
 @serialize 
-
+AA_Serialize +=1;
 
 P.Inst = file_var(0,P.Inst);
 
@@ -796,6 +838,23 @@ while ( i <= P.Inst)(
   i+=1;
 );
 
+i=0;
+
+while(i<=80000)(
+  
+    a[i] = file_var(0, a[i]);
+    i+=1;
+);
+
+Mc1 = file_var(0, Mc1);
+Mc1.SaveAllModulatorInfo();
+Mc2.SaveAllModulatorInfo();
+Mc3.SaveAllModulatorInfo();
+Mc4.SaveAllModulatorInfo();
+Mc5.SaveAllModulatorInfo();
+Mc6.SaveAllModulatorInfo();
+Mc7.SaveAllModulatorInfo();
+Mc8.SaveAllModulatorInfo();
 
 
 
@@ -803,14 +862,14 @@ while ( i <= P.Inst)(
 @sample 
 
 
-Mc1.FOL_out  = Mc1.follow_do((spl0+spl1));
-Mc2.FOL_out  = Mc2.follow_do((spl0+spl1));
-Mc3.FOL_out  = Mc3.follow_do((spl0+spl1));
-Mc4.FOL_out  = Mc4.follow_do((spl0+spl1));
-Mc5.FOL_out  = Mc5.follow_do((spl0+spl1));
-Mc6.FOL_out  = Mc6.follow_do((spl0+spl1));
-Mc7.FOL_out  = Mc7.follow_do((spl0+spl1));
-Mc8.FOL_out  = Mc8.follow_do((spl0+spl1));
+Mc1.DoFollower();
+Mc2.DoFollower();
+Mc3.DoFollower();
+Mc4.DoFollower();
+Mc5.DoFollower();
+Mc6.DoFollower();
+Mc7.DoFollower();
+Mc8.DoFollower();
 
 
 
@@ -882,7 +941,7 @@ trkGUID_Num === gmem[2]? (
     Param = gmem[6];
     Macro = gmem[5];
     a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script
-    AA_testtt = Param+ Macro*1000 
+
   );
   mode ==2?(   // if User is adjusting atk...  
     gmem[9] !=0?(Mc1.atk = gmem[9]); 
@@ -1030,7 +1089,7 @@ trkGUID_Num === gmem[2]? (
     Macro==8?(Mc8.LFO_Gain = gmem[9];);
   );
   
-
+  A_LFO_1 = a[30001];
   mode == 15?(  // if user changing LFO Shape
     SetTypeTo('LFO');
     Pts_Count = gmem[6];
@@ -1124,6 +1183,26 @@ trkGUID_Num === gmem[2]? (
     Macro==8?(Mc8.Legato = gmem[9]);
 
   );
+  mode == 22 ? ( // if user is setting note filter 
+    Macro==1?(Mc1.LowestNote = gmem[9]); 
+    Macro==2?(Mc2.LowestNote = gmem[9]); 
+    Macro==3?(Mc3.LowestNote = gmem[9]);
+    Macro==4?(Mc4.LowestNote = gmem[9]);
+    Macro==5?(Mc5.LowestNote = gmem[9]);
+    Macro==6?(Mc6.LowestNote = gmem[9]);
+    Macro==7?(Mc7.LowestNote = gmem[9]);
+    Macro==8?(Mc8.LowestNote = gmem[9]);
+
+    Macro==1?(Mc1.HighestNote = gmem[10]); 
+    Macro==2?(Mc2.HighestNote = gmem[10]); 
+    Macro==3?(Mc3.HighestNote = gmem[10]);
+    Macro==4?(Mc4.HighestNote = gmem[10]);
+    Macro==5?(Mc5.HighestNote = gmem[10]);
+    Macro==6?(Mc6.HighestNote = gmem[10]);
+    Macro==7?(Mc7.HighestNote = gmem[10]);
+    Macro==8?(Mc8.HighestNote = gmem[10]);
+
+  );
 
   
       
@@ -1144,30 +1223,30 @@ trkGUID_Num === gmem[2]? (
 ); // --------------------- End of if track is selected -----------------------
 
 
-
-  
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
-  
-  (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
-      msg3 != 0 ? (
-        // noteon 
-     
-        midinote = msg2;
-        NoteOn = 1  ;
-        // msg3 == Velocity
-        midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
-        TotalNotesHeld+=1;
-        SetBpTo0_All ();
-        midisend(offset,msg1,msg2,msg3);
-      ) : (
-        // noteoff
-        msg2 == midinote ? midiamp = 0;
-        TotalNotesHeld -=1;
-        SetBPToRel_Node_All();  
-        NoteOn = 0;
-        midisend(offset,msg1,msg2,msg3);
-      );
+  noteStatus = msg1 & $xF0;
+  channel =  msg1 & $x0F;
+
+  (noteStatus) == $x90  ?(    // if note on 
+    msg3 != 0 ? (   // and velocity is not 0 
+      // midi_bus = 15;
+      midinote = msg2;
+      NoteOn = 1  ;
+      // msg3 == Velocity
+      midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
+      TotalNotesHeld+=1;
+      SetBpTo0_All (midinote);
+      midisend(offset,msg1,msg2,msg3);
+    ) ;
+  ):(noteStatus == $x80) ? (    // $x80 is probably note off
+    // noteoff
+    msg2 == midinote ? midiamp = 0;
+    TotalNotesHeld = max(TotalNotesHeld-1, 0);
+    SetBPToRel_Node_All();  
+    NoteOn = 0;
+    midisend(offset,msg1,msg2,msg3);
+    
   ) : (
 
       // passthrough other events
@@ -1227,10 +1306,12 @@ trkGUID_Num === gmem[2]? (
   Mc7.SendInfoBackToImGui();
   Mc8.SendInfoBackToImGui();
 );
-  
 
 
-playstate_started ? ( playstate_started = 0 );
+
+playstate_started ? ( 
+  playstate_started = 0 ;
+);
 
 
 
@@ -1265,7 +1346,15 @@ while (midirecv(offset, msg1, msg2, msg3)) (
 
 play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;
+  
 );
 
+PlayState ==1 ? (
+  (play_state != 1 && play_state != 5)? ( 
+  TotalNotesHeld = 0 );
+);
 
+play_state == 1 || play_state == 5? ( 
+  PlayState = 1 ; 
+):( PlayState = 0 );
 //display_memory(note_ons, offsets, 64, 3, "Note Ons", "Offsets");
