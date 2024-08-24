@@ -461,8 +461,12 @@ function Retrieve_All_Saved_Data_Of_Project()
             m.LFO_NodeCt = RC('Mod ' .. i .. 'Total Number of Nodes')
             m.LFO_spd = RC('Mod ' .. i .. 'LFO Speed')
             m.LFO_leng = RC('Mod ' .. i .. 'LFO Length')
+            m.LFO_Legato = RC('Mod ' .. i .. 'LFO_Legato')
             m.LFO_Env_or_Loop = RC('Mod ' .. i .. 'LFO_Env_or_Loop')
             m.Rel_Type = RC('Mod ' .. i .. 'LFO_Release_Type')
+            m.LowNoteFilter = RC('Mod ' .. i ..'Note Filter Low')
+            m.HighNoteFilter = RC('Mod ' .. i ..'Note Filter High')
+
             if m.Rel_Type == 0 then
                 m.Rel_Type = 'Latch'
             elseif m.Rel_Type == 1 then

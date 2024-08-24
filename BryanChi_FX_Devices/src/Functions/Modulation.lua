@@ -1868,8 +1868,23 @@ function Create_Header_For_Track_Modulators()
 
                             if im.Checkbox(ctx, 'Legato', Mc.LFO_Legato) then
                                 Mc.LFO_Legato = toggle(Mc.LFO_Legato)
-                                ChangeLFO(21, 1, nil, 'LFO_Legato')
+                                local v = Mc.LFO_Legato and 1 or 0
+                                ChangeLFO(21, v, nil, 'LFO_Legato')
                             end
+                            im.SetNextItemWidth(ctx, 80)
+                            local rv, low =  im.InputInt(ctx, 'Note Filter Low ', Mc.LowNoteFilter, 1 )  
+                            if rv then 
+                                Mc.LowNoteFilter = low 
+                                ChangeLFO(22, low, 9, 'Note Filter Low')
+                            end 
+
+                            im.SetNextItemWidth(ctx, 80)
+                            local rv, hi = im.InputInt(ctx, 'Note Filter High ', Mc.HighNoteFilter or 127 , 1  )  
+                            if rv then 
+                                ChangeLFO(22, hi, 10, 'Note Filter High')
+                                
+                                Mc.HighNoteFilter = hi
+                            end 
 
                             im.EndCombo(ctx)
                         end

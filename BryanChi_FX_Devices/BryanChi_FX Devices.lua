@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta14.3.2
+-- @version 1.0beta14.4
 -- @changelog
---  - fix mod lines on sliders display incorrect
---  - fix modulations can't be recalled when loading project
---  - fix macros jsfx
+--  - fix many lfo modulation parameters not recalled when loading projects 
+--  - add note filters to lfo modulators envelope mode. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
