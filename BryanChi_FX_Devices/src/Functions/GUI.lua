@@ -411,7 +411,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
 
-        if not fx.Collapse and not fx.V_Win_Btn_Height or isContainer then
+        if (not fx.Collapse and not fx.V_Win_Btn_Height or isContainer) then
             if not fx.NoWindowBtn then
                 local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
                 if DebugMode then Name = FxGUID end
@@ -441,20 +441,17 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     fx.TtlHvr = nil
                 end
             end
-        elseif fx.V_Win_Btn_Height and not fx.Collapse then
+        elseif (fx.V_Win_Btn_Height and not fx.Collapse) then
             local Name = (fx.CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
             -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
             --im.SameLine(ctx, nil, 0)
-
             WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
 
             -- im.PopStyleVar(ctx)             --StyleVar#3 POP
         else -- if collapsed
             --[[ fx.Width_Collapse= 27 ]]
             local Name = (fx.CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-
             local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
             im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
             --im.SameLine(ctx, nil, 0)
@@ -1609,11 +1606,19 @@ function Post_FX_Chain ()
     end
 end
 
+function AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
+    if FX_Idx + 1 == RepeatTimeForWindows and not Trk[TrkID].PostFX[1] then -- add last space
+        AddSpaceBtwnFXs(FX_Idx + 1, nil, 'LastSpc')
+    elseif FX_Idx + 1 == RepeatTimeForWindows and Trk[TrkID].PostFX[1] then
+        AddSpaceBtwnFXs(Sel_Track_FX_Count - #Trk[TrkID].PostFX, nil, 'LastSpc', nil, nil, nil, 20)
+    end
+end
+
 
 function createFXWindow(FX_Idx, Cur_X_Ofs)
     local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local WindowSize
-   
+
     if not FxGUID then return end 
     FX[FxGUID] = FX[FxGUID] or {}
     local fx = FX[FxGUID]
@@ -2570,6 +2575,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
 
             local function AddWetDryKnob_If_not_SpecialLayoutFX()
+                local orig_name = orig_name
+                if orig_name:find('JS: ') then orig_name = string.sub(orig_name, 5) end 
                 if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, orig_name) then -- orig_name used to be FX.Win_Name_S[FX_Idx] , changed to orig_name to work with containers in case if user changes name
                     SyncWetValues()
 
@@ -2594,6 +2601,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if not FX[FxGUID].Collapse and FindStringInTable(BlackListFXs, FX_Name) ~= true and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
                     local FX_has_Plugin
                     for i, v in pairs(PluginScripts) do
+
                         if FX_Name:find(v) then
                             FX_has_Plugin = true
                         end
@@ -2613,10 +2621,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local function Do_PluginScripts()
 
-
                 for i, v in pairs(PluginScripts) do
                     --local FX_Name = FX_Name
                     local rv, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+
                     if FX_Name:find(v) or (orig_Name == 'Container' and v == 'Container') then
                         r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                         PluginScript.FX_Idx = FX_Idx
@@ -2628,7 +2636,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
 
             
-            
+
+
             local FX_Idx = FX_Idx or 1
 
             r.gmem_attach('ParamValues')
@@ -2663,7 +2672,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             if Need_Create_Regular_Layout() then
                 local WinP_X; local WinP_Y;
                 local fx = FX[FxGUID]
-
                 --im.DrawList_AddText(WDL, 100,200, 0xffffffff, 'asd')
 
                 if FX[FxGUID].Round then
@@ -4059,7 +4067,7 @@ function Draw_Simple_Knobs_Arc (center, clr, radius)
 end 
 
 
-function CreateSpace_first(FX_Idx, FxGUID)
+function AddSpaceBtwnFXs_FIRST(FX_Idx, FxGUID)
     if not tablefind(Trk[TrkID].PostFX, FxGUID) and FXGUID[FX_Idx] ~= FXGUID[FX_Idx - 1] then
         if FX.InLyr[FXGUID_To_Check_If_InLayer] == nil           --not in layer
             and FindStringInTable(BlackListFXs, FX_Name) ~= true -- not blacklisted

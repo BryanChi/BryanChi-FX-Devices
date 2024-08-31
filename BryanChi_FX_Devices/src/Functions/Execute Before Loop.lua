@@ -382,7 +382,7 @@ function Tables_for_Special_FXs()
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
-    'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner',
+    'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner','FXD Band Joiner', 'JS: FXD Band Joiner',
     'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro'
     }
     UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
