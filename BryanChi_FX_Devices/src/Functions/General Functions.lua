@@ -2304,12 +2304,12 @@ function At_Begining_of_Loop()
 
                 if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
                     -- Set the FX Begin Dragged into not parallel
-                    msg('aa')
+                
                     r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
                     r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel +1), 'parallel', '1' )
 
                 else
-                    msg('bb')
+                   
                     r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i], 'parallel', '1' )
                 end
             
