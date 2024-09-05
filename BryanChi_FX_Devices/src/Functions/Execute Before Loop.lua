@@ -263,8 +263,8 @@ function Customizable_Colors()
     Space_Between_FXs = 0x131313ff,
     Morph_A = 0x22222266,
     Morph_B = 0x78787877,
-    Layer_Solo = 0xDADF3775,
-    Layer_Mute = 0xBE01015C,
+    Layer_Solo = 0xDADF37ff,
+    Layer_Mute = 0xBE0101ff,
     FX_Adder_VST = 0x6FB74BFF,
     FX_Adder_VST3 = 0xC3DC5CFF,
     FX_Adder_JS = 0x9348A9FF,
@@ -288,6 +288,7 @@ function Customizable_Colors()
     RDM_DnD_Move = 0xFF0000FF;
     Container_Accent_Clr =  0x49CC85ff ;
     Container_Accent_Clr_Not_Focused = 0x49CC8577;
+    
     }
 
 
@@ -306,9 +307,17 @@ function Colors()
             Active = 0x777777aa,
             In_Layer = 0x131313ff,
             outline = 0x444444ff
-        }
+        };
+
+        PAR_FX = { };
 
     }
+
+    Clr.PAR_FX[1]= 0x999933ff
+
+
+
+
 
     CLR_BtwnFXs_Btn_Hover = 0x77777744
     CLR_BtwnFXs_Btn_Active = 0x777777aa
@@ -372,6 +381,9 @@ function Colors()
         table.insert(EightColors.bgWhenAsgnModHvr, HSV(0.08 * (a - 0.7), 1, 0.2, 0.5))
         table.insert(EightColors.LFO, HSV(0.08 * (a - 1), 0.7, 0.5, 1))
     end
+
+
+    
 end 
 
 function Tables_for_Special_FXs()
@@ -442,10 +454,16 @@ function Retrieve_All_Saved_Data_Of_Project()
             if type == 'str' then
                 local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
                 if i =='' then return nil else return i end 
+            elseif type =='bool' then   
+                local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
+                if i == 'true' then return true else return end 
             else
                 return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
             end
         end
+
+
+
 
         for i = 1, 8, 1 do -- for every modulator
             Trk[TrkID].Mod[i] = {}
@@ -594,6 +612,27 @@ function Retrieve_All_Saved_Data_Of_Project()
 
                 end 
 
+                local function Parallel_FX_Solo_and_Mute()
+
+
+                    --FX[FxGUID].Solo = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Parallel Solo ' .. FxGUID, '', false) 
+                    FX[FxGUID].Solo = RC('Parallel Solo ' .. FxGUID, 'bool')
+                    FX[FxGUID].Wet_V_before_solo = RC('Wet_V_before_solo ' .. FxGUID)
+                    FX[FxGUID].Mute = RC('Parallel Mute ' .. FxGUID, 'bool')
+                    FX[FxGUID].Wet_V_before_mute = RC('Wet_V_before_mute ' .. FxGUID)
+                    --local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
+                
+                    FX[FxGUID][0] = FX[FxGUID][0] or {}
+                    if FX[FxGUID].Wet_V_before_solo then 
+                        FX[FxGUID][0].V = FX[FxGUID].Wet_V_before_solo 
+                    elseif FX[FxGUID].Wet_V_before_mute then 
+                        FX[FxGUID][0].V =  FX[FxGUID].Wet_V_before_mute
+                    end 
+                
+                end
+
+
+                Parallel_FX_Solo_and_Mute()
 
                 FX[FxGUID] = FX[FxGUID] or {}
                 FX[FxGUID].ModSlots = tonumber( select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Container Active Mod Slots '..FxGUID , '', false )))

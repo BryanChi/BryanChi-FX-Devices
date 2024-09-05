@@ -8,11 +8,21 @@ function msg(...)
     end
 end
 
+function Save_to_Trk(str,v, trk )
+    r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, tostring(v), true) 
+end
+
 ---@generic T
 ---@param v? T
 ---@return boolean
-function toggle(v, value)
-    if v then v = false else v = value or true end
+function toggle(v, value, value_false)
+
+    if value_false then
+        if v == value_false then v = value else v = value_false end 
+    else 
+        if v then v = false else v = value or true end
+
+    end
     return v
 end
 
@@ -235,18 +245,22 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
     local tr = tr or LT_Track
     local retval, buf = reaper.TrackFX_GetFXName(tr, fxid)
     local ccok, container_count = reaper.TrackFX_GetNamedConfigParm(tr, fxid, 'container_count')
+    local rv , ret = r.TrackFX_GetNamedConfigParm(tr, fxid, 'parallel') 
+    local parallel = ret == '1' and true 
 
     local ret = {
         fxname = buf,
         isopen = reaper.TrackFX_GetOpen(tr, fxid),
         GUID = reaper.TrackFX_GetFXGUID(tr, fxid),
         addr_fxid = fxid,
-        scale = oldscale
+        scale = oldscale,
+        parallel = parallel
     }
     local fxGUID = r.TrackFX_GetFXGUID(tr, fxid)
     FX = FX or {}
     FX[fxGUID] = FX[fxGUID] or {}
     FX[fxGUID].addr_fxid =  fxid
+
 
 
     if ccok then -- if fx in container is a container
@@ -273,6 +287,48 @@ function BuildFXTree(tr)
         for i = 1, cnt do
             tree[i] = BuildFXTree_item(tr, 0x2000000 + i, cnt + 1, cnt + 1)
         end
+
+
+
+
+        local last_parallel_fx
+
+        local NeedCheckNext 
+
+        local function find_parallel_sequences(tree)
+            local sequences = {}
+            local start_index = nil
+            local count = 0
+        
+            for i = 1, #tree do
+                if tree[i].parallel then
+                    if start_index == nil then
+                        start_index = i -1   -- Start of a new sequence
+                    end
+                    count = count + 1
+                else
+                    if count >= 1 then
+                        table.insert(sequences, {start_index, i - 1})
+                    end
+                    start_index = nil
+                    count = 0
+                end
+            end
+        
+            -- Check if the loop ended while still in a sequence
+            if count >=1 then
+                table.insert(sequences, {start_index, #tree})
+            end
+        
+            return sequences
+        end
+
+
+
+        PAR_FXs = find_parallel_sequences(tree)
+
+
+
         return tree
     end
 end
@@ -1508,7 +1564,7 @@ function Filter_actions(filter_text)
     end
     return t
 end
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX)
     ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
@@ -1560,6 +1616,9 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             for i = 1, #Trk[TrkID].PostFX + 1, 1 do
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
             end
+        elseif ParallelFX then 
+            r.TrackFX_SetNamedConfigParm( LT_Track, FX_Idx, 'parallel', '1' )
+
         end
 
         if Name =='Container' then 
@@ -1704,7 +1763,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     return close
 end
 
-function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
+function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX)
 
     local function DrawFxChains(tbl, path)
         local extension = ".RfxChain"
@@ -1761,7 +1820,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
-        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost) then
+        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX) then
             AddedFX = true
             im.CloseCurrentPopup(ctx)
         end -- Add FX Window
@@ -2120,7 +2179,12 @@ end
 
 
 
-function Add_Del_Move_FX_At_Begining_of_Loop()
+
+
+
+
+
+function At_Begining_of_Loop()
     ------- Add FX ---------
     for i, v in ipairs(AddFX.Name) do
         if v:find('FXD Gain Reduction Scope') then
@@ -2155,6 +2219,12 @@ function Add_Del_Move_FX_At_Begining_of_Loop()
 
             SyncAnalyzerPinWithFX(AddFX.Pos[i], AddFX.Pos[i] - 1, FX_Name)
         end
+
+       --[[  if  AddFX.Parallel then 
+            r.TrackFX_SetNamedConfigParm( LT_Track, AddFX.Pos[i], 'parallel', '1' )
+        end ]]
+
+
         TREE = BuildFXTree(LT_Track)
 
     end
@@ -2226,12 +2296,31 @@ function Add_Del_Move_FX_At_Begining_of_Loop()
         end
 
         for i, v in ipairs(MovFX.FromPos) do -- move FX
+
+
+
             r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
+            if MovFX.Parallel then 
+
+                if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
+                    -- Set the FX Begin Dragged into not parallel
+                    msg('aa')
+                    r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
+                    r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel +1), 'parallel', '1' )
+
+                else
+                    msg('bb')
+                    r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i], 'parallel', '1' )
+                end
+            
+            end
         end
         r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
         MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} }
         NeedCopyFX = nil
         DropPos = nil
+       
+        MovFX.Parallel = MovFX.Parallel and nil 
         TREE = BuildFXTree(LT_Track)
     end
 
@@ -2243,6 +2332,25 @@ function Add_Del_Move_FX_At_Begining_of_Loop()
     AddFX.Name         = {}
     AddFX.Pos          = {}
     ProC.GainSc_FXGUID = nil 
+
+
+
+
+
+
+    if Switch_Parallel_FX then 
+        FX[Switch_Parallel_FX].ShowParallel = toggle(FX[Switch_Parallel_FX].ShowParallel)
+        Switch_Parallel_FX =nil
+    end
+
+    local rv , ret = r.TrackFX_GetNamedConfigParm(LT_Track, 0, 'parallel') 
+    if ret == '1' then 
+        r.TrackFX_SetNamedConfigParm(LT_Track, 0, 'parallel', '0') 
+    end
+
+
+
+
 end
 
 

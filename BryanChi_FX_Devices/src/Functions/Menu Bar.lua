@@ -60,7 +60,7 @@ function Settings()
     end
 
     if OpenStyleEditor then OpenStyleEditor = ShowStyleEditor(OpenStyleEditor) end
-    if OpenKBEditor then Show_KBShortcutEditor() end     
+    if OpenKBEditor then OpenKBEditor =  Show_KBShortcutEditor(OpenKBEditor) end     
 end   
 
 

@@ -505,12 +505,12 @@ function ShowStyleEditor(OpenStyleEditor)
     return OpenStyleEditor
 end
 
-function Show_KBShortcutEditor()
-    local rv
+function Show_KBShortcutEditor(OpenKBEditor)
+    local rv    
 
    -- if not ctx then ctx = im.CreateContext('Shortcut Editor') end
     if not KBEditorIsOpen then im.SetNextWindowSize(ctx, 500, 800) end
-    local open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor, im.WindowFlags_NoCollapse + im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
+     open, OpenKBEditor = im.Begin(ctx, 'FX Devices Shortcut Editor', OpenKBEditor, im.WindowFlags_NoCollapse + im.WindowFlags_NoDocking --[[ +im.WindowFlags_AlwaysAutoResize ]])
 
 
     if open then
@@ -533,8 +533,13 @@ function Show_KBShortcutEditor()
         if im.Button(ctx, 'Save') then
             local file = CallFile('w', 'Keyboard Shortcuts.ini')
             for i, v in pairs(KB_Shortcut) do
-                file:write(v, ' = ', Command_ID[i], '\n')
+                if Command_ID[i] then 
+                    file:write(v, ' = ', Command_ID[i], '\n')
+                end
             end
+
+
+            Tooltip.Txt, Tooltip.Dur , Tooltip.time = 'Saved', 60, 0
         end
 
 
@@ -661,4 +666,11 @@ function Show_KBShortcutEditor()
     else
         KBEditorIsOpen = false
     end
+    return OpenKBEditor
+end
+
+
+function Push_Style_Var()
+    im.PushStyleVar(ctx, im.StyleVar_FrameRounding, 2)
+    return 1 
 end

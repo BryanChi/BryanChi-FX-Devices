@@ -2287,7 +2287,7 @@ else
     if not fx.Collapse then 
         local WDL = im.GetWindowDrawList(ctx)
         --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+220, h, w, 1, 0.2, GetItemRect, Foreground, 4, 4)
+        HighlightSelectedItem(nil, Accent_Clr, 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+220, h, w, 1, 0.2, 'no', Foreground, 4, 4)
     end 
 
 

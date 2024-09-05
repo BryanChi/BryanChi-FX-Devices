@@ -1,6 +1,7 @@
 r = reaper
 
 COLLAPSED_FX_WIDTH = 27
+Default_WindowBtnWidth = 180
 Tooltip= {}
 
 
