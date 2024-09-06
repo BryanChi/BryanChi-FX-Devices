@@ -8,6 +8,33 @@ function msg(...)
     end
 end
 
+function deepCopy(orig)
+    -- Table to store already copied tables to handle cyclic references
+    local copies = {}
+    
+    -- Internal recursive function
+    local function copy(orig)
+        if type(orig) ~= "table" then
+            return orig  -- If it's not a table, return the value itself (base case)
+        elseif copies[orig] then
+            return copies[orig]  -- If the table was already copied, return the copy
+        end
+
+        local newTable = {}
+        copies[orig] = newTable  -- Store reference to prevent cyclic references
+
+        -- Recursively copy all key-value pairs
+        for key, value in pairs(orig) do
+            newTable[copy(key)] = copy(value)
+        end
+
+        return newTable
+    end
+
+    return copy(orig)
+end
+
+
 function Save_to_Trk(str,v, trk )
     r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, tostring(v), true) 
 end
@@ -476,6 +503,9 @@ end
 ---@param untilwhere? integer
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
+
+
+
         local Out, LineChange, ID
         if not Fx_P then
              ID = Id.. ' = ' 
@@ -483,6 +513,9 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
              ID = Fx_P .. '%. ' .. Id .. ' = '
         end
         local Start, End = Str:find(ID)
+
+
+        
         if untilwhere then
             LineChange = Str:find(untilwhere, Start)
         else
@@ -498,8 +531,57 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
             end
         end
         if Out == '' then Out = nil end
-        return Out
+
+        
+        
+
+       return Out
+         
     end
+end
+
+
+function extractSpecificPrmProperty(Str, Fx_P, Id, Type)
+    -- Create a pattern that matches the exact "Prm [prmNum]" without confusing it with larger numbers like "Prm 13"
+   --[[  local pattern = "-----------------Prm%s+" .. Fx_P .. "-----------------%s+" .. Fx_P .. "%.%s+" .. Id .. "%s*=%s*([^\n]+)"
+    
+    -- Use string.match to find the first match of the pattern in the text
+    local value = string.match(Str, pattern)
+
+    if Type == 'Num' then
+        return  tonumber(value)
+    elseif Type == 'Bool' then
+        if value == 'true' then return true else return  false end
+        
+    else
+        return  value
+    end ]]
+    
+end
+
+function extract_prm_sections(text, Fx_P)
+    local start = '-----------------Prm ' ..Fx_P.. '-----------------\n'
+
+    local END = '-----------------Prm ' ..(Fx_P+1)..'-----------------\n'
+
+    -- Find positions for the exact section
+    local stPos, stEnd = text:find(start, 1 , true )
+    local edPos, edEnd = text:find(END, stPos + #start, true)
+
+    if not stPos then
+        return nil -- If the start is not found, return nil
+    end
+
+    msg(stPos)
+    msg(edPos)
+
+    if not edPos then
+        -- If the next Prm is not found, return till the end of the text
+        return text:sub(stPos)
+    end
+
+    -- Return the exact substring between the start and the end
+    return text:sub(stPos, edPos - 1)
 end
 
 ---@param Str string
@@ -2585,4 +2667,13 @@ function Put_Long_String_Into_Table(chunk)
         table.insert(chunk_lines, s)
     end
     return chunk_lines
+end
+
+
+
+function At_End_Of_Loop()
+    if LBtnRel then     
+        LE.ChangePos = nil 
+    end
+
 end

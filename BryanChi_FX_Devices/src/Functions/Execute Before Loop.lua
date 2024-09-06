@@ -98,7 +98,7 @@ function Default_Values()
     INVISI_CLR = 0x00000000
     Knob_DefaultFontSize = 10
     LBL_DefaultFontSize = 10
-    Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_H = 3,   Sldr_W = 160, Dvdr_Width = 15, Dvdr_Hvr_W = 0 }
+    Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_H = 3,   Sldr_W = 160, Dvdr_Width = 15, Dvdr_Hvr_W = 0 , V_Sldr_H = 160 }
 end 
 
 function GetVersionNum()

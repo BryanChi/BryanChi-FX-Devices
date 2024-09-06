@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta15
+-- @version 1.0beta15.1
 -- @changelog
---  - New! Support for parallel FX 
---  - Lots of UI improvements to Layout Editor. 
---  - New big add FX button for the last fx slot and also when track has no fx.
+--  - Fix bug of retrieving properties because it confuses eg. prm 11 with prm 1
+--  - Various fixes to layout editor 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -2577,7 +2576,7 @@ function loop()
     
     end 
     If_No_LT_Track()
-
+    At_End_Of_Loop()
     im.End(ctx)
     
 

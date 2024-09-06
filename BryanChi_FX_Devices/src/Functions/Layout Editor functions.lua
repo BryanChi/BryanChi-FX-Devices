@@ -607,7 +607,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                         I.Draw = I.Draw or {}
                         for i, v in pairs(CopyPrm.Draw) do
-                            I.Draw[i] = I.Draw[i] or {}
+                            I.Draw[i] = {}
                             for d, v in pairs(v) do
                                 I.Draw[i][d] = v
                             end
@@ -908,6 +908,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     local function SetItemType(Type)
                         for i, v in pairs(LE.Sel_Items) do
                             FX[FxGUID][v].Sldr_W = nil
+                            FX[FxGUID][v].Height = nil
                             FX[FxGUID][v].Type = Type
                         end
                     end
@@ -931,13 +932,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             
 
             local function Label_Name()
+                SL()
                 ---Label    Show only when there's one item selected-----
                 if LE.Sel_Items[1] and not LE.Sel_Items[2] then
                     im.Text(ctx, 'Label: '); im.SameLine(ctx)
                     im.SetNextItemWidth(ctx, 200)
-                    local LblEdited, buf = im.InputText(ctx,
-                        ' ##Edit Title' .. FxGUID .. LE.Sel_Items[1],
-                        FrstSelItm.CustomLbl or buf)
+                    local LblEdited, buf = im.InputText(ctx, ' ##Edit Title' .. FxGUID .. LE.Sel_Items[1], FrstSelItm.CustomLbl or buf)
                     if im.IsItemActivated(ctx) then EditingPrmLbl = LE.Sel_Items[1] end
                     if im.IsItemDeactivatedAfterEdit(ctx) then FrstSelItm.CustomLbl = buf end
 
@@ -1040,9 +1040,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             if FrstSelItm.Type == 'Switch' then AddOption('Within', 'Lbl_Pos') end
                             AddOption('Bottom', 'Lbl_Pos')
                             AddOption('Right', 'Lbl_Pos')
-                            AddOption("None", 'Lbl_Pos')
                         end
                         AddOption('Free', 'Lbl_Pos')
+                        AddOption("None", 'Lbl_Pos')
+
                         im.EndCombo(ctx)
                     end
                     im.SameLine(ctx)
@@ -1144,6 +1145,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                 end
 
+                im.NewLine(ctx)
                 if im.BeginTable(ctx, 'Labels and Values', 7,flags, -R_ofs) then 
                     im.TableSetupColumn(ctx, '', im.TableColumnFlags_WidthFixed)
                     im.TableSetupColumn(ctx, 'Pos')
@@ -1447,7 +1449,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                 if im.BeginPopup(ctx, 'Choose style window') then
-                    im.BeginDisabled(ctx)
+
 
                     local function setItmStyle(Style, img, ImgPath)
                         for i, v in pairs(LE.Sel_Items) do
@@ -1492,6 +1494,17 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             
                         end
                     end
+                    local function Search_Bar()
+                        
+                        if im.TextFilter_Draw(StyleWinFilter, ctx, '##StyleWinFilterTxt', -1) then
+                            FilterText = im.TextFilter_Get(StyleWinFilter)
+                            im.TextFilter_Set(StyleWinFilter, FilterText)
+                        end
+                        if im.IsWindowAppearing(ctx) then
+                            im.SetKeyboardFocusHere(ctx)
+                        end
+
+                    end
 
                     local function Add_Attach_Drawing_Styles(StyleWinFilter)
 
@@ -1517,18 +1530,25 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     for i, V in ipairs(Sel_Itms) do 
                                         local FP = FX[FxGUID][V]
 
-                                        local orig_h = (FP.Height and FP.Height ~= Df.Sldr_H) and FP.Height or Df.Sldr_H
-                                        FP.Height = Df.Sldr_H
-                                        local orig_sz = (FP.Sldr_W and FP.Sldr_W~= Df.Sldr_W) and  FP.Sldr_W 
-                                        FP.Sldr_W = Df.Sldr_W
+                                        local DfH =  FP.Type == 'V-Slider'  and Df.V_Sldr_H or Df.Sldr_H
+                                        local DfW =  FP.Type == 'V-Slider'  and Df.V_Sldr_W or Df.Sldr_W
+                                            
+
+                                        local orig_h = (FP.Height and FP.Height ~= DfH) and FP.Height or DfH
+                                        FP.Height = DfH
+                                        local orig_sz = (FP.Sldr_W and FP.Sldr_W~= DfW) and  FP.Sldr_W 
+                                        FP.Sldr_W = DfW
 
                                         FP.Draw = DrawingStylesTB.Draw
 
-                                        FP.Height = (orig_h~=Df.Sldr_H) and orig_h or nil
-                                        Sync_Height_Synced_Properties(FP, Df.Sldr_H - orig_h)
+                                        FP.Height = (orig_h~=DfH) and orig_h or nil
+                                        Sync_Height_Synced_Properties(FP, DfH - orig_h)
                                         if orig_sz then 
-                                            Sync_Size_Height_Synced_Properties(FP, orig_sz- Df.Sldr_W )
+                                            Sync_Size_Height_Synced_Properties(FP, orig_sz- DfW )
+
                                         end
+                                        FP.Sldr_W =  orig_sz or FP.Sldr_W
+                                        FP.Height = orig_h or FP.Height
                                     end
                                 end
                                 
@@ -1543,7 +1563,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     local pos = {im.GetCursorScreenPos(ctx)}
                                     AddKnob(ctx, '##' .. FrstSelItm.Name, '', FrstSelItm.V, 0, 1, FItm, FX_Idx, FrstSelItm.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
                                     local w, h = im.GetItemRectSize(ctx)
-                                    Draw_Attached_Drawings(v,FX_Idx, pos , FrstSelItm.V, FrstSelItm.Type)
+                                    Draw_Attached_Drawings(v,FX_Idx, pos , FrstSelItm.V, FrstSelItm.Type, FxGUID)
                                     SL()
 
                                     im.Text(ctx, v.Name)
@@ -1553,17 +1573,19 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end
                             end   
                         end 
-                        if FrstSelItm.Type == 'Drag' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Drag') then 
+
+                        local function Add_Style_Previews(func)
                             AddSpacing(5)   
+                            if not LE.DrawingStyles then return end 
+                            if not LE.DrawingStyles[FrstSelItm.Type] then return end 
                             for i, v in ipairs(LE.DrawingStyles[FrstSelItm.Type])do 
                                 if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
                                     im.BeginGroup(ctx)
                                     local pos = {im.GetCursorScreenPos(ctx)}
 
-                                    AddDrag(ctx, '##' , FrstSelItm.Name, FrstSelItm.V, 0, 1, FItm, FX_Idx, FrstSelItm.Num, nil, Df.Sldr_W,0, nil,nil,FrstSelItm.Lbl_Pos,FrstSelItm.V_Pos ,nil,nil,Df.Sldr_H)
-                                    --AddKnob(ctx, '##' .. FrstSelItm.Name, '', FrstSelItm.V, 0, 1, FItm, FX_Idx, FrstSelItm.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                                    func()
                                     local w, h = im.GetItemRectSize(ctx)
-                                    Draw_Attached_Drawings(v,FX_Idx, pos , FrstSelItm.V, FrstSelItm.Type)
+                                    Draw_Attached_Drawings(v,FX_Idx, pos , FrstSelItm.V, FrstSelItm.Type, FxGUID)
                                     SL(nil, 50)
 
                                     im.Text(ctx, v.Name)
@@ -1573,12 +1595,35 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     im.Separator(ctx)
                                     AddSpacing(5)
                                 end
-                            end   
+                            end
+                        end
+
+
+
+                        if FrstSelItm.Type == 'Drag' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Drag') then 
+                            
+                            local function Add_Drag()
+                                
+                                AddDrag(ctx, '##' , FrstSelItm.Name, FrstSelItm.V, 0, 1, FItm, FX_Idx, FrstSelItm.Num, nil, Df.Sldr_W,0, nil,nil,FrstSelItm.Lbl_Pos,FrstSelItm.V_Pos ,nil,nil,Df.Sldr_H)
+                            end
+
+                            Add_Style_Previews(Add_Drag)
+                        elseif  FrstSelItm.Type =='Slider'  or  FrstSelItm.Type =='V-Slider' then 
+                            local function Add_V_Slider()
+                                im.BeginDisabled(ctx)
+                                AddSlider(ctx,  FrstSelItm.Name, FrstSelItm.V, FrstSelItm.V,0,1, FItm, FX_Idx, FrstSelItm.Num, 'Vert', 15, nil,nil,'Vert')
+                                im.EndDisabled(ctx)
+                            end
+                            Add_Style_Previews(Add_V_Slider)
+
+
                         end 
                     end
 
                     Get_Attach_Drawing_Styles()
+                    
 
+                    Search_Bar()
                     -- if all selected itms are knobs
                     if FrstSelItm.Type == 'Knob' or (not FrstSelItm.Type and FX.Def_Type[FxGUID] == 'Knob') then 
                         StyleWinImg = StyleWinImg or {}
@@ -1619,24 +1664,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             end
                         end
 
-                        
-
-                        im.EndDisabled(ctx)
-                        if im.TextFilter_Draw(StyleWinFilter, ctx, '##StyleWinFilterTxt', -1) then
-                            FilterText = im.TextFilter_Get(StyleWinFilter)
-                            im.TextFilter_Set(StyleWinFilter, FilterText)
-                        end
-                        if im.IsWindowAppearing(ctx) then
-                            im.SetKeyboardFocusHere(ctx)
-                        end
-
                         im.BeginDisabled(ctx)
-
-
                         SetStyle('Default', '')
                         SetStyle('Minimalistic', 'Pro C')
                         Add_Image_Styles()
-
+                        im.EndDisabled(ctx)
                         
                     end
                     Add_Attach_Drawing_Styles(StyleWinFilter)
@@ -1659,7 +1691,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         SetStyle('up-down arrow', 'up-down arrow', w + 20, 'up-down arrow: ')
                     end
 
-                    im.EndDisabled(ctx)
+
                     im.EndPopup(ctx)
                 end
             end
@@ -2102,7 +2134,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         SL()
                         if im.Button(ctx, 'Copy##' .. i) then
                             for i, v in ipairs(LE.Sel_Items) do 
-                                table.insert(FX[FxGUID][v].Draw, D)
+
+                                local copy = deepCopy(FX[FxGUID][v].Draw[i])
+                                table.insert(FX[FxGUID][v].Draw, copy)
                             end
                         end
 
@@ -2590,7 +2624,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 6)
             im.SeparatorText( ctx, 'Text')
-            Type()      SL()
+            Type()      
             Label_Name()                            --[[ AddSpacing(2) ]]
             Label_and_Value_Table()                 --[[ AddSpacing(2) ]]
 
@@ -2852,6 +2886,7 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
             local d = FP.Draw[D]
          
             local function RC(name, type, omit_if_0)
+
                 local out = RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
                 if omit_if_0 and out == 0 then 
                     out = nil 
@@ -2998,7 +3033,7 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
 
         MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, TxtClr)
        
-        im.SetCursorPos(ctx, SldrR - TextW, Y)
+        --im.SetCursorPos(ctx, SldrR - TextW, Y)
 
     elseif Lbl_Pos =='Bottom-Left' or Lbl_Pos == 'Bottom' then 
            
@@ -3091,7 +3126,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     WhichClick()
     im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), ClickButton) -- ClickButton to alternate left/right dragging
-    Draw_Attached_Drawings(FP,FX_Idx, pos)
+    Draw_Attached_Drawings(FP,FX_Idx, pos,nil,nil, FxGUID)
 
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
@@ -3799,7 +3834,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         if not Sldr_Width or Sldr_Width == '' then Sldr_Width = FX.Def_Sldr_W[FxGUID] or Def_Sldr_W or 160 end
         im.SetNextItemWidth(ctx, Sldr_Width)
         if Vertical == 'Vert' then
-            _, p_value = im.VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height, p_value, v_min, v_max, ' ')
+            _, p_value = im.VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height or 160, p_value, v_min, v_max, ' ')
         else
             _, p_value = im.SliderDouble(ctx, label, p_value, v_min, v_max, ' ', im.SliderFlags_NoInput)
         end
@@ -3835,9 +3870,10 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
     After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
+    Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) 
     --[[ Write_Label_And_Value_If_Vert()
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) ]]
-    Draw_Attached_Drawings(FP,FX_Idx, pos)
+    Draw_Attached_Drawings(FP,FX_Idx, pos, nil,nil,  FxGUID)
 
     im.EndGroup(ctx)
     
@@ -4859,7 +4895,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , Format_P_V, Lbl_Pos)
 
     After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
-    Draw_Attached_Drawings(FP,FX_Idx, pos)
+    Draw_Attached_Drawings(FP,FX_Idx, pos, nil,nil, FxGUID)
     if Lbl_Clickable == 'Lbl_Clickable' then
         local TextL; local TextY; local TxtSize;
         local HvrText = im.IsItemHovered(ctx)
@@ -4998,6 +5034,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         for i, v in ipairs(T) do
                             FX[FxGUID][i]          = FX[FxGUID][i] or {}
                             local FP               = FX[FxGUID][i]
+                           
+
                             FP.Name                = v.Name
                             FP.Num                 = v.Num
                             FP.Sldr_W              = v.Sldr_W
@@ -5028,6 +5066,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
                             FP.Switch_On_Clr       = v.Switch_On_Clr
                             FP.Invisible           = v.Invisible
+
+
                             for i = 2, 5, 1 do
                                 FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
                                 FP['ConditionPrm_V' .. i]      = v['ConditionPrm_V' .. i]
@@ -5095,7 +5135,13 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
 
                             if PrmCount then
+
+
                                 for Fx_P = 1, PrmCount or 0, 1 do
+
+                                    local Ct = extract_prm_sections(Ct, Fx_P)
+
+                                   
                                     local function L(n)
                                         return Line[n + (40 - 14) * (Fx_P - 1)]
                                     end
@@ -5113,7 +5159,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     FP.PosY       = RecallInfo(Ct, 'Pos Y', Fx_P, 'Num')
                                     FP.Style      = RecallInfo(Ct, 'Style', Fx_P)
                                     FP.V_FontSize = RecallInfo(Ct, 'Value Font Size', Fx_P, 'Num')
-                                    FP.CustomLbl  = RecallInfo(Ct, 'Custom Label', Fx_P)
+                                    FP.CustomLbl  = RecallInfo(Ct, 'Custom Label', Fx_P)  
                                     if FP.CustomLbl == '' then FP.CustomLbl = nil end
                                     FP.FontSize      = RecallInfo(Ct, 'Font Size', Fx_P, 'Num')
                                     FP.Height        = RecallInfo(Ct, 'Slider Height', Fx_P, 'Num')
@@ -5818,9 +5864,11 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 local X_Dif, Y_Dif = math.abs(Orig_Item_Pos_X - FP.PosX), math.abs(Orig_Item_Pos_Y - FP.PosY)
                 if X_Dif > LE.GridSize*0.55 or Y_Dif > LE.GridSize*0.55 then -- if item is moved more than grid size
                     -- qunatize pos to grid 
+
                     FP.PosX = SetMinMax(roundUp(FP.PosX, LE.GridSize), 0,Win_W - (FP.Sldr_W or 15))
                     FP.PosY = SetMinMax(roundUp(FP.PosY, LE.GridSize), 0, 220 - 10)
                 else -- move items back to original pos
+
                     FP.PosX = Orig_Item_Pos_X
                     FP.PosY = Orig_Item_Pos_Y
                 end
@@ -6085,22 +6133,20 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     end
                 end
             end
-            local Rl = im.IsMouseReleased(ctx, 0)
-            
-            if Rl and LE.ChangePos == Fx_P  then 
-               
+
+
+            if LBtnRel and LE.ChangePos == Fx_P  then 
+
                 Qunantize_Item_Pos_To_Grid(FP)
     
-            elseif Rl and tablefind(LE.ChangePos, Fx_P)  then  
-                    
+            elseif LBtnRel and tablefind(LE.ChangePos, Fx_P)  then  
+
                 for i, v in pairs(LE.ChangePos) do
                     Qunantize_Item_Pos_To_Grid(FX[FxGUID][v])
                 
                 end
             end 
-            if Rl then 
-                LE.ChangePos = nil
-            end
+            
         end
 
         local function Marquee_Select_Items()

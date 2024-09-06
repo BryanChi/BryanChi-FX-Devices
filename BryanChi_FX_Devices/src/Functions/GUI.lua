@@ -1193,7 +1193,7 @@ end
 
 
 
-function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
+function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                             
     if FP.Draw then
         local prm = FP
@@ -1488,7 +1488,9 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type )
                 end
 
 
-                Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) elseif v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
+                Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) 
+            elseif v.Type == 'Gain Reduction Text' and not 
+            FX[FxGUID].DontShowGR then
                 local GR = round(GR, 1)
                 im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
             end
