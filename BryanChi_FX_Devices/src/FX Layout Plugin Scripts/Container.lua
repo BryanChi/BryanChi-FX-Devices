@@ -3,7 +3,7 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
-
+msg(fx.Name)
 fx.TitleWidth  = 0
 fx.CustomTitle = fx.Name
 fx.Width = 35
@@ -19,6 +19,13 @@ local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
 DEBUG_W = DEBUG_W or {}
+
+
+
+
+
+
+
 
 local function NotifyHoverState(I,Condition)
     if Condition then 

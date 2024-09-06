@@ -216,7 +216,9 @@ local function DrawPads(loopmin, loopmax)
     if ret then 
       ClickPadActions(a)
     elseif im.IsItemClicked(ctx, 1) and Pad[a] and not CTRL then
+
       FX[FxGUID].OPEN_PAD = toggle2(FX[FxGUID].OPEN_PAD, a)
+
     elseif SHIFT and im.IsMouseDragging(ctx, 0) and im.IsItemActive(ctx) then
       AdjustPadVolume(a)
     else
@@ -452,6 +454,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
 
     im.DrawList_AddRect(f_draw_list, x1-2, y1, x, y + 220 - 1, 0x123456ff, nil, nil, 2) -- leftover remains when pad is moved while opening fx inside pad
   end
+  im.Dummy(ctx,1,1)
   im.EndGroup(ctx)
   im.PopStyleColor(ctx)
   CheckStaleData()

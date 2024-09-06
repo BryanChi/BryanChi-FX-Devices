@@ -3100,13 +3100,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 for i, v in pairs(PluginScripts) do
                     --local FX_Name = FX_Name
                     local rv, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
-
-                    if FX_Name:find(v) or (orig_Name == 'Container' and v == 'Container') then
+                    local function Do_Plugin_Script(name)
                         r.SetExtState('FXD', 'Plugin Script FX_Id', FX_Idx, false)
                         PluginScript.FX_Idx = FX_Idx
                         PluginScript.Guid = FxGUID
+                        dofile(pluginScriptPath .. '/' ..  (name  or v) .. '.lua')
+                    end
 
-                        dofile(pluginScriptPath .. '/' .. v .. '.lua')
+                    if FX_Name:find('ReaDrum Machine') then 
+                        Do_Plugin_Script('ReaDrum Machine')
+                    elseif FX_Name:find(v) or (orig_Name == 'Container' and v == 'Container') then
+                        Do_Plugin_Script()
+                        
                     end
                 end
             end
