@@ -3,7 +3,7 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
-msg(fx.Name)
+
 fx.TitleWidth  = 0
 fx.CustomTitle = fx.Name
 fx.Width = 35

@@ -572,8 +572,6 @@ function extract_prm_sections(text, Fx_P)
         return nil -- If the start is not found, return nil
     end
 
-    msg(stPos)
-    msg(edPos)
 
     if not edPos then
         -- If the next Prm is not found, return till the end of the text
