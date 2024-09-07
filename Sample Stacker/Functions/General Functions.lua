@@ -1612,21 +1612,7 @@ function Change_Clr_A(CLR, HowMuch)
     return r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
 end
 
----@param Clr number
-function Generate_Active_And_Hvr_CLRs(Clr)
-    local ActV, HvrV
-    local R, G, B, A = r.ImGui_ColorConvertU32ToDouble4(Clr)
-    local H, S, V = r.ImGui_ColorConvertRGBtoHSV(R, G, B)
-    if V > 0.9 then
-        ActV = V - 0.2
-        HvrV = V - 0.1
-    end
-    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
-    local ActClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
-    local R, G, B = r.ImGui_ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
-    local HvrClr = r.ImGui_ColorConvertDouble4ToU32(R, G, B, A)
-    return ActClr, HvrClr
-end
+
 
 ---@param Fx_P integer fx parameter index
 ---@param FxGUID string
