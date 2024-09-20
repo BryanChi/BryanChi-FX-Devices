@@ -2224,8 +2224,8 @@ else
                     end
 
                     
-                    local Hv = createFXWindow(FX_Id)
-                    SL(nil,0)
+                    local Win_W = createFXWindow(FX_Id)
+
                     
                     if v.scale and GUID  then 
                         FX[GUID] = FX[GUID] or {}   
@@ -2233,14 +2233,15 @@ else
                     end 
                 
                     local w = im.GetItemRectSize(ctx)
+
                     local TB = Upcoming_Container or TREE[Root_ID+1].children
                     local FX_Id_next = FX_Id + (v.scale or 0)
-
+                    SL(nil,0)
                     if im.IsItemHovered(ctx) then Hover = true end 
                     im.SetCursorPosY(ctx, 0 )
                     LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
-                    fx.Width = (fx.Width or 0) + w +( LastSpc or 0)
+                    fx.Width = (fx.Width or 0) + (Win_W or 0) +( LastSpc or 0)
                     
                     if Hover then  DisableScroll = false  end 
                 end

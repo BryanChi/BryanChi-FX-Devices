@@ -1,14 +1,4 @@
 
-function MenuBar ()
-
-    im.BeginMenuBar(ctx)
-    Layout_Edit_MenuBar_Buttons()
-    Settings()
-    Record_Last_Touch_Btn()
-    Envelope_Btn()
-    ShowTrackName(not FX.LayEdit)
-    im.EndMenuBar(ctx)
-end 
 function StoreSettings()
     local data = tableToString(
         {
@@ -20,6 +10,39 @@ function StoreSettings()
         }
     )
     r.SetExtState("FXDEVICES", "Settings", data, true)
+end
+
+function If_Theres_Selected_FX()
+    local Sel_FX = TrkID and Trk[TrkID] and  Trk[TrkID].Sel_FX
+    if Sel_FX and Sel_FX[1] then  
+        Sel_FxGUID = {}
+        table.sort(Sel_FX)
+
+        
+        if im.Button(ctx, 'Put FXs into Container') then 
+            for i, v in ipairs(Sel_FX) do 
+                local v = Find_FxID_By_GUID (v)
+                local _, Name = r.TrackFX_GetFXName(LT_Track, v )
+                local FxGUID = r.TrackFX_GetFXGUID(LT_Track, v)
+                table.insert(Sel_FxGUID, FxGUID)
+            end
+            local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
+
+            local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - firstSlot)
+            local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
+            TREE = BuildFXTree(LT_Track)
+
+            for i, v in ipairs(Sel_FX) do 
+                local cont = Find_FxID_By_GUID (ContFxGUID)
+                local id = Find_FxID_By_GUID (v)
+
+                --[[ if cont <= v then v = v + 1 end ]]
+                Put_FXs_Into_New_Container(id, cont, i )
+            end
+            Sel_FX = nil 
+            Sel_FxGUID= nil
+        end
+    end
 end
 
 function Settings()
@@ -205,4 +228,17 @@ function GetAllMods( )
     Apl   = im.Mod_Super
 
    
+end 
+
+function MenuBar ()
+
+    im.BeginMenuBar(ctx)
+    Layout_Edit_MenuBar_Buttons()
+    Record_Last_Touch_Btn()
+    Envelope_Btn()
+    If_Theres_Selected_FX()
+    Settings()
+    SL(nil, 40)
+    ShowTrackName(not FX.LayEdit)
+    im.EndMenuBar(ctx)
 end 

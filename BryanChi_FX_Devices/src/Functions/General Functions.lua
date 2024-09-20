@@ -446,6 +446,48 @@ function ChangeFX_Name(FX_Name)
     end
 end
 
+function Find_FxID_By_GUID (GUID)
+    --[[ for i = 0 , Sel_Track_FX_Count, 1 do 
+       local guid = r.TrackFX_GetFXGUID (LT_Track, i )
+       local  _, ct=  r.TrackFX_GetNamedConfigParm(LT_Track, i, 'container_count')
+        if ct ~= '' then 
+
+        end
+      
+       if GUID == guid then return i end 
+    end ]]
+
+
+
+
+    local function children(tb)
+        if tb.children then 
+
+            for i, v in ipairs(tb.children)do 
+
+                if v.GUID == GUID then 
+
+                    return v.addr_fxid
+                end
+
+            end
+            for i, v in ipairs(tb.children)do 
+                if v.children then 
+                    children(v.children)
+                end
+            end
+        end
+    end
+
+    for i , v in pairs(TREE) do 
+
+        if v.GUID == GUID then 
+            return i-1 
+        end
+        local out = children(v)
+        if out then return out end 
+    end
+end
 
 
 ---@param enable boolean
@@ -726,6 +768,26 @@ function tablefind(tab, el)
     end
 end
 
+
+function Determine_Long_Or_Short_Click(trigger, MouseBtnHeld, Dur)
+    if trigger then 
+
+        Long_Or_Short_Click_Time_Start = im.GetTime(ctx)
+    end
+
+    if not MouseBtnHeld and Long_Or_Short_Click_Time_Start  then    
+
+        if  Long_Or_Short_Click_Time_Start + Dur < im.GetTime(ctx) then 
+
+            return 'Long'
+        elseif Long_Or_Short_Click_Time_Start + Dur > im.GetTime(ctx) then 
+
+            return 'Short'
+        else 
+        end
+    end
+end
+
 function SplitDrawlist(splitter, layer)
    --[[  if  im.ValidatePtr(splitter, 'ImGui_DrawListSplitter*') then  ]]
         im.DrawListSplitter_SetCurrentChannel(splitter, layer)
@@ -980,8 +1042,11 @@ function GetAllInfoNeededEachLoop()
     TrkID                  = r.GetTrackGUID(LT_Track or r.GetTrack(0, 0))
     Sel_Track_FX_Count     = r.TrackFX_GetCount(LT_Track)
     LBtnDrag               = im.IsMouseDragging(ctx, 0)
+    RBtnDrag               = im.IsMouseDragging(ctx, 1)
     LBtnDC                 = im.IsMouseDoubleClicked(ctx, 0)
 end
+
+
 
 function GetFocusedWindow()
     local hwnd = r.JS_Window_FromPoint(r.GetMousePosition())
@@ -1247,11 +1312,12 @@ end
 function AddFX_HideWindow(track, fx_name, Position)
     local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
     if val & 4 == 0 then
-        r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
+        return r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
     else
         r.SNM_SetIntConfigVar("fxfloat_focus", val & (~4)) -- temporarily disable Auto-float newly created FX windows
-        r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
+        local out = r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
         r.SNM_SetIntConfigVar("fxfloat_focus", val|4)      -- re-enable Auto-float
+        return out
     end
 end
 
@@ -1578,6 +1644,15 @@ function BlendColors(Clr1, Clr2, pos)
     return im.ColorConvertDouble4ToU32(R3, G3, B3, A3)
 end
 
+function GetFxGUID_by_FXid (FxGUID)
+    for i = 0, r.TrackFX_GetCount(LT_Track) , 1 do 
+        local fxguid = r.TrackFX_GetFXGUID(LT_Track, i)
+
+        if fxguid == FxGUID then 
+            return i 
+        end
+    end
+end
 
 -- EXAMPLE DRAW (NOTHING TO DO WITH PARSING ALL BELOOW)
 ---@param s string
@@ -1644,6 +1719,35 @@ function Filter_actions(filter_text)
     end
     return t
 end
+
+function Put_FXs_Into_New_Container(FX_Idx, cont, i ) -- i = pos in container
+
+    --local to =  TrackFX_GetInsertPositionInContainer(cont, i  )
+
+    local to 
+    local id = FX_Idx 
+
+    local scale = tree[id].scale
+
+    --local cont = cont +1
+    local  ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_count')))
+
+
+    if ct > 0  then 
+        to = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_item.'..(ct-1 )))) + scale
+        
+    else    -- if container is empty 
+        to =  0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + FX_Idx
+    end
+    r.TrackFX_CopyToTrack(LT_Track, FX_Idx, LT_Track, to , true)
+
+    TREE = BuildFXTree(LT_Track)
+    --[[ table.insert( MovFX.FromPos , FX_Idx)
+    table.insert( MovFX.ToPos , to ) ]]
+end
+
+
+
 function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX)
     ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
@@ -2258,6 +2362,32 @@ function Scroll_Main_Window_With_Mouse_Wheel()
 end
 
 
+function tablesHaveCommonValues(t1, t2)
+    local valueSet = {}
+
+    -- Add all values from the first table into a set
+    for _, value in ipairs(t1) do
+        valueSet[value] = true
+    end
+
+    -- Check if any value in the second table exists in the set
+    for _, value in ipairs(t2) do
+        if valueSet[value] then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+function If_Multi_Select_FX(FxGUID)
+    if next(Trk[TrkID].Sel_FX) then 
+        if tablefind(Trk[TrkID].Sel_FX, FxGUID) then
+            return true 
+        end
+    end
+end
 
 
 
@@ -2363,11 +2493,50 @@ function At_Begining_of_Loop()
 
     end
 
+
+    local function If_MovFX_FromFxID ()
+
+        local Tb_Val = {}
+        local tb_FxID = { }
+        -- put fx idx into table 
+        for i, v in ipairs(MovFX.FromFxID) do 
+
+            local idx = Find_FxID_By_GUID(v)
+            table.insert(Tb_Val, idx)
+        end
+        -- sort table by value  
+        if next(Tb_Val)  then 
+            table.sort(Tb_Val)
+            if Tb_Val[1] > MovFX.ToPos[1]  then 
+                 table.sort(Tb_Val , function(a, b) return a > b end)
+            else 
+                for i , v in ipairs(MovFX.ToPos) do 
+                    if v < 0x2000000 then 
+                        MovFX.ToPos[i] = MovFX.ToPos[i] - 1 
+                    end
+                 end
+            end
+        end
+        for i, v in ipairs(Tb_Val)do 
+            local id = r.TrackFX_GetFXGUID(LT_Track, v )
+            table.insert(tb_FxID, id )
+        end
+        for i, v in ipairs(tb_FxID) do 
+
+            local idx = Find_FxID_By_GUID(v)
+
+            local dest = r.TrackFX_CopyToTrack(LT_Track, idx, LT_Track, MovFX.ToPos[i], true)
+            TREE = BuildFXTree(LT_Track)
+        end
+
+
+    end
     ----- Move FX -----
-    if MovFX.FromPos[1] then
+    if MovFX.FromPos[1] or MovFX.FromFxID[1] then
         local UndoLbl
-        r.Undo_BeginBlock()
+       -- r.Undo_BeginBlock()
         for i, v in ipairs(MovFX.FromPos) do
+
             if NeedCopyFX then
                 --if v >= DropPos then offset = 1 else offset = 0 end
                 MovFX.ToPos[i] = math.max(MovFX.ToPos[i] - (offset or 0), 0)
@@ -2377,26 +2546,25 @@ function At_Begining_of_Loop()
 
         for i, v in ipairs(MovFX.FromPos) do -- move FX
 
-
-
             r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
             if MovFX.Parallel then 
 
                 if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
                     -- Set the FX Begin Dragged into not parallel
-                
                     r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
                     r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel +1), 'parallel', '1' )
 
                 else
-                   
                     r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i], 'parallel', '1' )
                 end
             
             end
         end
-        r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
-        MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} }
+        If_MovFX_FromFxID ()
+
+
+       -- r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
+        MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} , FromFxID = {} }
         NeedCopyFX = nil
         DropPos = nil
        
@@ -2427,7 +2595,6 @@ function At_Begining_of_Loop()
     if ret == '1' then 
         r.TrackFX_SetNamedConfigParm(LT_Track, 0, 'parallel', '0') 
     end
-
 
 
 
@@ -2672,6 +2839,13 @@ end
 function At_End_Of_Loop()
     if LBtnRel then     
         LE.ChangePos = nil 
+        Long_Or_Short_Click_Time_Start = nil 
+
     end
+    if RBtnRel then 
+        MARQUEE_SELECTING_FX = nil
+        
+    end
+
 
 end

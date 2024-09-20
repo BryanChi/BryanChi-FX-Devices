@@ -2,7 +2,9 @@ r = reaper
 
 COLLAPSED_FX_WIDTH = 27
 Default_WindowBtnWidth = 180
+PAR_FX_MIXER_WIN_W = 170
 Tooltip= {}
+
 
 
 

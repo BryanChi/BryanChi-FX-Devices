@@ -1,9 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta15.1
+-- @version 1.0beta15.2
 -- @changelog
---  - Fix bug of retrieving properties because it confuses eg. prm 11 with prm 1
---  - Various fixes to layout editor 
+--  - new: Cmd click on FX buttons to select multiple FXs at once
+--  - many fixes to parallel fx 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -299,8 +299,7 @@ function loop()
 
 
         if Trk[TrkID].PreFX[1] then
-            rv = im.Button(ctx, (#Trk[TrkID].PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20,
-                220)
+            rv = im.Button(ctx, (#Trk[TrkID].PreFX or '') .. '\n\n' .. 'P\nr\ne\n \nF\nX\n \nC\nh\na\ni\nn', 20, 220)
             im.SameLine(ctx, nil, 0)
             if im.IsItemClicked(ctx, 1) then
                 if Trk[TrkID].PreFX_Hide then Trk[TrkID].PreFX_Hide = false else Trk[TrkID].PreFX_Hide = true end
@@ -1023,7 +1022,7 @@ function loop()
                             end
                             im.PopStyleColor(ctx, StyleClrPop)
                         else -- if collapsed
-                            if im.BeginChildFrame(ctx, '##FX Layer at' .. FX_Idx .. 'OnTrack ' .. TrkID, 27, 220, im.WindowFlags_NoScrollbar) then
+                            if im.BeginChild(ctx, '##FX Layer at' .. FX_Idx .. 'OnTrack ' .. TrkID, 27, 220, im.WindowFlags_NoScrollbar) then
                                 L, T = im.GetItemRectMin(ctx)
                                 local DL = im.GetWindowDrawList(ctx)
                                 local title = (FX[FxGUID].ContainerTitle or 'FX Layering'):gsub("(.)", "%1\n")
@@ -1053,7 +1052,7 @@ function loop()
                                 im.DrawList_AddRect(WDL, L, T + 2, L + 25, T + 218, 0x99999977)
 
 
-                                im.EndChildFrame(ctx)
+                                im.EndChild(ctx)
                             end
                         end
 
@@ -2363,12 +2362,19 @@ function loop()
 
                 --[[ local y = im.GetCursorPosY(ctx)
                 im.SetCursorPosY(ctx, y+ 5 ) ]]
+                local PosX_before_FX_Win =  im.GetCursorScreenPos(ctx)
 
                 local Parallel =  Create_FX_Window(FX_Idx) 
 
                 local rv , ret = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parallel')
 
                 if Parallel == 'Mixer Layout - Show'  then 
+                    local RootFX 
+                    for i , v in ipairs(PAR_FXs) do  
+                        if FX_Idx+1 == v[1] then 
+                            RootFX=true 
+                        end
+                    end
 
 
                     local l, t  = im.GetItemRectMin(ctx)
@@ -2376,17 +2382,24 @@ function loop()
                     local thick = 4
                     local H = 10
                     
-                    l = l - H/2 - Win_W
+                    --[[ l = l - H/2 - Win_W ]]
+                    local l =PosX_before_FX_Win
+                    local l = RootFX and l + PAR_FX_MIXER_WIN_W +5 or l 
+
+                    
                     local  R = l + w +H/2 + Win_W
+
+
+                    local R = FX[FxGUID].Width and (l +  FX[FxGUID].Width) or (l + w +H/2 + Win_W)
                     local t = t-thick
 
-                    im.DrawList_AddLine(Glob.FDL, l , t, R, t, Clr.PAR_FX[1], thick)
+                    im.DrawList_AddLine(Glob.WDL, l , t, R, t, Clr.PAR_FX[1], thick)
                     local t = t - thick/2
-                    im.DrawList_AddLine(Glob.FDL, l , t , l, t + H, Clr.PAR_FX[1], thick)
-                    im.DrawList_AddLine(Glob.FDL, R , t, R, t + H, Clr.PAR_FX[1], thick)
-                  im.SameLine(ctx, nil, 0)   
+                    im.DrawList_AddLine(Glob.WDL, l , t , l, t + H, Clr.PAR_FX[1], thick)
+                    im.DrawList_AddLine(Glob.WDL, R , t, R, t + H, Clr.PAR_FX[1], thick)
+                    im.SameLine(ctx, nil, 0)   
 
-               elseif rv and ret == '1' and not FX[FxGUID].ShowParallel and Parallel ~= 'Complex' and Parallel ~= 'Mixer Layout - Hide' then
+                elseif rv and ret == '1' and not FX[FxGUID].ShowParallel and Parallel ~= 'Complex' and Parallel ~= 'Mixer Layout - Hide' then
                     
                     im.SetCursorPos(ctx, CurPos_Aftr_Create_FX_Win_SL[1], CurPos_Aftr_Create_FX_Win_SL[2]) 
 
@@ -2395,7 +2408,7 @@ function loop()
 
 
                 AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
-              
+
             end --for repeat as many times as FX instances
 
             local function Detect_If_FX_Deleted()
@@ -2420,8 +2433,6 @@ function loop()
                 end
 
             end
-
-
 
 
             Pre_FX_Chain(FX_Idx)
@@ -2573,7 +2584,7 @@ function loop()
         im.PopStyleVar(ctx, POP_STYLE_VAR)
         im.SetNextWindowSize(ctx, 500, 440, im.Cond_FirstUseEver)
         if LT_Track then FXCountEndLoop = r.TrackFX_GetCount(LT_Track) end
-    
+        
     end 
     If_No_LT_Track()
     At_End_Of_Loop()

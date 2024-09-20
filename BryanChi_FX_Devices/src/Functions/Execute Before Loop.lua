@@ -199,7 +199,7 @@ function Create_Empty_Tables()
     }
     AddFX = { Pos = {}, Name = {}, GUID = {} }
     DelFX = { Pos = {}, Name = {} }
-    MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {} }
+    MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {} , FromFxID = {}}
 
 
     ----------Parameters --------------------

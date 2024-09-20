@@ -720,7 +720,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         SL()
                         DragDropPics = DragDropPics or {}
 
-                        if im.BeginChildFrame(ctx, '##drop_files', FullWidth, 40) then
+                        if im.BeginChild(ctx, '##drop_files', FullWidth, 40) then
                             if not D[It].FilePath then
                                 im.Text(ctx, 'Drag and drop files here...')
                             else
@@ -734,7 +734,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 im.Bullet(ctx)
                                 im.TextWrapped(ctx, D[It].FilePath)
                             end
-                            im.EndChildFrame(ctx)
+                            im.EndChild(ctx)
                         end
 
 
