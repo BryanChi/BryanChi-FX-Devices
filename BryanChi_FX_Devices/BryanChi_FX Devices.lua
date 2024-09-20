@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta15.2
+-- @version 1.0beta15.3
 -- @changelog
---  - new: Cmd click on FX buttons to select multiple FXs at once
---  - many fixes to parallel fx 
+--  - fix removing elements in BG draw crashes
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

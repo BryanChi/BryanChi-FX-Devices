@@ -272,13 +272,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
 
 
                     if IsLBtnClicked and Mods == Alt then
-                        table.remove(D.Type, i)
-                        table.remove(D.L, i)
-                        table.remove(D.R, i)
-                        table.remove(D.T, i)
-                        table.remove(D.B, i)
-                        if D.Txt then table.remove(D.Txt, SetMinMax(i, 1, #D.Txt)) end
-                        if D.clr then table.remove(D.clr, SetMinMax(i, 1, #D.clr)) end
+                        table.remove(FX[FxGUID].Draw , i)
                         if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
                             im.CloseCurrentPopup(ctx)
                             im.EndPopup(ctx)
