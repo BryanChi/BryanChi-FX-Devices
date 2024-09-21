@@ -2,7 +2,13 @@
 -- @author Bryan Chi
 -- @version 1.0beta15.3
 -- @changelog
+--  - Parallel FX : Alt-Clicking on FXs will now delete the fx
+--  - Parallel FX : Ctrl-Clicking on Containers allow users to rename
+--  - Parallel FX : Alt-Clicking on '+' button will now add a new container to the last slot of the chain.
+--  - Parallel FX : when dragging FX to reposition , highlight the FX from the list.
+--  - Parallel FX : Fix display when dragging to last slot of parallel chain.
 --  - fix removing elements in BG draw crashes
+
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -45,7 +51,7 @@ end
 
 ---@type string
 package.path = r.ImGui_GetBuiltinPath() .. '/?.lua'
-im = require 'imgui' '0.9.1'
+im = require 'imgui' '0.9.3'
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
 
@@ -754,7 +760,7 @@ function loop()
                                                 FX[FxGUID][Fx_P].V = 0.5
                                                 local rv = r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num,
                                                     0.5)
-                                            elseif im.IsItemClicked(ctx) and Mods == Ctrl and not FXLayerRenaming then
+                                            elseif im.IsItemClicked(ctx) and Mods == Cmd and not FXLayerRenaming then
                                                 Lyr.Rename[LyrID .. FxGUID] = true
                                             elseif im.IsItemClicked(ctx) and Mods == 0 then
                                                 Lyr.Selected[FXGUID_RackMixer] = LyrID
@@ -840,7 +846,7 @@ function loop()
 
                                             if dropped and Mods == 0 then
                                                 DropFXtoLayer(FX_Idx, LayerNum)
-                                            elseif dropped and Mods == Apl then
+                                            elseif dropped and Mods == Ctrl then
                                                 DragFX_Src = DragFX_ID
                                                 if DragFX_ID > FX_Idx then
                                                     DragFX_Dest = FX_Idx - 1
@@ -1818,7 +1824,7 @@ function loop()
 
 
 
-                                        if IsLBtnClicked and (Mods == 0 or Mods == Apl) then
+                                        if IsLBtnClicked and (Mods == 0 or Mods == Ctrl) then
                                             FX[FxGUID].Sel_Band = i
                                             FX[FxGUID].StartCount = true
                                         elseif IsRBtnClicked and Cuts ~= 1 then
@@ -1897,7 +1903,7 @@ function loop()
                                                 im.SetNextWindowSize(ctx, Modalw, Modalh)
                                                 im.OpenPopup(ctx, 'Delete Band' .. i .. '? ##' .. FxGUID)
                                             end
-                                        elseif LBtn_MousdDownDuration > 0.06 and (Mods == 0 or Mods == Apl) and not DraggingFXs.SrcBand and FX[FxGUID].StartCount then
+                                        elseif LBtn_MousdDownDuration > 0.06 and (Mods == 0 or Mods == Ctrl) and not DraggingFXs.SrcBand and FX[FxGUID].StartCount then
                                             --Drag FXs to different bands
                                             for I, v in ipairs(FX[FxGUID].FXsInBS) do
                                                 if FX[v].InWhichBand == i then
@@ -1935,7 +1941,7 @@ function loop()
                                                     r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 1,
                                                         2 ^ ((i + 1) * 2 - 1), 0)
                                                 end
-                                            elseif not IsLBtnHeld and Mods == Apl then
+                                            elseif not IsLBtnHeld and Mods == Ctrl then
                                                 local Ofs = 0
                                                 for I, v in ipairs(DraggingFXs) do
                                                     local offset
@@ -2142,7 +2148,7 @@ function loop()
 
                                 if DraggingFXs[1] and FXCountForBand[DraggingFXs.SrcBand] then
                                     local MsX, MsY = im.GetMousePos(ctx)
-                                    if Mods == Apl then Copy = 'Copy' end
+                                    if Mods == Ctrl then Copy = 'Copy' end
                                     im.DrawList_AddTextEx(Glob.FDL, Font_Andale_Mono_20_B, 14, MsX + 20, MsY,
                                         0xffffffaa,
                                         (Copy or '') .. ' ' .. FXCountForBand[DraggingFXs.SrcBand] .. ' FXs')

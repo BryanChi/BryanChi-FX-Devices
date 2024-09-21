@@ -1360,14 +1360,34 @@ function DeleteAllParamOfFX(FXGUID, TrkID)
         end
     end
 end
+function Check_If_Its_Root_of_Parallel(FX_Idx_to_Check) -- if it is, set the next fx to no be parallel with previous fx
+    for i, v in ipairs(PAR_FXs)do 
+
+        if FX_Idx_to_Check == v[1]-1 and FX_Idx_to_Check > 0 then 
+            return true 
+        end
+       --[[  for I, V in ipairs(v) do 
+            msg('I = '.. (I or 'nil ').. 'V = '..( V or 'nil'))
+
+            if FX_Idx_to_Check == V[1]-1  and FX_Idx_to_Check > 0 then 
+                return true 
+            end
+        end ]]
+    end
+end
+
 
 ---@param FX_Idx integer
 function DeleteFX(FX_Idx, FxGUID)
     local DelFX_Name
+
+   --[[  if Check_If_Its_Root_of_Parallel(FX_Idx) then 
+        local nextFX, PrevFX = GetNextAndPreviousFXID(FX_Idx)
+        r.TrackFX_SetNamedConfigParm(LT_Track, nextFX, 'parallel', '0')
+    end ]]
+
     r.Undo_BeginBlock()
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (tablefind(Trk[TrkID].PreFX, FxGUID) or ''),
-        '',
-        true)
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. (tablefind(Trk[TrkID].PreFX, FxGUID) or ''), '', true)
     --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX '..(tablefind (Trk[TrkID].PostFX, FxGUID) or ''), '', true)
 
     if tablefind(Trk[TrkID].PreFX, FxGUID) then
@@ -1418,6 +1438,9 @@ function DeleteFX(FX_Idx, FxGUID)
 
 
     TREE = BuildFXTree(LT_Track)
+    for i, v in ipairs(PAR_FXs) do 
+
+    end
 
     r.Undo_EndBlock('Delete ' .. (DelFX_Name or 'FX'), 0)
 end
@@ -2494,6 +2517,12 @@ function At_Begining_of_Loop()
     end
 
 
+    for i, v in ipairs(DelFX.GUID) do 
+        DeleteFX(DelFX.Pos[i], v)
+    end
+
+    DelFX = { Pos = {},  GUID = {}}
+
     local function If_MovFX_FromFxID ()
 
         local Tb_Val = {}
@@ -2544,13 +2573,18 @@ function At_Begining_of_Loop()
             end
         end
 
+
+
+        
         for i, v in ipairs(MovFX.FromPos) do -- move FX
+
+            
 
             r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
             if MovFX.Parallel then 
 
                 if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
-                    -- Set the FX Begin Dragged into not parallel
+                    -- Set the FX Being Dragged into not parallel
                     r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
                     r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel +1), 'parallel', '1' )
 
@@ -2567,7 +2601,7 @@ function At_Begining_of_Loop()
         MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} , FromFxID = {} }
         NeedCopyFX = nil
         DropPos = nil
-       
+
         MovFX.Parallel = MovFX.Parallel and nil 
         TREE = BuildFXTree(LT_Track)
     end
@@ -2840,7 +2874,8 @@ function At_End_Of_Loop()
     if LBtnRel then     
         LE.ChangePos = nil 
         Long_Or_Short_Click_Time_Start = nil 
-
+        Create_Insert_FX_Preview = nil
+        DragFX_ID = nil
     end
     if RBtnRel then 
         MARQUEE_SELECTING_FX = nil

@@ -17,31 +17,57 @@ function If_Theres_Selected_FX()
     if Sel_FX and Sel_FX[1] then  
         Sel_FxGUID = {}
         table.sort(Sel_FX)
-
+        local function Put_FXs_Into_Container()
         
-        if im.Button(ctx, 'Put FXs into Container') then 
-            for i, v in ipairs(Sel_FX) do 
-                local v = Find_FxID_By_GUID (v)
-                local _, Name = r.TrackFX_GetFXName(LT_Track, v )
-                local FxGUID = r.TrackFX_GetFXGUID(LT_Track, v)
-                table.insert(Sel_FxGUID, FxGUID)
-            end
-            local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
+            if im.Button(ctx, 'Put FXs into Container') then 
+                for i, v in ipairs(Sel_FX) do 
+                    local v = Find_FxID_By_GUID (v)
+                    local _, Name = r.TrackFX_GetFXName(LT_Track, v )
+                    local FxGUID = r.TrackFX_GetFXGUID(LT_Track, v)
+                    table.insert(Sel_FxGUID, FxGUID)
+                end
+                local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
 
-            local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - firstSlot)
-            local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
-            TREE = BuildFXTree(LT_Track)
+                local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - firstSlot)
+                local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
+                TREE = BuildFXTree(LT_Track)
 
-            for i, v in ipairs(Sel_FX) do 
-                local cont = Find_FxID_By_GUID (ContFxGUID)
-                local id = Find_FxID_By_GUID (v)
+                for i, v in ipairs(Sel_FX) do 
+                    local cont = Find_FxID_By_GUID (ContFxGUID)
+                    local id = Find_FxID_By_GUID (v)
 
-                --[[ if cont <= v then v = v + 1 end ]]
-                Put_FXs_Into_New_Container(id, cont, i )
-            end
-            Sel_FX = nil 
-            Sel_FxGUID= nil
+                    --[[ if cont <= v then v = v + 1 end ]]
+                    Put_FXs_Into_New_Container(id, cont, i )
+                end
+                Sel_FX = nil 
+                Sel_FxGUID= nil
+            end 
         end
+
+        local function Put_FXs_Into_Parallel_Chain()
+            if im.Button(ctx, 'Put FXs into Parallel') then 
+
+                for i, v in ipairs(Sel_FX) do 
+                    if i ~= 1 then 
+                        local idx = Find_FxID_By_GUID (v)
+                        r.TrackFX_SetNamedConfigParm(LT_Track, idx, 'parallel', '1')
+                        
+                    end
+                end
+                Sel_FX = {}
+            end
+        end
+
+
+
+
+
+
+        Put_FXs_Into_Container()
+        Put_FXs_Into_Parallel_Chain()
+
+
+
     end
 end
 
@@ -222,11 +248,18 @@ end
 
 function GetAllMods( )
     Mods  = im.GetKeyMods(ctx)
-    Alt   = im.Mod_Alt
-    Ctrl  = im.Mod_Ctrl
-    Shift = im.Mod_Shift
-    Apl   = im.Mod_Super
-
+    
+    if OS:find('OSX') then 
+        Alt   = im.Mod_Alt          
+        Cmd  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
+        Shift = im.Mod_Shift        
+        Ctrl   = im.Mod_Super    -- This is Ctrl on mac, Windows Btn on windows
+    else        -- if its not MacOS
+        Alt   = im.Mod_Alt
+        Ctrl  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
+        Shift = im.Mod_Shift    
+        Cmd   = im.Mod_Super    --  Windows Btn on windows
+    end
    
 end 
 

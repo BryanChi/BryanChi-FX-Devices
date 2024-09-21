@@ -198,7 +198,7 @@ function Create_Empty_Tables()
         Df_EdgeRound = {}
     }
     AddFX = { Pos = {}, Name = {}, GUID = {} }
-    DelFX = { Pos = {}, Name = {} }
+    DelFX = { Pos = {},  GUID = {}}
     MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {} , FromFxID = {}}
 
 

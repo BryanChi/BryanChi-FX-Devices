@@ -566,7 +566,7 @@ function Show_KBShortcutEditor(OpenKBEditor)
                             txt = 'Ctrl + ' .. i
                         elseif Mods == Shift then
                             txt = 'Shift + ' .. i
-                        elseif Mods == Apl then
+                        elseif Mods == Cmd then
                             txt = 'Cmd + ' .. i
                         elseif Mods == Alt + Ctrl then
                             txt = 'Alt + Ctrl + ' .. i
@@ -574,11 +574,11 @@ function Show_KBShortcutEditor(OpenKBEditor)
                             txt = 'Ctrl + Shift + ' .. i
                         elseif Mods == Alt + Shift then
                             txt = 'Alt + Shift + ' .. i
-                        elseif Mods == Alt + Apl then
+                        elseif Mods == Alt + Cmd then
                             txt = 'Alt + Cmd + ' .. i
-                        elseif Mods == Shift + Apl then
+                        elseif Mods == Shift + Cmd then
                             txt = 'Shift + Cmd + ' .. i
-                        elseif Mods == Ctrl + Apl then
+                        elseif Mods == Ctrl + Cmd then
                             txt = 'Ctrl + Cmd' .. i
                         end
                         return txt

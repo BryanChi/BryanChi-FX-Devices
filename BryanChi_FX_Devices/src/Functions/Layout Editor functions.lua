@@ -2831,7 +2831,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
 
-        if im.IsKeyPressed(ctx, im.Key_A) and (Mods == Apl or Mods == Alt) then
+        if im.IsKeyPressed(ctx, im.Key_A) and (Mods == Cmd or Mods == Alt) then
             for Fx_P = 1, #FX[FxGUID] or 0, 1 do table.insert(LE.Sel_Items, Fx_P) end
         end
 
@@ -5817,7 +5817,7 @@ end
 ---@param PosX number
 ---@param PosY number
 function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
-    if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then
+    if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Cmd then
         local DeltaX, DeltaY = im.GetMouseDelta(ctx); local MouseX, MouseY = im.GetMousePos(ctx)
         local FP = FX[FxGUID][Fx_P]
         local WinDrawList = im.GetWindowDrawList(ctx)

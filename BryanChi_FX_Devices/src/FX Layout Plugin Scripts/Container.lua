@@ -5,7 +5,7 @@ local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
 
 fx.TitleWidth  = 0
-fx.CustomTitle = fx.Name
+--fx.CustomTitle = fx.Name
 fx.Width = 35
 fx.V_Win_Btn_Height = fx.V_Win_Btn_Height or  130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
@@ -1991,7 +1991,7 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
 
                 table.insert(MovFX.FromPos, Payload )
                 table.insert(MovFX.ToPos,   FX_Id - ofs)
-                if Mods == Apl then  NeedCopyFX=true   DropPos = FX_Id end 
+                if Mods == Cmd then  NeedCopyFX=true   DropPos = FX_Id end 
             end
         end
         --im.DrawList_AddRect(WDL, L , T-H/2, L+W, T+H/(Last or 2), 0xff77ffff)
@@ -2091,7 +2091,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing,1 , -3)
 
         FX[GUID] = FX[GUID]  or {}
-        local Click = AddWindowBtn (GUID, FX_Id, 130, true , true , true ) 
+        local Click = AddWindowBtn (GUID, FX_Id, 170, true , true , true ) 
 
         
         SL(165)

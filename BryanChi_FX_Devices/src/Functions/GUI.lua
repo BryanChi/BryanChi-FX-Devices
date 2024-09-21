@@ -419,7 +419,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             MARQUEE_SELECTING_FX = true 
             local x , y = im.GetMousePos(ctx)
             Sel_FX = {x = x , y = y }
-        elseif  LC and Mods == Apl then 
+        elseif  LC and Mods == Cmd then 
             Sel_FX = Sel_FX or {}
 
             local find=  tablefind(Sel_FX , FxGUID) 
@@ -493,12 +493,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 fx.TtlHvr = nil
             end
         end
+
     elseif (fx.V_Win_Btn_Height and not fx.Collapse) then
         local Name = (fx.CustomTitle or FX.Win_Name_S[FX_Idx] or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
         local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
         -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
         --im.SameLine(ctx, nil, 0)
-        WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
+        
+        WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
 
         -- im.PopStyleVar(ctx)             --StyleVar#3 POP
     else -- if collapsed
@@ -627,6 +629,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         HelperMsg.Ctrl_R = 'Open Menu'
         HelperMsg.Need_separator = true 
     end
+
 
 
     ----==  Drag and drop----
@@ -2181,9 +2184,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     local Width = 110
                     local height = 19
                     AddSpacing(pad/2)
-                    if im.Button(ctx, 'Parallel FXs', Width+height*3) then 
+                    im.Button(ctx, 'Parallel FXs', Width+height*3)  
 
-                    end
                     if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect) then
                         im.SetDragDropPayload(ctx, 'Parallel_FX_Drag', FX_Idx)
                         im.EndDragDropSource(ctx)
@@ -2200,14 +2202,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local FX_Name = FX[FxGUID].CustomTitle or  ChangeFX_Name(tree[i].fxname)
                             FX[FxGUID][0] = FX[FxGUID][0] or {}
 
+                            --if DragFX_ID == i -1 then msg(FX_Idx) Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx) goto endOfLoop end
+
                             
                             local function Solo()
                                 local Solo_ClrPop = Button_Color_Change(FX[FxGUID].Solo , Layer_Solo )
                                 im.PushStyleColor(ctx, im.Col_Button, Change_Clr_A (im.GetStyleColor(ctx, im.Col_Button), 1))
                                 im.PushStyleColor(ctx, im.Col_ButtonHovered, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonHovered ), 1))
                                 im.PushStyleColor(ctx, im.Col_ButtonActive, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonActive ), 1))
-
-
 
                                 if im.Button(ctx, 'S##Solo'..FX_Idx, height, height*2) then 
                                     FX[FxGUID].Solo = toggle(FX[FxGUID].Solo)
@@ -2301,58 +2303,73 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 im.PopStyleColor(ctx, 3 )
 
                             end
-                            local function Label()
-                                local L, T = im.GetCursorScreenPos(ctx)
-                                im.PushClipRect(ctx, L, T, L+Width, T+height, true)
-                                im.DrawList_AddText(WDL, L,T, 0xffffffff, FX_Name)
-                                im.PopClipRect(ctx)
-                                local rv = im.InvisibleButton(ctx, 'InivisiBtn for Dry wet Drag'..FxGUID, Width, height)
-
-
-                                local x, y = im.GetCursorPos(ctx)
-
-                                im.SetCursorPos(ctx, x +5, y - height - pad)
-
-
-                                if  HighlightHvredItem(0x00000000) then 
-                                    DETERMINE_IF_DRAG= FxGUID 
-
-                                end
-
-
-
-                                if DETERMINE_IF_DRAG==FxGUID then
-                                    local x, y = im.GetMouseDragDelta(ctx)
-                                    if im.IsMouseReleased(ctx,0) then 
-                                        if x < 8 and y < 8 then 
-                                            if FX[ROOT_FXGUID].ChosenFX == FxGUID then FX[ROOT_FXGUID].ChosenFX = nil 
-                                            else FX[ROOT_FXGUID].ChosenFX = FxGUID 
-                                            end
-
-                                        end
-                                        DETERMINE_IF_DRAG = nil
-                                    end
-                                end
-                            end
-
                             local function Input_Text_label()
-
-                                local rv,  buf = im.InputText( ctx, '##Dry wet'..FX_Idx,  buf or FX_Name, im.InputTextFlags_ReadOnly)
+                                local x , y = im.GetCursorPos(ctx)
+                                local rv,  buf = im.InputText( ctx, '##Dry wet'..FX_Idx,  buf or FX_Name , im.InputTextFlags_EnterReturnsTrue)
                                 --[[ local l, t =  im.GetItemRectMin(ctx)
                                 local w, h =  im.GetItemRectSize(ctx)
                                 im.SetCursorPos(ctx, l, t)
                                 im.InvisibleButton(ctx, 'InivisiBtn for Dry wet Drag', w, h ) ]]
                                 if rv then 
                                     FX[FxGUID].CustomTitle = buf
+                                    FX[FxGUID].RenamingContainer = nil
+                                end
+                                if im.IsKeyPressed(ctx, im.Key_Escape) then 
+                                    FX[FxGUID].RenamingContainer = nil
+                                end
+
+                                im.SetCursorPos(ctx, x - pad*2, y + height )
+
+                            end
+                            local function Label()
+                                if not FX[FxGUID].RenamingContainer then 
+                                    local L, T = im.GetCursorScreenPos(ctx)
+                                    im.PushClipRect(ctx, L, T, L+Width, T+height, true)
+                                    im.DrawList_AddText(WDL, L,T, 0xffffffff, FX_Name)
+                                    im.PopClipRect(ctx)
+                                    local rv = im.InvisibleButton(ctx, 'InivisiBtn for Dry wet Drag'..FxGUID, Width, height)
+                                    local x, y = im.GetCursorPos(ctx)
+                                    im.SetCursorPos(ctx, x +5, y - height - pad)
+
+                                    if  HighlightHvredItem(0x00000000) and Mods == 0 then -- if click
+                                        DETERMINE_IF_DRAG= FxGUID 
+                                    end
+
+                                    if rv and Mods == Ctrl then 
+                                        local _, ident = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_ident')
+                                        if ident == '__builtin_container' then
+                                            FX[FxGUID].RenamingContainer = true 
+                                        end
+                                    end
+
+                                    if DETERMINE_IF_DRAG==FxGUID then
+                                        local x, y = im.GetMouseDragDelta(ctx)
+                                        if im.IsMouseReleased(ctx,0) then 
+                                            if x < 8 and y < 8 then 
+                                                if FX[ROOT_FXGUID].ChosenFX == FxGUID then FX[ROOT_FXGUID].ChosenFX = nil 
+                                                else FX[ROOT_FXGUID].ChosenFX = FxGUID 
+                                                end
+
+                                            end
+                                            DETERMINE_IF_DRAG = nil
+                                        end
+                                    end
+                                else 
+                                    Input_Text_label()
+
+
                                 end
                             end
+                            
                             local function Allow_FX_Drag_On_Item()
-                                if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect) then
+                                if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect| im.DragDropFlags_AcceptNoPreviewTooltip) then
                                     im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
                                     DragFX_ID = FX_Idx
                                     DragFxGuid = FxGUID
                                     Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
+
                                     im.EndDragDropSource(ctx)
+                                    return true 
                                 end
                             end
 
@@ -2385,14 +2402,21 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         local w, h = im.GetItemRectSize(ctx)
                                         im.DrawList_AddRectFilled(WDL, l, t, l+w, t + 5, 0xffff44ff) ]]
 
-
                                         if DragFX_ID < tonumber(FX_Idx) then 
                                             Create_Insert_FX_Preview =  FX_Idx+1
                                         else
                                             Create_Insert_FX_Preview =  FX_Idx
                                         end 
                                         if dropped then 
+                                            if Check_If_Its_Root_of_Parallel(tonumber(payload)) then 
+                                                local nextFX, PrevFX = GetNextAndPreviousFXID(payload)
+                                                r.TrackFX_SetNamedConfigParm( LT_Track, nextFX, 'parallel', '0' )
+                                            end
                                             MoveFX(payload, ofs)
+                                            if Mods == Alt then 
+                                            elseif Mods == Alt + Shift then 
+                                            end
+                                            
                                         end
                                     end
                                     im.EndDragDropTarget(ctx)
@@ -2414,9 +2438,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local FillClr= rv and 0xffffff33
                                     local L, T, R, B, w, h = HighlightSelectedItem(FillClr, 0xffffff77, 0, nil,nil,nil,nil, nil, nil , 1,1, 'GetItemRect', nil, nil, 2) 
 
-                                    if clickBtn then 
+                                    if clickBtn and Mods == 0 then 
 
                                         im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx+1)
+                                    elseif clickBtn and Mods == Alt then 
+                                        local idx = AddFX_HideWindow(LT_Track, 'Container', -1000 - FX_Idx -1)
+                                        r.TrackFX_SetNamedConfigParm(LT_Track, idx, 'parallel', '1')
+                                    end
+
+                                    if im.IsItemHovered(ctx) then 
+                                        HelperMsg.L = 'Add new FX'
+                                        HelperMsg.Alt_L = 'Add a new Container'
                                     end
 
                                 end
@@ -2424,6 +2456,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             end
 
+                            local function Delete_If_Alt_Click()
+                                if im.IsItemClicked(ctx, 0) and Mods == Alt then 
+                                    table.insert(DelFX.GUID , FxGUID)
+                                    table.insert(DelFX.Pos , FX_Idx)
+
+                                end
+                            end
 
                             
                             if FX[ROOT_FXGUID].ChosenFX == FxGUID then 
@@ -2431,47 +2470,54 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 im.DrawList_AddRectFilled(WDL, L, T , L + Win_W , T + height*2, 0xffffff22)
                                 --HighlightSelectedItem(0xffffff22, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect )
                             end
+                            local function Show_Preview_FXBtn_For_DragDrop(trigger)
 
-                            local Hover_Insert_FX_Preview
 
-                            if Create_Insert_FX_Preview==FX_Idx then 
 
-                                local rv, type, payload, is_preview, is_delivery = im.GetDragDropPayload(ctx)
-                                
-                                if  payload~='' and type == 'FX_Drag' then 
-                                    local FxGUID = r.TrackFX_GetFXGUID(LT_Track,   tonumber(payload) )
-                                    AddWindowBtn(FxGUID, tonumber(payload) , Win_W,nil,nil,nil,true)
-                                    local rv =   Allow_FX_Drop_On_Item() 
-                                    if rv then Create_Insert_FX_Preview = rv end 
-                                    local L, T = im.GetItemRectMin(ctx)
-                                    local R, B =  im.GetItemRectMax(ctx)
-                                    if im.IsMouseHoveringRect(ctx, L ,T - 3, R + 10,B + 5)then 
-                                        Hover_Insert_FX_Preview = true 
-                                        if im.IsMouseReleased(ctx, 0) then 
-                                            if not MovFX.ToPos[1] then 
-                                                table.insert(MovFX.FromPos, DragFX_ID)
-                                                table.insert(MovFX.ToPos, tonumber(FX_Idx))
-                                                MoveFX(payload, ofs)
+                                local Hover_Insert_FX_Preview
+
+                                if   trigger then 
+
+                                    local rv, type, payload, is_preview, is_delivery = im.GetDragDropPayload(ctx)
+                                    
+                                    if  payload~='' and type == 'FX_Drag' then 
+                                        local FxGUID = r.TrackFX_GetFXGUID(LT_Track,   tonumber(payload) )
+                                        AddWindowBtn(FxGUID, tonumber(payload) , Win_W,nil,nil,nil,true)
+                                        local rv =   Allow_FX_Drop_On_Item() 
+                                        if rv then Create_Insert_FX_Preview = rv end 
+                                        local L, T = im.GetItemRectMin(ctx)
+                                        local R, B =  im.GetItemRectMax(ctx)
+                                        if im.IsMouseHoveringRect(ctx, L ,T - 3, R + 10,B + 5)then 
+                                            Hover_Insert_FX_Preview = true 
+                                            if im.IsMouseReleased(ctx, 0) then 
+                                                if not MovFX.ToPos[1] then 
+                                                    table.insert(MovFX.FromPos, DragFX_ID)
+                                                    table.insert(MovFX.ToPos, tonumber(FX_Idx))
+                                                    MoveFX(payload, ofs)
+                                                end
                                             end
                                         end
                                     end
                                 end
+                                return Hover_Insert_FX_Preview
                             end
 
+                            local Hover_Insert_FX_Preview = Show_Preview_FXBtn_For_DragDrop(Create_Insert_FX_Preview==FX_Idx)
 
+                            im.BeginGroup(ctx)
 
                             im.BeginGroup(ctx)
                             --im.Text(ctx, FX_Name)
                             im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 0, 1)
                             ColorBox()
-                            Allow_FX_Drag_On_Item()
+                            local drag = Allow_FX_Drag_On_Item()
                             
                             SL(nil, pad * 2 )
                             im.SetNextItemWidth(ctx,Width)
-                            
+
                             Label()
                             
-                            Allow_FX_Drag_On_Item()
+                            local drag = Allow_FX_Drag_On_Item()
                             --local  y= im.GetCursorPosY(ctx)
                             --im.SetCursorPosY(ctx,  y + 15)
                             --im.SetCursorPos(ctx,x + 5 + pad * 2  , y - h + height )
@@ -2481,16 +2527,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                             im.EndGroup(ctx)
-                            
+                            Delete_If_Alt_Click()
                             im.PopStyleVar(ctx)
                             
-
 
 
                             local rv =   Allow_FX_Drop_On_Item() 
                             if rv then 
                                 Create_Insert_FX_Preview = rv 
                             elseif Create_Insert_FX_Preview==FX_Idx and not Hover_Insert_FX_Preview then 
+                                Create_Insert_FX_Preview = nil 
+                            elseif i == rpt and Create_Insert_FX_Preview==FX_Idx + 1 and not Hover_Insert_FX_Preview then 
                                 Create_Insert_FX_Preview = nil 
                             end
 
@@ -2502,12 +2549,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             SL(nil,1)
                             Mute()
 
+                            im.EndGroup(ctx)
 
+                            Show_Preview_FXBtn_For_DragDrop(i == rpt and  (Create_Insert_FX_Preview==FX_Idx+1))
 
+                            if drag then 
+                                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
+                            end
+
+                            
 
                             Add_FX_Btn ()
-                            
-                            
+                                
+                            ::endOfLoop::
+
                         end
 
                     im.EndChild(ctx)
@@ -2670,7 +2725,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Win_L, Win_T = im.GetItemRectMin(ctx); Win_W, Win_H = im.GetItemRectSize(ctx)
             Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
             local function Disable_If_LayEdit(Begin_or_End)
-                if (FX.LayEdit == FxGUID or Draw.DrawMode[FxGUID] == true) and Mods ~= Apl then
+                if (FX.LayEdit == FxGUID or Draw.DrawMode[FxGUID] == true) and Mods ~= Cmd then
                     if Begin_or_End =='Begin' then 
                         im.BeginDisabled(ctx)
                     elseif Begin_or_End =='End' then 
@@ -2682,7 +2737,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             local function If_LayEdit_Activated()
                     
-                if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Apl then -- Resize FX or title btn
+                if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Cmd then -- Resize FX or title btn
                     MouseX, MouseY = im.GetMousePos(ctx)
                     Win_L, Win_T = im.GetItemRectMin(ctx)
                     Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
@@ -4236,7 +4291,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     DropFXtoLayer(FX_Idx, LyrID)
                     Dvdr.Width[TblIdxForSpace] = 0
                     FxDroppingTo = nil
-                elseif dropped and Mods == Apl then
+                elseif dropped and Mods == Cmd then
                     DragFX_Src = DragFX_ID
 
                     if DragFX_ID > FX_Idx then DragFX_Dest = FX_Idx - 1 else DragFX_Dest = FX_Idx end
@@ -4294,7 +4349,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     FxDroppingTo = nil
 
                     MoveFX(Payload, FX_Idx + 1, true)
-                elseif dropped and Mods == Apl then
+                elseif dropped and Mods == Cmd then
                     DragFX_Src = DragFX_ID
 
                     if DragFX_ID > FX_Idx then DragFX_Dest = FX_Idx - 1 else DragFX_Dest = FX_Idx end
@@ -4335,7 +4390,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if Payload_Type == 'FX_Drag' then
                 local allowDropNext, MoveFromPostToNorm, DontAllowDrop
                 local FX_Idx = FX_Idx
-                allowDropNext =  Mods == Apl and true 
+                allowDropNext =  Mods == Cmd and true 
                 FxGUID_DragFX = DragFxGuid 
                 local rv, type, payload, is_preview, is_delivery = im.GetDragDropPayload(ctx)
                 local FxGUID_DragFX = FxGUID_DragFX or DragFX_ID_Table and DragFX_ID_Table[1]
@@ -4425,9 +4480,16 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                                 local FX_Idx = tonumber(payload)
                                 local rv , ret = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'parallel') 
                                 local parallel = ret == '1' and true 
+
                                 
                                 if parallel then 
                                         r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx , 'parallel', '0')
+                                end
+
+                                if Check_If_Its_Root_of_Parallel(FX_Idx) then -- if the fx we're moving is the root of a parallel chain
+                                    local nextFX, PrevFX = GetNextAndPreviousFXID(FX_Idx)
+                                    r.TrackFX_SetNamedConfigParm( LT_Track, nextFX, 'parallel', '0' )
+                                    -- set next fx to not parallel with previous fx (Make the next fx the root of the parallel chain)
                                 end
                             end
 
@@ -4443,7 +4505,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                         elseif DragFX_ID  then 
                             local_MoveFX (DragFX_ID, FX_Idx)
                         end
-                    elseif dropped and Mods == Apl then
+                    elseif dropped and Mods == Cmd then
                         local copypos = FX_Idx + 1
                         payload = tonumber(payload)
 

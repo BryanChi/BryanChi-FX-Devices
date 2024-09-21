@@ -742,7 +742,7 @@ function If_Saike_Band_Splitter(FxGUID, FX_Idx, FX_Name)
 
 
 
-                        if IsLBtnClicked and (Mods == 0 or Mods == Apl) then
+                        if IsLBtnClicked and (Mods == 0 or Mods == Cmd) then
                             FX[FxGUID].Sel_Band = i
                             FX[FxGUID].StartCount = true
                         elseif IsRBtnClicked and Cuts ~= 1 then
@@ -821,7 +821,7 @@ function If_Saike_Band_Splitter(FxGUID, FX_Idx, FX_Name)
                                 im.SetNextWindowSize(ctx, Modalw, Modalh)
                                 im.OpenPopup(ctx, 'Delete Band' .. i .. '? ##' .. FxGUID)
                             end
-                        elseif LBtn_MousdDownDuration > 0.06 and (Mods == 0 or Mods == Apl) and not DraggingFXs.SrcBand and FX[FxGUID].StartCount then
+                        elseif LBtn_MousdDownDuration > 0.06 and (Mods == 0 or Mods == Cmd) and not DraggingFXs.SrcBand and FX[FxGUID].StartCount then
                             --Drag FXs to different bands
                             for I, v in ipairs(FX[FxGUID].FXsInBS) do
                                 if FX[v].InWhichBand == i then
@@ -859,7 +859,7 @@ function If_Saike_Band_Splitter(FxGUID, FX_Idx, FX_Name)
                                     r.TrackFX_SetPinMappings(LT_Track, Fx, 1, 1,
                                         2 ^ ((i + 1) * 2 - 1), 0)
                                 end
-                            elseif not IsLBtnHeld and Mods == Apl then
+                            elseif not IsLBtnHeld and Mods == Cmd then
                                 local Ofs = 0
                                 for I, v in ipairs(DraggingFXs) do
                                     local offset
@@ -1066,7 +1066,7 @@ function If_Saike_Band_Splitter(FxGUID, FX_Idx, FX_Name)
 
                 if DraggingFXs[1] and FXCountForBand[DraggingFXs.SrcBand] then
                     local MsX, MsY = im.GetMousePos(ctx)
-                    if Mods == Apl then Copy = 'Copy' end
+                    if Mods == Cmd then Copy = 'Copy' end
                     im.DrawList_AddTextEx(Glob.FDL, Font_Andale_Mono_20_B, 14, MsX + 20, MsY,
                         0xffffffaa,
                         (Copy or '') .. ' ' .. FXCountForBand[DraggingFXs.SrcBand] .. ' FXs')
