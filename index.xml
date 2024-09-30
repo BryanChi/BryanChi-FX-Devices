@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="f7c0b21c7156b6e2182ac7f06d4d40c4959308ed" name="FX Devices">
+<index version="1" commit="07c954ebfe0c28c2e3d8c02dd15872b712a20fef" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+
+{\pard \ql \f0 \sa180 \li0 \fi0 Please check the forum post for info: https://forum.cockos.com/showthread.php?t=263622\par}
+}
+]]></description>
+      </metadata>
       <version name="1.0beta10.4.1.2" author="Bryan Chi" time="2023-09-28T13:58:10Z">
         <changelog><![CDATA[- less nested menus for FX adder
 - Fix Adding fx chain crash]]></changelog>
@@ -3571,6 +3580,88 @@
         <source file="src/LFO Shapes/Square.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e23a9b0d2f6de9ce17140e0fddca4cf32b64e314/BryanChi_FX_Devices/src/LFO%20Shapes/Square.ini</source>
         <source file="src/LFO Shapes/Triangle.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e23a9b0d2f6de9ce17140e0fddca4cf32b64e314/BryanChi_FX_Devices/src/LFO%20Shapes/Triangle.ini</source>
         <source main="main" file="src/FXD - Record Last Touch.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/e23a9b0d2f6de9ce17140e0fddca4cf32b64e314/BryanChi_FX_Devices/src/FXD%20-%20Record%20Last%20Touch.lua</source>
+      </version>
+      <version name="1.0beta16" author="Bryan Chi" time="2024-09-30T05:26:04Z">
+        <changelog><![CDATA[- Revamped better looking and collapsable Modulation bar.
+- New! Midi modulations : velocity, keytrack, random]]></changelog>
+        <source main="main">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/BryanChi_FX%20Devices.lua</source>
+        <source type="effect" file="FXD JSFXs/FXD (Mix)RackMixer.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20(Mix)RackMixer.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Band Joiner.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Band%20Joiner.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Container Macros.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Container%20Macros.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Gain Reduction Scope.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Gain%20Reduction%20Scope.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Macros.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Macros.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD ReSpectrum.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20ReSpectrum.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Saike BandSplitter.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Saike%20BandSplitter.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Split To 4 Channels.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Split%20To%204%20Channels.jsfx</source>
+        <source type="effect" file="FXD JSFXs/FXD Split to 32 Channels.jsfx">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/FXD%20Split%20to%2032%20Channels.jsfx</source>
+        <source type="effect" file="FXD JSFXs/cookdsp.jsfx-inc">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/cookdsp.jsfx-inc</source>
+        <source type="effect" file="FXD JSFXs/firhalfband.jsfx-inc">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/firhalfband.jsfx-inc</source>
+        <source type="effect" file="FXD JSFXs/spectrum.jsfx-inc">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/spectrum.jsfx-inc</source>
+        <source type="effect" file="FXD JSFXs/svf_filter.jsfx-inc">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/FXD%20JSFXs/svf_filter.jsfx-inc</source>
+        <source file="src/Constants.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Constants.lua</source>
+        <source file="src/Fonts/FontAwesome6Free-Regular.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Regular.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-2.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-2.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-3.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-3.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-4.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-4.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-5.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-5.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-6.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-6.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-7.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-7.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900-8.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900-8.ttf</source>
+        <source file="src/Fonts/FontAwesome6Free-Solid-900.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/FontAwesome6Free-Solid-900.ttf</source>
+        <source file="src/Fonts/IconFont1.ttf">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Fonts/IconFont1.ttf</source>
+        <source file="src/Functions/EQ functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/EQ%20functions.lua</source>
+        <source file="src/Functions/Execute Before Loop.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Execute%20Before%20Loop.lua</source>
+        <source file="src/Functions/FX Layering.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/FX%20Layering.lua</source>
+        <source file="src/Functions/Filesystem_utils.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Filesystem_utils.lua</source>
+        <source file="src/Functions/GUI.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/GUI.lua</source>
+        <source file="src/Functions/General Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/General%20Functions.lua</source>
+        <source file="src/Functions/Layout Editor functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Layout%20Editor%20functions.lua</source>
+        <source file="src/Functions/Menu Bar.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Menu%20Bar.lua</source>
+        <source file="src/Functions/Modulation.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Modulation.lua</source>
+        <source file="src/Functions/Modulator_LFO.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Modulator_LFO.lua</source>
+        <source file="src/Functions/Theme Editor Functions.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Functions/Theme%20Editor%20Functions.lua</source>
+        <source file="src/FX Layout Plugin Scripts/Container.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Container.lua</source>
+        <source file="src/FX Layout Plugin Scripts/Pro C 2.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Pro%20C%202.lua</source>
+        <source file="src/FX Layout Plugin Scripts/Pro Q 3.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Pro%20Q%203.lua</source>
+        <source file="src/FX Layout Plugin Scripts/ReaComp.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/ReaComp.lua</source>
+        <source file="src/FX Layout Plugin Scripts/ReaDrum Machine.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/ReaDrum%20Machine.lua</source>
+        <source file="src/FX Layout Plugin Scripts/Volume Pan Smoother.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layout%20Plugin%20Scripts/Volume%20Pan%20Smoother.lua</source>
+        <source file="src/FX Layouts/ReaComp (Cockos).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ReaComp%20(Cockos).ini</source>
+        <source file="src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaDelay%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaFreqEcho%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaShimmer%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaSpaceModulator%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaSupermassive%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FX%20Layouts/ValhallaVintageVerb%20(Valhalla%20DSP,%20LLC).ini</source>
+        <source file="src/FXChains/ReaDrum Machine.RfxChain">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FXChains/ReaDrum%20Machine.RfxChain</source>
+        <source file="src/Images/Analog Knob 1.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Analog%20Knob%201.png</source>
+        <source file="src/Images/Modulation Icon hollow.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Modulation%20Icon%20hollow.png</source>
+        <source file="src/Images/Modulation Icon.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Modulation%20Icon.png</source>
+        <source file="src/Images/ModulationArrow.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/ModulationArrow.png</source>
+        <source file="src/Images/MouseL.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/MouseL.png</source>
+        <source file="src/Images/MouseR.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/MouseR.png</source>
+        <source file="src/Images/copy.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/copy.png</source>
+        <source file="src/Images/paste.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/paste.png</source>
+        <source file="src/Images/pin.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/pin.png</source>
+        <source file="src/Images/pinned.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/pinned.png</source>
+        <source file="src/Images/save.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/save.png</source>
+        <source file="src/Images/sinewave.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/sinewave.png</source>
+        <source file="src/Images/trash.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/trash.png</source>
+        <source file="src/Images/Attached Drawings/LED light.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Attached%20Drawings/LED%20light.png</source>
+        <source file="src/Images/Knobs/Bitwig.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/Bitwig.png</source>
+        <source file="src/Images/Knobs/FancyBlueKnob_Inverted.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/FancyBlueKnob_Inverted.png</source>
+        <source file="src/Images/Knobs/FancyBlueKnob.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/FancyBlueKnob.png</source>
+        <source file="src/Images/Knobs/FancyGreenKnob.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/FancyGreenKnob.png</source>
+        <source file="src/Images/Knobs/FancyLightGreenKnob.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/FancyLightGreenKnob.png</source>
+        <source file="src/Images/Knobs/FancyRedKnob.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Knobs/FancyRedKnob.png</source>
+        <source file="src/Images/Switches/FancyGreenCheck_2.png">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/Images/Switches/FancyGreenCheck_2.png</source>
+        <source file="src/LFO Shapes/Pulse.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Pulse.ini</source>
+        <source file="src/LFO Shapes/Saw L.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Saw%20L.ini</source>
+        <source file="src/LFO Shapes/Saw R.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Saw%20R.ini</source>
+        <source file="src/LFO Shapes/Sine.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Sine.ini</source>
+        <source file="src/LFO Shapes/Square.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Square.ini</source>
+        <source file="src/LFO Shapes/Triangle.ini">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/LFO%20Shapes/Triangle.ini</source>
+        <source main="main" file="src/FXD - Record Last Touch.lua">https://github.com/BryanChi/BryanChi-FX-Devices/raw/07c954ebfe0c28c2e3d8c02dd15872b712a20fef/BryanChi_FX_Devices/src/FXD%20-%20Record%20Last%20Touch.lua</source>
       </version>
     </reapack>
   </category>
