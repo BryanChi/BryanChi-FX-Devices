@@ -4317,6 +4317,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                             _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                             im.PopStyleColor(ctx, 3)
                             im.EndCombo(ctx)
+                            if FP.V_FontSize then im.PopFont(ctx) end
+
                             return true, _G[LabelValue]
                         end
                     end
@@ -4329,8 +4331,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
             local lineheight = im.GetTextLineHeight(ctx)
             local drawlist = im.GetForegroundDrawList(ctx)
 
-            im.DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888844,
-                Rounding)
+            im.DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888844, Rounding)
             im.DrawList_AddRect(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888877, Rounding)
         else
             if Style == 'Pro C 2' and LBtnRel then
@@ -4407,6 +4408,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.V_Pos == 'None' or FP.V_Pos == 'Free' then
         lbl = '  '
     elseif FP.V_Pos == 'Within' then
+
         im.PushFont(ctx, _G[V_Font])
         _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         TextW = im.CalcTextSize(ctx, lbl)

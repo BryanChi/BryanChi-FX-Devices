@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16
+-- @version 1.0beta16.1
 -- @changelog
---  - Revamped better looking and collapsable Modulation bar.
---  - New! Midi modulations : velocity, keytrack, random
+--  - Fix crash when user choose a parameter with 'selection' type that has value font size set.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
