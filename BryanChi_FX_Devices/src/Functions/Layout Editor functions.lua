@@ -3073,7 +3073,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
-    local p_value = p_value or 0
+    local p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) or  p_value or 0
     local radius_outer = Radius or Df.KnobRadius;
 
     local FP = FX[FxGUID][Fx_P]
@@ -3089,14 +3089,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer }
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
     local TextW = im.CalcTextSize(ctx, labeltoShow or FX[FxGUID][Fx_P].Name, nil, nil, true)
-    local CenteredLblPos, CenteredVPos
+    local CenteredVPos
     im.BeginGroup(ctx)
-    if TextW < (Radius or 0) * 2 then
-        CenteredLblPos = pos[1] + Radius - TextW / 2
-    else
-        CenteredLblPos = pos[1]
-    end
 
+    local CenteredLblPos = TextW < (Radius or 0) * 2 and pos[1] + Radius - TextW / 2 or pos[1]
 
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
     local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
@@ -3120,7 +3116,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     WhichClick()
     im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), ClickButton) -- ClickButton to alternate left/right dragging
-    Draw_Attached_Drawings(FP,FX_Idx, pos,nil,nil, FxGUID)
+    
+
 
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
@@ -3325,7 +3322,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     local sz = radius_outer * scale
 
 
-                    uvmin, uvmax = Calc_strip_uv(Image, FP.V or FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
+                    uvmin, uvmax = Calc_strip_uv(Image, p_value or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num))
 
 
                     im.DrawList_AddImage(WDL, Image, center[1] - sz / 2, center[2] - sz / 2, center[1] + sz / 2,
@@ -3333,7 +3330,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 else
                     local scale = 2
                     local sz = radius_outer * scale
-                    ImageAngle(ctx, Image, 4 + FP.V * 4.5, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
+                    ImageAngle(ctx, Image, 4 + p_value * 4.5, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
                 end
             end
         elseif Style == 'Invisible' or FP.Invisible then
@@ -3541,6 +3538,58 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             local BipOfs = 0
             FP.ModBipolar = FP.ModBipolar or {}
             local Amt = FP.ModAMT or FP.Cont_ModAMT
+            local function Show_Mod_Range(Amt, IndicClr, rangeClr)
+                if not Amt or Amt == 0 then return end
+                 --if Modulation has been assigned to params
+                 local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+
+                 --- indicator of where the param is currently
+                 local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
+
+
+                 if Amt ==FP.Cont_ModAMT or not rangeClr then 
+                    IndicClr = ThemeClr ('Accent_Clr_Not_Focused')
+                    rangeClr = Change_Clr_A(IndicClr , -0.3)
+                end
+
+                if If_Hvr_or_Macro_Active (FxGUID, Macro) then 
+                    IndicClr = Change_Clr_A(IndicClr , 1)
+                    rangeClr = Change_Clr_A(IndicClr , - 0.3)
+                end 
+
+                if FP.ModBipolar[Macro] then
+                    BipOfs = -Amt[Macro] 
+                end
+                --- shows modulation range
+                --- 
+                local t = (FP.V - v_min) / (v_max - v_min)
+                local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt , ANGLE_MIN, ANGLE_MAX)
+
+            
+                if BipOfs ~= 0 then
+                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt ), ANGLE_MIN, ANGLE_MAX)
+                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
+                    im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
+                    im.DrawList_PathClear(draw_list)
+                end
+                im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
+
+                im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
+                im.DrawList_PathClear(draw_list)
+
+                --Show current value pos with range
+                im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
+                im.DrawList_PathStroke(draw_list, rangeClr, nil, radius_outer / 2)
+
+                im.DrawList_PathClear(draw_list)
+                --[[ 
+                -- Show current value pos with range but more visible
+                im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
+                im.DrawList_PathStroke(draw_list, Change_Clr_A(IndicClr , 1), nil, radius_outer/10)
+                im.DrawList_PathClear(draw_list) ]]
+
+            end
 
         
 
@@ -3548,47 +3597,17 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 if Amt[Macro] then
                     local IndicClr = EightColors.bgWhenAsgnModAct[Macro]
                     local rangeClr = EightColors.bgWhenAsgnModHvr[Macro]
-                    if Amt ==FP.Cont_ModAMT then 
-                        IndicClr = CustomColorsDefault.Container_Accent_Clr_Not_Focused
-                        rangeClr = Change_Clr_A(CustomColorsDefault.Container_Accent_Clr_Not_Focused , -0.3)
-
-                        if If_Hvr_or_Macro_Active (FxGUID, Macro) then 
-                            IndicClr = CustomColorsDefault.Container_Accent_Clr
-                            rangeClr = Change_Clr_A(IndicClr , - 0.3)
-                        end 
-                    end
-                    --if Modulation has been assigned to params
-                    local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-
-                    --- indicator of where the param is currently
-                    local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
-
-                    if FP.ModBipolar[Macro] then
-                        BipOfs = -Amt[Macro] 
-                    end
-
-                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer * 0.75, angle, PosAftrMod)
-                    im.DrawList_PathStroke(draw_list, rangeClr, nil, radius_outer / 2)
-                    im.DrawList_PathClear(draw_list)
-
-                    --- shows modulation range
-                    local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt[Macro] , ANGLE_MIN, ANGLE_MAX)
-                    local angle = angle
-                    if BipOfs ~= 0 then
-                        local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * -(Amt[Macro] ), ANGLE_MIN, ANGLE_MAX)
-                        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-                        im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
-                        im.DrawList_PathClear(draw_list)
-                    end
-                    im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer - 1 + offset, angle, Range)
-
-                    im.DrawList_PathStroke(draw_list, IndicClr, nil, radius_outer * 0.1)
-                    im.DrawList_PathClear(draw_list)
+                    Show_Mod_Range(Amt[Macro], IndicClr, rangeClr)
+                   
 
                     ParamHasMod_Any = true
 
                     offset = offset + OffsetForMultipleMOD
                 end
+            end
+            for M, v in ipairs(Midi_Mods) do 
+
+                Show_Mod_Range(FP.ModAMT[v] ,  ThemeClr('Accent_Clr'))
             end
         end -- of reapeat for every macro
 
@@ -3656,7 +3675,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     ShowTooltip_if_Active()
     
     Drawings_For_Styles()
-    
+    Draw_Attached_Drawings(FP,FX_Idx, pos,p_value,nil, FxGUID)
     Enable_Preset_Morph_Edit()
     RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
     Write_Bottom_Labels_And_Values()
@@ -3867,7 +3886,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) 
     --[[ Write_Label_And_Value_If_Vert()
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) ]]
-    Draw_Attached_Drawings(FP,FX_Idx, pos, nil,nil,  FxGUID)
+    local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+    Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value ,nil,  FxGUID)
 
     im.EndGroup(ctx)
     
@@ -4825,6 +4845,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local radius_inner = radius_outer * 0.40
     local Clr_SldrGrab = im.GetColor(ctx, im.Col_SliderGrabActive)
     local ClrBg        = im.GetColor(ctx, im.Col_FrameBg)
+    local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
 
     if (is_active or is_hovered) and (FX[FxGUID][Fx_P].V_Pos == 'None' or Style == 'Pro C' or Style == 'Pro C Lookahead') then
@@ -4866,7 +4887,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX'..FxGUID..'Prm'..Fx_P.. 'Value before modulation' , FX[FxGUID][Fx_P].V, true    )
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow= r.time_precise()
-            r.gmem_write(11000+CC , p_value)
+            r.gmem_write(JSFX.P_ORIG_V+CC , p_value)
             Link_Param_to_CC(LT_TrackNum, LT_FX_Number, P_Num, true, true, 176,MvingP_Idx) -- Use native API instead
 
         end
@@ -4889,7 +4910,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , Format_P_V, Lbl_Pos)
 
     After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
-    Draw_Attached_Drawings(FP,FX_Idx, pos, nil,nil, FxGUID)
+
+    Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value,nil, FxGUID)
     if Lbl_Clickable == 'Lbl_Clickable' then
         local TextL; local TextY; local TxtSize;
         local HvrText = im.IsItemHovered(ctx)

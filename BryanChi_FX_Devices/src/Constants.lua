@@ -4,9 +4,17 @@ COLLAPSED_FX_WIDTH = 27
 Default_WindowBtnWidth = 180
 PAR_FX_MIXER_WIN_W = 170
 Tooltip= {}
+JSFX={P_ORIG_V=100000 ; Velo_Mod=500000}
+JSFX.Random1 = JSFX.Velo_Mod + 10000
+JSFX.Random2 = JSFX.Velo_Mod + 20000
+JSFX.Random3 = JSFX.Velo_Mod + 30000
 
+JSFX.KeyTrack1 = JSFX.Velo_Mod + 40000
+JSFX.KeyTrack2 = JSFX.Velo_Mod + 50000
+JSFX.KeyTrack3 = JSFX.Velo_Mod + 60000
 
-
+Midi_Mod_Indicator = { } 
+Midi_Mods = {'Velocity', 'Random', 'Random 2' , 'Random 3', 'KeyTrack', 'KeyTrack 2', 'KeyTrack 3'}
 
 AllAvailableKeys = {
     ['0'] = r.ImGui_Key_0(),

@@ -15,7 +15,7 @@ slider8:0<0,1>Macro 8
 slider9:0<0,127>Morph 1
 slider10:0<0,127>Morph 2
 slider11:0<0,127>Morph 3
-slider12:0<0,127>Morph 4
+slider12:0<0,127>Morph 4 
 slider13:0<0,127>Morph 5
 slider14:0<0,127>Morph 6
 slider15:0<0,127>Morph 7
@@ -43,18 +43,82 @@ options:gmem=ParamValues
 
 @init 
 
-G=333333;
-A123 =33;
-AB = A123 ?  A123 : 333;
 
 ext_noinit=1;
 ext_midi_bus = 1;
 is_init = 0;
 midiamp = midinote = 0;
 
-
 totalTrackCount =  gmem[0];
 trkGUID_Num = gmem[1];
+
+
+
+//gmem offsets ------------------------------
+//gmem 1 = this track's DIY GUID
+//gmem 2 = Selected track's Diy GUID
+//gmem 3 = Prm Inst
+//gmem 4 = if 1 then user is R-Dragging on prm
+         //if 2 then user is adjusting env atk
+         //if 3 then user is adjusting env rel
+         //if 4.1 then Mod 1 is Env, 4.2 then Mod 2 is Env
+        
+         
+//gmem 5 = Which Macro is user assigning
+//gmem 6 = Which Param's mod range is user tweaking 
+//gmem 7 = determine Param's value before modulaiton
+//gmem 8 =  ? 
+//gmem 9 =  used for the parameter user is currently changing  e.g.  env1 atk      |  currently adjusted LFO node's value
+//gmem 10 = used for the parameter user is currently changing  e.g. env1 rel
+//gmem 11 = env2 atk
+//gmem 12 = env2 rel
+//etc..24
+//gmem 20~30 = update all points x coordinate in curve editor when needed (when window opens, or when user add/deletes pt)
+//gmem 30~40 = update all points y coordinate in curve editor when needed (when window opens, or when user add/deletes pt)
+//gmem 31~38 = Modulation type (Macro or Env)
+//gmem 91~ 100 = send midi mods info back to imgui
+//gmem 101~108 = send Modulation info back to imgui
+//gmem 110 = SEQ Length or Denominator when user is tweaking 
+//gmem 111 = SEQ Denominator when user is tweaking
+//gmem 112 = step value of currently tweaking step
+//gmem 121 ~128 = SEQ 1 ~ 8 Current Pos 
+//gmem 100000+ = Parameter's original values before modulation
+
+//jsfx table 1 ~ 8 = Mod 1 ~ 8's output value
+
+//jsfx table 1000~2000 = Mod1's mod amount for param 1 ~ 1000 
+//jsfx table 2000~3000 = Mod2's mod amount for param 1 ~ 1000 
+//etc .. 8000
+
+//jsfx table 500000~501000 = Velocity mod amount for param 1 ~ 1000 
+//jsfx table 501001~501130 = Cruve for velocity ( 1~10 is X axis, 11~20 is y axis, 21~ 30 is expo or log curve amount
+//jsfx table 510000~511000 = Random mod amount for param 1 ~ 1000 
+//jsfx table 511001~511130 = Cruve for Random ( 1~10 is X axis, 11~20 is y axis, 21~ 30 is expo or log curve amount
+//etc.. up to 570000.. up to keytrack 2
+
+
+
+ModAmt = 1000;
+PsUsed = 100; 
+P_OrigV = 100000 ;  //Parameter's original values before modulation
+SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
+Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
+McOut =  1;
+
+Velo_ModAmt = 500000;
+GAP = 10000;
+RAND1_ModAmt = Velo_ModAmt + GAP;
+RAND2_ModAmt = RAND1_ModAmt + GAP;
+RAND3_ModAmt = RAND2_ModAmt + GAP;
+KeyTrk1_ModAmt = RAND3_ModAmt + GAP; 
+KeyTrk2_ModAmt = KeyTrk1_ModAmt + GAP;
+KeyTrk3_ModAmt = KeyTrk2_ModAmt + GAP; 
+Midi_Mod_Curve_Ofs = 1000;
+Curve_Prop_Ofs = 10;
+
+
+
+
 
 //  Follower Gain 
   Mc1.Fol_Gain= 0.7 ; 
@@ -65,8 +129,6 @@ trkGUID_Num = gmem[1];
   Mc6.Fol_Gain= 0.7 ; 
   Mc7.Fol_Gain= 0.7 ; 
   Mc8.Fol_Gain= 0.7 ; 
-
-
 
 //LFO Gain auto 
   Mc1.LFO_Gain_Auto= 0 ;
@@ -116,9 +178,6 @@ trkGUID_Num = gmem[1];
   Mc7.LFO_Gain = 1;
   Mc8.LFO_Gain = 1;
 
-
-
-
 // SEQ DNom And Leng
   Mc1.SEQ_DNom = 1;
   Mc1.SEQ_Leng = 8;
@@ -137,52 +196,132 @@ trkGUID_Num = gmem[1];
   Mc8.SEQ_DNom = 1;
   Mc8.SEQ_Leng = 8;
 
-
-
-
-
-//gmem offsets ------------------------------
-//gmem 1 = this track's DIY GUID
-//gmem 2 = Selected track's Diy GUID
-//gmem 3 = Prm Inst
-//gmem 4 = if 1 then user is R-Dragging on prm
-         //if 2 then user is adjusting env atk
-         //if 3 then user is adjusting env rel
-         //if 4.1 then Mod 1 is Env, 4.2 then Mod 2 is Env
+function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
+(
+    // Handle boundary conditions explicitly
+    x <= xmin ? ymin :
+    x >= xmax ? ymax :
+    
+    (
+        // Normalize x to the range [0, 1]
+        x_norm = (x - xmin) / (xmax - xmin);
         
-         
-//gmem 5 = Which Macro is user assigning
-//gmem 6 = Which Param's mod range is user tweaking 
-//gmem 7 = determine Param's value before modulaiton
-//gmem 8 =  ? 
-//gmem 9 = env1 atk      |  currently adjusted LFO node's value
-//gmem 10 = env1 rel
-//gmem 11 = env2 atk
-//gmem 12 = env2 rel
-//etc..24
-//gmem 31~38 = Modulation type (Macro or Env)
-//gmem 101~108 = send Modulation info back to imgui
-//gmem 110 = SEQ Length or Denominator when user is tweaking 
-//gmem 111 = SEQ Denominator when user is tweaking
-//gmem 112 = step value of currently tweaking step
-//gmem 121 ~128 = SEQ 1 ~ 8 Current Pos 
-//gmem 1000~2000 = LFO Values
+        // Calculate y_norm based on p
+        p > 1 ? (
+            // Exponential curve: y_norm = x_norm^p
+            y_norm = x_norm^p;
+        ) :
+        p < 0 ? (
+            // Logarithmic-like curve: scaled log formula using |p|
+            p_abs = abs(p);
+            y_norm = log(1 + (exp(p_abs) - 1) * x_norm) / log(exp(p_abs));
+        ) :
+        (
+            // Linear interpolation: y_norm = x_norm when p = 0
+            y_norm = x_norm;
+        );
+        
+        // Scale y_norm back to the range [ymin, ymax]
+        y = ymin + y_norm * (ymax - ymin);
+        y;
+    );
+);
+
+
+function Calculate_Midi_Mod(v , TB_ofs) local (rpt, out, X, nX, Y, nY , ofs, C)(
+  ofs = TB_ofs + Midi_Mod_Curve_Ofs;  // =  1000 for velocity,  11000  for random
+  out = 0;
+  rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
+
+  rpt> 1 ? (  //for every point 
+    i = 1;
+    while( out==0)(  
+      X = Velo_ModAmt[ofs+i];
+      nX = Velo_ModAmt[ofs+i+1];
+
+      Y = Velo_ModAmt[ofs + i + Curve_Prop_Ofs ]; // Curve_Prop_Ofs = 10
+      nY = Velo_ModAmt[ofs + i + 1 + Curve_Prop_Ofs ];
+      C = Velo_ModAmt[ofs + i + (Curve_Prop_Ofs*2) ];
+
+      v > X && v < nX? ( // if v is between two points on x axis
+        // out  =  Y + (nY-Y) * (v-Y);
+        out =  Y + (nY-Y) * ( (v-X) * (1/(nX-X)));
+
+
+        
+        C!= 0 ? (
+          out = GetCurveValue(out , -C , min(Y,nY), max(Y,nY),min(Y,nY), max(Y,nY));
+        );
+        
+        //):(v>=nX ? out = nX 
+        //);(v<=X ? out = X 
+      ): v> X && nX ==0 ? ( // if value is past the right-most point   
+        out = X ; // output equals the right-most point
+      ): v < X && i == 1 ? ( // if value is lower than the left-most point 
+        out = X ; // output equals the left-most point
+      );
+
+      i+=1;
+
+
+    );
+    
+    out;
+
+  ):(v;); // if theres no curve 
+);
 
 
 
-ModAmt = 1000;
-ModAmt2 = 2000;
-ModAmt3 = 3000;
-ModAmt4 = 4000;
-ModAmt5 = 5000;
-ModAmt6 = 6000;
-ModAmt7 = 7000;
-ModAmt8 = 8000;
-PsUsed = 100; 
-P_OrigV = 11000 ;
-SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
-Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
+function Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (velocity, R1,R2,R3, KTrk1,KTrk2,KTrk3) (
+  gmem[8] ==1 ? ( gmem[91] = velocity;// send velocity info back 
+  ):(gmem[8] == 2)? (gmem[91] = R1;  //send Rand1 info back  
+  ):(gmem[8] == 3)? (gmem[91] = R2;
+  ):(gmem[8] == 4)? (gmem[91] = R3;
+  ):(gmem[8] == 5)? (gmem[91] = KTrk1;
+  ):(gmem[8] == 6)? (gmem[91] = KTrk2;
+  ):(gmem[8] == 7)? (gmem[91] = KTrk3;
+  );
 
+);
+
+function Set_Midi_Mod_Curve(mode )local (pt, id) (
+  mode == 23 ? (// if user is tweaking Velocity curve's start or end point
+
+    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+    pt = gmem[11]; // tells which point is user dragging 
+
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt ] = gmem[9];    // this is x axis 
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt+ Curve_Prop_Ofs ] =gmem[10];     // this is y axis  , Curve_Prop_Ofs = 10
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity  
+
+  );
+);
+
+function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id)(
+  id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+  //pt = gmem[11]; // tells which point is user dragging 
+  Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity  
+  i=1;
+  loop(gmem[13], 
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i ] =gmem[20+i] ; // this is x axis 
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i+ Curve_Prop_Ofs ] =gmem[30+i];     // this is y axis  , Curve_Prop_Ofs = 10
+    i+=1;
+  );
+
+);
+
+function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
+  mode == 24 ? (// if user is tweaking Velocity curve's start or end point
+
+    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+    pt = gmem[11]; // tells which point is user dragging 
+
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+
+  );
+);
 
 
 
@@ -214,7 +353,6 @@ function SaveAllModulatorInfo()(
   this.Rel_Node = file_var(0, this.Rel_Node);
   this.LowestNote = file_var(0, this.LowestNote);
   this.HighestNote = file_var(0, this.HighestNote);
-
 
   this.atk =  file_var(0, this.atk);
   this.Rel = file_var(0, this.Rel);
@@ -596,63 +734,50 @@ function Check_If_Bipolar(ModAmt)
   );
 
 );
-
-
-function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs)  // i is the track param number
+function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID)  // i is the track param number
 (
+  M = 1;
   total = 0 ;
   Bi_ofs= 0;
-  ModAmt[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt[i]- 100) ; 
-    Amt = (ModAmt[i]- 100)*2 ;
-  ):(Amt = ModAmt[i] ;);
-
-  AA_AMT1 = Amt;
-  AA_BI_OFS = Bi_ofs ; 
-  ModAmt[i]  != 0 ? (total += Mc1.Out * Amt - Bi_ofs  ) ; 
 
 
-  ModAmt2[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt2[i]- 100) ; 
-    Amt = (ModAmt2[i]- 100)*2 ;
-  ):(Amt = ModAmt2[i] ;);
-  ModAmt2[i]  != 0 ? (total += Mc2.Out * Amt - Bi_ofs  ) ; 
 
-  ModAmt3[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt3[i]- 100) ; 
-    Amt = (ModAmt3[i]- 100)*2 ;
-  ):(Amt = ModAmt3[i] ;);
-  ModAmt3[i] != 0 ? (total += Mc3.Out *Amt - Bi_ofs) ; 
 
-  ModAmt4[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt4[i]- 100) ; 
-    Amt = (ModAmt4[i]- 100)*2 ;
-  ):(Amt = ModAmt4[i] ;);
-  ModAmt4[i] != 0 ? (total += Mc4.Out *Amt - Bi_ofs) ; 
+  loop ( 8, 
+    ID = 1000 * (M-1) + i ;
 
-  ModAmt5[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt5[i]- 100) ; 
-    Amt = (ModAmt5[i]- 100)*2 ;
-  ):(Amt = ModAmt5[i] ;);
-  ModAmt5[i] != 0 ? (total += Mc5.Out *Amt- Bi_ofs) ; 
 
-  ModAmt6[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt6[i]- 100) ; 
-    Amt = (ModAmt6[i]- 100)*2 ;
-  ):(Amt = ModAmt6[i] ;);
-  ModAmt6[i] != 0 ? (total += Mc6.Out *Amt - Bi_ofs) ; 
+    ModAMT[ID]> 99 ? (     // if it's bipolar 
+      Bi_ofs = (ModAmt[ID]- 100)  ;
+      Amt = (ModAmt[ID]- 100)*2 ;
+    ):(Amt = ModAmt[ID]  ;);  // if unipolar 
 
-  ModAmt7[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt7[i]- 100) ; 
-    Amt = (ModAmt7[i]- 100)*2 ;
-  ):(Amt = ModAmt7[i] ;);
-  ModAmt7[i] != 0 ? (total += Mc7.Out *Amt- Bi_ofs) ; 
+   
 
-  ModAmt8[i]> 100 ? (     // if it's bipolar 
-    Bi_ofs = (ModAmt8[i]- 100) ; 
-    Amt = (ModAmt8[i]- 100)*2 ;
-  ):(Amt = ModAmt8[i] ;);
-  ModAmt8[i] != 0 ? (total += Mc8.Out *Amt - Bi_ofs) ; 
+
+    ModAmt[ID] != 0 ? ( total += McOut[M] * Amt - Bi_ofs  ) ; 
+
+
+    M+=1
+  );
+
+  //if there's velocity modulation
+  Velo_ModAmt[i] !=0 ? ( total += NOTE_ON_VELO *  Velo_ModAmt[i] );
+  A_Velo_ModAmt = Velo_ModAmt[1];
+  //if there's Random 1 modulation
+  RAND1_ModAmt[i] != 0 ? (total += RAND1_Out * RAND1_ModAmt[i] );
+  RAND2_ModAmt[i] != 0 ? (total += RAND2_Out * RAND2_ModAmt[i] );
+  RAND3_ModAmt[i] != 0 ? (total += RAND3_Out * RAND3_ModAmt[i] );
+
+
+
+
+  KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
+  KeyTrk2_ModAmt[i] != 0 ? (total+= KeyTrk2_ModAmt[i]* (KTrk2) );
+  KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk2) );
+
+
+
 
   total *127 ; 
 );
@@ -817,7 +942,7 @@ Mc8.Slider = slider8;
 
 
 @serialize 
-AA_Serialize +=1;
+
 
 P.Inst = file_var(0,P.Inst);
 
@@ -940,7 +1065,12 @@ trkGUID_Num === gmem[2]? (
     P.Inst = gmem[3];    
     Param = gmem[6];
     Macro = gmem[5];
-    a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script
+
+    Macro < Velo_ModAmt/*500000 */  ? (  //if assigning to mod sources 
+      a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script 
+    ):(   // if using Midi Modulations such as velocity , random, or keytrack
+      a[Macro] = gmem[9];  // we use macro here because in lua, we already account for offset (500000 for velocity, 510000 for random etc) and parameter number
+    );  
 
   );
   mode ==2?(   // if User is adjusting atk...  
@@ -996,6 +1126,7 @@ trkGUID_Num === gmem[2]? (
     );
   
   );
+
 
   mode == 8 ? (// if user is changing note length...
     Macro = gmem[5];
@@ -1203,12 +1334,24 @@ trkGUID_Num === gmem[2]? (
     Macro==8?(Mc8.HighestNote = gmem[10]);
 
   );
+  //Set_Midi_Mod_Curve(mode );
+  Set_Midi_Mod_Curve_All_Pts(mode);
+  Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode);
+  id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+  pt = gmem[11]; // tells which point is user dragging 
 
-  
+  A_gmem12 = gmem[12];
+  A_gmem11 = gmem[11];
+  A_gmem9 = gmem[9];
+
+
+
+
+
       
   gmem[7] != 0?( // if user uses Imgui to tweak param...
     P_Id = gmem[7];
-    P_OrigV[P_Id]= gmem[11000+P_Id];
+    P_OrigV[P_Id]= gmem[P_OrigV+P_Id];
     what=gmem[8];
     gmem[8] != 0?( // if paramV + Mod is over 1...
       a[Param+ Macro*1000] = gmem[Param+ Macro*1000]  // this is mod amount for the modulator on the parameter
@@ -1221,7 +1364,7 @@ trkGUID_Num === gmem[2]? (
 
 
 ); // --------------------- End of if track is selected -----------------------
-
+Rando1.Min = 70;
 
 while (midirecv(offset, msg1, msg2, msg3)) (
   // get noteons and noteoffs from all channels
@@ -1235,9 +1378,27 @@ while (midirecv(offset, msg1, msg2, msg3)) (
       NoteOn = 1  ;
       // msg3 == Velocity
       midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
+
+      NOTE_ON_VELO = Calculate_Midi_Mod( msg3/127, 0);
+      RAND1 = (0 + rand(1000 - 0 )) / 1000; 
+      RAND2 = (0 + rand(1000 - 0 )) / 1000; 
+      RAND3 = (0 + rand(1000 - 0 )) / 1000; 
+
+      RAND1_Out =   Calculate_Midi_Mod (RAND1 , Gap ) ; //Gap = 10000
+      RAND2_Out =   Calculate_Midi_Mod (RAND2 , Gap*2 ) ; //Gap = 10000
+      RAND3_Out =   Calculate_Midi_Mod (RAND3 , Gap*3 ) ; //Gap = 10000
+      KTrk1 =   Calculate_Midi_Mod (midinote/127  , Gap*4 ) ; //Gap = 10000
+      KTrk2 =   Calculate_Midi_Mod (midinote/127  , Gap*5 ) ; //Gap = 10000
+      KTrk3 =   Calculate_Midi_Mod (midinote/127  , Gap*6 ) ; //Gap = 10000
+
+
+
+
+      Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (msg3/127, RAND1, RAND2, RAND3, midinote/127, midinote/127, midinote/127);
+
       TotalNotesHeld+=1;
       SetBpTo0_All (midinote);
-      midisend(offset,msg1,msg2,msg3);
+      midisend(offset,msg1,msg2,msg3); 
     ) ;
   ):(noteStatus == $x80) ? (    // $x80 is probably note off
     // noteoff
@@ -1253,6 +1414,10 @@ while (midirecv(offset, msg1, msg2, msg3)) (
       midisend(offset,msg1,msg2,msg3);
   );
 );
+
+
+
+
 
 NoteOn ? (
 
@@ -1286,13 +1451,26 @@ Mc7.CalculatMacroAmt();
 Mc8.CalculatMacroAmt();
  
 i=1;    
+
+McOut[1] = Mc1.Out;
+McOut[2] = Mc2.Out;
+McOut[3] = Mc3.Out;
+McOut[4] = Mc4.Out;
+McOut[5] = Mc5.Out;
+McOut[6] = Mc6.Out;
+McOut[7] = Mc7.Out;
+McOut[8] = Mc8.Out;
+
 while ( i <= P.Inst)(
+
   SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
-    
+
+
   midisend(0, $xBf, i, SendAmt);
-      
   i+=1;
 );
+
+
 
 
 ///  ---------------- Send info back to ImGui ------------------ 

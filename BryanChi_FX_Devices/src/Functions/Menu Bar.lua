@@ -45,16 +45,18 @@ function If_Theres_Selected_FX()
         end
 
         local function Put_FXs_Into_Parallel_Chain()
-            if im.Button(ctx, 'Put FXs into Parallel') then 
+            if Sel_FX[2] then 
+                if im.Button(ctx, 'Put FXs into Parallel') then 
 
-                for i, v in ipairs(Sel_FX) do 
-                    if i ~= 1 then 
-                        local idx = Find_FxID_By_GUID (v)
-                        r.TrackFX_SetNamedConfigParm(LT_Track, idx, 'parallel', '1')
-                        
+                    for i, v in ipairs(Sel_FX) do 
+                        if i ~= 1 then 
+                            local idx = Find_FxID_By_GUID (v)
+                            r.TrackFX_SetNamedConfigParm(LT_Track, idx, 'parallel', '1')
+                            
+                        end
                     end
+                    Sel_FX = {}
                 end
-                Sel_FX = {}
             end
         end
 
@@ -263,15 +265,43 @@ function GetAllMods( )
    
 end 
 
+local function Modulation_Btn()
+    local y = im.GetCursorPosY(ctx)
+    im.SetCursorPosY(ctx, y + 3)
+    local ModIconSz = 20
+    if not TrkID then return end 
+    Trk[TrkID] = Trk[TrkID] or {}
+    local clr =  Trk[TrkID].ShowMOD and ThemeClr('Accent_Clr') or 0xffffffff
+
+    im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
+
+
+    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
+        Trk[TrkID].ShowMOD= toggle( Trk[TrkID].ShowMOD)
+        AddMacroJSFX()
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Show Modulations' ,'true', true)
+    end
+    im.PopStyleColor(ctx)
+    im.SetCursorPosY(ctx, y)
+
+
+
+end
 function MenuBar ()
 
     im.BeginMenuBar(ctx)
     Layout_Edit_MenuBar_Buttons()
     Record_Last_Touch_Btn()
     Envelope_Btn()
+    Modulation_Btn()
     If_Theres_Selected_FX()
+    im.Separator(ctx)
+    SL()
+
+    ShowTrackName(not FX.LayEdit)
+
+    SL(VP.w - 100)
     Settings()
     SL(nil, 40)
-    ShowTrackName(not FX.LayEdit)
     im.EndMenuBar(ctx)
 end 

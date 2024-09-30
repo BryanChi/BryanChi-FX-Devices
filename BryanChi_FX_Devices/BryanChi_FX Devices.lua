@@ -1,14 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta15.3
+-- @version 1.0beta16
 -- @changelog
---  - Parallel FX : Alt-Clicking on FXs will now delete the fx
---  - Parallel FX : Ctrl-Clicking on Containers allow users to rename
---  - Parallel FX : Alt-Clicking on '+' button will now add a new container to the last slot of the chain.
---  - Parallel FX : when dragging FX to reposition , highlight the FX from the list.
---  - Parallel FX : Fix display when dragging to last slot of parallel chain.
---  - fix removing elements in BG draw crashes
-
+--  - Revamped better looking and collapsable Modulation bar.
+--  - New! Midi modulations : velocity, keytrack, random
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -217,7 +212,8 @@ function loop()
 
 
         -----------==  Create Macros (Headers)-------------
-        Create_Header_For_Track_Modulators()
+        --Create_Header_For_Track_Modulators()
+        Create_Header_For_Track_Modulators__Squared_Modulators()
         ---------------End Of header----------------------- 
 
 
@@ -403,7 +399,7 @@ function loop()
             ------------------------------------------------------
             ----- Loop for every FX on the track -----------------
             ------------------------------------------------------
-
+            
             AddSpacing(2)
 
 

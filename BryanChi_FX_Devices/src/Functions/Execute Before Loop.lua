@@ -250,14 +250,18 @@ end
 
 function Customizable_Colors()
         ----------- Custom Colors-------------------
-    CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
+    --[[ CustomColors = { 'Window_BG', 'FX_Devices_Bg', 'FX_Layer_Container_BG', 'Space_Between_FXs', 'Morph_A', 'Morph_B',
     'Layer_Solo', 'Layer_Mute', 'FX_Adder_VST', 'FX_Adder_VST3', 'FX_Adder_JS', 'FX_Adder_AU', 'FX_Adder_CLAP',
     'FX_Adder_LV2',
     'PLink', 'PLink_Edge_DarkBG', 'PLink_Edge_LightBG',
     'RDM_BG', 'RDM_VTab', 'RDM_VTab_Highlight', 'RDM_VTab_Highlight_Edge', 'RDM_PadOff', 'RDM_PadOn', 'RDM_Pad_Highlight',
-    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move', 'Container_Accent_Clr' }
+    'RDM_Play', 'RDM_Solo', 'RDM_Mute', 'RDM_DnDFX', 'RDM_DnD_Move', 'Container_Accent_Clr'  , 'Accent_Clr' , '', 'Track_Modulator_Section_BG'}
+ ]]
     CustomColorsDefault = {
     Window_BG = 0x000000ff,
+    Track_Modulator_Section_BG = 0x111111ff, 
+    Track_Modulator_Individual_BG = 0x191919ff,
+    Track_Modulator_Knob = 0x444444ff,
     FX_Devices_Bg = 0x151515ff,
     FX_Layer_Container_BG = 0x262626ff,
     Space_Between_FXs = 0x131313ff,
@@ -288,9 +292,16 @@ function Customizable_Colors()
     RDM_DnD_Move = 0xFF0000FF;
     Container_Accent_Clr =  0x49CC85ff ;
     Container_Accent_Clr_Not_Focused = 0x49CC8577;
+    Accent_Clr =  0x49CC85ff ;
+    Accent_Clr_Not_Focused = 0x49CC8577;
     
     }
-
+    local I = 1
+    CustomColors = {}
+    for i, v in pairs(CustomColorsDefault) do 
+        CustomColors[I] = i
+        I = I + 1
+    end
 
 end 
 
@@ -337,6 +348,7 @@ function Colors()
     Macro6Color = 0xb9ff21ff
     Macro7Color = 0x6fff21ff
     Macro8Color = 0x21ff6bff
+    MacroClrs = { 0xff2121ff, 0xff5521ff, 0xff8921ff, 0xffd321ff,0xf4ff21ff,0xb9ff21ff,0x6fff21ff,0x21ff6bff}
 
     EightColors = {
         LowMidSat = {},
@@ -375,6 +387,8 @@ function Colors()
         table.insert(EightColors.MidSat, HSV(0.08 * (a - 1), 0.5, 0.5, 0.5))
         table.insert(EightColors.Bright, HSV(0.08 * (a - 1), 1, 0.5, 0.2))
         table.insert(EightColors.Bright_HighSat, HSV(0.08 * (a - 1), 1, 1, 0.9))
+
+
         table.insert(EightColors.HighSat_MidBright, HSV(0.08 * (a - 1), 1, 0.5, 0.5))
         table.insert(EightColors.bgWhenAsgnMod, HSV(0.08 * (a - 0.7), 0.7, 0.6, 0.2))
         table.insert(EightColors.bgWhenAsgnModAct, HSV(0.08 * (a - 0.7), 0.8, 0.7, 0.9))
@@ -440,6 +454,7 @@ function Retrieve_All_Saved_Data_Of_Project()
         Trk[TrkID].Container_Id = {}
 
         Trk[TrkID].Mod = {}
+
         Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
         Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
         local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
@@ -463,6 +478,7 @@ function Retrieve_All_Saved_Data_Of_Project()
         end
 
 
+        Trk[TrkID].ShowMOD = RC('Show Modulations' , 'bool')
 
 
         for i = 1, 8, 1 do -- for every modulator
@@ -528,9 +544,9 @@ function Retrieve_All_Saved_Data_Of_Project()
                             false)))
                 end
             end
+
         end
-    
-        
+
         local FXCount = r.TrackFX_GetCount(Track)
         Trk[TrkID] = Trk[TrkID] or {}
         Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
@@ -648,8 +664,7 @@ function Retrieve_All_Saved_Data_Of_Project()
 
                 GetProjExt_FxNameNum(FxGUID)
 
-                _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' ..
-                    FxGUID .. 'in layer')
+                _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FxGUID .. 'in layer')
                 --FX.InLyr[FxGUID] = StringToBool[FX.InLyr[FxGUID]]
                 _, FX.LyrNum[FxGUID]         = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
                 _, FX[FxGUID].inWhichLyr     = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
@@ -686,13 +701,10 @@ function Retrieve_All_Saved_Data_Of_Project()
 
                     if rv then FX[FxGUID][Fx_P].V = tonumber(V_before) end
 
-                    local ParamX_Value = 'Param' ..
-                        tostring(FX[FxGUID][Fx_P].Name) ..
-                        'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
+                    local ParamX_Value = 'Param' .. tostring(FX[FxGUID][Fx_P].Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
                     ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
                     _G[ParamX_Value] = ParamValue_At_Script_Start
-                    _, FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = r.GetProjExtState(0, 'FX Devices',
-                        'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'to Trk Prm')
+                    _, FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'to Trk Prm')
                     FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = tonumber(FX.Prm.ToTrkPrm[FxGUID .. Fx_P])
 
                     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
@@ -716,10 +728,34 @@ function Retrieve_All_Saved_Data_Of_Project()
                             table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. FP.Num)
                         end
                     end
+                    local HasModAmt, HasContModAmt
+                    for i, v in ipairs(Midi_Mods) do 
 
+                        FP.ModAMT[v] =  RC ('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. v  )
+                        if FP.ModAMT[v] then HasModAmt = true end 
+                        local CurvePts = RC( v.. 'Curve number of points')
+
+                        Trk[TrkID][v..'Curve']= Trk[TrkID][v..'Curve'] or {}
+                        for i=1, CurvePts or 0, 1 do -- Recall curve points x ([1]) y([2]) and log or exp curve ([3])
+                            Trk[TrkID][v..'Curve'][i] = Trk[TrkID][v..'Curve'][i] or {}
+                            Trk[TrkID][v..'Curve'][i][1] = RC(v..' point '..i..' X') 
+                            Trk[TrkID][v..'Curve'][i][2] = RC(v..' point '..i..' Y') 
+                            Trk[TrkID][v..'Curve'][i][3] = RC(v..' point '..i..' Curve')
+                            if i == 1 then  -- first point 
+                                if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 0 end 
+                                if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 0 end  
+                            end
+                            if i == CurvePts then 
+                                if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 1 end 
+                                if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 1 end  
+                            end
+                        end
+
+
+                    end
 
                     local CC = FX[FxGUID][Fx_P].WhichCC
-                    local HasModAmt, HasContModAmt
+
                     for m, v in ipairs(MacroNums) do
 
                         FP.ModAMT[m] = tonumber(select(2,
@@ -749,7 +785,7 @@ function Retrieve_All_Saved_Data_Of_Project()
                     end
 
 
-                    if not HasModAmt then FP.ModAMT = nil end
+                   if not HasModAmt then FP.ModAMT = nil end
                     if not HasContModAmt then FP.Cont_ModAMT = nil end 
                 end
 
@@ -837,8 +873,7 @@ function Retrieve_All_Saved_Data_Of_Project()
         end 
 
         for m = 1, 8, 1 do
-            Trk[TrkID].Mod[m].Name = RC('Macro' .. m .. 's Name' .. TrkID, 'str')
-        
+
             Trk[TrkID].Mod[m].Type = RC('Mod' .. m .. 'Type', 'str')
 
         end
@@ -867,7 +902,8 @@ function attachImagesAndFonts()
         ModIcon = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon.png'),
         ModIconHollow = im.CreateImage(CurrentDirectory .. '/src/Images/Modulation Icon hollow.png'),
         MouseL = im.CreateImage(CurrentDirectory .. '/src/Images/MouseL.png'),
-        MouseR = im.CreateImage(CurrentDirectory .. '/src/Images/MouseR.png')
+        MouseR = im.CreateImage(CurrentDirectory .. '/src/Images/MouseR.png'), 
+        ModulationArrow = im.CreateImage(CurrentDirectory .. '/src/Images/ModulationArrow.png')
     }
     for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)

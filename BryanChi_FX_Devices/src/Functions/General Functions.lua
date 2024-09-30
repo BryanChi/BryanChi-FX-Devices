@@ -386,11 +386,13 @@ function EndUndoBlock(str)
     r.Undo_EndBlock("FX DEVICES: " .. str, -1)
 end
 
-function Curve_3pt_Bezier(startX, startY, controlX, controlY, endX, endY)
+function Curve_3pt_Bezier(startX, startY, controlX, controlY, endX, endY, Segment)
     local X, Y = {}, {}
+    local rpt = Segment
     for t = 0, 1, 0.1 do
         local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
         local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
+        
         table.insert(X, x)
         table.insert(Y, y)
     end
@@ -1366,13 +1368,7 @@ function Check_If_Its_Root_of_Parallel(FX_Idx_to_Check) -- if it is, set the nex
         if FX_Idx_to_Check == v[1]-1 and FX_Idx_to_Check > 0 then 
             return true 
         end
-       --[[  for I, V in ipairs(v) do 
-            msg('I = '.. (I or 'nil ').. 'V = '..( V or 'nil'))
 
-            if FX_Idx_to_Check == V[1]-1  and FX_Idx_to_Check > 0 then 
-                return true 
-            end
-        end ]]
     end
 end
 

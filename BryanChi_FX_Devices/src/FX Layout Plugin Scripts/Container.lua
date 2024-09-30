@@ -84,7 +84,7 @@ end
 
 local function SetTypeToStepSEQ(type, i , mc)
     if type  ~= 'Step' then 
-        if im.Selectable(ctx, 'Set Type to Step Sequencer', false) then
+        if im.Selectable(ctx, 'Step Sequencer', false) then
             r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
 
             r.gmem_write(4, 6)   -- tells jsfx macro type = step seq
@@ -107,7 +107,7 @@ end
 
 local function SetTypeToFollower(type,i)
     if type  ~= 'Follower' then 
-        if im.Selectable(ctx, 'Set Type to Audio Follower', false) then
+        if im.Selectable(ctx, 'Audio Follower', false) then
             r.gmem_write(2,  fx.DIY_FxGUID)
             r.gmem_write(4, 9) -- tells jsfx macro type = Follower
     
@@ -120,7 +120,7 @@ local function SetTypeToFollower(type,i)
 end
 local function SetTypeToMacro(type,i)
     if type  == 'Macro' then  return end 
-    if im.Selectable(ctx, 'Set Type to Macro', false) then
+    if im.Selectable(ctx, 'Macro', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'Macro', true)
         r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
@@ -133,7 +133,7 @@ end
 local function SetTypeToLFO(type,i)
 
     if type == "LFO" then return end 
-    if im.Selectable(ctx, 'Set Type to LFO', false) then
+    if im.Selectable(ctx, 'LFO', false) then
 
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', 'LFO', true)
         r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
@@ -1536,6 +1536,7 @@ local function Follower_Box(mc,i)
     local I = i+1
     im.DrawList_AddRectFilled(WDL,x, y, x+sz,y+sz , 0x00000055)
     im.DrawList_AddRect(WDL,x-1, y-1, x+sz +1 ,y+sz+1 , 0xffffff77)
+    im.SetCursorScreenPos(ctx, x-1, y-1)
     local rv = im.InvisibleButton(ctx, 'Follower Box'.. i.. FxGUID, sz,sz)  
     if im.IsItemClicked(ctx,1 )then 
         mc.TweakingKnob = 2 
@@ -1825,14 +1826,18 @@ local function StepSeq_Box(mc,i)
 end
 
 
-local function MacroKnob(mc, i, Size , TB)
+local function MacroKnob(mc, i, Size , TB, fxidx)
     local I = i +1
     local row = math.ceil ( I /4 )
 
     if mc.Type =='Macro' and TB and TB[1] then 
+
+
+
         mc.Val = mc.Val 
         local Macro_FXid = TB[1].addr_fxid
-
+        if fxidx then  Macro_FXid = fxidx end 
+        im.SetCursorPos(ctx, im.GetCursorPosX(ctx) - 5, im.GetCursorPosY(ctx) - 5)
         local v = r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, i)
         mc.TweakingKnob , mc.Val , mc.center = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or v, Size)
         if im.IsItemHovered(ctx) then 
@@ -1840,7 +1845,7 @@ local function MacroKnob(mc, i, Size , TB)
             AnyMacroHovered = true 
         end
         im.SetNextItemWidth(ctx, Size*2.7)
-        im.SetCursorPos(ctx,35 + (Size*3 * (row-1)),  10+ (i-4*(row-1)) * (Size*2+25) + Size*1.6)
+        im.SetCursorPos(ctx,35 + (Size*3 * (row-1)),  10+(i-4*(row-1)) * (Size*2+25) + Size*1.8)
 
         --im.InputText(ctx,'##Label'..i)
 
@@ -1854,6 +1859,8 @@ local function MacroKnob(mc, i, Size , TB)
         if mc.TweakingKnob == 1  then 
             r.TrackFX_SetParamNormalized(LT_Track, fx.LowestID, i, mc.Val)
         end
+
+
 
     end
 end
@@ -1870,7 +1877,7 @@ local function  macroPage(TB)
     --r.gmem_write(2, fx.DIY_FxGUID)
     local x_before , y_before = im.GetCursorPos(ctx)
 
-    for i = 0 , fx.ModSlots - 1 , 1 do 
+    for i = 0 , fx.ModSlots - 1 , 1 do
         local I = i +1
         local mc = fx.Mc[I]
         local row = math.ceil ( I /4 )
@@ -1916,9 +1923,10 @@ local function  macroPage(TB)
 
         end 
         if im.BeginPopup(ctx, 'Container Macro' .. I .. 'Menu') then
+            im.SeparatorText(ctx, 'Set Type to :')
 
             if SetTypeToMacro(mc.Type,I) then mc.Type = 'Macro' end    
-            if SetTypeToEnv(mc.Type,I) then mc.Type = 'env'    end
+            --if SetTypeToEnv(mc.Type,I) then mc.Type = 'env'    end
             if SetTypeToStepSEQ(mc.Type,I, mc) then mc.Type = 'Step'    end
             if SetTypeToFollower(mc.Type,I) then mc.Type = 'Follower'   end
             if SetTypeToLFO(mc.Type,I) then 
