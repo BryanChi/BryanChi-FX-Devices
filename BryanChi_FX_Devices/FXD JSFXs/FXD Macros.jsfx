@@ -118,8 +118,14 @@ Curve_Prop_Ofs = 10;
 
 
 
-
-
+function SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ()(
+  i = Velo_ModAmt ; 
+  while(i<= Velo_ModAmt +70000 )( 
+    a[i] = file_var(0, a[i]);
+    i+=1;
+  );
+);
+  SAVE_AND_LOAD_ALL_MIDI_MOD_INFO();
 //  Follower Gain 
   Mc1.Fol_Gain= 0.7 ; 
   Mc2.Fol_Gain= 0.7 ; 
@@ -232,7 +238,8 @@ function Calculate_Midi_Mod(v , TB_ofs) local (rpt, out, X, nX, Y, nY , ofs, C)(
   ofs = TB_ofs + Midi_Mod_Curve_Ofs;  // =  1000 for velocity,  11000  for random
   out = 0;
   rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
-
+  rpt!= 0 ? ( AAA_RPT = rpt;);
+  AAAA_NOTE = v ;
   rpt> 1 ? (  //for every point 
     i = 1;
     while( out==0)(  
@@ -284,6 +291,9 @@ function Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (velocity, R1,R2,R3, KTrk1,KT
   );
 
 );
+function Save(v)(
+v = file_var(0, v)
+);
 
 function Set_Midi_Mod_Curve(mode )local (pt, id) (
   mode == 23 ? (// if user is tweaking Velocity curve's start or end point
@@ -300,14 +310,22 @@ function Set_Midi_Mod_Curve(mode )local (pt, id) (
 );
 
 function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id)(
-  id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
-  //pt = gmem[11]; // tells which point is user dragging 
-  Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity  
-  i=1;
-  loop(gmem[13], 
-    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i ] =gmem[20+i] ; // this is x axis 
-    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i+ Curve_Prop_Ofs ] =gmem[30+i];     // this is y axis  , Curve_Prop_Ofs = 10
-    i+=1;
+  mode==25? (
+    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+    //pt = gmem[11]; // tells which point is user dragging 
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity 
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = file_var(0, Velo_ModAmt[Midi_Mod_Curve_Ofs +id]);
+    i=1;
+    loop(gmem[13], 
+      Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i ] =gmem[20+i] ; // this is x axis 
+      Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i+ Curve_Prop_Ofs ] =gmem[30+i];     // this is y axis  , Curve_Prop_Ofs = 10
+
+      Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i ] = file_var(0,gmem[20+i]);
+      Velo_ModAmt[Midi_Mod_Curve_Ofs +id + i+ Curve_Prop_Ofs ] = Save(gmem[30+i]);
+
+      i+=1;
+    );
+    SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ();
   );
 
 );
@@ -334,9 +352,6 @@ function getNode(index, attribute) (
    address[index * Node_length + attribute];
 );
 
-function Save(v)(
-v = file_var(0, v)
-);
 
 
 
@@ -741,7 +756,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   Bi_ofs= 0;
 
 
-
+  AA_FIRST_P_V = P_OrigV[1];
 
   loop ( 8, 
     ID = 1000 * (M-1) + i ;
@@ -769,7 +784,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   RAND2_ModAmt[i] != 0 ? (total += RAND2_Out * RAND2_ModAmt[i] );
   RAND3_ModAmt[i] != 0 ? (total += RAND3_Out * RAND3_ModAmt[i] );
 
-
+  AA_Rand_MOD1 = RAND1_ModAmt[1];
 
 
   KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
@@ -777,7 +792,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk2) );
 
 
-
+  AA_KeyTrk1_ModAmt = KeyTrk1_ModAmt [1];
 
   total *127 ; 
 );
@@ -945,7 +960,7 @@ Mc8.Slider = slider8;
 
 
 P.Inst = file_var(0,P.Inst);
-
+AA_Serialize =1 ;
 
 
 
@@ -967,9 +982,19 @@ i=0;
 
 while(i<=80000)(
   
-    a[i] = file_var(0, a[i]);
+    Velo_ModAmt[i] = file_var(0, Velo_ModAmt[i]);
     i+=1;
 );
+
+i = P_OrigV;
+while(i<=P_OrigV+1000) ( 
+  a[i] = file_var(0, a[i]);
+  i+=1;
+);
+
+
+
+
 
 Mc1 = file_var(0, Mc1);
 Mc1.SaveAllModulatorInfo();
@@ -1070,6 +1095,7 @@ trkGUID_Num === gmem[2]? (
       a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script 
     ):(   // if using Midi Modulations such as velocity , random, or keytrack
       a[Macro] = gmem[9];  // we use macro here because in lua, we already account for offset (500000 for velocity, 510000 for random etc) and parameter number
+      a[Macro] = save( a[Macro] );
     );  
 
   );
@@ -1344,7 +1370,10 @@ trkGUID_Num === gmem[2]? (
   A_gmem11 = gmem[11];
   A_gmem9 = gmem[9];
 
-
+  AA_FirstCurveX = a[511021];
+  AA_2curveX = a[511021];
+  AA_1curveY = a[511011];
+  AA_2curveY = a[511012];
 
 
 
@@ -1462,10 +1491,10 @@ McOut[7] = Mc7.Out;
 McOut[8] = Mc8.Out;
 
 while ( i <= P.Inst)(
-
+  AA_P_OrigV_END = P_OrigV[i];
   SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
-
-
+  AA_SEND_AMT_END = SendAmt;
+  AA_TOTAL_END = CalculateTotalOut ( i );
   midisend(0, $xBf, i, SendAmt);
   i+=1;
 );
