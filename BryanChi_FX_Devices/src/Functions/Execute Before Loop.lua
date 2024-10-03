@@ -697,9 +697,10 @@ function Retrieve_All_Saved_Data_Of_Project()
 
                 --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
                 for Fx_P in ipairs(FX[FxGUID]) do
-                    local rv, V_before = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
+                    local FP = FX[FxGUID][Fx_P]
 
-                    if rv then FX[FxGUID][Fx_P].V = tonumber(V_before) end
+                    local rv, V_before = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
+                    if rv then FP.V = tonumber(V_before) end
 
                     local ParamX_Value = 'Param' .. tostring(FX[FxGUID][Fx_P].Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
                     ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
@@ -708,7 +709,7 @@ function Retrieve_All_Saved_Data_Of_Project()
                     FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = tonumber(FX.Prm.ToTrkPrm[FxGUID .. Fx_P])
 
                     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
-                    local FP = FX[FxGUID][Fx_P]
+
                     _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
                     FP.WhichCC = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..(FP.Num or 0), '', false)))
 
@@ -729,17 +730,21 @@ function Retrieve_All_Saved_Data_Of_Project()
                         end
                     end
                     local HasModAmt, HasContModAmt
-                    for i, v in ipairs(Midi_Mods) do 
 
+                    for i, v in ipairs(Midi_Mods) do 
+                        
                         FP.ModAMT[v] =  RC ('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. v  )
                         if FP.ModAMT[v] then HasModAmt = true end 
                         local CurvePts = RC( v.. 'Curve number of points')
 
                         Trk[TrkID][v..'Curve']= Trk[TrkID][v..'Curve'] or {}
                         for i=1, CurvePts or 0, 1 do -- Recall curve points x ([1]) y([2]) and log or exp curve ([3])
+
                             Trk[TrkID][v..'Curve'][i] = Trk[TrkID][v..'Curve'][i] or {}
-                            Trk[TrkID][v..'Curve'][i][1] = RC(v..' point '..i..' X') 
-                            Trk[TrkID][v..'Curve'][i][2] = RC(v..' point '..i..' Y') 
+                            Trk[TrkID][v..'Curve'][i][1] = RC(v..' curve pt'..i..'x') 
+
+
+                            Trk[TrkID][v..'Curve'][i][2] = RC(v..' curve pt'..i..'y') 
                             Trk[TrkID][v..'Curve'][i][3] = RC(v..' point '..i..' Curve')
                             if i == 1 then  -- first point 
                                 if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 0 end 
@@ -884,6 +889,23 @@ function Retrieve_All_Saved_Data_Of_Project()
 end
 
 
+
+function GetAllMods( )
+    Mods  = im.GetKeyMods(ctx)
+    
+    if OS:find('OSX') then 
+        Alt   = im.Mod_Alt          
+        Cmd  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
+        Shift = im.Mod_Shift        
+        Ctrl   = im.Mod_Super    -- This is Ctrl on mac, Windows Btn on windows
+    else        -- if its not MacOS
+        Alt   = im.Mod_Alt
+        Ctrl  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
+        Shift = im.Mod_Shift    
+        Cmd   = im.Mod_Super    --  Windows Btn on windows
+    end
+   
+end 
 function attachImagesAndFonts()
 
     local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')

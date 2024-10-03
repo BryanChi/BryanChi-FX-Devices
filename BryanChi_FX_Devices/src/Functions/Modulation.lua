@@ -504,7 +504,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 for M, v in pairs(FP.ModAMT) do
                     --- indicator of where the param is currently
                     FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-
                     local w = Sldr_Width
                     if Vertical == 'Vert' then w = ModLineDir or Sldr_Width end 
                     DrawModLines(M, true, 0, FxGUID, w,FX[FxGUID][Fx_P].V, Vertical, FP, offset, nil,nil,nil , true , FX_Idx)

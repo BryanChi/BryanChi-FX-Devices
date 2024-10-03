@@ -1,8 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.1
+-- @version 1.0beta16.2
 -- @changelog
---  - Fix crash when user choose a parameter with 'selection' type that has value font size set.
+--  - Fix problems with loading midi mod info when loading project. 
+--  - improve interaction behavior with knobs. 
+--  - add helper msg when layout editor active.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -135,7 +137,7 @@ function loop()
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
 
         Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
-        HelperMsg= {} 
+        HelperMsg= {}    HelperMsg.Others = {}
         GetAllInfoNeededEachLoop()
         TREE = BuildFXTree(LT_Track)
         At_Begining_of_Loop()

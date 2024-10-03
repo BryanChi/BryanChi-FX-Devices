@@ -248,23 +248,6 @@ end
 
 
 
-function GetAllMods( )
-    Mods  = im.GetKeyMods(ctx)
-    
-    if OS:find('OSX') then 
-        Alt   = im.Mod_Alt          
-        Cmd  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
-        Shift = im.Mod_Shift        
-        Ctrl   = im.Mod_Super    -- This is Ctrl on mac, Windows Btn on windows
-    else        -- if its not MacOS
-        Alt   = im.Mod_Alt
-        Ctrl  = im.Mod_Ctrl     -- this is Command on mac, Ctrl on Windows
-        Shift = im.Mod_Shift    
-        Cmd   = im.Mod_Super    --  Windows Btn on windows
-    end
-   
-end 
-
 local function Modulation_Btn()
     local y = im.GetCursorPosY(ctx)
     im.SetCursorPosY(ctx, y + 3)

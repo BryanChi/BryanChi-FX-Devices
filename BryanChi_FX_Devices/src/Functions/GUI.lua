@@ -238,7 +238,7 @@ function CurveEditor(W,H, PtsTB, lbl)
     local function SaveCurve()
         for i, v in ipairs(PtsTB) do 
             Save_to_Trk(lbl..' curve pt'..i..'x', v[1]  )
-            Save_to_Trk(lbl..' curve pt'..i..'y', v[2])
+            Save_to_Trk(lbl..' curve pt'..i..'y', v[2] )
         end
         Save_to_Trk(lbl.. 'Curve number of points', #PtsTB)
 
@@ -331,8 +331,8 @@ function CurveEditor(W,H, PtsTB, lbl)
 
         for i, v in ipairs(PtsTB) do 
             r.gmem_write(11, i) -- tells which pt
-            r.gmem_write(20+i, v[1]) 
-            r.gmem_write(30+i, v[2]) 
+            if v[1] then r.gmem_write(20+i, v[1]) end
+            if  v[2] then r.gmem_write(30+i, v[2]) end
         end
     end
     
@@ -356,7 +356,7 @@ function CurveEditor(W,H, PtsTB, lbl)
     local Hvr_Pt , Hvr_Ctrl_Pt
     local W , H = W - PtSz , H - PtSz
 
-        Update_Info_To_Jsfx()
+    Update_Info_To_Jsfx()
 
     
 
@@ -411,12 +411,9 @@ function CurveEditor(W,H, PtsTB, lbl)
                 r.gmem_write(13, #PtsTB) -- tells how many points in total
                 if DtX then  
                     r.gmem_write(9, v[1]) 
-
-                    Save_to_Trk(lbl..' point '..i..' X', v[1])
                 end
                 if DtY then  
                     r.gmem_write(10, v[2]) 
-                    Save_to_Trk(lbl..' point '..i..' Y', v[2])
                 end
 
             end
@@ -1928,8 +1925,10 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 end
             end
 
-            local x                 = x + (v.X_Offset or 0) + (Val * (v.X_Offset_VA or 0)) + ((GR or 0) * (v.X_Offset_VA_GR or 0))
-            local y                 = y + (v.Y_Offset or 0) + (Val * (v.Y_Offset_VA or 0)) + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
+            local Val_X = v.X_Offset_VA_BP and (Val - 0.5)* 2 * (v.X_Offset_VA or 0) or (Val * (v.X_Offset_VA or 0))
+            local Val_Y = v.Y_Offset_VA_BP and (Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (Val * (v.Y_Offset_VA or 0))
+            local x = x + (v.X_Offset or 0) + Val_X + ((GR or 0) * (v.X_Offset_VA_GR or 0))
+            local y = y + (v.Y_Offset or 0) + Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
             
           
             local Thick             = (v.Thick or 2)
@@ -1992,7 +1991,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                     elseif Prm.Type == 'V-Slider' then
                         v.Height = v.Height or h; v.Width = v.Width or 0
                         h = v.Height or h; w = v.Width or 0
-                    end
+                    end 
 
 
                     local function Addline(Xg, Yg, none, RptClr)
@@ -2064,7 +2063,11 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 local x, y = x + w / 2 + (v.X_Offset or 0), y + w / 2 + (v.Y_Offset or 0)
                
                 local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
+
                 local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
+
+
+
                 local t = (Val- 0) / (1 - 0)
                 local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
                 local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
@@ -2077,25 +2080,41 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                     im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
                 elseif v.Type == 'Knob Range' then
                     local function AddRange(G)
-                        if  v.Repeat then 
+                        if  v.Repeat and v.Repeat~= 0 then 
                             local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
-                            local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1
+                            local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1   
 
+
+                            
                             for i = 0, v.Repeat* (rpt ) , math.max(1*gap, 0.01) do 
                                 local t = (i/v.Repeat- 0) / (1 - 0)
+                                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+                                local ANGLE_MAX = ANGLE_MAX
+
+                                ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN)   * (VV * v.Angle_Max_VA) or ANGLE_MAX
+
+
+
                                 local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                                
+
                                 local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
 
                                 local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
                                 local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
                                 local Clr = BlendColors(v.Clr or 0xffffffff, v.RPT_Clr or 0xff33ffff, i / v.Repeat)
-
                                 im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
-
-
                             end
-                        else
+
+                        elseif not v.Repeat or v.Repeat == 0 then 
+
+
                             for i = IN, OUT, (1 + (v.Gap or 0)) do
+                                --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN 
+                                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+                                local ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV or ANGLE_MAX
+                
+                               -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
                                 im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
                                 im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                 im.DrawList_PathClear(WDL)
@@ -5610,6 +5629,7 @@ function Show_Helper_Message()
                 im.DrawList_AddImage(WDL,img  , x, y, x+w, y + h , nil,nil,nil,nil,0xffffffff) --1.4 is the mouse button's x y ratio
                 SL()
             end
+
             if modifier then    
                 if HelperMsg.Need_Add_Mouse_Icon then 
                     AddImg(Img['Mouse'..HelperMsg.Need_Add_Mouse_Icon])
@@ -5649,10 +5669,16 @@ function Show_Helper_Message()
 
 
 
+        Set_Help_Text(nil, HelperMsg.Apl, 'Shift')
 
 
 
 
+
+
+        for i, v in ipairs(HelperMsg.Others) do 
+            MyText(v)
+        end
 
 
        

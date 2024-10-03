@@ -2880,3 +2880,17 @@ function At_End_Of_Loop()
 
 
 end
+
+
+function Load_Trk_Info(str, type, Track)
+    local Track = Track or LT_Track
+    if type == 'str' then
+        local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
+        if i =='' then return nil else return i end 
+    elseif type =='bool' then   
+        local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
+        if i == 'true' then return true else return end 
+    else
+        return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
+    end
+end

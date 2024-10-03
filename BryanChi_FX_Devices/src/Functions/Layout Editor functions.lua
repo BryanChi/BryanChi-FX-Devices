@@ -532,6 +532,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         DisableScroll = true
 
 
+        HelperMsg.Others[1] = OS:find('OSX') and '| Hold Command to hide grid' or '| Hold Ctrl to hide grid'
+
 
         if im.Button(ctx, 'Save') then
             SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
@@ -2261,11 +2263,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     tooltip('How much the value is affected by parameter"\"s value ')
                                 end ]]
                                 local WidthSyncBtnSz = 100
-                                local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn)
+                                local BipolarSz = 100
+                                local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar)
                                     local Column = 1
                                     if Name:find('_VA') then Column = 2 end
                                     im.TableSetColumnIndex(ctx, Column)
-                                    local itmW = WidthSyncBtn and -WidthSyncBtnSz or -FLT_MIN
+                                    local itmW = WidthSyncBtn and -WidthSyncBtnSz or Bipolar and BipolarSz or  -FLT_MIN
 
                                     im.PushItemWidth(ctx, itmW)
 
@@ -2277,6 +2280,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                                     local tweak_Drag, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name .. '_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
+
+                                    im.PopItemWidth(ctx)
 
                                     if tweak_Drag and not D[Name .. '_GR'] then
                                         for I, v in ipairs ( LE.Sel_Items) do 
@@ -2298,7 +2303,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                     if FrstSelItm.ShowPreview and im.IsItemDeactivated(ctx) then FrstSelItm.ShowPreview = nil end
 
-                                    im.PopItemWidth(ctx)
                                     if Name:find('_VA') then
                                         if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
                                             im.OpenPopup(ctx, 'Value afftect ' .. Name)
@@ -2326,6 +2330,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                                     end 
+
+                                    if Bipolar then 
+                                        SL()
+
+                                        _ , D[Name..'_BP'] = im.Checkbox(ctx, 'Bipolar ##'..Name,  D[Name..'_BP']) 
+                                    end
 
                                     if Name:find('_VA') or NextRow then im.TableNextRow(ctx) end
 
@@ -2361,10 +2371,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 AddVal('X_Offset', 0, LE.GridSize, -Win_W, Win_W, nil)
                                 TableColumn1W = im.GetItemRectSize(ctx)
 
-                                AddVal('X_Offset_VA')
+                                AddVal('X_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
                                 SetRowName('Y offset')
-                                AddVal('Y_Offset', 0, LE.GridSize, -220, 220, nil)
-                                AddVal('Y_Offset_VA')
+                                AddVal('Y_Offset', 0, LE.GridSize, -220, 220)
+                                AddVal('Y_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
                                 if SetRowName(WidthLBL, BL_Width) then
 
 
@@ -2395,10 +2405,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     end
                                 end
                                 if SetRowName('Angle Min', nil, BL_XYGap) then
-                                    AddVal('Angle_Min', 0.75, 0.01, 0, 3.14, '%.3f', true)
+                                    AddVal('Angle_Min', 0.75, 0.01, 0, 3.14, '%.3f',true)
+                                    --AddVal('Angle_Min_VA', nil, 0.01, -1, 1,  '%.3f', true )
+
                                 end
                                 if SetRowName('Angle Max', nil, BL_XYGap) then
-                                    AddVal('Angle_Max', 2.25, 0.01, 0, 3.14, '%.3f', true)
+                                    AddVal('Angle_Max', 2.25, 0.01, 0, 3.14, '%.3f' )
+                                    AddVal('Angle_Max_VA', 1, 0.01, -1, 1,  '%.3f', true , nil , true )
+
                                 end
                                 if SetRowName('Radius Inner', nil, RadiusInOut) then
                                     if AddVal('Rad_In', FrstSelItm.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true) then 
@@ -2662,8 +2676,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf|
                 im.ColorEditFlags_AlphaBar)
             if FX[FxGUID].BgClr == im.GetColor(ctx, im.Col_FrameBg) then
-                HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1,
-                    'GetItemRect')
+                HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
             end
 
             im.Text(ctx, 'FX Title Color:')
@@ -2891,9 +2904,13 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
             d.Type = RC('Type')
             d.X_Offset = RC('X Offset', 'Num', true )
             d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
+            d.X_Offset_VA_BP = RC('X Offset Value Affect BP', 'Num')
+
             d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
             d.Y_Offset = RC('Y offset', 'Num', true)
             d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
+            d.Y_Offset_VA = RC('Y Offset Value Affect BP', 'Num')
+
             d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
             d.Width = RC('Width', 'Num')
             d.Width_SS = RC('Width SS', 'Bool')
@@ -2904,6 +2921,10 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
             d.FillClr = RC('Fill Color', 'Num')
             d.Angle_Min = RC('Angle Min', 'Num')
             d.Angle_Max = RC('Angle Max', 'Num')
+            d.Angle_Max_VA = RC('Angle Max VA', 'Num')
+
+            d.Angle_Max_VA_BP = RC('Angle Max VA BP', 'Bool')
+
             d.Rad_In = RC('Radius Inner', 'Num')
             d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
             d.Rad_Out = RC('Radius Outer', 'Num')
@@ -3137,17 +3158,20 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 im.SetDragDropPayload(ctx, 'my_type', 'my_data')
                 --[[ Knob_Active  = true ]]
                 Clr_SldrGrab = getClr(im.Col_Text)
-        
+
                 HideCursorTillMouseUp(0)
                 im.SetMouseCursor(ctx, im.MouseCursor_None)
                 if -mouse_delta[2] ~= 0.0 then
                     local stepscale = 1
                     if Mods == Shift then stepscale = 3 end
                     local step = (v_max - v_min) / (200.0 * stepscale)
-                    p_value = p_value + (-mouse_delta[2] * step)
+                    --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+                    local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+                    p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
                     if p_value < v_min then p_value = v_min end
                     if p_value > v_max then p_value = v_max end
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                    if ValBeforeMod then Save_to_Trk( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',p_value) end 
+                    --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
                     MvingP_Idx = F_Tp
                     Tweaking = P_Num .. FxGUID
                 end
@@ -3171,7 +3195,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             FX[FxGUID][Fx_P].V = p_value
             if not FP.WhichCC and not FP.Cont_Which_CC then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                
             else
+                local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+
                 local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
             end
@@ -5532,9 +5559,13 @@ function Save_Drawings(FP, file,Fx_P)
             WRITE('Type', v.Type)
             WRITE('X Offset', v.X_Offset)
             WRITE('X Offset Value Affect', v.X_Offset_VA)
+            WRITE('X Offset Value Affect BP', v.X_Offset_VA)
+
             WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
             WRITE('Y offset', v.Y_Offset)
             WRITE('Y Offset Value Affect', v.Y_Offset_VA)
+            WRITE('Y Offset Value Affect BP', v.Y_Offset_VA)
+
             WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
             WRITE('Width', v.Width)
             WRITE('Width SS', v.Width_SS)
@@ -5545,6 +5576,9 @@ function Save_Drawings(FP, file,Fx_P)
             WRITE('Fill Color', v.FillClr)
             WRITE('Angle Min', v.Angle_Min)
             WRITE('Angle Max', v.Angle_Max)
+            WRITE('Angle Max VA', v.Angle_Max_VA)
+            WRITE('Angle Max VA BP', v.Angle_Max_VA_BP)
+
             WRITE('Radius Inner', v.Rad_In)
             WRITE('Radius Inner SS', v.Rad_In_SS)
             WRITE('Radius Outer', v.Rad_Out)
