@@ -215,7 +215,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
     if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
     if --[[Assign Mod]] (AssigningMacro or AssigningMidiMod) and RC then
         local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
-        if not ValBeforeMod then
+        if not ValBeforeMod or ValBeforeMod == '' then
             r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
         end
 
