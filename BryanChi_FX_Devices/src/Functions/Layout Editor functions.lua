@@ -2035,6 +2035,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         table.remove(FrstSelItm.Draw, RemoveDraw)
                         RemoveDraw = nil
                     end
+                    local ClrFLG = im.ColorEditFlags_NoInputs + im.ColorEditFlags_AlphaPreviewHalf + im.ColorEditFlags_NoLabel + im.ColorEditFlags_AlphaBar
 
                     for i, v in ipairs(FrstSelItm.Draw)  do
 
@@ -2089,6 +2090,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 im.EndDragDropTarget(ctx)
                             end
                         end
+                        local function Set_Property (prop, val, trigger)
+                            if trigger then 
+                                for I, v in ipairs(LE.Sel_Items) do 
+                                    FX[FxGUID][v].Draw[i][prop] = val
+                                end
+                            end
+                        end
 
                         Bullet_To_Reorder()
                         SL()
@@ -2123,11 +2131,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.EndCombo(ctx)
                         end
 
-                        SL()
+                        SL(nil, 10)
                         if im.Button(ctx, 'Delete##' .. i) then
                             RemoveDraw = i
                         end
-                        SL()
+                        SL(nil, 10)
+
                         if im.Button(ctx, 'Copy##' .. i) then
                             for i, v in ipairs(LE.Sel_Items) do 
 
@@ -2136,6 +2145,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             end
                         end
 
+                        local function ShowClrBtn()
+                            SL(nil, 10)
+
+                            local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
+                            Set_Property ('Clr', Clr, rv)
+                        end 
+                        ShowClrBtn()
                         if rv then
                             local function AddProp(ShownName, Name, width, sl, defaultV,
                                                     stepSize,
@@ -2173,7 +2189,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local Fill = {'Circle', 'Knob Circle', 'Rect'}
 
                             local X_Gap_Shown_Name = 'X Gap:'
-
                             local DefW, DefH
 
                             local WidthLBL, WidthStepSize = 'Width: ', LE.GridSize
@@ -2225,9 +2240,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end
                             end
 
-                            local ClrFLG = im.ColorEditFlags_NoInputs +
-                                im.ColorEditFlags_AlphaPreviewHalf +
-                                im.ColorEditFlags_NoLabel + im.ColorEditFlags_AlphaBar
+                        
 
                             im.AlignTextToFramePadding(ctx)
 
@@ -2452,7 +2465,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 SetRowName('Color')
                                 im.TableSetColumnIndex(ctx, 1)
 
-
+                                
                                 local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
 
                                 Set_Property ('Clr', Clr, rv)
@@ -2471,11 +2484,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                 end 
                                 im.TableSetColumnIndex(ctx, 2)
-                                if not D.Clr_VA then  im.BeginDisabled(ctx) end
+
                                 local rv, Clr_VA = im.ColorEdit4(ctx, 'Color_VA' .. LBL, D.Clr_VA  or nil, ClrFLG)
                                 if not D.Clr_VA then
                                     Cross_Out()
-                                    im.EndDisabled(ctx) 
+                                   -- im.EndDisabled(ctx) 
                                 end
                                 if rv then D.Clr_VA = Clr_VA end
                                 if D.Repeat and D.Repeat ~= 0 and not FindExactStringInTable(BL_Repeat, D.Type) then
@@ -2742,68 +2755,81 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
 
 
-            for Pal = 1, NumOfColumns or 1, 1 do
-                if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' .. Pal, PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
-                    local NumOfPaletteClr = 9
+
+
+
+
+
+            if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' , PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
+                local function CheckClr(TB, Clr)
+                    if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
+                        if not tablefind(TB, Clr) and TB then
+                            local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
+                            if A ~= 0 then
+                                table.insert(TB, Clr)
+                            end
+                            
+                        end
+                    end
+                end
+
+                local function Get_ALL_Used_Colors()
                     if FX[FxGUID] then 
+                        local Sel_Itm_Plt = {}
+
                         for i, v in ipairs(FX[FxGUID]) do
-
-                            local function CheckClr(Clr)
-                                if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
-                                    if not tablefind(ClrPallet, Clr) and ClrPallet then
-                                        local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
-                                        if A ~= 0 then
-                                            table.insert(ClrPallet, Clr)
-                                        end
-                                        
-                                    end
+                            local Is_Selected
+                            for I, v in ipairs(LE.Sel_Items) do 
+                                if v == i then 
+                                    Is_Selected = true 
                                 end
                             end
-                            CheckClr(v.Lbl_Clr)
-                            CheckClr(v.V_Clr)
-                            CheckClr(v.BgClr)
-                            CheckClr(v.GrbClr)
-                        end
-                    end
-
-                    if FX.Win_Name_S[FX_Idx] then
-                        if Draw[FX.Win_Name_S[FX_Idx]] then
-                            for i, v in ipairs(Draw[FX.Win_Name_S[FX_Idx]].clr) do
-                                local Clr = v
-                                if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
-                                    if not tablefind(ClrPallet, Clr) and ClrPallet then
-                                        table.insert(ClrPallet, Clr)
-                                    end
+                            local Plt = Is_Selected and Sel_Itm_Plt or  ClrPallet  
+                            CheckClr(Plt, v.Lbl_Clr)
+                            CheckClr(Plt, v.V_Clr)
+                            CheckClr(Plt, v.BgClr)
+                            CheckClr(Plt, v.GrbClr)
+                            if v.Draw then 
+                                for i, D in ipairs(v.Draw) do 
+                                    CheckClr(Plt, D.Clr)
+                                    CheckClr(Plt, D.Clr_VA)
+                                    CheckClr(Plt, D.RPT_Clr)
                                 end
                             end
                         end
+                        return Sel_Itm_Plt
                     end
+                end
 
-                    for i, v in ipairs(ClrPallet) do
-                        clrpick, LblColor1 = im.ColorEdit4(ctx, '##ClrPalette' .. Pal ..
-                            i .. FxGUID, v,
-                            im.ColorEditFlags_NoInputs|
-                            im.ColorEditFlags_AlphaPreviewHalf|
-                            im.ColorEditFlags_AlphaBar)
-                        if im.IsItemClicked(ctx) and Mods == Alt then
-                            table.remove(ClrPallet, tablefind(v))
+
+
+                local Sel_Itm_Plt = Get_ALL_Used_Colors()
+
+                if FX.Win_Name_S[FX_Idx] then
+                    if Draw[FX.Win_Name_S[FX_Idx]] then
+                        for i, v in ipairs(Draw[FX.Win_Name_S[FX_Idx]].clr) do
+                            local Clr = v
+                            if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
+                                if not tablefind(ClrPallet, Clr) and ClrPallet then
+                                    table.insert(ClrPallet, Clr)
+                                end
+                            end
                         end
                     end
+                end
+
+                for i, v in ipairs(ClrPallet) do
+                    clrpick, LblColor1 = im.ColorEdit4(ctx, '##ClrPalette' ..i .. FxGUID, v, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                    if im.IsItemClicked(ctx) and Mods == Alt then
+                        table.remove(ClrPallet, tablefind(v))
+                    end
+                end
 
 
-                    --[[ for i=1, NumOfPaletteClr , 1 do
-                        PaletteClr= 'PaletteClr'..Pal..i..FxGUID
-                        local DefaultClr        = im.ColorConvertHSVtoRGB((i-0.5)*(NumOfColumns or 1) / 7.0, 0.5, 0.5, 1)
-                        clrpick,  _G[PaletteClr] = im.ColorEdit4( ctx, '##ClrPalette'..Pal..i..FxGUID,  _G[PaletteClr] or  DefaultClr , im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf|im.ColorEditFlags_AlphaBar)
-                        if im.IsItemDeactivatedAfterEdit(ctx) and i==NumOfPaletteClr  then NumOfColumns=(NumOfColumns or 1 )   +1    end
-                        if im.BeginDragDropTarget( ctx) then HighlightSelectedItem(0x00000000 ,0xffffffff, 0, L,T,R,B,h,w, 1, 1,'GetItemRect', 'Foreground') end
-                    end  ]]
-                    im.EndChild(ctx)
-                end
-                if NumOfColumns or 1 > 1 then
-                    for i = 1, NumOfColumns, 1 do im.SameLine(ctx, nil, 0) end
-                end
+              
+                im.EndChild(ctx)
             end
+            
         end
 
 
@@ -3156,7 +3182,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
             if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
                 im.SetDragDropPayload(ctx, 'my_type', 'my_data')
-                --[[ Knob_Active  = true ]]
+              
                 Clr_SldrGrab = getClr(im.Col_Text)
 
                 HideCursorTillMouseUp(0)
@@ -3167,6 +3193,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     local step = (v_max - v_min) / (200.0 * stepscale)
                     --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
                     local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+
                     p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
                     if p_value < v_min then p_value = v_min end
                     if p_value > v_max then p_value = v_max end
@@ -3205,6 +3232,43 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         end
 
     end
+
+    local function if_Drag_Knob()
+        if not is_active then  return end 
+        HideCursorTillMouseUp(0)
+        im.SetMouseCursor(ctx, im.MouseCursor_None)
+        if -mouse_delta[2] ~= 0.0 then
+            local stepscale = 1
+            if Mods == Shift then stepscale = 3 end
+            local step = (v_max - v_min) / (200.0 * stepscale)
+            --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+           -- local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+
+            p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
+            if p_value < v_min then p_value = v_min end
+            if p_value > v_max then p_value = v_max end
+            if ValBeforeMod then Save_to_Trk( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',p_value) end 
+            --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+            MvingP_Idx = F_Tp
+            Tweaking = P_Num .. FxGUID
+        end
+
+
+        --if user turn knob on ImGui
+        if Tweaking == P_Num .. FxGUID then
+            FX[FxGUID][Fx_P].V = p_value
+            if not FP.WhichCC and not FP.Cont_Which_CC then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                
+            else
+               -- local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+
+                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
+            end
+        end
+    end
+    if_Drag_Knob()
 
     local function ShowTooltip_if_Active()
         if (is_hovered or Tweaking == P_Num .. FxGUID) and (V_Pos == 'None' or not V_Pos) then
@@ -3697,7 +3761,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     
     end
     If_V_Pos_Is_Only_When_Active( FP, is_active, Format_P_V)
-    Knob_Interaction()
+    --Knob_Interaction()
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
     ShowTooltip_if_Active()
     

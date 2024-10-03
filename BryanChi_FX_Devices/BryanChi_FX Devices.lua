@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.2.1
+-- @version 1.0beta16.2.2
 -- @changelog
---  - Fix problems with loading midi mod info when loading project. 
---  - improve interaction behavior with knobs. 
---  - add helper msg when layout editor active.
+--  - Layout Editor : Add Color Box beside each entry of attached drawings.
+--  - Lyaout Editor : fix color palette not working properly.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
