@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.2
+-- @version 1.0beta16.2.1
 -- @changelog
 --  - Fix problems with loading midi mod info when loading project. 
 --  - improve interaction behavior with knobs. 
