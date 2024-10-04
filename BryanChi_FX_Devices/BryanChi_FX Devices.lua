@@ -1,9 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.2.2
+-- @version 1.0beta16.3
 -- @changelog
---  - Layout Editor : Add Color Box beside each entry of attached drawings.
---  - Lyaout Editor : fix color palette not working properly.
+--  - Layout Editor :Bug Fixes 
+--  - Include new Kilohearts knob and Switch Styles.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -29,6 +29,8 @@
 --   src/Images/Knobs/FancyRedKnob.png
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
+--   src/Layout Editor Item Styles/Knob/kilohearts.ini
+--   src/Layout Editor Item Styles/Switch/kilohearts.ini
 --   [main] src/FXD - Record Last Touch.lua
 -- @about
 --   Please check the forum post for info:

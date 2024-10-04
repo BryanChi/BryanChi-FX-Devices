@@ -2067,8 +2067,8 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
 
 
-
-                local t = (Val- 0) / (1 - 0)
+                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+                local t = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA  or 1
                 local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
                 local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
                 local IN = v.Rad_In or 0 -- modify this for the center begin point
@@ -2110,12 +2110,14 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 
 
                             for i = IN, OUT, (1 + (v.Gap or 0)) do
-                                --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN 
+                                --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN \
                                 local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+
+                                local VV = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA
                                 local ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV or ANGLE_MAX
                 
                                -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
-                                im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX))
+                                im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN)  ,ANGLE_MIN, ANGLE_MAX))
                                 im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
                                 im.DrawList_PathClear(WDL)
                             end
@@ -2158,9 +2160,9 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                             end
                         end
                     elseif not v.Repeat or v.Repeat == 0 then 
-                            local t = (Val- 0) / (1 - 0)
-                            local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                            local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                            --local t = (Val- 0) / (1 - 0)
+                           -- local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                          --  local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
                             local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
                             local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
                             --[[ local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
