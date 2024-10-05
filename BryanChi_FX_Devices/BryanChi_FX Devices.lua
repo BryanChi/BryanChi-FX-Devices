@@ -30,7 +30,7 @@
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   src/Layout Editor Item Styles/Knob/kilohearts.ini
---   src/Layout Editor Item Styles/Switch/kilohearts.ini
+--   src/Layout Editor Item Styles/Switch/Kilohearts.ini
 --   [main] src/FXD - Record Last Touch.lua
 -- @about
 --   Please check the forum post for info:
