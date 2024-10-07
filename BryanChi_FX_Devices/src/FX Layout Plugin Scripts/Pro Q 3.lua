@@ -7,7 +7,7 @@ local FxGUID = PluginScript.Guid    ----!!!  is this the problem?
 
 
 FX[FxGUID].CustomTitle = 'Pro-Q 3'
-FX[FxGUID].TitleWidth= 50
+FX[FxGUID].TitleWidth= 100
 FX[FxGUID].BgClr  = 0x000000ff
 FX[FxGUID].Width = 340
 

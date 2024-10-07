@@ -1407,10 +1407,12 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             im.PopStyleColor(ctx)
         end
 
-        if im.Button(ctx, 'Parallel With Previous FX', -FLT_MIN) then 
-            r.TrackFX_SetNamedConfigParm(LT_Track,FX_Idx, 'parallel', '1')
-            im.CloseCurrentPopup(ctx)
-        
+        if FX_Idx > 1 then
+            if im.Button(ctx, 'Parallel With Previous FX', -FLT_MIN) then 
+                r.TrackFX_SetNamedConfigParm(LT_Track,FX_Idx, 'parallel', '1')
+                im.CloseCurrentPopup(ctx)
+            
+            end
         end
 
 
@@ -1888,331 +1890,334 @@ end
 
 function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                             
-    if FP.Draw then
-        local prm = FP
-        
-        local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
-        local x, y              = pos[1], pos[2]
-        
-        local Val =  Prm_Val or prm.V  or 0 
-        if DraggingMorph == FXGUID[FX_Idx] then
-            Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
+    if not FP.Draw  then return end
+    local prm = FP
+    
+    local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
+    local x, y              = pos[1], pos[2]
+    
+    local Val =  Prm_Val or prm.V  or 0 
+    if DraggingMorph == FXGUID[FX_Idx] then
+        Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
+    end
+
+    
+
+    
+    for i, v in ipairs(FP.Draw) do
+        if v.Bypass then goto END_OF_LOOP end 
+        local fill = v.Fill ==true  and 'Filled' 
+
+        local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
+            if rpt and rpt ~= 0 then
+                local RPT = rpt
+                if va and va ~= 0 then RPT = rpt * Val * va end
+
+                for i = 0, RPT - 1, 1 do
+
+                    local Clr1 = (v.Clr_VA ) and BlendColors(CLR or 0xffffffff, v.Clr_VA,  Val) or CLR or 0xffffffff
+                    local Clr2 = (v.RPT_Clr_VA ) and BlendColors(RPTClr or 0xffffffff, v.RPT_Clr_VA ,  Val) or RPTClr or  0xffffffff
+
+
+                    local Clr = BlendColors(Clr1 , Clr2, i / RPT)
+
+                    func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
+                end
+            else
+                func(Xgap)
+            end
         end
 
+        local Val_X = v.X_Offset_VA_BP and (Val - 0.5)* 2 * (v.X_Offset_VA or 0) or (Val * (v.X_Offset_VA or 0))
+        local Val_Y = v.Y_Offset_VA_BP and (Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (Val * (v.Y_Offset_VA or 0))
+        local x = x + (v.X_Offset or 0) + Val_X + ((GR or 0) * (v.X_Offset_VA_GR or 0))
+        local y = y + (v.Y_Offset or 0) + Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
         
-
         
-        for i, v in ipairs(FP.Draw) do
-            local fill = v.Fill ==true  and 'Filled' 
+        local Thick             = (v.Thick or 2)
+        local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
+        local Clr_VA
+        if v.Clr_VA then
+            Clr_VA = BlendColors(v.Clr or 0xffffffff, v.Clr_VA, Val)
+        end
 
-            local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
-                if rpt and rpt ~= 0 then
-                    local RPT = rpt
-                    if va and va ~= 0 then RPT = rpt * Val * va end
+        if v.X_Gap_VA and v.X_Gap_VA ~= 0 then
+            X_Gap = (v.X_Gap or 0) * Val * v.X_Gap_VA
+        end
+        if v.Y_Gap_VA and v.Y_Gap_VA ~= 0 then
+            Y_Gap = (v.Y_Gap or 0) * Val * v.Y_Gap_VA
+        end
 
-                    for i = 0, RPT - 1, 1 do
-    
-                        local Clr1 = (v.Clr_VA ) and BlendColors(CLR or 0xffffffff, v.Clr_VA,  Val) or CLR or 0xffffffff
-                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(RPTClr or 0xffffffff, v.RPT_Clr_VA ,  Val) or RPTClr or  0xffffffff
-    
-    
-                        local Clr = BlendColors(Clr1 , Clr2, i / RPT)
-    
-                        func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
-                    end
-                else
-                    func(Xgap)
-                end
+        if v.Gap_VA and v.Gap_VA ~= 0 and v.Gap then
+            Gap = v.Gap * Val * v.Gap_VA
+        end
+
+        if v.Thick_VA then
+            Thick = (v.Thick or 2) * (v.Thick_VA * Val)
+        end
+
+        if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
+            if   v.Type == 'Rect' or v.Type == 'Rect Filled' then
+                v.Width, v.Height =v.Width or im.GetItemRectSize(ctx), v.Height or select(2, im.GetItemRectSize(ctx))
+            elseif v.Type == 'Line'  then
+                v.Width = v.Width or im.GetItemRectSize(ctx)
+                v.Height = v.Height or 0
             end
+            local w = v.Width or im.GetItemRectSize(ctx)
+            local h = v.Height or select(2, im.GetItemRectSize(ctx))
 
-            local Val_X = v.X_Offset_VA_BP and (Val - 0.5)* 2 * (v.X_Offset_VA or 0) or (Val * (v.X_Offset_VA or 0))
-            local Val_Y = v.Y_Offset_VA_BP and (Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (Val * (v.Y_Offset_VA or 0))
-            local x = x + (v.X_Offset or 0) + Val_X + ((GR or 0) * (v.X_Offset_VA_GR or 0))
-            local y = y + (v.Y_Offset or 0) + Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
             
-          
-            local Thick             = (v.Thick or 2)
-            local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
-            local Clr_VA
-            if v.Clr_VA then
-                Clr_VA = BlendColors(v.Clr or 0xffffffff, v.Clr_VA, Val)
+            local x2 = x + w
+            local y2 = y + h
+            local GR = GR or 0
+
+            if v.Width_VA and v.Width_VA ~= 0 then
+                x2 = x + (w or 10) * Val * (v.Width_VA)
+            end
+            if v.Width_VA_GR then
+                x2 = x + (w or 10) * (GR * (v.Width_VA_GR or 0))
             end
 
-            if v.X_Gap_VA and v.X_Gap_VA ~= 0 then
-                X_Gap = (v.X_Gap or 0) * Val * v.X_Gap_VA
+            if v.Height_VA and v.Height_VA ~= 0 then
+                y2 = y + (h or 10) * Val * (v.Height_VA)
             end
-            if v.Y_Gap_VA and v.Y_Gap_VA ~= 0 then
-                Y_Gap = (v.Y_Gap or 0) * Val * v.Y_Gap_VA
-            end
-
-            if v.Gap_VA and v.Gap_VA ~= 0 and v.Gap then
-                Gap = v.Gap * Val * v.Gap_VA
+            if v.Height_VA_GR and v.Height_VA_GR ~= 0 then
+                y2 = y + (h or 10) * GR * (v.Height_VA_GR)
             end
 
-            if v.Thick_VA then
-                Thick = (v.Thick or 2) * (v.Thick_VA * Val)
-            end
 
-            if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
-                if   v.Type == 'Rect' or v.Type == 'Rect Filled' then
-                    v.Width, v.Height =v.Width or im.GetItemRectSize(ctx), v.Height or select(2, im.GetItemRectSize(ctx))
-                elseif v.Type == 'Line'  then
-                    v.Width = v.Width or im.GetItemRectSize(ctx)
-                    v.Height = v.Height or 0
-                end
-                local w = v.Width or im.GetItemRectSize(ctx)
-                local h = v.Height or select(2, im.GetItemRectSize(ctx))
 
-                
-                local x2 = x + w
-                local y2 = y + h
-                local GR = GR or 0
+            if v.Type == 'Line' then
+                if Prm.Type == 'Slider' or Prm.Type == 'Drag' or (not Prm.Type) then
+                    v.Height = v.Height or 0; v.Width = v.Width or w
+                    h        = v.Height or 0; w = v.Width or w
+                elseif Prm.Type == 'V-Slider' then
+                    v.Height = v.Height or h; v.Width = v.Width or 0
+                    h = v.Height or h; w = v.Width or 0
+                end 
 
-                if v.Width_VA and v.Width_VA ~= 0 then
-                    x2 = x + (w or 10) * Val * (v.Width_VA)
-                end
-                if v.Width_VA_GR then
-                    x2 = x + (w or 10) * (GR * (v.Width_VA_GR or 0))
+
+                local function Addline(Xg, Yg, none, RptClr)
+                    im.DrawList_AddLine(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, Thick)
                 end
 
-                if v.Height_VA and v.Height_VA ~= 0 then
-                    y2 = y + (h or 10) * Val * (v.Height_VA)
-                end
-                if v.Height_VA_GR and v.Height_VA_GR ~= 0 then
-                    y2 = y + (h or 10) * GR * (v.Height_VA_GR)
+                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline, nil, v.RPT_Clr, v.Clr, v)
+            else
+                local function AddRect(Xg, Yg, none, RptClr)
+                    im.DrawList_AddRect(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
                 end
 
 
-
-                if v.Type == 'Line' then
-                    if Prm.Type == 'Slider' or Prm.Type == 'Drag' or (not Prm.Type) then
-                        v.Height = v.Height or 0; v.Width = v.Width or w
-                        h        = v.Height or 0; w = v.Width or w
-                    elseif Prm.Type == 'V-Slider' then
-                        v.Height = v.Height or h; v.Width = v.Width or 0
-                        h = v.Height or h; w = v.Width or 0
-                    end 
-
-
-                    local function Addline(Xg, Yg, none, RptClr)
-                        im.DrawList_AddLine(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, Thick)
-                    end
-
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline, nil, v.RPT_Clr, v.Clr, v)
-                else
-                    local function AddRect(Xg, Yg, none, RptClr)
-                        im.DrawList_AddRect(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
-                    end
-
-
-                    local function AddRectFill(Xg, Yg, none, RptClr)
-                        im.DrawList_AddRectFilled(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round)
-                    end
-
-                    if v.Fill then 
-                        Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr, v)
-                    else 
-                        Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, nil, v.RPT_Clr, v.Clr, v)
-                    end
+                local function AddRectFill(Xg, Yg, none, RptClr)
+                    im.DrawList_AddRectFilled(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round)
                 end
 
-                if v.AdjustingX or v.AdjustingY then
-                    local l = 4
-                    im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
-                    im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
-                end
-            elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
-                local w, h = 10
-                if FP.Type == 'Knob' or Prm_Type =='Knob' then
-                  
-                    w, h = r .ImGui_GetItemRectSize(ctx)
-                else
-                    v.Width = v.Width or 10
-                    w, h = v.Width, v.Width
-                end
-                local Rad = v.Width or w
-                if v.Width_VA and v.Width_VA ~= 0 then
-                    Rad = Rad * Val * v.Width_VA
-                end
-                   
-
-                local function AddCircle(X_Gap, Y_Gap, Gap, RptClr)
-                    im.DrawList_AddCircle(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, nil,Thick)
-                end
-                local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr)
-                    im.DrawList_AddCircleFilled(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff)
-                end
-
-
-
-                if v.Fill  then
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr, v)
+                if v.Fill then 
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr, v)
                 else 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr, v)
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, nil, v.RPT_Clr, v.Clr, v)
                 end
+            end
 
-                if v.AdjustingX or v.AdjustingY then
-                    local l = 4
-                    local x, y = x + Rad / 2, y + Rad / 2
-                    im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
-                    im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
-                end
-            elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle'or v.Type == 'Knob Circle Filled' then
-                local w, h = im.GetItemRectSize(ctx)
-                local h = w 
-                local x, y = x + w / 2 + (v.X_Offset or 0), y + w / 2 + (v.Y_Offset or 0)
-               
-                local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
-
-                local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
-
-
-                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
-                local t = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA  or 1
-                local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
-                local IN = v.Rad_In or 0 -- modify this for the center begin point
-                local OUT = v.Rad_Out or 0
-                local Def_W = w / 2 
-                local W = v.Width or Def_W
-
-                if v.Type == 'Knob Pointer' then
-                    im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
-                elseif v.Type == 'Knob Range' then
-                    local function AddRange(G)
-                        if  v.Repeat and v.Repeat~= 0 then 
-                            local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
-                            local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1   
-
-
-                            
-                            for i = 0, v.Repeat* (rpt ) , math.max(1*gap, 0.01) do 
-                                local t = (i/v.Repeat- 0) / (1 - 0)
-                                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
-                                local ANGLE_MAX = ANGLE_MAX
-
-                                ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN)   * (VV * v.Angle_Max_VA) or ANGLE_MAX
-
-
-
-                                local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                                
-
-                                local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
-
-                                local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
-                                local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
-                                local Clr = BlendColors(v.Clr or 0xffffffff, v.RPT_Clr or 0xff33ffff, i / v.Repeat)
-                                im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
-                            end
-
-                        elseif not v.Repeat or v.Repeat == 0 then 
-
-
-                            for i = IN, OUT, (1 + (v.Gap or 0)) do
-                                --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN \
-                                local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
-
-                                local VV = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA
-                                local ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV or ANGLE_MAX
+            if v.AdjustingX or v.AdjustingY then
+                local l = 4
+                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
+            end
+        elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
+            local w, h = 10
+            if FP.Type == 'Knob' or Prm_Type =='Knob' then
                 
-                               -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
-                                im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN)  ,ANGLE_MIN, ANGLE_MAX))
-                                im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
-                                im.DrawList_PathClear(WDL)
-                            end
-                        end
-                        --[[ for i = ANGLE_MIN, SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX), (0.01  + (v.Gap or 0) * 0.01) do
-                            im.DrawList_PathArcTo(WDL, x, y, OUT + (OUT-IN)/2 , i, SetMinMax( i+ (v.Gap or 0) * 0.01,ANGLE_MIN, ANGLE_MAX))
-                            im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, (OUT-IN))
-                            im.DrawList_PathClear(WDL)
-                        end ]]
-                    end
+                w, h = r .ImGui_GetItemRectSize(ctx)
+            else
+                v.Width = v.Width or 10
+                w, h = v.Width, v.Width
+            end
+            local Rad = v.Width or w
+            if v.Width_VA and v.Width_VA ~= 0 then
+                Rad = Rad * Val * v.Width_VA
+            end
+                
+
+            local function AddCircle(X_Gap, Y_Gap, Gap, RptClr)
+                im.DrawList_AddCircle(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, nil,Thick)
+            end
+            local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr)
+                im.DrawList_AddCircleFilled(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff)
+            end
 
 
 
-                    Repeat(1, 0, X_Gap, X_Gap, AddRange)
+            if v.Fill  then
+                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr, v)
+            else 
+                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr, v)
+            end
 
-                elseif v.Type == 'Knob Circle Filled' or v.Type == 'Knob Circle' then
-                    if v.Repeat and v.Repeat ~= 0 then 
-                        local rpt = (v.Repeat_VA and v.Repeat_VA ~= 0) and Val * v.Repeat_VA or 1
-                        --local gap = (v.Gap_VA~= 0) and Val * (v.Gap or 1 )* (v.Gap_VA or 1)
+            if v.AdjustingX or v.AdjustingY then
+                local l = 4
+                local x, y = x + Rad / 2, y + Rad / 2
+                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
+            end
+        elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle'or v.Type == 'Knob Circle Filled' then
+            local w, h = im.GetItemRectSize(ctx)
+            local h = w 
+            local x, y = x + w / 2 + (v.X_Offset or 0), y + w / 2 + (v.Y_Offset or 0)
+            
+            local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
+
+            local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
+
+
+            local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+            local t = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA  or 1
+            local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+            local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+            local IN = v.Rad_In or 0 -- modify this for the center begin point
+            local OUT = v.Rad_Out or 0
+            local Def_W = w / 2 
+            local W = v.Width or Def_W
+
+            if v.Type == 'Knob Pointer' then
+                im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+            elseif v.Type == 'Knob Range' then
+                local function AddRange(G)
+                    if  v.Repeat and v.Repeat~= 0 then 
+                        local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
+                        local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1   
+
+
                         
-
-
-
-                        for i = 0, v.Repeat* (rpt ) , math.max(1, 0.01) do 
-
+                        for i = 0, v.Repeat* (rpt ) , math.max(1*gap, 0.01) do 
                             local t = (i/v.Repeat- 0) / (1 - 0)
+                            local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+                            local ANGLE_MAX = ANGLE_MAX
+
+                            ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN)   * (VV * v.Angle_Max_VA) or ANGLE_MAX
+
+
+
                             local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                            
+
                             local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+
                             local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
                             local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
-                            local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
-                            local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
-
-                            local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat)
-
-                            if v.Fill then 
-                                im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil)
-                            else
-                                im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil, Thick)
-                            end
+                            local Clr = BlendColors(v.Clr or 0xffffffff, v.RPT_Clr or 0xff33ffff, i / v.Repeat)
+                            im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
                         end
+
                     elseif not v.Repeat or v.Repeat == 0 then 
-                            --local t = (Val- 0) / (1 - 0)
-                           -- local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                          --  local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
-                            local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
-                            local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
-                            --[[ local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
-                            local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
 
-                            local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat) ]]
 
+                        for i = IN, OUT, (1 + (v.Gap or 0)) do
+                            --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN \
+                            local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+
+                            local VV = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and VV * v.Angle_Max_VA
+                            local ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV or ANGLE_MAX
+            
+                            -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
+                            im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN)  ,ANGLE_MIN, ANGLE_MAX))
+                            im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                            im.DrawList_PathClear(WDL)
+                        end
+                    end
+                    --[[ for i = ANGLE_MIN, SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX), (0.01  + (v.Gap or 0) * 0.01) do
+                        im.DrawList_PathArcTo(WDL, x, y, OUT + (OUT-IN)/2 , i, SetMinMax( i+ (v.Gap or 0) * 0.01,ANGLE_MIN, ANGLE_MAX))
+                        im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, (OUT-IN))
+                        im.DrawList_PathClear(WDL)
+                    end ]]
+                end
+
+
+
+                Repeat(1, 0, X_Gap, X_Gap, AddRange)
+
+            elseif v.Type == 'Knob Circle Filled' or v.Type == 'Knob Circle' then
+                if v.Repeat and v.Repeat ~= 0 then 
+                    local rpt = (v.Repeat_VA and v.Repeat_VA ~= 0) and Val * v.Repeat_VA or 1
+                    --local gap = (v.Gap_VA~= 0) and Val * (v.Gap or 1 )* (v.Gap_VA or 1)
+                    
+
+
+
+                    for i = 0, v.Repeat* (rpt ) , math.max(1, 0.01) do 
+
+                        local t = (i/v.Repeat- 0) / (1 - 0)
+                        local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                        local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                        local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                        local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                        local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
+                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
+
+                        local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat)
 
                         if v.Fill then 
-                            im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, v.Clr or 0x999999aa, nil)
+                            im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil)
                         else
-                            im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W,  v.Clr or 0x999999aa, nil, Thick)
+                            im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, Clr or v.Clr or 0x999999aa, nil, Thick)
                         end
                     end
+                elseif not v.Repeat or v.Repeat == 0 then 
+                        --local t = (Val- 0) / (1 - 0)
+                        -- local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                        --  local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                        local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                        local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                        --[[ local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
+                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
 
-                elseif v.Type == 'Knob Image' and v.Image then
-                    local X, Y = x + angle_cos * IN, y + angle_sin * IN
-                    im.DrawList_AddImage(WDL, v.Image, X, Y, X + W, Y + W, nil, nil, nil, nil, Clr_VA or v.Clr or 0x999999aa)
+                        local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat) ]]
+
+
+                    if v.Fill then 
+                        im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, v.Clr or 0x999999aa, nil)
+                    else
+                        im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W,  v.Clr or 0x999999aa, nil, Thick)
+                    end
                 end
 
-
-
-                if v.AdjustingX or v.AdjustingY then
-                    local l = 4
-
-                    im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
-                    im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
-                end
-            elseif v.Type == 'Image' and v.Image then
-                local w, h = im.Image_GetSize(v.Image)
-                local w, h = (v.Width or w), (v.Height or h)
-                if v.Width_VA and v.Width_VA ~= 0 then
-                    w = (v.Width or w) * v.Width_VA * Val
-                end
-                if v.Height_VA and v.Height_VA ~= 0 then
-                    h = (v.Height or h) * v.Height_VA * Val
-                end
-                local function AddImage(X_Gap, Y_Gap, none, RptClr)
-                    im.DrawList_AddImage(WDL, v.Image, x + X_Gap, y + (Y_Gap or 0), x + w + X_Gap, y + h + (Y_Gap or 0), 0, 0, 1, 1, RptClr or Clr_VA or v.Clr)
-                end
-
-
-                Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) 
-            elseif v.Type == 'Gain Reduction Text' and not 
-            FX[FxGUID].DontShowGR then
-                local GR = round(GR, 1)
-                im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
+            elseif v.Type == 'Knob Image' and v.Image then
+                local X, Y = x + angle_cos * IN, y + angle_sin * IN
+                im.DrawList_AddImage(WDL, v.Image, X, Y, X + W, Y + W, nil, nil, nil, nil, Clr_VA or v.Clr or 0x999999aa)
             end
+
+
+
+            if v.AdjustingX or v.AdjustingY then
+                local l = 4
+
+                im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
+                im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
+            end
+        elseif v.Type == 'Image' and v.Image then
+            local w, h = im.Image_GetSize(v.Image)
+            local w, h = (v.Width or w), (v.Height or h)
+            if v.Width_VA and v.Width_VA ~= 0 then
+                w = (v.Width or w) * v.Width_VA * Val
+            end
+            if v.Height_VA and v.Height_VA ~= 0 then
+                h = (v.Height or h) * v.Height_VA * Val
+            end
+            local function AddImage(X_Gap, Y_Gap, none, RptClr)
+                im.DrawList_AddImage(WDL, v.Image, x + X_Gap, y + (Y_Gap or 0), x + w + X_Gap, y + h + (Y_Gap or 0), 0, 0, 1, 1, RptClr or Clr_VA or v.Clr)
+            end
+
+
+            Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) 
+        elseif v.Type == 'Gain Reduction Text' and not 
+        FX[FxGUID].DontShowGR then
+            local GR = round(GR, 1)
+            im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
         end
+
+        ::END_OF_LOOP::
     end
+
 end
 
 function TrashIcon(size, lbl, ClrBG, ClrTint)

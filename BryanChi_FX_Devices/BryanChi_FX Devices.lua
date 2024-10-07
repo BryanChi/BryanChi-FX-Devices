@@ -1,9 +1,15 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.3
+-- @version 1.0beta16.4
 -- @changelog
---  - Layout Editor :Bug Fixes 
---  - Include new Kilohearts knob and Switch Styles.
+--  - Fix pro- C crash upon inserting. 
+--  - Fix Pro-C and Pro-Q title too short.
+--  - Layout Editor : Fix switches images not showing up 
+--  - Layout Editor : Add new bypass checkbox for each attached drawings. (this setting will not be saved )
+--  - Layout Editor : Disable showing image path for types other than knobs and switches. 
+--  - Layout Editor : Add indicator of how many Attached drawings there are.
+--  - Don't show 'Parallel with previous FX' Button if FX is the first FX in chain.
+
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

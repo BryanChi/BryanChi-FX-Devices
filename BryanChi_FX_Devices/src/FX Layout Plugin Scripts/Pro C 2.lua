@@ -8,7 +8,7 @@ local path_table = {}
 
 
 FX[FxGUID].CustomTitle = 'Pro-C 2'
-FX[FxGUID].TitleWidth = 60
+FX[FxGUID].TitleWidth = 100
 FX[FxGUID].Width = 280
 FX[FxGUID].ProC_GR = FX[FxGUID].ProC_GR or {}
 FX[FxGUID].ProC_GR_Idx = FX[FxGUID].ProC_GR_Idx or 1

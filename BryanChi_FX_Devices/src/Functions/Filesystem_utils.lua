@@ -76,16 +76,21 @@ function CopyImageFile(filename, subfolder)
     end
     local index = filename:match('^.*()' .. slash)
     local SUBFOLDER = subfolder or ''
-    local NewFileName = r.GetResourcePath() ..
+   --[[  local NewFileName = r.GetResourcePath() ..
         '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER .. filename:sub(index)
-    local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' ..
-        SUBFOLDER .. filename:sub(index)
+    local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER .. filename:sub(index)
+    ]]
+    local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', SUBFOLDER)
+    local file_path = ConcatPath(dir_path, filename:sub(index))
+
+    r.RecursiveCreateDirectory(dir_path, 0)
+
     local Files = scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
-    if FindExactStringInTable(Files, NewFileName) then
-      return NewFileName, relativePath
+    if FindExactStringInTable(Files, file_path) then
+      return file_path, dir_path
     else
-      CopyFile(filename, NewFileName)
-      return NewFileName, relativePath
+      CopyFile(filename, file_path)
+      return file_path, dir_path
     end
   end
 end
