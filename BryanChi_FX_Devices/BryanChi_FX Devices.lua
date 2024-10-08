@@ -1,9 +1,13 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.1
+-- @version 1.0beta16.4.3
 -- @changelog
---  - Fix layout editor bug where it having attached drawings crashes upon next opening of the attached drawings tree node.
---  - Fix script crashing upon opening because dependencies are not installed.
+--  - Fix deleting BandSplitter when there's FX inside crashes script.
+--  - Fix ReaComp Layout vertical Slider incorrect display.
+--  - Layout Editor: Fix incorrect display when choosing styles for switches.
+--  - Layout Editor: Make all image paths relative so users can share layouts without any problem.
+--  - Layout Editor Background edit mode : copy images to /src/Images/Backgrounds when drag dropping into the pathfield. 
+--  - Make Swtiches constantly update current state. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -2259,17 +2263,18 @@ function loop()
                                 r.TrackFX_Delete(LT_Track, FX_Idx)
                                 FX[FxGUID].DeleteBandSplitter = nil
                             else
-                                local Modalw, Modalh = 320, 55
-                                im.SetNextWindowPos(ctx, VP.x + VP.w / 2 - Modalw / 2,
-                                    VP.y + VP.h / 2 - Modalh / 2)
-                                im.SetNextWindowSize(ctx, Modalw, Modalh)
-                                im.OpenPopup(ctx, 'Delete Band Splitter? ##' .. FxGUID)
+                                if VP.X then
+                                    local Modalw, Modalh = 320, 55
+                                    im.SetNextWindowPos(ctx, VP.X + VP.w / 2 - Modalw / 2, VP.Y + VP.h / 2 - Modalh / 2)
+                                    im.SetNextWindowSize(ctx, Modalw, Modalh)
+                                    im.OpenPopup(ctx, 'Delete Band Splitter? ##' .. FxGUID)
+                                end
                             end
                         end
 
                         if im.BeginPopupModal(ctx, 'Delete Band Splitter? ##' .. FxGUID, nil, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize) then
                             im.Text(ctx, 'Delete the FXs in band splitter altogether?')
-                            if im.Button(ctx, '(n) No') or im.IsKeyPressed(ctx, 78) then
+                            if im.Button(ctx, '(n) No') or im.IsKeyPressed(ctx, im.Key_N) then
                                 r.Undo_BeginBlock()
                                 r.TrackFX_Delete(LT_Track, FX_Idx)
                                 r.TrackFX_Delete(LT_Track, FX_Idx + #FX[FxGUID].FXsInBS)
@@ -2298,7 +2303,7 @@ function loop()
                             end
                             SL()
 
-                            if im.Button(ctx, '(y) Yes') or im.IsKeyPressed(ctx, 89) then
+                            if im.Button(ctx, '(y) Yes') or im.IsKeyPressed(ctx, im.Key_Y)or im.IsKeyPressed(ctx, im.Key_Enter) then
                                 r.Undo_BeginBlock()
                                 r.TrackFX_Delete(LT_Track, FX_Idx)
                                 r.TrackFX_Delete(LT_Track, FX_Idx + #FX[FxGUID].FXsInBS)

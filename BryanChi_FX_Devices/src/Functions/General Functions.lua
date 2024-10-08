@@ -513,7 +513,11 @@ end
 function ConcatPath(...)
     -- Get system dependent path separator
     local sep = package.config:sub(1, 1)
-    return table.concat({ ... }, sep)
+    -- Concatenate the path components
+    local path = table.concat({ ... }, sep)
+    -- Replace double slashes with a single slash
+    path = path:gsub(sep .. sep, sep)
+    return path
 end
 
 ---@param Input number
@@ -988,7 +992,7 @@ function SaveDrawings(FX_Idx, FxGUID)
             write('Bottom', D.B, i)
             write('Color', D.clr, i)
             write('Text', D.Txt, i)
-            write('ImagePath', D.FilePath, i)
+            write('ImagePath', D.BgImgFileName, i)
             write('KeepImgRatio', tostring(D.KeepImgRatio), i)
             file:write('\n')
         end

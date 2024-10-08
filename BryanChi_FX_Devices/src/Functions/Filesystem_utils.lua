@@ -81,16 +81,19 @@ function CopyImageFile(filename, subfolder)
     local relativePath = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER .. filename:sub(index)
     ]]
     local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', SUBFOLDER)
+
     local file_path = ConcatPath(dir_path, filename:sub(index))
 
     r.RecursiveCreateDirectory(dir_path, 0)
 
-    local Files = scandir('/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/' .. SUBFOLDER)
+    local Files = scandir(dir_path)
+
+    local Name = filename:sub(index+1)
     if FindExactStringInTable(Files, file_path) then
-      return file_path, dir_path
+      return file_path, Name
     else
       CopyFile(filename, file_path)
-      return file_path, dir_path
+      return file_path, Name
     end
   end
 end
@@ -107,4 +110,14 @@ function GetFileContext(fp)
     f:close()
   end
   return str
+end
+
+
+function TruncatePath(path)
+
+    -- Determine the path separator based on the OS
+    local sep = package.config:sub(1, 1)
+    -- Find the file name after the last separator
+    local fileName = path:match("([^" .. sep .. "]+)$")
+    return fileName
 end

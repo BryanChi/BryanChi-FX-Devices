@@ -2221,7 +2221,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 end
 
 function TrashIcon(size, lbl, ClrBG, ClrTint)
-    local rv = im.ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint) -- TODO weird but I can’t find anything in the official docs or the reaImGui repo about this function
+    local rv = im.ImageButton(ctx, '##' .. lbl, Img.Trash, size, size, nil, nil, nil, nil, ClrBG, ClrTint) 
     if im.IsItemHovered(ctx) then
         TintClr = 0xCE1A28ff
         return rv, TintClr
