@@ -1491,7 +1491,7 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
 
 
             if not im.BeginPopup(ctx, 'Choose style window') then return end 
-            local StyleWinImg, StyleWinImgName = StyleWinImg or {} , StyleWinImgName or {}
+            --local StyleWinImg, StyleWinImgName = StyleWinImg or {} , StyleWinImgName or {}
             local FS = FS
 
             local function setItmStyle(Style, img, ImgPath)
@@ -1718,15 +1718,19 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
             local function Add_Image_Styles(type, func)
 
                 local Dir = CurrentDirectory .. 'src/Images/'..type
-                
-                StyleWindowImgFiles = scandir(Dir)
-                if StyleWindowImgFiles then
-                    for i, v in ipairs(StyleWindowImgFiles) do
-                        if v ~= '.DS_Store' then
-                            if not StyleWinImg[i] then 
-                                StyleWinImg[i] = im.CreateImage(Dir .. '/' .. v)
-                                im.Attach(ctx, StyleWinImg[i])
-                                StyleWinImgName[i] = v
+                if im.IsWindowAppearing(ctx) then 
+                    StyleWinImg = {}
+                    StyleWinImgName = {}
+                    StyleWindowImgFiles = scandir(Dir)
+                    if StyleWindowImgFiles then
+                        for i, v in ipairs(StyleWindowImgFiles) do
+                            if v ~= '.DS_Store' then
+                                
+                                if not StyleWinImg[i] then 
+                                    StyleWinImg[i] = im.CreateImage(Dir .. '/' .. v)
+                                    im.Attach(ctx, StyleWinImg[i])
+                                    StyleWinImgName[i] = v
+                                end
                             end
                         end
                     end
