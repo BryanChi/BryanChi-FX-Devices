@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.3
+-- @version 1.0beta16.4.4
 -- @changelog
 --  - Fix deleting BandSplitter when there's FX inside crashes script.
 --  - Fix ReaComp Layout vertical Slider incorrect display.
