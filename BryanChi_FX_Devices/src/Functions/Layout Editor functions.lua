@@ -10,6 +10,12 @@ function Sync_Size_Height_Synced_Properties(FP, diff)
                 else
                 end
             end 
+            if FP.Type == 'Knob' then 
+                
+                if V.Width_SS then 
+                    V.Height = V.Height + diff
+                end
+            end
         end 
     end 
 end
@@ -1762,7 +1768,7 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                         im.SeparatorText(ctx, 'Images')
                         for i, v in pairs(StyleWinImg) do
                             local Dir = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Switches/' 
-                            msg(v)
+
                             SetStyle(StyleWinImgName[i], 'Custom Image', v, Dir .. StyleWinImgName[i], AddSwitch, LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil, 0, nil,nil,FxGUID, v)
                         end
                     end
@@ -3062,14 +3068,14 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
 
             local path = RC('Image_Path')
-            msg(path)
+
             if path and path~='nil' then
                 d.AtchImgFileNm = path
                 d.AtchImgFileNm = TruncatePath(path)
-                msg(d.AtchImgFileNm)
+
                 local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Attached Drawings',d.AtchImgFileNm )
                
-                msg(dir_path)
+
                 d.Image = im.CreateImage(dir_path)
                 im.Attach(ctx, d.Image)
             end
