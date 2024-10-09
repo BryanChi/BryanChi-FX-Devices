@@ -1,13 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.4
+-- @version 1.0beta16.4.5
 -- @changelog
---  - Fix deleting BandSplitter when there's FX inside crashes script.
---  - Fix ReaComp Layout vertical Slider incorrect display.
---  - Layout Editor: Fix incorrect display when choosing styles for switches.
---  - Layout Editor: Make all image paths relative so users can share layouts without any problem.
---  - Layout Editor Background edit mode : copy images to /src/Images/Backgrounds when drag dropping into the pathfield. 
---  - Make Swtiches constantly update current state. 
+--  - fix opening style pop up window crashing after a few seconds
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
