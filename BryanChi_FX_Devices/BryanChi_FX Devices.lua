@@ -1,8 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.5
+-- @version 1.0beta16.4.6
 -- @changelog
---  - fix opening style pop up window crashing after a few seconds
+--  - Layout Editor : Separate attached drawing styles with image styles.
+--  - Layout Editor : Add image chooser for attached drawing images.
+--  - Layout Editor : Include three new analog style knobs to choose from.
+--  - Bug Fix : Making sure formatted param values are local to prevent it from displaying values into other plugins.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -26,6 +29,9 @@
 --   src/Images/Knobs/FancyGreenKnob.png
 --   src/Images/Knobs/FancyLightGreenKnob.png
 --   src/Images/Knobs/FancyRedKnob.png
+--   src/Images/Knobs/hise_knob_big.png
+--   src/Images/Knobs/hise_knob_medium.png
+--   src/Images/Knobs/hise_knob_small.png
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   src/Layout Editor Item Styles/Knob/kilohearts.ini

@@ -67,6 +67,103 @@ function Drag_Drop_Image_Module(ImgFileName, TB, width, SUBFOLDER)
     return ImgFileName
 end
 
+
+
+
+function Draw_Drop_Image_Module_With_Combo(TB)
+    if ImgFileName then
+        SL() 
+        local rv , hvr =  TrashIcon(13, 'Image Delete', nil, TB.TrashImgTint) 
+        if rv then 
+            TB.Image, ImgFileName = nil
+        end
+        TB.TrashImgTint = hvr
+       
+    end
+    SL()
+    --[[ if im.BeginChild(ctx, '##drop_files', width, im.GetTextLineHeight(ctx)) then
+        if not ImgFileName then
+            im.Text(ctx, 'Drag and drop files here...')
+        else
+            
+            im.Text(ctx, ImgFileName)
+
+        end
+        
+   
+        im.EndChild(ctx)
+    end ]]
+    local function Add_Image_Styles(type, func, ...)
+
+        local Dir = CurrentDirectory .. 'src/Images/'..type
+        if im.IsWindowAppearing(ctx) then 
+            AtchDrawingImg = {}
+            AtchDrawingImg.Name = {}
+            AtchDrawingImg.File = scandir(Dir)
+            if AtchDrawingImg.File then
+                for i, v in ipairs(AtchDrawingImg.File) do
+                    if v ~= '.DS_Store' then
+                        
+                        if not AtchDrawingImg[i] then 
+                            AtchDrawingImg[i] = im.CreateImage(Dir .. '/' .. v)
+                            im.Attach(ctx, AtchDrawingImg[i])
+                            AtchDrawingImg.Name[i] = v
+                        end
+                        --[[ func(AtchDrawingImg[i] , ...) ]]
+                    else 
+                        table.remove(AtchDrawingImg.File, i)
+                    end
+                end
+            end
+        end
+
+        if not func then return end 
+        func(AtchDrawingImg[i] , ...)
+        
+    end
+
+    if im.BeginCombo(ctx, '##Choose Attached drawing image', TB.AtchImgFileNm or 'Drag and drop image here', im.ComboFlags_HeightLarge) then 
+        local function addInvisibleButton(Image, sz)
+            for i, v in ipairs(AtchDrawingImg) do
+                if (i-1) % 3 ~= 0 and i ~= 1  then 
+                    SL(nil, 20 )
+                end
+                im.InvisibleButton(ctx, 'attach drawing img'..i,sz,sz)
+                min = {im.GetItemRectMin(ctx)}
+                im.DrawList_AddImage(WDL, v, min[1],  min[2], min[1] +sz , min[2] +sz, 0, 0, 1, 1, 0xffffffff)
+                if HighlightHvredItem() then --if clicked on highlighted itm
+                    TB.AtchImgFileNm = AtchDrawingImg.Name[i]
+                    TB.Image  = v  
+                end
+            end
+        end
+        Add_Image_Styles('Attached Drawings' , addInvisibleButton , 50)
+        im.EndCombo(ctx)
+
+    end
+    
+
+
+    if im.BeginDragDropTarget(ctx) then
+        local rv, count = im.AcceptDragDropPayloadFiles(ctx)
+        if rv then
+            for i = 0, count - 1 do
+                local filename
+                local rv, filename = im.GetDragDropPayloadFile(ctx, i)
+
+                local filepath, filename = CopyImageFile(filename, SUBFOLDER)
+
+                ImgFileName = filename
+
+                TB.Image = im.CreateImage(filepath)
+                im.Attach(ctx, TB.Image)
+            end
+        end
+        im.EndDragDropTarget(ctx)
+    end 
+    return ImgFileName
+end
+
 function Sync_Height_Synced_Properties(FP, diff)
     if FP.Draw  then  
         local rt = 2    
@@ -1252,28 +1349,7 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
             local function Width ()
                 im.SetNextItemWidth(ctx, -FLT_MIN)
 
-                local DefaultW, MaxW, MinW
-                if FS.Type == 'Knob' then
-                    DefaultW = Df.KnobRadius
-                    MaxW = 80
-                    MinW = 7.5
-                elseif FS.Type == 'Slider' or FS.Type == 'Drag' or not FS.Type then
-                    DefaultW = Df.Sldr_W
-                    MaxW = 300
-                    MinW = 40
-                elseif FS.Type == 'Selection' then
-                    DefaultW = FS.Combo_W
-                    MaxW = 300
-                    MinW = 20
-                elseif FS.Type == 'Switch' then
-                    DefaultW = FS.Switch_W
-                    MaxW = 300
-                    MinW = 15
-                elseif FS.Type == 'V-Slider' then
-                    DefaultW = FS.V_Sldr_W
-                    MaxW = 60
-                    MinW = 7
-                end
+                local DefaultW, MaxW, MinW = Get_Default_Param_Width_By_Type(FS.Type)
                 local DragSpeed = 5
                 local _, W = im.DragDouble(ctx, '##EditWidth' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Sldr_W or DefaultW, LE.GridSize / 4, MinW, MaxW, '%.1f')
 
@@ -1478,6 +1554,201 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
             end
         end
 
+        function Style_Search_Bar(filter, filterTxt)
+            im.AlignTextToFramePadding(ctx)
+
+            im.Text(ctx, 'Search : ')SL()
+
+            if im.TextFilter_Draw(filter , ctx, '##StyleWinFilterTxt', 400) then
+                filterTxt = im.TextFilter_Get(filter)
+                im.TextFilter_Set(filter, filterTxt)
+            end
+            if im.IsWindowAppearing(ctx) then
+                im.SetKeyboardFocusHere(ctx)
+            end
+
+        end
+        function Get_Attach_Drawing_Styles()
+            local type = FS.Type or FX.Def_Type[FxGUID] or 'Slider'
+
+            if im.IsWindowAppearing(ctx) and type then
+
+                local Dir = CurrentDirectory .. 'src/Layout Editor Item Styles/'..(type)
+                local files = scandir(Dir)
+                LE.DrawingStyles =  { [type] = {} }
+
+                if files then 
+                    for i, v in ipairs(files) do 
+
+                        local file_path = ConcatPath(Dir, v)
+                        local file = io.open(file_path, 'r')
+                        local Ct = file:read('*a')
+
+                        if LE.DrawingStyles then 
+                            LE.DrawingStyles[type][i] = LE.DrawingStyles[type][i] or {}
+                            LE.DrawingStyles[type][i].Draw = {}
+                            LE.DrawingStyles[type][i].Name = string.sub(v, 1, -5 )
+                            LE.DrawingStyles[type][i].Draw = Retrieve_Attached_Drawings(Ct, nil, LE.DrawingStyles[type][i].Draw)
+                        end
+                    end
+                end
+            end
+        end
+
+        function Add_Attach_Drawing_Styles(StyleWinFilter)
+
+
+            local function Set_Style_To_Selected_Itm (Sel_Itms,DrawingStylesTB)
+                if HighlightHvredItem() then --if clicked on highlighted itm
+                    if FS.Type == 'Knob' or (not FS.Type and FX.Def_Type[FxGUID] == 'Knob') then 
+                        for i, V in ipairs(Sel_Itms) do 
+                            local FP = FX[FxGUID][V]
+
+                            --set size to 15, and sync all drawing size
+                            local orig_sz = (FP.Sldr_W and FP.Sldr_W~= Df.KnobRadius) and  FP.Sldr_W 
+                            FP.Sldr_W = Df.KnobRadius
+
+                            FP.Draw = DrawingStylesTB.Draw
+                            -- set size back to original size
+                            FP.Sldr_W = orig_sz
+                            if orig_sz then 
+                                Sync_Size_Height_Synced_Properties(FP, orig_sz- Df.KnobRadius )
+                            end
+                            FP.Chosen_Atch_Draw_Preset = DrawingStylesTB.Name
+
+                        end
+                    else  -- for all types other than knobs
+                        for i, V in ipairs(Sel_Itms) do 
+                            local FP = FX[FxGUID][V]
+
+                            local DfH =  FP.Type == 'V-Slider'  and Df.V_Sldr_H or Df.Sldr_H
+                            local DfW =  FP.Type == 'V-Slider'  and Df.V_Sldr_W or Df.Sldr_W
+                                
+
+                            local orig_h = (FP.Height and FP.Height ~= DfH) and FP.Height or DfH
+                            FP.Height = DfH
+                            local orig_sz = (FP.Sldr_W and FP.Sldr_W~= DfW) and  FP.Sldr_W 
+                            FP.Sldr_W = DfW
+
+                            FP.Draw = DrawingStylesTB.Draw
+
+                            FP.Height = (orig_h~=DfH) and orig_h or nil
+                            Sync_Height_Synced_Properties(FP, DfH - orig_h)
+                            if orig_sz then 
+                                Sync_Size_Height_Synced_Properties(FP, orig_sz- DfW )
+
+                            end
+                            FP.Sldr_W =  orig_sz or FP.Sldr_W
+                            FP.Height = orig_h or FP.Height
+                            FP.Chosen_Atch_Draw_Preset = DrawingStylesTB.Name
+
+                        end
+                    end
+
+                    ToAllSelItm('Invisible', true)
+                    im.CloseCurrentPopup(ctx)
+                end
+            end
+
+            local function Add_Default_Selection_Styles()
+                if FS.Type == 'Selection' then
+                    local function SetStyle(Name, Style, Width, CustomLbl)
+                        AddCombo(ctx, LT_Track, FX_Idx, Name .. '##' .. FS.Name, FS.Num, Options, Width, Style, FxGUID, 0, OptionValues, 'Options', CustomLbl)
+                        if HighlightHvredItem() then
+                            setItmStyle(Style)
+                            im.CloseCurrentPopup(ctx)
+                        end
+                        AddSpacing(3)
+                    end
+                    local w = 60
+                    SetStyle('Default', nil, w, 'Default: ')
+
+                    SetStyle('up-down arrow', 'up-down arrow', w + 20, 'up-down arrow: ')
+                end
+            end
+
+            local function Add_Default_Knob_Styles()
+
+                -- add attached drawings
+                if FS.Type == 'Knob' or (not FS.Type and FX.Def_Type[FxGUID] == 'Knob') then 
+                    for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
+                        if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                            im.BeginGroup(ctx)
+                            local pos = {im.GetCursorScreenPos(ctx)}
+                            AddKnob(ctx, '##' .. FS.Name, '', FS.V, 0, 1, 0, FX_Idx, FS.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                            local w, h = im.GetItemRectSize(ctx)
+                            Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
+                            SL()
+
+                            im.Text(ctx, v.Name)
+                            im.EndGroup(ctx)
+                            Set_Style_To_Selected_Itm (LE.Sel_Items,v)
+                            im.Separator(ctx)
+                        end
+                    end   
+                end 
+            end
+
+            local function Add_Style_Previews(func)
+                AddSpacing(5)   
+                if not LE.DrawingStyles then return end 
+                if not LE.DrawingStyles[FS.Type] then return end 
+                for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
+                    if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                        im.BeginGroup(ctx)
+                        local pos = {im.GetCursorScreenPos(ctx)}
+                        im.BeginDisabled(ctx)
+                        func()
+                        im.EndDisabled(ctx)
+                        local w, h = im.GetItemRectSize(ctx)
+                        Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
+                        SL(nil, 50)
+
+                        im.Text(ctx, v.Name)
+                        im.EndGroup(ctx)
+
+                        Set_Style_To_Selected_Itm (LE.Sel_Items,v)
+                        im.Separator(ctx)
+                        AddSpacing(5)
+                    end
+                end
+            end
+
+
+            Add_Default_Selection_Styles()
+            Add_Default_Knob_Styles()
+            if FS.Type == 'Drag' or (not FS.Type and FX.Def_Type[FxGUID] == 'Drag') then 
+                local function Add_Drag()
+                    AddDrag(ctx, '##' , FS.Name, FS.V, 0, 1, FItm, FX_Idx, FS.Num, nil, Df.Sldr_W,0, nil,nil,FS.Lbl_Pos,FS.V_Pos ,nil,nil,Df.Sldr_H)
+                end
+
+                Add_Style_Previews(Add_Drag)
+            elseif  FS.Type == 'V-Slider' or (not FS.Type and FX.Def_Type[FxGUID] == 'V-Slider') then 
+                local function Add_V_Slider()
+                    AddSlider(ctx,  FS.Name, FS.V, FS.V,0,1, FItm, FX_Idx, FS.Num, 'Vert', 15, nil,nil,'Vert')
+                end
+                Add_Style_Previews(Add_V_Slider)
+            elseif FS.Type == 'Slider' or (not FS.Type and FX.Def_Type[FxGUID] == 'Slider') then 
+                local function Add_Slider()
+                    AddSlider(ctx,  FS.Name, FS.V, FS.V,0,1, FItm, FX_Idx, FS.Num, nil, 15, nil,nil)
+                end
+                Add_Style_Previews(Add_Slider)
+            elseif FS.Type =='Switch' then 
+                local function Switch()
+                    AddSwitch(LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil,FItm, nil,nil,FxGUID)
+                end
+                Add_Style_Previews(Switch)
+
+            elseif FS.Type =='Selection' then 
+                local function Combo()
+                    AddCombo(ctx, LT_Track, FX_Idx, FS.Name, FS.Num, nil, nil, nil, FxGUID, 0)
+                end
+                Add_Style_Previews(Combo)
+
+            end 
+        end
+
+
         local function Style()
 
             --- Style ------
@@ -1511,193 +1782,8 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
             if not im.ValidatePtr(StyleWinFilter, "ImGui_TextFilter*") then
                 StyleWinFilter = im.CreateTextFilter(FilterText)
             end
-            local function Get_Attach_Drawing_Styles()
-                local type = FS.Type or FX.Def_Type[FxGUID] or 'Slider'
+            
 
-                if im.IsWindowAppearing(ctx) and type then
-
-                    local Dir = CurrentDirectory .. 'src/Layout Editor Item Styles/'..(type)
-                    local files = scandir(Dir)
-                    LE.DrawingStyles =  { [type] = {} }
-
-                    if files then 
-                        for i, v in ipairs(files) do 
-
-                            local file_path = ConcatPath(Dir, v)
-                            local file = io.open(file_path, 'r')
-                            local Ct = file:read('*a')
-
-                            if LE.DrawingStyles then 
-                                LE.DrawingStyles[type][i] = LE.DrawingStyles[type][i] or {}
-                                LE.DrawingStyles[type][i].Draw = {}
-                                LE.DrawingStyles[type][i].Name = string.sub(v, 1, -5 )
-                                LE.DrawingStyles[type][i].Draw = Retrieve_Attached_Drawings(Ct, nil, LE.DrawingStyles[type][i].Draw)
-                            end
-                        end
-                    end
-                end
-            end
-            local function Search_Bar()
-                
-                if im.TextFilter_Draw(StyleWinFilter, ctx, '##StyleWinFilterTxt', -1) then
-                    FilterText = im.TextFilter_Get(StyleWinFilter)
-                    im.TextFilter_Set(StyleWinFilter, FilterText)
-                end
-                if im.IsWindowAppearing(ctx) then
-                    im.SetKeyboardFocusHere(ctx)
-                end
-
-            end
-
-            local function Add_Attach_Drawing_Styles(StyleWinFilter)
-
-
-                local function Set_Style_To_Selected_Itm (Sel_Itms,DrawingStylesTB)
-                    if HighlightHvredItem() then --if clicked on highlighted itm
-                        if FS.Type == 'Knob' or (not FS.Type and FX.Def_Type[FxGUID] == 'Knob') then 
-                            for i, V in ipairs(Sel_Itms) do 
-                                local FP = FX[FxGUID][V]
-
-                                --set size to 15, and sync all drawing size
-                                local orig_sz = (FP.Sldr_W and FP.Sldr_W~= Df.KnobRadius) and  FP.Sldr_W 
-                                FP.Sldr_W = Df.KnobRadius
-
-                                FP.Draw = DrawingStylesTB.Draw
-                                -- set size back to original size
-                                FP.Sldr_W = orig_sz
-                                if orig_sz then 
-                                    Sync_Size_Height_Synced_Properties(FP, orig_sz- Df.KnobRadius )
-                                end
-                            end
-                        else  -- for all types other than knobs
-                            for i, V in ipairs(Sel_Itms) do 
-                                local FP = FX[FxGUID][V]
-
-                                local DfH =  FP.Type == 'V-Slider'  and Df.V_Sldr_H or Df.Sldr_H
-                                local DfW =  FP.Type == 'V-Slider'  and Df.V_Sldr_W or Df.Sldr_W
-                                    
-
-                                local orig_h = (FP.Height and FP.Height ~= DfH) and FP.Height or DfH
-                                FP.Height = DfH
-                                local orig_sz = (FP.Sldr_W and FP.Sldr_W~= DfW) and  FP.Sldr_W 
-                                FP.Sldr_W = DfW
-
-                                FP.Draw = DrawingStylesTB.Draw
-
-                                FP.Height = (orig_h~=DfH) and orig_h or nil
-                                Sync_Height_Synced_Properties(FP, DfH - orig_h)
-                                if orig_sz then 
-                                    Sync_Size_Height_Synced_Properties(FP, orig_sz- DfW )
-
-                                end
-                                FP.Sldr_W =  orig_sz or FP.Sldr_W
-                                FP.Height = orig_h or FP.Height
-                            end
-                        end
-
-                        ToAllSelItm('Invisible', true)
-                        
-                        im.CloseCurrentPopup(ctx)
-                    end
-                end
-
-                local function Add_Default_Selection_Styles()
-                    if FS.Type == 'Selection' then
-                        local function SetStyle(Name, Style, Width, CustomLbl)
-                            AddCombo(ctx, LT_Track, FX_Idx, Name .. '##' .. FS.Name, FS.Num, Options, Width, Style, FxGUID, 0, OptionValues, 'Options', CustomLbl)
-                            if HighlightHvredItem() then
-                                setItmStyle(Style)
-                                im.CloseCurrentPopup(ctx)
-                            end
-                            AddSpacing(3)
-                        end
-                        local w = 60
-                        SetStyle('Default', nil, w, 'Default: ')
-
-                        SetStyle('up-down arrow', 'up-down arrow', w + 20, 'up-down arrow: ')
-                    end
-                end
-
-                local function Add_Default_Knob_Styles()
-
-                    -- add attached drawings
-                    if FS.Type == 'Knob' or (not FS.Type and FX.Def_Type[FxGUID] == 'Knob') then 
-                        for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
-                            if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
-                                im.BeginGroup(ctx)
-                                local pos = {im.GetCursorScreenPos(ctx)}
-                                AddKnob(ctx, '##' .. FS.Name, '', FS.V, 0, 1, 0, FX_Idx, FS.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
-                                local w, h = im.GetItemRectSize(ctx)
-                                Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
-                                SL()
-
-                                im.Text(ctx, v.Name)
-                                im.EndGroup(ctx)
-                                Set_Style_To_Selected_Itm (LE.Sel_Items,v)
-                                im.Separator(ctx)
-                            end
-                        end   
-                    end 
-                end
-
-                local function Add_Style_Previews(func)
-                    AddSpacing(5)   
-                    if not LE.DrawingStyles then return end 
-                    if not LE.DrawingStyles[FS.Type] then return end 
-                    for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
-                        if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
-                            im.BeginGroup(ctx)
-                            local pos = {im.GetCursorScreenPos(ctx)}
-                            im.BeginDisabled(ctx)
-                            func()
-                            im.EndDisabled(ctx)
-                            local w, h = im.GetItemRectSize(ctx)
-                            Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
-                            SL(nil, 50)
-
-                            im.Text(ctx, v.Name)
-                            im.EndGroup(ctx)
-
-                            Set_Style_To_Selected_Itm (LE.Sel_Items,v)
-                            im.Separator(ctx)
-                            AddSpacing(5)
-                        end
-                    end
-                end
-
-
-                Add_Default_Selection_Styles()
-                Add_Default_Knob_Styles()
-                if FS.Type == 'Drag' or (not FS.Type and FX.Def_Type[FxGUID] == 'Drag') then 
-                    local function Add_Drag()
-                        AddDrag(ctx, '##' , FS.Name, FS.V, 0, 1, FItm, FX_Idx, FS.Num, nil, Df.Sldr_W,0, nil,nil,FS.Lbl_Pos,FS.V_Pos ,nil,nil,Df.Sldr_H)
-                    end
-
-                    Add_Style_Previews(Add_Drag)
-                elseif  FS.Type == 'V-Slider' or (not FS.Type and FX.Def_Type[FxGUID] == 'V-Slider') then 
-                    local function Add_V_Slider()
-                        AddSlider(ctx,  FS.Name, FS.V, FS.V,0,1, FItm, FX_Idx, FS.Num, 'Vert', 15, nil,nil,'Vert')
-                    end
-                    Add_Style_Previews(Add_V_Slider)
-                elseif FS.Type == 'Slider' or (not FS.Type and FX.Def_Type[FxGUID] == 'Slider') then 
-                    local function Add_Slider()
-                        AddSlider(ctx,  FS.Name, FS.V, FS.V,0,1, FItm, FX_Idx, FS.Num, nil, 15, nil,nil)
-                    end
-                    Add_Style_Previews(Add_Slider)
-                elseif FS.Type =='Switch' then 
-                    local function Switch()
-                        AddSwitch(LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil,FItm, nil,nil,FxGUID)
-                    end
-                    Add_Style_Previews(Switch)
-
-                elseif FS.Type =='Selection' then 
-                    local function Combo()
-                        AddCombo(ctx, LT_Track, FX_Idx, FS.Name, FS.Num, nil, nil, nil, FxGUID, 0)
-                    end
-                    Add_Style_Previews(Combo)
-
-                end 
-            end
 
             local function SetStyle(Name, Style, Img, ImgFilesName, func, ...)
                 if im.TextFilter_PassFilter(StyleWinFilter, Name) then
@@ -1780,14 +1866,14 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                 end
             end
 
-
             Get_Attach_Drawing_Styles()
-            Search_Bar()
+            Style_Search_Bar(StyleWinFilter, FilterText)
+            im.BeginChild(ctx,'Main', 500, 500)
+
             Styles_For_Knobs()
             Image_Styles_For_Switches()
-            im.SeparatorText(ctx, 'Attached Drawing Styles')
-            Add_Attach_Drawing_Styles(StyleWinFilter)
 
+            im.EndChild(ctx)
             im.EndPopup(ctx)
 
         end
@@ -1806,6 +1892,20 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
         local function Custom_Image()
             
             if FS.Type ~= 'Knob' and FS.Type ~= 'Switch' then return end 
+            local function Angle_Settings()
+
+                if not FS.Image or not FS.Type =='Knob' then return end 
+                local w, h = im.Image_GetSize(FS.Image)
+
+                if  (h > w * 5) then return end -- if it's a single image and not a strip 
+                if im.Checkbox(ctx, 'Dont Rotate with value', FS.DontRotateImg) then 
+                    ToAllSelItm('DontRotateImg', toggle(FS.DontRotateImg))
+                end
+                SL(nil, 30 )
+                im.SetNextItemWidth(ctx, 70)
+                _, FS.ImgAngleMinOfs = im.DragDouble(ctx, 'angle min offset', FS.ImgAngleMinOfs or 0 , 0.01, 0, 6.28 )
+               
+            end
             local rv
             DragDropPics = DragDropPics or {}
             if FS.ImgFilesName then 
@@ -1827,8 +1927,8 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                     im.TextColored(ctx , 0xffffff88,'Drag and drop files here...')
                 else
                     --FS.Style = 'Custom Image'
-
-                    im.Text(ctx, FS.ImgFilesName)
+                    
+                    im.Text(ctx, TruncatePath( FS.ImgFilesName))
                 end
 
                 im.EndChild(ctx)
@@ -1857,6 +1957,9 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                 end
                 im.EndDragDropTarget(ctx)
             end
+           
+
+            Angle_Settings()
         end
 
 
@@ -2114,7 +2217,32 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
 
 
         local function Attach_Drawings()
-            if im.TreeNode(ctx, 'Attach Drawing') then
+
+            local function Preset()
+                SL(nil, 40)
+                im.Text(ctx,'Preset: ')SL()
+                im.SetNextItemWidth(ctx, 180)
+                if im.BeginCombo(ctx, '##atttached drawings preset', FS.Chosen_Atch_Draw_Preset or 'Choose Preset', im.ComboFlags_HeightLarge)then 
+                    if not im.ValidatePtr(AtchDraw_Preset_Filter, "ImGui_TextFilter*") then
+                        AtchDraw_Preset_Filter = im.CreateTextFilter(AtchDraw_Preset_FilterTxt)
+                    end
+                    Style_Search_Bar(AtchDraw_Preset_Filter)
+                    Get_Attach_Drawing_Styles()
+                    Add_Attach_Drawing_Styles(AtchDraw_Preset_Filter)
+                    im.EndCombo(ctx)
+                end 
+            end 
+
+
+            local openTree = im.TreeNode(ctx, 'Attach Drawing')
+
+            Preset()
+            if FS.Draw and #FS.Draw >0 then 
+                SL()
+                MyText('('..#FS.Draw ..' Drawings )', nil, ThemeClr('Accent_Clr'))
+            end
+
+            if openTree then
                 im.BeginChild(ctx, 'Attached Drawings',nil,nil,im.ChildFlags_AutoResizeY)
                 FS.Draw = FS.Draw or {}
                 if RemoveDraw then
@@ -2263,9 +2391,7 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                             local FORMAT = format
                             if not D[Name] and not defaultV then FORMAT = '' end
 
-                            local rv, V = im.DragDouble(ctx, '##' .. Name .. LBL,
-                                D[Name] or defaultV, stepSize or LE.GridSize, min or -W,
-                                max or W - 10, FORMAT)
+                            local rv, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
 
                             if rv then D[Name] = V end
                             if sl then SL() end
@@ -2300,8 +2426,11 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                         end
 
                         if D.Type == 'Image' or D.Type == 'Knob Image' then
-                            D.AtchImgFileNm = Drag_Drop_Image_Module(D.AtchImgFileNm, D,  -R_ofs, 'Attached Drawings')
-
+                            local img, name =  Draw_Drop_Image_Module_With_Combo(D)
+                            if img then 
+                                D.AtchImgFileNm = name
+                                D.Image = img
+                            end
                         end
 
                     
@@ -2341,6 +2470,9 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                             end ]]
                             local WidthSyncBtnSz = 100
                             local BipolarSz = 100
+
+
+                        
                             local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar)
                                 local Column = 1
                                 if Name:find('_VA') then Column = 2 end
@@ -2467,12 +2599,21 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                             AddVal('Y_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
                             if SetRowName(WidthLBL, BL_Width) then
 
-
-                                AddVal('Width', nil, WidthStepSize, -Win_W, Win_W, nil , nil, true)
+                                local Def_W = Get_Default_Param_Width_By_Type(FS.Type)
+                                if FS.Type == 'Knob' then Def_W =( FS.Sldr_W or Def_W) * 2 
+                                else Def_W = ( FS.Sldr_W or Def_W) 
+                                end
+                                AddVal('Width', Def_W, WidthStepSize, -Win_W, Win_W, nil , nil, true)
                                 AddVal('Width_VA', 0, 0.01, -1, 1 ,'percent')
                             end --[[ local rv, R =  AddRatio('Width' ) if rv then D.Width = R end   ]]
                             if SetRowName('Height', BL_Height) then
-                                AddVal('Height', nil, LE.GridSize, -220, 220, nil, nil, true )
+                                local Def_H =Get_Default_Param_Height_By_Type(FS.Type)
+                                if FS.Type == 'Knob' then Def_H =( FS.Height or Def_H) * 2 
+                                else Def_H = ( FS.Height or Def_H) 
+                                end
+
+
+                                AddVal('Height', Def_H, LE.GridSize, -220, 220, nil, nil, true )
                                 AddVal('Height_VA', 0, 0.01, -1, 1,'percent')
                             end
                             if SetRowName('Repeat', BL_Repeat) then
@@ -2647,11 +2788,10 @@ if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse +
                 im.TreePop(ctx)
                 
             end
-            if FS.Draw and #FS.Draw >0 then 
-                SL()
-                MyText('('..#FS.Draw ..' Drawings )', nil, ThemeClr('Accent_Clr'))
 
-            end
+            
+
+            
         end
 
 
@@ -3506,7 +3646,9 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 else
                     local scale = 2
                     local sz = radius_outer * scale
-                    ImageAngle(ctx, Image, 4 + p_value * 4.5, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
+
+                    local angle = FP.DontRotateImg and 4 + (FP.ImgAngleMinOfs or 0) or (4 + (FP.ImgAngleMinOfs or 0) + p_value  * 4.5) 
+                    ImageAngle(ctx, Image, angle, sz, sz, center[1] - sz / 2, center[2] - sz / 2)
                 end
             end
         elseif Style == 'Invisible' or FP.Invisible then
@@ -3653,7 +3795,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if V_Pos ~= 'None' and V_Pos then
             im.PushFont(ctx, _G[V_Font])
     
-            _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
     
             if FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FX[FxGUID][Fx_P].V_Round) end
@@ -4586,9 +4728,9 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     elseif FP.Lbl_Pos == 'Top' then
         im.Text(ctx, FP.CustomLbl or FP.Name)
     end
-
+    local lbl
     if FP.V_Pos == 'None' or FP.V_Pos == 'Free' then
-        lbl = '  '
+        lbl = ' '
     elseif FP.V_Pos == 'Within' then
 
         im.PushFont(ctx, _G[V_Font])
@@ -5263,13 +5405,14 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.Lbl_Pos_X           = v.Lbl_Pos_X
                     FP.Lbl_Pos_Y           = v.Lbl_Pos_Y
                     FP.Image               = v.Image
-                    FP.ImgFilesName           = v.ImgFilesName
+                    FP.ImgFilesName        = v.ImgFilesName
                     FP.ConditionPrm        = v.ConditionPrm
                     FP.ConditionPrm_V      = v.ConditionPrm_V
                     FP.ConditionPrm_V_Norm = v.ConditionPrm_V_Norm
                     FP.Switch_On_Clr       = v.Switch_On_Clr
                     FP.Invisible           = v.Invisible
-
+                    FP.ImgAngleMinOfs      = v.ImgAngleMinOfs
+                    FP.DontRotateImg       = v.DontRotateImg
 
                     for i = 2, 5, 1 do
                         FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
@@ -5380,7 +5523,9 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Pos_Y     = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
                             FP.Switch_On_Clr = RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
                             FP.Invisible     = RecallInfo(Ct, 'Invisible', Fx_P, 'Bool')
-
+                            FP.DontRotateImg       = RecallInfo(Ct, 'DontRotateImg', Fx_P, 'Bool')
+                            FP.ImgAngleMinOfs      = RecallInfo(Ct, 'ImgAngleMinOfs', Fx_P, 'Num')
+        
 
                             local FileName       = RecallInfo(Ct, 'Custom Image', Fx_P)
 
@@ -5860,6 +6005,8 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Label Free Pos Y', FP.Lbl_Pos_Y)
             write('Custom Image', FP.ImgFilesName)
             write('Invisible', FP.Invisible)
+            write('DontRotateImg', FP.DontRotateImg)
+            write('ImgAngleMinOfs', FP.ImgAngleMinOfs)
 
 
 

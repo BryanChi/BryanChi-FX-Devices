@@ -2196,6 +2196,10 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
             end
         elseif v.Type == 'Image' and v.Image then
             local w, h = im.Image_GetSize(v.Image)
+            local Def_W = Get_Default_Param_Width_By_Type(FP.Type)
+            if FP.Type == 'Knob' then Def_W = Def_W * 2 end
+            local w , h = FP.Sldr_W or Def_W , FP.Height or FP.Sldr_W or Def_W
+
             local w, h = (v.Width or w), (v.Height or h)
             if v.Width_VA and v.Width_VA ~= 0 then
                 w = (v.Width or w) * v.Width_VA * Val

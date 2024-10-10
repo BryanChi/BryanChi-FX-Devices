@@ -2898,3 +2898,50 @@ function Load_Trk_Info(str, type, Track)
         return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
     end
 end
+
+
+function Get_Default_Param_Width_By_Type(type)
+    local DefaultW 
+    if type == 'Knob' then
+        DefaultW = Df.KnobRadius
+        MaxW = 80
+        MinW = 7.5
+    elseif type == 'Slider' or type == 'Drag' or not type then
+        DefaultW = Df.Sldr_W
+        MaxW = 300
+        MinW = 40
+    elseif type == 'Selection' then
+        DefaultW = Df.Combo_W
+        MaxW = 300
+        MinW = 20
+    elseif type == 'Switch' then
+        DefaultW = Df.Switch_W
+        MaxW = 300
+        MinW = 15
+    elseif type == 'V-Slider' then
+        DefaultW = Df.V_Sldr_W
+        MaxW = 60
+        MinW = 7
+    end
+    return DefaultW, MaxW, MinW 
+end
+
+function Get_Default_Param_Height_By_Type(type)
+    local DefH 
+    if type == 'Knob' then
+        DefH =  Df.KnobRadius
+    elseif type == 'Slider' or type == 'Drag' or not type then
+        DefH = Df.Sldr_H
+        
+    elseif type == 'Selection' then
+        DefH = Df.Sldr_H
+        
+    elseif type == 'Switch' then
+        DefH = Df.Sldr_H
+        
+    elseif type == 'V-Slider' then
+        DefH = Df.V_Sldr_H
+ 
+    end
+    return DefH
+end
