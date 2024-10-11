@@ -30,7 +30,6 @@
 --   src/Images/Knobs/FancyLightGreenKnob.png
 --   src/Images/Knobs/FancyRedKnob.png
 --   src/Images/Knobs/hise_knob_big.png
---   src/Images/Knobs/hise_knob_medium.png
 --   src/Images/Knobs/hise_knob_small.png
 --   src/Images/Knobs/Ideogram analog knob 2 No Pointer.png
 --   src/Images/Knobs/ideogram analog knob 1 No Pointer.png
