@@ -4,7 +4,7 @@
 -- @changelog
 --  - Layout Editor : Separate attached drawing styles with image styles.
 --  - Layout Editor : Add image chooser for attached drawing images.
---  - Layout Editor : Include three new analog style knobs to choose from.
+--  - Layout Editor : Include some new analog style knobs to choose from.
 --  - Bug Fix : Making sure formatted param values are local to prevent it from displaying values into other plugins.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
@@ -32,6 +32,10 @@
 --   src/Images/Knobs/hise_knob_big.png
 --   src/Images/Knobs/hise_knob_medium.png
 --   src/Images/Knobs/hise_knob_small.png
+--   src/Images/Knobs/Ideogram analog knob 2 No Pointer.png
+--   src/Images/Knobs/ideogram analog knob 1 No Pointer.png
+--   src/Images/Knobs/Analog Knob with pointer.png
+--   src/Images/Knobs/Flex Chorus with pointer.png
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   src/Layout Editor Item Styles/Knob/kilohearts.ini
