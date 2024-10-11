@@ -4,7 +4,7 @@
 -- @changelog
 --  - Layout Editor : Separate attached drawing styles with image styles.
 --  - Layout Editor : Add image chooser for attached drawing images.
---  - Layout Editor : Include some new analog style knobs to choose from.
+--  - Layout Editor : Include some new analog style knobs to choose from.  
 --  - Bug Fix : Making sure formatted param values are local to prevent it from displaying values into other plugins.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
