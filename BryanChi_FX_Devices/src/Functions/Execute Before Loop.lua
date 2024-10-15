@@ -661,7 +661,7 @@ function Retrieve_All_Saved_Data_Of_Project()
                 local _, DefaultSldr_W = r.GetProjExtState(0, 'FX Devices', 'Default Slider Width for FX:' .. FxGUID)
                 if DefaultSldr_W ~= '' then FX.Def_Sldr_W[FxGUID] = DefaultSldr_W end
                 local _, Def_Type = r.GetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID)
-                if Def_Type ~= '' then FX.Def_Type[FxGUID] = Def_Type end
+                if Def_Type ~= '' then FX[FxGUID].DefType = Def_Type end
 
 
                 GetProjExt_FxNameNum(FxGUID)

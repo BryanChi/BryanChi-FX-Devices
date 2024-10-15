@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.6
+-- @version 1.0beta16.4.7
 -- @changelog
---  - Layout Editor : Separate attached drawing styles with image styles.
---  - Layout Editor : Add image chooser for attached drawing images.
---  - Layout Editor : Include some new analog style knobs to choose from.  
---  - Bug Fix : Making sure formatted param values are local to prevent it from displaying values into other plugins.
+--  - Layout Editor : Fix crashing when saving attached drawings
+--  - Layout Editor : Make default parameter type not nil when open layout editor.
+--  - Layout Editor : Add plus and trash button in attached drawing presets for adding presets and permanantly deleting the preset from your system.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

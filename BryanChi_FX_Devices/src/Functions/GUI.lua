@@ -1473,7 +1473,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
 
-        if FX.Def_Type[FxGUID] ~= 'Knob' then
+        if FX[FxGUID].DefType ~= 'Knob' then
             im.Text(ctx, 'Default Sldr Width:')
             im.SameLine(ctx)
             local SldrW_DrgSpd
@@ -1499,19 +1499,19 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         im.SetNextItemWidth(ctx, -FLT_MIN)
 
 
-        if im.BeginCombo(ctx, '## P type', FX.Def_Type[FxGUID] or 'Slider', im.ComboFlags_NoArrowButton) then
+        if im.BeginCombo(ctx, '## P type', FX[FxGUID].DefType or 'Slider', im.ComboFlags_NoArrowButton) then
             if im.Selectable(ctx, 'Slider', false) then
-                FX.Def_Type[FxGUID] = 'Slider'
+                FX[FxGUID].DefType = 'Slider'
                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX.Def_Type[FxGUID])
+                    FX[FxGUID].DefType)
             elseif im.Selectable(ctx, 'Knob', false) then
-                FX.Def_Type[FxGUID] = 'Knob'
+                FX[FxGUID].DefType = 'Knob'
                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX.Def_Type[FxGUID])
+                    FX[FxGUID].DefType)
             elseif im.Selectable(ctx, 'Drag', false) then
-                FX.Def_Type[FxGUID] = 'Drag'
+                FX[FxGUID].DefType = 'Drag'
                 r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX.Def_Type[FxGUID])
+                    FX[FxGUID].DefType)
             end
             im.EndCombo(ctx)
         end
@@ -3280,14 +3280,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     local Def_Sldr_W = 160
     if FX.Def_Sldr_W[FxGUID] then Def_Sldr_W = FX.Def_Sldr_W[FxGUID] end
 
-    if FX.Def_Type[FxGUID] == 'Slider' or FX.Def_Type[FxGUID] == 'Drag' or not FX.Def_Type[FxGUID] then
+    if FX[FxGUID].DefType == 'Slider' or FX[FxGUID].DefType == 'Drag' or not FX[FxGUID].DefType then
         local DF = (FX.Def_Sldr_W[FxGUID] or Df.Sldr_W)
 
         local Ct = math.max(math.floor((PrmCount / 6 - 0.01)) + 1, 1)
 
         DefaultWidth = (DF + GapBtwnPrmColumns) * Ct
 
-    elseif FX.Def_Type[FxGUID] == 'Knob' then
+    elseif FX[FxGUID].DefType == 'Knob' then
         local Ct = math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
         DefaultWidth = Df.KnobSize * Ct + GapBtwnPrmColumns
     end
@@ -3992,14 +3992,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     ----Default Layouts
                     if not FP.PosX and not FP.PosY then
-                        if FP.Type == 'Slider' or (not FP.Type and not FX.Def_Type[FxGUID]) or FX.Def_Type[FxGUID] == 'Slider' or FP.Type == 'Drag' or (FX.Def_Type[FxGUID] == 'Drag' and FP.Type == nil) then
+                        if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' or FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag' and FP.Type == nil) then
                             local Column = math.floor((Fx_P / 6) - 0.01)
                             local W = ((FX[FxGUID][Fx_P - Column * 6].Sldr_W or FX.Def_Sldr_W[FxGUID] or 160) + GapBtwnPrmColumns) * Column
                             local Y = 30 * (Fx_P - (Column * 6))
                             im.SetCursorPos(ctx, W, Y)
-                        elseif FP.Type == 'V-Slider' or (FX.Def_Type[FxGUID] == 'V-Slider' and FP.Type == nil) then
+                        elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider' and FP.Type == nil) then
                             im.SetCursorPos(ctx, 17 * (Fx_P - 1), 30)
-                        elseif FP.Type == 'Knob' or (FX.Def_Type[FxGUID] == 'Knob' and FP.Type == nil) then
+                        elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
                             local KSz = Df.KnobSize
                             local G = 15
                             local Column = math.floor(Fx_P / 3 - 0.1)
@@ -4115,19 +4115,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local pos =  { im.GetCursorScreenPos(ctx) }
 
                                 --- Add Parameter controls ---------
-                                if Prm.Type == 'Slider' or (not Prm.Type and not FX.Def_Type[FxGUID]) or FX.Def_Type[FxGUID] == 'Slider' then
+                                if Prm.Type == 'Slider' or (not Prm.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
                                     AddSlider(ctx, '##' .. (Prm.Name or Fx_P) .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, Prm.Lbl, 8)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Sldr', curX, CurY)
-                                elseif FP.Type == 'Knob' or (FX.Def_Type[FxGUID] == 'Knob' and Prm.Type == nil) then
+                                elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and Prm.Type == nil) then
                                     AddKnob(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V, 0, 1, Fx_P, FX_Idx, Prm.Num, Prm.Style, Prm.Sldr_W or Df.KnobRadius, 0, Disabled, Prm.FontSize, Prm.Lbl_Pos or 'Bottom', Prm.V_Pos)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Knob', curX, CurY)
-                                elseif Prm.Type == 'V-Slider' or (FX.Def_Type[FxGUID] == 'V-Slider') then
+                                elseif Prm.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
                                     AddSlider(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, Prm.Lbl, nil, Prm.Sldr_H or 160)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'V-Slider', curX, CurY)
                                 elseif Prm.Type == 'Switch' then
                                     AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm.BgClr, Prm.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp, Prm.FontSize, FxGUID)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Switch', curX, CurY)
-                                elseif Prm.Type == 'Drag' or (FX.Def_Type[FxGUID] == 'Drag') then
+                                elseif Prm.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
                                     AddDrag(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl or Prm.Name, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Prm.Style, Prm.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, Prm.Lbl_Pos, Prm.V_Pos, Prm.DragDir)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Drag', curX, CurY)
                                 elseif Prm.Type == 'Selection' then
