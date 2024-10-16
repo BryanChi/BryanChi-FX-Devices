@@ -2003,19 +2003,22 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 
                 Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, Addline, nil, v.RPT_Clr, v.Clr, v)
             else
-                local function AddRect(Xg, Yg, none, RptClr)
-                    im.DrawList_AddRect(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
+                local function AddRect(Xg, Yg, Gap, RptClr)
+                    local G = Gap or 0
+                    local X1, Y1 = x + (Xg or 0) - G , y + (Yg or 0) -G
+                    local X2, Y2 = x2 + (Xg or 0) + G, y2 + (Yg or 0) +G
+                    im.DrawList_AddRect(WDL, X1,Y1, X2, Y2 , RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round, flag, Thick)
                 end
 
 
-                local function AddRectFill(Xg, Yg, none, RptClr)
+                local function AddRectFill(Xg, Yg, Gap, RptClr)
                     im.DrawList_AddRectFilled(WDL, x + (Xg or 0), y + (Yg or 0), x2 + (Xg or 0), y2 + (Yg or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, v.Round)
                 end
 
                 if v.Fill then 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, nil, v.RPT_Clr, v.Clr, v)
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, Gap, v.RPT_Clr, v.Clr, v)
                 else 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, nil, v.RPT_Clr, v.Clr, v)
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, Gap, v.RPT_Clr, v.Clr, v)
                 end
             end
 

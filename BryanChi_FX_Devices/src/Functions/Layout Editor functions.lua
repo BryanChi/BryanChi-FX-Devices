@@ -1565,13 +1565,18 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             im.Text(ctx, 'Search : ')SL()
 
-            if im.TextFilter_Draw(filter , ctx, '##StyleWinFilterTxt', 400) then
+
+            if im.TextFilter_Draw(filter , ctx, '##StyleWinFilterTxt', 300 ) then
                 filterTxt = im.TextFilter_Get(filter)
                 im.TextFilter_Set(filter, filterTxt)
             end
             if im.IsWindowAppearing(ctx) then
                 im.SetKeyboardFocusHere(ctx)
             end
+            SL()
+            im.InvisibleButton(ctx, 'dummy' , 20,20)
+            
+            im.Separator(ctx)
 
         end
         function Get_Attach_Drawing_Styles()
@@ -1689,29 +1694,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
             end
 
-            local function Add_Default_Knob_Styles()
-
-                -- add attached drawings
-                if FS.Type == 'Knob' or (not FS.Type and FX[FxGUID].DefType == 'Knob') then 
-                    for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
-                        if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
-                            im.BeginGroup(ctx)
-                            local pos = {im.GetCursorScreenPos(ctx)}
-                            AddKnob(ctx, '##' .. FS.Name, '', FS.V, 0, 1, 0, FX_Idx, FS.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
-                            local w, h = im.GetItemRectSize(ctx)
-                            Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
-                            SL(nil, 50)
-
-                            im.Text(ctx, v.Name)
-                            im.EndGroup(ctx)
-                            Set_Style_To_Selected_Itm (LE.Sel_Items,v)
-                            im.Separator(ctx)
-                        end
-                    end   
-                end 
-            end
             local function Add_Plus_Button(i, H, TB, FxGUID,Sel_Itms)
-                SL()
+                local WinSz = im.GetWindowSize(ctx)
+                local CurX = im.GetCursorPosX(ctx)
+                SL(CurX + WinSz - H *2.5)
                 im.PushFont(ctx, Font_Andale_Mono_20_B)
                 if im.Button(ctx, '+##'..i, H,H) then 
 
@@ -1778,6 +1764,32 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     im.EndPopup(ctx)
                 end
 
+            end
+
+            local function Add_Default_Knob_Styles()
+
+                -- add attached drawings
+                if FS.Type == 'Knob' or (not FS.Type and FX[FxGUID].DefType == 'Knob') then 
+                    
+                    for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
+                        if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                            im.BeginGroup(ctx)
+                            local pos = {im.GetCursorScreenPos(ctx)}
+                            AddKnob(ctx, '##' .. FS.Name, '', FS.V, 0, 1, 0, FX_Idx, FS.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                            local w, h = im.GetItemRectSize(ctx)
+                            Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
+                            SL(nil, 50)
+
+                            im.Text(ctx, v.Name)
+                            im.EndGroup(ctx)
+                            Set_Style_To_Selected_Itm (LE.Sel_Items,v)
+                            Add_Plus_Button(i, h, v, FxGUID,LE.Sel_Items)
+                            Add_Trash_Button(i, h, v, FS.Type)
+                            im.Separator(ctx)
+                            
+                        end
+                    end   
+                end 
             end
             local function Add_Style_Previews(func, width, spacing)
                 if not LE.DrawingStyles then return end 
@@ -2507,7 +2519,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             'Gain Reduction Text' }
                         local Thick = { 'Knob Pointer', 'Line', 'Rect', 'Circle' }
                         local Round = { 'Rect', 'Rect Filled' }
-                        local Gap = { 'Circle', 'Circle Filled', 'Knob Range'}
+                        local Gap = { 'Circle', 'Circle Filled', 'Knob Range', 'Rect'}
                         local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Circle Filled', 'Knob Image' }
                         local RadiusInOut = { 'Knob Pointer', 'Knob Range' }
                         local Radius = { 'Knob Circle', 'Knob Image','Knob Circle Filled' }
@@ -2736,6 +2748,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     AddVal('Y_Gap', 0, 0.2, 0, 300, '%.1f')
                                     AddVal('Y_Gap_VA', 0, 0.01, -1, 1,'percent'   )
                                 end
+                                --[[ if SetRowName('Size Gap',nil, {'Rect'}) then
+                                    AddVal('Size_Gap', 0, 0.2, 0, 300, '%.1f')
+                                    AddVal('Size_Gap_VA', 0, 0.01, -1, 1,'percent'   )
+                                end ]]
                             end
                             if SetRowName('Angle Min', nil, BL_XYGap) then
                                 AddVal('Angle_Min', 0.75, 0.01, 0, 3.14, '%.3f',true)
@@ -4827,22 +4843,36 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
-    local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
     local pos = {im.GetCursorScreenPos(ctx)}
     if FontSize then
-        Font = 'Font_Andale_Mono_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
+        Font = 'Arial_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
     end
     if FX[FxGUID][Fx_P].Lbl_Clr then im.PushStyleColor(ctx, im.Col_Text, FX[FxGUID][Fx_P].Lbl_Clr) end
     local popClr
+    local function moveCursor()
+        if not FP.Lbl_Pos_X and not FP.Lbl_Pos_Y then return end 
+        local X , Y  = im.GetCursorPos(ctx)
+        im.SetCursorPos(ctx, X + (FP.Lbl_Pos_X or 0) , Y + (FP.Lbl_Pos_Y or 0 ))
+        return X, Y 
+    end
 
     im.BeginGroup(ctx)
     if FP.Lbl_Pos == 'Left' then
         im.AlignTextToFramePadding(ctx)
+
         im.Text(ctx, FP.CustomLbl or FP.Name)
         SL()
+
     elseif FP.Lbl_Pos == 'Top' then
+        local X , Y = moveCursor()
+
         im.Text(ctx, FP.CustomLbl or FP.Name)
+        if X then 
+
+            im.SetCursorPos(ctx, X, Y+ im.GetTextLineHeight(ctx))
+            end
     end
     local lbl
     if FP.V_Pos == 'None' or FP.V_Pos == 'Free' then
@@ -4862,6 +4892,8 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     else --Use Value As Label
         _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     end
+
+
 
     if FP.Lbl_Pos == 'Within' then lbl = FP.CustomLbl or FP.Name end
 

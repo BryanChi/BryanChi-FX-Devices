@@ -1,10 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.7
+-- @version 1.0beta16.4.8
 -- @changelog
---  - Layout Editor : Fix crashing when saving attached drawings
---  - Layout Editor : Make default parameter type not nil when open layout editor.
---  - Layout Editor : Add plus and trash button in attached drawing presets for adding presets and permanantly deleting the preset from your system.
+--  - Layout Editor improvements
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
