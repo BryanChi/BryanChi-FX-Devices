@@ -117,7 +117,7 @@ end
 
 function Record_Last_Touch_Btn()
 
-    if im.Button(ctx, 'Record Last Touch') then
+    if im.ImageButton(ctx, 'Record Last Touch', Img.AddList , 20, 20, 0 , 0.2, nil, nil, nil, RecordLT_CLR) then
         if not IsPrmAlreadyAdded(true) then
             StoreNewParam(LT_FXGUID, LT_ParamName, LT_ParamNum, LT_FXNum, true)
         end
@@ -127,6 +127,8 @@ function Record_Last_Touch_Btn()
 
     if Cont_Param_Add_Mode == true then
         --TimeAfter_ContAdd= TimeAfter_ContAdd+1
+        RecordLT_CLR =   BlinkItem(0.3, nil, ThemeClr("Accent_Clr") , nil, true, nil, nil,nil,nil,nil,nil,0xffffff33)   
+
 
         GetLT_FX_Num()
         GetLTParam()
@@ -275,11 +277,13 @@ function MenuBar ()
     im.BeginMenuBar(ctx)
     Layout_Edit_MenuBar_Buttons()
     Record_Last_Touch_Btn()
-    Envelope_Btn()
     Modulation_Btn()
+    Envelope_Btn()
+
     If_Theres_Selected_FX()
     im.Separator(ctx)
     SL()
+
 
     ShowTrackName(not FX.LayEdit)
 

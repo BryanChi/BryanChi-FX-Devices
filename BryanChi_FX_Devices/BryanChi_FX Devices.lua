@@ -1,8 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.4.8
+-- @version 1.0beta16.5
 -- @changelog
---  - Layout Editor improvements
+--  - Added new icon for 'Record Last Touch'
+--  - added new layouts: Transmutator (JMGSound) and kHs Flanger (Kilohearts)
+--  - Layout Editor: Can now create analog style knobs in attached drawings using the new parameters for circles : Special Fill - Gradient and metallic
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -17,6 +19,9 @@
 --   src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
 --   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
+--   src/FX Layouts/kHs Flanger (Kilohearts).ini
+--   src/FX Layouts/Transmutator (JMGSound).ini
+--   src/FX Layouts/kHs Phase Distortion (Kilohearts).ini
 --   src/FXChains/ReaDrum Machine.RfxChain
 --   src/Images/*.png
 --   src/Images/Attached Drawings/LED light.png

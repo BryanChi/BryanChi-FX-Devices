@@ -221,8 +221,6 @@ end
 function Show_Value_Tooltip(trigger, x, y , V )
     if trigger then 
 
-        local SzX, SzY = im.GetItemRectSize(ctx)
-        local MsX, MsY = im.GetMousePos(ctx)
 
         im.SetNextWindowPos(ctx,x, y)
         im.BeginTooltip(ctx)
@@ -868,17 +866,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.Text(ctx, 'Color :')
                 im.SameLine(ctx)
                 if Draw.SelItm and D[It].clr then
-                    clrpick, D[It].clr = im.ColorEdit4(ctx, '##',
-                        D[It].clr or 0xffffffff,
-                        im.ColorEditFlags_NoInputs|
-                        im.ColorEditFlags_AlphaPreviewHalf|
-                        im.ColorEditFlags_AlphaBar)
+                    clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
                 else
-                    clrpick, Draw.clr = im.ColorEdit4(ctx, '##',
-                        Draw.clr or 0xffffffff,
-                        im.ColorEditFlags_NoInputs|
-                        im.ColorEditFlags_AlphaPreviewHalf|
-                        im.ColorEditFlags_AlphaBar)
+                    clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
                 end
                 im.Text(ctx, 'Default edge rounding :')
                 im.SameLine(ctx)
@@ -2560,6 +2550,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
 
+
                         if im.BeginTable(ctx, 'Attached Drawing Properties', 3, flags, -R_ofs) then
                             local function SetRowName(str, notTAB, TAB)
                                 im.TableSetColumnIndex(ctx, 0)
@@ -2577,6 +2568,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     im.Text(ctx, str)
                                 end
                             end
+
+
+                      
 
 
                             --[[ if im.IsItemHovered(ctx) then
@@ -2677,7 +2671,51 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                 return tweak_Drag
                             end
+                            local function Special_Fill ()
+                                if not D.Special_Fill or not D.Fill then return end
+                                im.TableNextRow(ctx)
+                                local AngleLBL = D.Special_Fill == 'Gradient' and 'Gradient Angle' or 'Texture Angle'
+                                local GradientMax = D.Special_Fill == 'Gradient' and 1 or 15
+                                if SetRowName(AngleLBL, nil, {'Circle'}) then
+                                    AddVal('Texture_Angle', 0, 1, 0, 360, '%.f', true)
+                                    
+                                end
 
+                                if SetRowName('Gradient Start', nil, {'Circle'}) then
+                                    D.Gradient_Start = D.Gradient_Start or D.Special_Fill == 'Gradient' and 0 or 2.05
+                                    AddVal('Gradient_Start', 0, 0.1, -1, GradientMax, '%.2f', true)
+                                end
+
+                                if SetRowName('Special Fill', nil, {'Circle'}) then
+    
+                                    im.TableSetColumnIndex(ctx, 1)
+                                    D.Clr2 = D.Clr2 or 0x888888ff
+                                    local rv, Clr2 = im.ColorEdit4(ctx, 'Color2' .. LBL, D.Clr2 or 0xffffffff, ClrFLG)
+                                    Set_Property ('Clr2', Clr2, rv)
+
+                                    if D.Repeat and D.Repeat ~= 0  then
+                                        SL()
+                                        im.Text(ctx, 'Start')
+                                        SL(nil, 20)
+                                        local rv, RptClr2 = im.ColorEdit4(ctx, 'Repeat Color2' .. LBL, D.RPT_Clr2 or 0xffffffff, ClrFLG)
+                                        Set_Property ('RPT_Clr2', RptClr2, rv)
+                                        SL()
+                                        im.Text(ctx, 'End')
+                                        SL()
+                                        im.TableNextRow(ctx)
+
+                                    end
+    
+    
+    
+    
+                                   
+    
+    
+                                    im.TableNextRow(ctx)
+    
+                                end
+                            end
 
                             im.TableSetupColumn(ctx, '##')
                             im.TableSetupColumn(ctx, 'Values')
@@ -2784,16 +2822,45 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 AddVal('Round', 0, 0.1, 0, 100, '%.1f', true)
                             end
                             if SetRowName('Fill', nil, Fill) then
+
                                 im.TableSetColumnIndex(ctx, 1)
-                                SL(nil, TableColumn1W / 2 - 20 )
+                                if D.Type ~= 'Circle' then
+                                    SL(nil, TableColumn1W / 2 - 20 )
+                                end
 
                                 _, D.Fill = im.Checkbox(ctx, '##Filled'.. LBL,D.Fill)
-                                if not D.Fill then 
-                                Cross_Out()
+                                if not D.Fill then Cross_Out() end
+                                if D.Type == 'Circle' then
+                                    SL(nil, 15)
+                                    im.Text(ctx, 'Special: ')
+                                    im.SameLine(ctx)
+                                    im.SetNextItemWidth(ctx, 100)
+
+                                    if im.BeginCombo(ctx, '## Special Fill'.. LBL, D.Special_Fill) then
+                                        if im.Selectable(ctx, 'Metallic') then 
+                                            D.Special_Fill = 'Metallic' 
+                                            D.Gradient_Start = 2.05
+                                            D.Fill = true 
+                                        end
+                                        if im.Selectable(ctx, 'Gradient') then 
+                                            D.Special_Fill = 'Gradient' 
+                                            D.Gradient_Start = 0
+                                            D.Fill = true 
+                                        end
+                                        if im.Selectable(ctx, 'None') then D.Special_Fill = nil end
+
+                                        im.EndCombo(ctx)
                                     end
+
+                                end
                                 im.TableNextRow(ctx)
 
                             end
+
+                            Special_Fill ()
+
+
+
                             --[[ if SetRowName('Font Size',GR_Text ) then
 
                             end ]]
@@ -3322,6 +3389,11 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
             d.RPT_Clr = RC('RPT_Clr', 'Num')
             d.RPT_Clr_VA = RC('RPT_Clr_VA', 'Num')
             d.Fill = RC('Fill', 'Bool')
+            d.Texture_Angle = RC('Texture_Angle', 'Num')
+            d.Gradient_Start = RC('Gradient_Start', 'Num')
+            d.Special_Fill = RC('Special_Fill')
+            d.Clr2 = RC('Color2', 'Num')
+            d.RPT_Clr2 = RC('RPT_Clr2', 'Num')
 
 
             if d.Type and  d.Type:find('Filled') then 
@@ -4396,8 +4468,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or not FP.V_Pos )
     local SzX, SzY = im.GetItemRectSize(ctx)
     local MsX, MsY = im.GetMousePos(ctx)
-   
-    Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height + button_y , Format_P_V )
+    Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height --[[ + button_y ]] , Format_P_V )
 
     local t            = (p_value - v_min) / (v_max - v_min)
     local Clr_SldrGrab = im.GetColor(ctx, im.Col_SliderGrabActive)
@@ -5255,14 +5326,11 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if not SliderStyle and not FP.Invisible then
         if DragDir == 'Right' or DragDir == nil then
             if is_active then
-                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB,
-                    FP.GrbAct or 0xffffff77, Rounding)
+                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB, FP.GrbAct or 0xffffff77, Rounding)
             elseif is_hovered then
-                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB,
-                    FP.GrbHvr or 0xffffff55, Rounding)
+                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB, FP.GrbHvr or 0xffffff55, Rounding)
             else
-                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB,
-                    FP.GrbClr or 0xffffff44, Rounding)
+                im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosL + SldrGrbPos, PosB, FP.GrbClr or 0xffffff44, Rounding)
             end
         elseif DragDir == 'Left-Right' then
             local L = math.min(PosL + (PosR - PosL) / 2, PosL + SldrGrbPos); local R = math.max(
@@ -5321,17 +5389,11 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local ClrBg        = im.GetColor(ctx, im.Col_FrameBg)
     local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
+    local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or not FP.V_Pos or Style == 'Pro C' or Style == 'Pro C Lookahead')
 
-    if (is_active or is_hovered) and (FX[FxGUID][Fx_P].V_Pos == 'None' or Style == 'Pro C' or Style == 'Pro C Lookahead') then
-        local getSldr, Param_Value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-
-        local window_padding       = { im.GetStyleVar(ctx, im.StyleVar_WindowPadding) }
-        im.SetNextWindowPos(ctx, pos[1] - window_padding[1], pos[2] - line_height - window_padding[2] - 8)
-
-        im.BeginTooltip(ctx)
-        im.Text(ctx, Param_Value)
-        im.EndTooltip(ctx)
-    end
+    local SzX, SzY = im.GetItemRectSize(ctx)
+    local MsX, MsY = im.GetMousePos(ctx)
+    Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height --[[ + button_y ]] , Format_P_V )
 
 
 
@@ -5592,8 +5654,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
 
-                    T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID,
-                        'true', true)
+                    T.MorphHide = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph Hide' .. FxGUID, 'true', true)
                     T.Round = RecallGlobInfo(Ct, 'Edge Rounding = ', 'Num')
                     T.GrbRound = RecallGlobInfo(Ct, 'Grb Rounding = ', 'Num')
                     T.BgClr = RecallGlobInfo(Ct, 'BgClr = ', 'Num')
@@ -6071,6 +6132,13 @@ function Save_Attached_Drawings(FP, file,Fx_P)
             WRITE('RPT_Clr_VA', v.RPT_Clr_VA)
             WRITE('Image_Path', v.AtchImgFileNm)
             WRITE('Fill', v.Fill)
+            if v.Type=='Circle' then 
+                WRITE('RPT_Clr2', v.RPT_Clr2)
+                WRITE('Color2', v.Clr2)
+                WRITE('Special_Fill', v.Special_Fill)
+                WRITE('Texture_Angle', v.Texture_Angle)
+                WRITE('Gradient_Start', v.Gradient_Start)
+            end
 
 
         end

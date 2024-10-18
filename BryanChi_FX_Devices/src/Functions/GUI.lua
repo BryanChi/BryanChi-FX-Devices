@@ -1908,7 +1908,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
         if v.Bypass then goto END_OF_LOOP end 
         local fill = v.Fill ==true  and 'Filled' 
 
-        local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR)
+        local function Repeat(rpt, va, Xgap, Ygap, func, Gap, RPTClr, CLR, CLR2, RPTClr2)
             if rpt and rpt ~= 0 then
                 local RPT = rpt
                 if va and va ~= 0 then RPT = rpt * Val * va end
@@ -1921,7 +1921,12 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 
                     local Clr = BlendColors(Clr1 , Clr2, i / RPT)
 
-                    func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
+                    
+                    local Clr1 = (v.Clr2_VA ) and BlendColors(CLR2 or 0xffffffff, v.Clr2_VA,  Val) or CLR2 or 0xffffffff
+                    local Clr2 = (v.RPT_Clr2_VA ) and BlendColors(RPTClr2 or 0xffffffff, v.RPT_Clr2_VA ,  Val) or RPTClr2 or  0xffffffff
+
+                    local Clr2 = BlendColors(Clr1 , Clr2, i / RPT)
+                    func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr, Clr2)
                 end
             else
                 func(Xgap)
@@ -2016,9 +2021,9 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 end
 
                 if v.Fill then 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, Gap, v.RPT_Clr, v.Clr, v)
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRectFill, Gap, v.RPT_Clr, v.Clr, v.Clr2, v.RPT_Clr2)
                 else 
-                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, Gap, v.RPT_Clr, v.Clr, v)
+                    Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddRect, Gap, v.RPT_Clr, v.Clr, v.Clr2, v.RPT_Clr2)
                 end
             end
 
@@ -2030,7 +2035,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
         elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
             local w, h = 10
             if FP.Type == 'Knob' or Prm_Type =='Knob' then
-                
                 w, h = r .ImGui_GetItemRectSize(ctx)
             else
                 v.Width = v.Width or 10
@@ -2041,20 +2045,32 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 Rad = Rad * Val * v.Width_VA
             end
                 
-
             local function AddCircle(X_Gap, Y_Gap, Gap, RptClr)
-                im.DrawList_AddCircle(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff, nil,Thick)
+                local clr = RptClr or Clr_VA or v.Clr or 0xffffffff
+                im.DrawList_AddCircle(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), clr, nil,Thick)
             end
-            local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr)
-                im.DrawList_AddCircleFilled(WDL, x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0), Rad + (Gap or 0), RptClr or Clr_VA or v.Clr or 0xffffffff)
+            local function AddCircleFill(X_Gap, Y_Gap, Gap, RptClr, RptClr2)
+                local clr = RptClr or Clr_VA or v.Clr or 0xffffffff
+                local clr2 = RptClr2 or v.Clr2 or 0xffffffff
+                local X, Y = x + w / 2 + (X_Gap or 0), y + w / 2 + (Y_Gap or 0)
+
+                if v.Special_Fill == 'Metallic' then
+                   
+                    DrawMetallicKnob(ctx, X, Y, Rad + (Gap or 0), v.Gradient_Start , v.Texture_Angle ,clr, clr2)
+                elseif  v.Special_Fill == 'Gradient' then
+                    Draw_Filled_Circle_With_Gradient_And_Angle( X, Y, Rad + (Gap or 0), clr, clr2, v.Gradient_Start , v.Texture_Angle)
+                else
+                 
+                    im.DrawList_AddCircleFilled(WDL, X, Y, Rad + (Gap or 0), clr)
+                end
             end
 
 
 
             if v.Fill  then
-                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr, v)
+                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircleFill, Gap, v.RPT_Clr, v.Clr,  v.Clr2, v.RPT_Clr2)
             else 
-                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr, v)
+                Repeat(v.Repeat, v.Repeat_VA, X_Gap, Y_Gap, AddCircle, Gap, v.RPT_Clr, v.Clr, v.Clr2, v.RPT_Clr2)
             end
 
             if v.AdjustingX or v.AdjustingY then
@@ -2375,6 +2391,79 @@ function Post_FX_Chain ()
     end
 end
 
+
+
+function DrawMetallicKnob(ctx, centerX, centerY, radius, gradientRepeats, startAngle, startColorHex, endColorHex)
+    local drawList = im.GetWindowDrawList(ctx)
+    local segments = 64  -- Adjust for smoother circle
+    local overlap = 0.1  -- Overlap factor
+
+    -- Create a radial gradient effect with overlapping triangles
+    for i = 0, segments do
+        local angle = startAngle + (i / segments) * 2 * math.pi
+        local nextAngle = startAngle + ((i + 1 + overlap) / segments) * 2 * math.pi
+        local x1 = centerX + math.cos(angle) * radius
+        local y1 = centerY + math.sin(angle) * radius
+        local x2 = centerX + math.cos(nextAngle) * radius
+        local y2 = centerY + math.sin(nextAngle) * radius
+
+        -- Repeat the gradient
+        local t = (1 + math.cos(gradientRepeats * angle)) / 2
+        local r1, g1, b1, a1 = ((startColorHex >> 24) & 0xFF) / 255, ((startColorHex >> 16) & 0xFF) / 255, ((startColorHex >> 8) & 0xFF) / 255, (startColorHex & 0xFF) / 255
+        local r2, g2, b2, a2 = ((endColorHex >> 24) & 0xFF) / 255, ((endColorHex >> 16) & 0xFF) / 255, ((endColorHex >> 8) & 0xFF) / 255, (endColorHex & 0xFF) / 255
+        local r = r1 + (r2 - r1) * t
+        local g = g1 + (g2 - g1) * t
+        local b = b1 + (b2 - b1) * t
+        local a = a1 + (a2 - a1) * t
+        local col = im.ColorConvertDouble4ToU32(r, g, b, a)
+        
+        im.DrawList_AddTriangleFilled(drawList, centerX, centerY, x1, y1, x2, y2, col)
+    end
+
+    -- Outer ring
+    local outerRingColor = im.ColorConvertDouble4ToU32(0.1, 0.1, 0.1, 1)
+    im.DrawList_AddCircle(drawList, centerX, centerY, radius, outerRingColor, segments, 1)
+end
+    
+-- Function to draw a filled circle with lines at a certain angle and gradient color
+function Draw_Filled_Circle_With_Gradient_And_Angle(centerX, centerY, radius, colorTop, colorBottom, gradientStart, angle)
+    local DL = im.GetWindowDrawList(ctx)
+    
+    -- Convert the angle to radians for trigonometric functions
+    local angleRad = math.rad(angle)
+    local thickness = 1
+    -- Loop through the vertical positions (y-axis)
+    for y = -radius, radius, thickness do
+        -- Calculate the relative position in the circle
+        local relativeY = (y + radius) / (2 * radius)
+
+        -- Adjust t to control when the gradient starts
+        local t
+        if relativeY < gradientStart then
+            t = 0  -- Stay fully at top color before gradient starts
+        else
+            -- Gradually interpolate from gradientStart to the bottom
+            t = (relativeY - gradientStart) / (1 - gradientStart)
+        end
+
+        -- Interpolate color based on y position (gradient transition)
+        local color = BlendColors(colorTop, colorBottom, t)
+
+        -- Calculate the half-width (x) at this vertical position
+        local x = math.sqrt(radius * radius - y * y)
+
+        -- Rotate the line endpoints by the given angle
+        local rotatedX1 = centerX + (x * math.cos(angleRad) - y * math.sin(angleRad))
+        local rotatedY1 = centerY + (x * math.sin(angleRad) + y * math.cos(angleRad))
+        local rotatedX2 = centerX + (-x * math.cos(angleRad) - y * math.sin(angleRad))
+        local rotatedY2 = centerY + (-x * math.sin(angleRad) + y * math.cos(angleRad))
+
+        -- Draw a rotated line from (rotatedX1, rotatedY1) to (rotatedX2, rotatedY2)
+        im.DrawList_AddLine(DL, rotatedX1, rotatedY1, rotatedX2, rotatedY2, color, thickness+ thickness/5)
+    end
+end
+
+
 function AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
     if FX_Idx + 1 == RepeatTimeForWindows and not Trk[TrkID].PostFX[1] then -- add last space
         SL(nil, 10)
@@ -2382,6 +2471,8 @@ function AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
     elseif FX_Idx + 1 == RepeatTimeForWindows and Trk[TrkID].PostFX[1] then
         AddSpaceBtwnFXs(Sel_Track_FX_Count - #Trk[TrkID].PostFX, nil, 'LastSpc', nil, nil, nil, 20)
     end
+
+
 end
 
 function Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
