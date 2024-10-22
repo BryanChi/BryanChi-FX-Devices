@@ -43,7 +43,6 @@
 --   src/Images/Switches/*.png
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/*.png
---   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   src/Layout Editor Item Styles/Knob/kilohearts.ini
 --   src/Layout Editor Item Styles/Switch/Kilohearts.ini
