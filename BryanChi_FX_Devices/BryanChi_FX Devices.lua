@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5
+-- @version 1.0beta16.5.01
 -- @changelog
 --  - 9 New layouts made by todoublez  ( 7 UAD plugins + Basslane Pro + bx_2098 EQ)
 --  - Added new icon for 'Record Last Touch'
