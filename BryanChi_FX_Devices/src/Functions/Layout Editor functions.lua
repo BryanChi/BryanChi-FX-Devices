@@ -3302,9 +3302,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                     end
-
-                    for i, v in ipairs(FX[FxGUID].Draw) do 
-                        CheckClr(Plt, v.clr)
+                    if FX[FxGUID].Draw then 
+                        for i, v in ipairs(FX[FxGUID].Draw) do 
+                            CheckClr(Plt, v.clr)
+                        end
                     end
                     return Plt
                 end
@@ -6096,7 +6097,7 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     FX[FxGUID][P].Name = P_Name
     FX[FxGUID][P].Deletable = IsDeletable
 
-
+    if not P_Name then return end 
     r.SetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID, P_Name)
     r.SetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID, P_Num)
     table.insert(Prm.Num, P_Num)
