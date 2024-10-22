@@ -39,21 +39,10 @@
 --   src/FX Layouts/UAD Neve 33609 C (Universal Audio, Inc.).ini
 --   src/FXChains/ReaDrum Machine.RfxChain
 --   src/Images/*.png
+--   src/Images/Backgrounds/*.png
+--   src/Images/Switches/*.png
 --   src/Images/Attached Drawings/LED light.png
---   src/Images/Knobs/Bitwig.png
---   src/Images/Knobs/FancyBlueKnob_Inverted.png
---   src/Images/Knobs/FancyBlueKnob.png
---   src/Images/Knobs/FancyGreenKnob.png
---   src/Images/Knobs/FancyLightGreenKnob.png
---   src/Images/Knobs/FancyRedKnob.png
---   src/Images/Knobs/hise_knob_big.png
---   src/Images/Knobs/hise_knob_small.png
---   src/Images/Knobs/Ideogram analog knob 2 No Pointer.png
---   src/Images/Knobs/ideogram analog knob 1 No Pointer.png
---   src/Images/Knobs/Analog Knob with pointer.png
---   src/Images/Knobs/Analog knob no pointer.png
---   src/Images/Knobs/Flex Chorus with pointer.png
---   src/Images/Knobs/Flex Chorus no pointer.png
+--   src/Images/Knobs/*.png
 --   src/Images/Switches/FancyGreenCheck_2.png
 --   src/LFO Shapes/*.ini
 --   src/Layout Editor Item Styles/Knob/kilohearts.ini
