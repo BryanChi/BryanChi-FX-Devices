@@ -51,7 +51,7 @@
 --   src/Images/Knobs/Ideogram analog knob 2 No Pointer.png
 --   src/Images/Knobs/ideogram analog knob 1 No Pointer.png
 --   src/Images/Knobs/Analog Knob with pointer.png
---   src/Images/Knobs/Analog Knob no pointer.png
+--   src/Images/Knobs/Analog knob no pointer.png
 --   src/Images/Knobs/Flex Chorus with pointer.png
 --   src/Images/Knobs/Flex Chorus no pointer.png
 --   src/Images/Switches/FancyGreenCheck_2.png
