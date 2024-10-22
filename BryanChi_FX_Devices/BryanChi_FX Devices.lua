@@ -66,7 +66,7 @@ package.path = r.ImGui_GetBuiltinPath() .. '/?.lua'
 im = require 'imgui' '0.9.3'
 CurrentDirectory = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] -- GET DIRECTORY FOR REQUIRE
 package.path = CurrentDirectory .. "?.lua;"
-DEBUGGER = dofile("/Users/b/.cursor/extensions/antoinebalaine.reascript-docs-0.1.12/debugger/LoadDebug.lua")
+--DEBUGGER = dofile("/Users/b/.cursor/extensions/antoinebalaine.reascript-docs-0.1.12/debugger/LoadDebug.lua")
 
 
 require("src.Constants")
