@@ -260,7 +260,8 @@ end
 function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
     if Draw.DrawMode[FxGUID] == true then
         local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
-        local D = Draw[FxNameS]
+        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+        local D = FX[FxGUID].Draw
         im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
         -- add horizontal grid
         for i = 0, 220, LE.GridSize do
@@ -338,7 +339,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
 
 
                 if Draw.Type == 'Text' and IsLBtnClicked and Mods == 0 then
-                    AddText = #D.Type + 1
+                    AddText = D and  (#D + 1 ) or 1
                 end
             end
         end
@@ -350,24 +351,33 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
         if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
             im.SetKeyboardFocusHere(ctx)
 
-            enter, NewDrawTxt = im.InputText(ctx, '##' .. 'DrawTxt', NewDrawTxt)
+            local enter, NewDrawTxt = im.InputText(ctx, '##' .. 'DrawTxt', NewDrawTxt)
             --im.SetItemDefaultFocus( ctx)
-
+            D[AddText] = D[AddText] or {}
+            local D = D[AddText]
             if im.IsWindowAppearing(ctx) then
-                table.insert(D.L, Win_MsX_Start);
-                table.insert(D.T, Win_MsY_Start);;
-                table.insert(D.Type, Draw.Type)
-                table.insert(D.B, Win_MsY)
-                table.insert(D.clr, Draw.clr)
+                
+                --[[ local MsX_Start, MsY_Start = im.GetMousePos(ctx);
+                local CurX, CurY = im.GetCursorScreenPos(ctx)
+                local Win_MsX_Start = MsX_Start - CurX; 
+                local Win_MsY_Start = MsY_Start - CurY + 3 ]]
+
+                D.L =  Win_MsX_Start
+                D.T =  Win_MsY_Start
+                D.Type =  Draw.Type
+                D.B =  Win_MsY
+                D.clr =  Draw.clr
+
             end
 
 
-            if AddText then
-                D.Txt[AddText] = NewDrawTxt
+            if enter then
+     
+                D.Txt  = NewDrawTxt
             end
 
             if im.IsItemDeactivatedAfterEdit(ctx) then
-                D.Txt[#D.Txt] = NewDrawTxt
+                D.Txt = NewDrawTxt
                 AddText = nil;
                 NewDrawTxt = nil
 
@@ -377,9 +387,6 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
             end
 
             im.SetItemDefaultFocus(ctx)
-
-
-
             im.EndPopup(ctx)
         end
         if LBtnRel then Draw.CurrentylDrawing = nil end
@@ -666,6 +673,7 @@ end
 
 
 function Layout_Edit_Properties_Window(fx, FX_Idx)
+    local Color_Palette_Width = 25
     local FxGUID = r.TrackFX_GetFXGUID( LT_Track, FX_Idx)
     if FX.LayEdit ~= FxGUID then return end
     HelperMsg.R = 'Marquee Select Items'
@@ -734,7 +742,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
 
-
             LE.Sel_Items = {}
         end
 
@@ -795,21 +802,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     else
         if im.Button(ctx, 'Enter Background Edit') then
             Draw.DrawMode[FxGUID] = true
-            if Draw[FX.Win_Name_S[FX_Idx]] == nil then
-                Draw[FX.Win_Name_S[FX_Idx]] = {
-                    Rect = {},
-                    clr = {},
-                    ItemInst = {},
-                    L = {},
-                    R = {},
-                    Y = {},
-                    T = {},
-                    B = {},
-                    Type = {},
-                    FxGUID = {},
-                    Txt = {}
-                }
-            end
             LE.Sel_Items = {}
         end
     end
@@ -863,97 +855,109 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
 
             if It then
-                im.Text(ctx, 'Color :')
-                im.SameLine(ctx)
-                if Draw.SelItm and D[It].clr then
-                    clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                else
-                    clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                end
-                im.Text(ctx, 'Default edge rounding :')
-                im.SameLine(ctx)
-                im.SetNextItemWidth(ctx, 40)
+                if im.BeginTable(ctx, "DrawProperties", 2, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then
+                    im.TableSetupColumn(ctx, "Property", im.TableColumnFlags_WidthFixed, 150)
+                    im.TableSetupColumn(ctx, "Value", im.TableColumnFlags_WidthStretch)
 
-                FX[FxGUID].Draw = FX[FxGUID].Draw or {}
-                EditER, FX[FxGUID].Draw.Df_EdgeRound = im.DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
-
-
-
-                if D[It].Type == 'Picture' then
-                    im.Text(ctx, 'File Name:')
-                    SL()
-                    DragDropPics = DragDropPics or {}
-                    D[It].BgImgFileName =Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], FullWidth, 'Backgrounds')
-                  
-                    
-                    rv, D[It].KeepImgRatio = im.Checkbox(ctx, 'Keep Image Ratio', D[It].KeepImgRatio)
-                   
-                end
-
-                if Draw.SelItm then
-                    im.Text(ctx, 'Start Pos X:')
-                    im.SameLine(ctx)
-                    local CurX = im.GetCursorPosX(ctx)
-                    im.SetNextItemWidth(ctx, FullWidth)
-                    _, D[It].L = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'L',
-                        D[It].L,
-                        1, 0, Win_W, '%.0f')
-                    if D[It].Type ~= 'V-line' and D[It].Type ~= 'circle' and D[It].Type ~= 'circle fill' then
-                        im.Text(ctx, 'End Pos X:')
-                        im.SetNextItemWidth(ctx, FullWidth)
-
-                        im.SameLine(ctx, CurX)
-                        _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R',
-                            D[It].R, 1, 0, Win_W, '%.0f')
+                    im.TableNextRow(ctx)
+                    im.TableNextColumn(ctx)
+                    im.Text(ctx, "Color:")
+                    im.TableNextColumn(ctx)
+                    if Draw.SelItm and D[It].clr then
+                        clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                    else
+                        clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
                     end
 
-                    if D[It].Type == 'circle' or D[It].Type == 'circle fill' then
-                        im.Text(ctx, 'Radius:')
-                        im.SameLine(ctx)
-                        im.SetNextItemWidth(ctx, FullWidth)
-                        _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R',
-                            D[It].R, 1, 0, Win_W, '%.0f')
-                    end 
+                    im.TableNextRow(ctx)
+                    im.TableNextColumn(ctx)
+                    im.Text(ctx, "Default edge rounding:")
+                    im.TableNextColumn(ctx)
+                    im.SetNextItemWidth(ctx, -FLT_MIN)
+                    FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+                    EditER, FX[FxGUID].Draw.Df_EdgeRound = im.DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
 
-
-                    im.Text(ctx, 'Start Pos Y:')
-
-                    im.SameLine(ctx)
-                    im.SetNextItemWidth(ctx, FullWidth)
-
-                    _, D[It].T = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'T', D[It].T, 1, 0, Win_H, '%.0f')
-
-
-                    if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
-                        im.Text(ctx, 'End Pos Y:')
-                        im.SameLine(ctx, CurX)
-                        im.SetNextItemWidth(ctx, FullWidth)
-
-                        _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, 0, Win_H, '%.0f')
+                    if D[It].Type == 'Picture' then
+                        im.TableNextRow(ctx)
+                        im.TableNextColumn(ctx)
+                        im.Text(ctx, "File Name:")
+                        im.TableNextColumn(ctx)
+                        DragDropPics = DragDropPics or {}
+                        D[It].BgImgFileName = Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], -FLT_MIN, 'Backgrounds')
+                        
+                        im.TableNextRow(ctx)
+                        im.TableNextColumn(ctx)
+                        im.Text(ctx, "Keep Image Ratio:")
+                        im.TableNextColumn(ctx)
+                        rv, D[It].KeepImgRatio = im.Checkbox(ctx, '##KeepImgRatio', D[It].KeepImgRatio)
                     end
 
-                    if D[It].Type == 'Text' then
-                        im.Text(ctx, 'Text:')
-                        im.SameLine(ctx)
+                    if Draw.SelItm then
+                        im.TableNextRow(ctx)
+                        im.TableNextColumn(ctx)
+                        im.Text(ctx, "Start Pos X:")
+                        im.TableNextColumn(ctx)
+                        im.SetNextItemWidth(ctx, -FLT_MIN)
+                        _, D[It].L = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'L', D[It].L, 1, 0, Win_W, '%.0f')
 
-                        _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt',
-                            D[It].Txt)
+                        if D[It].Type ~= 'V-line' and D[It].Type ~= 'circle' and D[It].Type ~= 'circle fill' then
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "End Pos X:")
+                            im.TableNextColumn(ctx)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, 0, Win_W, '%.0f')
+                        end
 
-                        SL()
-                        im.Text(ctx, 'Font Size:')
-                        local rv, Sz = im.InputInt(ctx, '## font size ' .. It,
-                            D[It].FtSize or 12)
-                        if rv then
-                            D[It].FtSize = Sz
-                            if not _G['Font_Andale_Mono' .. '_' .. Sz] then
-                                _G['Font_Andale_Mono' .. '_' .. Sz] = im.CreateFont(
-                                    'andale mono', Sz)
-                                ChangeFont = D[It]
-                            else
-                                D[It].Font = _G['Font_Andale_Mono' .. '_' .. Sz]
+                        if D[It].Type == 'circle' or D[It].Type == 'circle fill' then
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "Radius:")
+                            im.TableNextColumn(ctx)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, 0, Win_W, '%.0f')
+                        end 
+
+                        im.TableNextRow(ctx)
+                        im.TableNextColumn(ctx)
+                        im.Text(ctx, "Start Pos Y:")
+                        im.TableNextColumn(ctx)
+                        im.SetNextItemWidth(ctx, -FLT_MIN)
+                        _, D[It].T = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'T', D[It].T, 1, 0, Win_H, '%.0f')
+
+                        if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "End Pos Y:")
+                            im.TableNextColumn(ctx)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, 0, Win_H, '%.0f')
+                        end
+
+                        if D[It].Type == 'Text' then
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "Text:")
+                            im.TableNextColumn(ctx)
+                            _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
+
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "Font Size:")
+                            im.TableNextColumn(ctx)
+                            local rv, Sz = im.InputInt(ctx, '## font size ' .. It, D[It].FtSize or 12)
+                            if rv then
+                                D[It].FtSize = Sz
+                                if not _G['Font_Andale_Mono' .. '_' .. Sz] then
+                                    _G['Font_Andale_Mono' .. '_' .. Sz] = im.CreateFont('andale mono', Sz)
+                                    ChangeFont = D[It]
+                                else
+                                    D[It].Font = _G['Font_Andale_Mono' .. '_' .. Sz]
+                                end
                             end
                         end
                     end
+                    im.EndTable(ctx)
                 end
             end
 
@@ -1690,15 +1694,19 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 SL(CurX + WinSz - H *2.5)
                 im.PushFont(ctx, Font_Andale_Mono_20_B)
                 if im.Button(ctx, '+##'..i, H,H) then 
-
                     
                     for i, V in ipairs(Sel_Itms) do 
                         local FP = FX[FxGUID][V]
                         FP.Draw = FP.Draw or {}
                         local function Append()
-                            for i= 1, #TB.Draw do 
-                                table.insert(FP.Draw, TB.Draw[i])
-                            end
+                            table.insert(FP.Draw, TB.Draw)
+                            FP.Draw[#FP.Draw].Belong_To_Preset = TB.Name
+                           --[[  for i= 1, #TB.Draw do 
+                                table.insert(FP.Draw, TB.Draw)
+
+                                FP.Draw[#FP.Draw].Belong_To_Preset = TB.Name
+                                
+                            end ]]
                         end
                         Size_Synced_Properties(FP,TB, Append)
                         --[[ 
@@ -2337,6 +2345,21 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end 
             end 
 
+            local function Attach_New_Drawing_Btn()
+                if im.Button(ctx, 'attach a new drawing') then
+                    table.insert(FS.Draw, {})
+                end
+            end
+
+            local function Save_As_Style_Btn()
+                if im.Button(ctx, 'Save as a '..(FS.Type or ' ').. ' style') then 
+                    im.OpenPopup(ctx, 'Enter name for the style:')
+                    local x , y = im.GetCursorScreenPos(ctx)
+                    im.SetNextWindowPos(ctx, x ,y )
+                    im.SetNextWindowSize(ctx, 200, 100  )
+                end
+            end
+
 
             local openTree = im.TreeNode(ctx, 'Attach Drawing')
 
@@ -2346,72 +2369,117 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 MyText('('..#FS.Draw ..' Drawings )', nil, ThemeClr('Accent_Clr'))
             end
 
-            if openTree then
-                im.BeginChild(ctx, 'Attached Drawings',nil,nil,im.ChildFlags_AutoResizeY)
+            if  openTree then 
+
+                Attach_New_Drawing_Btn() SL(nil, 30)
+                Save_As_Style_Btn()
+                local BeganChild = im.BeginChild(ctx, 'Attached Drawings',nil,nil,im.ChildFlags_AutoResizeY)
                 FS.Draw = FS.Draw or {}
-                if RemoveDraw then
+                --[[ if RemoveDraw then
                     table.remove(FS.Draw, RemoveDraw)
                     RemoveDraw = nil
-                end
+                end ]]
                 local ClrFLG = im.ColorEditFlags_NoInputs + im.ColorEditFlags_AlphaPreviewHalf + im.ColorEditFlags_NoLabel + im.ColorEditFlags_AlphaBar
+                local function BypassBtn(D, i)
+                    SL()
+                    if im.Checkbox(ctx, 'Bypass##' .. i,D.Bypass) then
+                        D.Bypass = toggle(D.Bypass)
+                    end
+                end
+                local function DeleteBtn(i)
+                    if im.Button(ctx, 'Delete##' .. i) then
+                        table.remove(FS.Draw, i)
+                    end
+                end
 
-                for i, v in ipairs(FS.Draw)  do
+                local function Allow_Drag_To_Reorder(i, D)
+                    --[[ im.SmallButton( ctx, '-##'..i)
+                    if im.IsItemHovered(ctx) then 
+                        D.HighlightBullet = true 
+                    end 
 
-                    local D = FS.Draw[i]
-                    local LBL = FxGUID .. LE.Sel_Items[1] .. i
+                    if D.HighlightBullet then 
+                        Highlight_Itm(WDL, nil, 0xffffffff)
+                        if not im.IsItemHovered(ctx) then 
+                            D.HighlightBullet = nil 
+                        end 
+                        if im.IsItemClicked(ctx) then
+                            --im.SetDragDropPayload(ctx, 'Reorder Item attached drawings', D)
+                        end
+
+                    end  ]]
+
+                    if im.BeginDragDropSource(ctx) then 
+
+                        im.SetDragDropPayload(ctx, 'Reorder Item attached drawings', i)
+                        
+                        Reorder_Draw_Itm_SRC = {}
+                        for I, v in pairs(D) do 
+
+                            Reorder_Draw_Itm_SRC[I] = v
+                        end
+                        im.EndDragDropSource(ctx)
+                    end 
+                    if im.BeginDragDropTarget(ctx ) then
+
+                        local dropped, src = im.AcceptDragDropPayload(ctx, 'Reorder Item attached drawings') --
+                        if dropped then 
+                            table.remove ( FS.Draw, tonumber(src))
+
+                            table.insert(FS.Draw,  i, Reorder_Draw_Itm_SRC)
+                            --[[ for I, v in pairs(Reorder_Draw_Itm_SRC) do
+                                --D[I] = v
+                                table.insert(D,I, v)
+                            end ]]
+
+
+                            --FS.Draw[i] = Reorder_Draw_Itm
+                            Reorder_Draw_Itm_SRC=nil
+                        end 
+                        im.EndDragDropTarget(ctx)
+                        return true
+                    end
+                end
+
+                local function Drawing_Properties(v, i, Additional_LBL)
+
+
+                    local D = v or FS.Draw[i]
+                    local LBL =  FxGUID .. LE.Sel_Items[1] .. i .. (Additional_LBL or '')
                     local H = Glob.Height
                     local W = Win_W
 
                     im.AlignTextToFramePadding(ctx)
-                    local function Bullet_To_Reorder()
-                        im.SmallButton( ctx, '-##'..i)
-                        if im.IsItemHovered(ctx) then 
-                            D.HighlightBullet = true 
-                        end 
 
-                        if D.HighlightBullet then 
-                            Highlight_Itm(WDL, nil, 0xffffffff)
-                            if not im.IsItemHovered(ctx) then 
-                                D.HighlightBullet = nil 
-                            end 
-                            if im.IsItemClicked(ctx) then
-                                --im.SetDragDropPayload(ctx, 'Reorder Item attached drawings', D)
+                    local function Enclose_In_Preset()
+                        local last_item_in_preset = nil
+                        for j = #FS.Draw, 1, -1 do
+                            if FS.Draw[j].Belong_To_Preset == LAST_PRESET then
+                                last_item_in_preset = j
+                                break
                             end
-
-                        end 
-                        if im.BeginDragDropSource(ctx) then 
-
-                            im.SetDragDropPayload(ctx, 'Reorder Item attached drawings', i)
-                            
-                            Reorder_Draw_Itm_SRC = {}
-                            for I, v in pairs(D) do 
-                                Reorder_Draw_Itm_SRC[I] = v
-                            end
-                            im.EndDragDropSource(ctx)
-                        end 
-                        if im.BeginDragDropTarget(ctx ) then
-
-                            local dropped, src = im.AcceptDragDropPayload(ctx, 'Reorder Item attached drawings') --
-                            if dropped then 
-                                table.remove ( FS.Draw, tonumber(src))
-
-                                table.insert(FS.Draw,  i, Reorder_Draw_Itm_SRC)
-                                --[[ for I, v in pairs(Reorder_Draw_Itm_SRC) do
-                                    --D[I] = v
-                                    table.insert(D,I, v)
-                                end ]]
-
-
-                                --FS.Draw[i] = Reorder_Draw_Itm
-                                Reorder_Draw_Itm_SRC=nil
-                            end 
-                            im.EndDragDropTarget(ctx)
                         end
+
+                        --[[ if D.Belong_To_Preset and D.Belong_To_Preset ~= LAST_PRESET then 
+                            
+                            if im.TreeNode(ctx, 'Preset: ' .. D.Belong_To_Preset) then 
+                                return true , D.Belong_To_Preset, last_item_in_preset
+                            else 
+                                return nil, D.Belong_To_Preset, last_item_in_preset
+                            end
+                        elseif D.Belong_To_Preset and  D.Belong_To_Preset == LAST_PRESET then 
+
+                            return true, LAST_PRESET, last_item_in_preset
+
+                        end ]]
                     end
+
+
+
                     local function Set_Property (prop, val, trigger)
                         if trigger then 
                             for I, v in ipairs(LE.Sel_Items) do 
-                                FX[FxGUID][v].Draw[i][prop] = val
+                                D[prop] = val
                             end
                         end
                     end
@@ -2421,24 +2489,22 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         local rv, Clr = im.ColorEdit4(ctx, 'Color' .. LBL, D.Clr or 0xffffffff, ClrFLG)
                         Set_Property ('Clr', Clr, rv)
                     end 
-                    local function BypassBtn()
-                        SL()
-                        if im.Checkbox(ctx, 'Bypass##' .. i,D.Bypass) then
+
+                    local function Duplicate_Btn()
+                        if im.Button(ctx, 'Duplicate##' .. i) then
                             for I, v in ipairs(LE.Sel_Items) do 
-                                FX[FxGUID][v].Draw[i].Bypass = toggle(FX[FxGUID][v].Draw[i].Bypass)
-                            --[[  local copy = deepCopy(FX[FxGUID][v].Draw[i])
-                                table.insert(FX[FxGUID][v].Draw, copy) ]]
+                                local copy = deepCopy(D)
+                                table.insert(FX[FxGUID][v].Draw, copy)
                             end
                         end
                     end
 
-                    Bullet_To_Reorder()
-                    SL()
-                    local rv = im.TreeNode(ctx, 'Drawing ' .. i.. ' - ')
+                    im.SetNextItemWidth(ctx, -FLT_MIN - Color_Palette_Width)
+                    local Drawing_Tree = im.TreeNode(ctx, 'Drawing ' .. i.. ' - ## asdnjkasdn')
+                    local Drop_Hover = Allow_Drag_To_Reorder(i, D)
 
 
-                    SL()
-                    im.Text(ctx, ' Type:')
+                    ShowClrBtn()
                     SL()
                     im.SetNextItemWidth(ctx, 100)
 
@@ -2465,28 +2531,20 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                         im.EndCombo(ctx)
                     end
-                    BypassBtn()
+                    SL()
+
+
+                    BypassBtn(D, i)
 
                     SL(nil, 10)
-                    if im.Button(ctx, 'Delete##' .. i) then
-                        RemoveDraw = i
-                    end
+                    DeleteBtn( i )
                     SL(nil, 10)
 
-                    if im.Button(ctx, 'Duplicate##' .. i) then
-                        for I, v in ipairs(LE.Sel_Items) do 
-
-                            local copy = deepCopy(FX[FxGUID][v].Draw[i])
-                            table.insert(FX[FxGUID][v].Draw, copy)
-                        end
-                    end
+                    Duplicate_Btn()
 
                     
-                    ShowClrBtn()
-                    if rv then
-                        local function AddProp(ShownName, Name, width, sl, defaultV,
-                                                stepSize,
-                                                min, max, format)
+                    if Drawing_Tree then
+                        local function AddProp(ShownName, Name, width, sl, defaultV, stepSize, min, max, format)
                             if ShownName then
                                 im.Text(ctx, ShownName)
                                 SL()
@@ -2524,7 +2582,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         local function Set_Property (prop, val, trigger)
                             if trigger then 
                                 for I, v in ipairs(LE.Sel_Items) do 
-                                    FX[FxGUID][v].Draw[i][prop] = val
+                                    D[prop] = val
                                 end
                             end
                         end
@@ -2551,7 +2609,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
 
-                        if im.BeginTable(ctx, 'Attached Drawing Properties', 3, flags, -R_ofs) then
+                        if im.BeginTable(ctx, 'Attached Drawing Properties ##'.. i , 3, flags, -R_ofs) then
                             local function SetRowName(str, notTAB, TAB)
                                 im.TableSetColumnIndex(ctx, 0)
                                 if TAB then
@@ -2570,7 +2628,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             end
 
 
-                      
+                        
 
 
                             --[[ if im.IsItemHovered(ctx) then
@@ -2602,7 +2660,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                 if tweak_Drag and not D[Name .. '_GR'] then
                                     for I, v in ipairs ( LE.Sel_Items) do 
-                                        FX[FxGUID][v].Draw[i][Name] =  V
+                                        D[Name] =  V
                                     end 
                                     --[[ D[Name] = V ]]
                                 elseif tweak_Drag and D[Name .. '_GR'] then
@@ -2687,7 +2745,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end
 
                                 if SetRowName('Special Fill', nil, {'Circle'}) then
-    
+
                                     im.TableSetColumnIndex(ctx, 1)
                                     D.Clr2 = D.Clr2 or 0x888888ff
                                     local rv, Clr2 = im.ColorEdit4(ctx, 'Color2' .. LBL, D.Clr2 or 0xffffffff, ClrFLG)
@@ -2705,15 +2763,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                         im.TableNextRow(ctx)
 
                                     end
-    
-    
-    
-    
-                                   
-    
-    
+
+
+
+
+                                    
+
+
                                     im.TableNextRow(ctx)
-    
+
                                 end
                             end
 
@@ -2931,27 +2989,53 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                             im.EndTable(ctx)
                         end
-
+                        
 
                         im.TreePop(ctx)
                     end
 
+
+                end
+
+                local function Preset_Properties(v, i)
+                    im.Separator(ctx)
+
+                    local Clr = (v[#v].Clr  ) and Change_Clr_A( (v[#v].Clr or 0x22222233) , 0.1, 0.3) or 0x22222233
+                    im.PushStyleColor(ctx, im.Col_ChildBg, Clr)
+                    local BC = im.BeginChild(ctx, 'Preset Properties'..i, -FLT_MIN - Color_Palette_Width, nil,  im.ChildFlags_AutoResizeY)
+
+                    local OpenPresetTree =  im.TreeNode(ctx, (v.Belong_To_Preset or '') .. '##'..i) 
+                    local Drop_Hover = Allow_Drag_To_Reorder(i, v)
+
+                    SL(nil, 15 )
+                    BypassBtn(v, i)
+                    SL(nil, 15 )
+                    DeleteBtn(i)
+                    if OpenPresetTree then 
+                        
+                        for I, V in ipairs(v) do 
+                            Drawing_Properties(V, I, v.Belong_To_Preset )
+                        end
+                        im.TreePop(ctx)
+                    end
+                    im.PopStyleColor(ctx)
+
+                    if BC then
+                        im.EndChild(ctx)
+                    end
+
+                end
+
+                for i, v in ipairs(FS.Draw)  do
+                    if v[1] then  -- if this is a recalled preset
+                        Preset_Properties(v, i)
+                    else 
+                        Drawing_Properties(v, i)
+                    end
                 end
 
 
 
-
-                if im.Button(ctx, 'attach a new drawing') then
-                    table.insert(FS.Draw, {})
-                end
-
-                if im.Button(ctx, 'Save as a '..(FS.Type or ' ').. ' style') then 
-                    im.OpenPopup(ctx, 'Enter name for the style:')
-                    local x , y = im.GetCursorScreenPos(ctx)
-                    im.SetNextWindowPos(ctx, x ,y )
-                    im.SetNextWindowSize(ctx, 200, 100  )
-
-                end
                 if im.BeginPopupModal(ctx, 'Enter name for the style:') then
 
 
@@ -2969,9 +3053,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                     im.EndPopup(ctx)
                 end
-                im.EndChild(ctx)
-                im.TreePop(ctx)
-                
+                if BeganChild then
+                    im.EndChild(ctx)
+                end
+
+                if openTree then
+                    im.TreePop(ctx)
+                end
+            
             end
 
             
@@ -3052,6 +3141,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         end
 
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 6)
+
         im.SeparatorText( ctx, 'Text')
         Type()      
 
@@ -3078,6 +3168,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         im.PopStyleVar(ctx)
 
         im.PopStyleColor(ctx)
+
+
     end -------------------- End of Repeat for every selected item
     if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] then
         im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
@@ -3157,7 +3249,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
     local function Color_Palette()
 
-        local PalletteW = 25
+        local PalletteW = Color_Palette_Width
         local Pad = 8
         if not CloseLayEdit then
             w, h = im.GetWindowSize(ctx)
@@ -3182,10 +3274,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                 end
             end
+           
 
             local function Get_ALL_Used_Colors()
                 if FX[FxGUID] then 
-                    local Sel_Itm_Plt = {}
+                    local Plt = {}
 
                     for i, v in ipairs(FX[FxGUID]) do
                         --[[ local Is_Selected
@@ -3194,7 +3287,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 Is_Selected = true 
                             end
                         end ]]
-                        local Plt = --[[ Is_Selected and Sel_Itm_Plt  or]]  ClrPallet  
+
                         CheckClr(Plt, v.Lbl_Clr)
                         CheckClr(Plt, v.V_Clr)
                         CheckClr(Plt, v.BgClr)
@@ -3206,27 +3299,23 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 CheckClr(Plt, D.RPT_Clr)
                             end
                         end
+
+
                     end
-                    return Sel_Itm_Plt
+
+                    for i, v in ipairs(FX[FxGUID].Draw) do 
+                        CheckClr(Plt, v.clr)
+                    end
+                    return Plt
                 end
             end
 
 
 
-            local Sel_Itm_Plt = Get_ALL_Used_Colors()
+            ClrPallet = Get_ALL_Used_Colors()
+            
 
-            if FX.Win_Name_S[FX_Idx] then
-                if Draw[FX.Win_Name_S[FX_Idx]] then
-                    for i, v in ipairs(Draw[FX.Win_Name_S[FX_Idx]].clr) do
-                        local Clr = v
-                        if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
-                            if not tablefind(ClrPallet, Clr) and ClrPallet then
-                                table.insert(ClrPallet, Clr)
-                            end
-                        end
-                    end
-                end
-            end
+            
 
             for i, v in ipairs(ClrPallet) do
                 clrpick, LblColor1 = im.ColorEdit4(ctx, '##ClrPalette' ..i .. FxGUID, v, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
@@ -3319,104 +3408,142 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
     local DrawNum = RecallInfo(Ct, 'Number of attached drawings', Fx_P , 'Num')
 
-    if DrawNum then
+    if not DrawNum then return end
 
 
-        FP.Draw = FP.Draw or {}
-        for D = 1, DrawNum, 1 do
+    FP.Draw = FP.Draw or {}
+    local Child_Draw_ID = 0
+    local Parent_Draw_ID = 1
+    for D = 1, DrawNum, 1 do
+        local function RC(name, type, omit_if_0, index)
 
-            FP.Draw[D] = FP.Draw[D] or {}
-            local d = FP.Draw[D]
-         
-            local function RC(name, type, omit_if_0)
+            local out = RecallInfo(Ct, 'Draw Item ' .. (index or D) .. ': ' .. name, Fx_P, type)
+            if omit_if_0 and out == 0 then 
+                out = nil 
+            end
 
-                local out = RecallInfo(Ct, 'Draw Item ' .. D .. ': ' .. name, Fx_P, type)
-                if omit_if_0 and out == 0 then 
-                    out = nil 
+            return out
+        end
+        FP.Draw[Parent_Draw_ID] = FP.Draw[Parent_Draw_ID] or {}
+        local d = FP.Draw[Parent_Draw_ID]
+
+        d.Belong_To_Preset = RC('Under Preset')
+
+        local PDID = Parent_Draw_ID
+        
+
+
+        local Belong_To_Preset = RC('Under Preset')
+        if Belong_To_Preset then 
+            local last_Preset =  RC('Under Preset',nil,nil, D-1)
+            
+            if last_Preset and last_Preset == Belong_To_Preset then 
+                if d[1] then 
+
+
+                    table.insert(d, {})
+
+                    d = d[#d]
+                    Next_Preset = RC('Under Preset',nil,nil, D+1)
+                    if Next_Preset and Next_Preset ~= Belong_To_Preset then 
+                        Parent_Draw_ID = Parent_Draw_ID + 1
+                    end
                 end
+            else
 
-                return out
+                table.insert(d, {})
+                d = d[#d]
+                Next_Preset = RC('Under Preset',nil,nil, D+1)
+                if Next_Preset and Next_Preset ~= Belong_To_Preset then 
+                    Parent_Draw_ID = Parent_Draw_ID + 1
+                end
+                
             end
-            d.Type = RC('Type')
-            d.X_Offset = RC('X Offset', 'Num', true )
-            d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
-            d.X_Offset_VA_BP = RC('X Offset Value Affect BP', 'Bool')
-
-            d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
-            d.Y_Offset = RC('Y offset', 'Num', true)
-            d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
-            d.Y_Offset_VA = RC('Y Offset Value Affect BP', 'Num')
-
-            d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
-            d.Width = RC('Width', 'Num')
-            d.Width_SS = RC('Width SS', 'Bool')
-            d.Width_VA = RC('Width Value Affect', 'Num')
-            d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
-            d.Clr = RC('Color', 'Num')
-            d.Clr_VA = RC('Color_VA', 'Num')
-            d.FillClr = RC('Fill Color', 'Num')
-            d.Angle_Min = RC('Angle Min', 'Num')
-            d.Angle_Max = RC('Angle Max', 'Num')
-            d.Angle_Max_VA = RC('Angle Max VA', 'Num')
-
-            d.Angle_Max_VA_BP = RC('Angle Max VA BP', 'Bool')
-
-            d.Rad_In = RC('Radius Inner', 'Num')
-            d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
-            d.Rad_Out = RC('Radius Outer', 'Num')
-            d.Rad_Out_SS = RC('Radius Outer SS', 'Bool')
-            d.Height = RC('Height', 'Num')
-            d.Height_VA = RC('Height_VA', 'Num')
-            d.Height_SS = RC('Height SS', 'Bool')
-            d.Height_VA_GR = RC('Height_VA GR', 'Num')
-            d.Round = RC('Round', 'Num')
-            d.Thick = RC('Thick', 'Num')
-            d.Repeat = RC('Repeat', 'Num')
-            d.Repeat_VA = RC('Repeat_VA', 'Num')
-            d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
-            d.Y_Repeat = RC('Y_Repeat', 'Num')
-            d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
-            d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
-            d.Gap = RC('Gap', 'Num')
-            d.Gap_VA = RC('Gap_VA', 'Num')
-            d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
-            d.X_Gap = RC('X_Gap', 'Num')
-            d.X_Gap_VA = RC('X_Gap_VA', 'Num')
-            d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
-            d.Y_Gap = RC('Y_Gap', 'Num')
-            d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
-            d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
-            d.RPT_Clr = RC('RPT_Clr', 'Num')
-            d.RPT_Clr_VA = RC('RPT_Clr_VA', 'Num')
-            d.Fill = RC('Fill', 'Bool')
-            d.Texture_Angle = RC('Texture_Angle', 'Num')
-            d.Gradient_Start = RC('Gradient_Start', 'Num')
-            d.Special_Fill = RC('Special_Fill')
-            d.Clr2 = RC('Color2', 'Num')
-            d.RPT_Clr2 = RC('RPT_Clr2', 'Num')
-
-
-            if d.Type and  d.Type:find('Filled') then 
-                d.Fill = true 
-            end
-
-
-            local path = RC('Image_Path')
-
-            if path and path~='nil' then
-                d.AtchImgFileNm = path
-                d.AtchImgFileNm = TruncatePath(path)
-
-                local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Attached Drawings',d.AtchImgFileNm )
-               
-
-                d.Image = im.CreateImage(dir_path)
-                im.Attach(ctx, d.Image)
-            end
+        else 
+            Parent_Draw_ID = Parent_Draw_ID + 1
         end
 
-        return FP.Draw
+
+        d.Type = RC('Type')
+        d.X_Offset = RC('X Offset', 'Num', true )
+        d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
+        d.X_Offset_VA_BP = RC('X Offset Value Affect BP', 'Bool')
+
+        d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
+        d.Y_Offset = RC('Y offset', 'Num', true)
+        d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
+        d.Y_Offset_VA = RC('Y Offset Value Affect BP', 'Num')
+
+        d.Y_Offset_VA_GR = RC('Y Offset Value Affect GR', 'Num')
+        d.Width = RC('Width', 'Num')
+        d.Width_SS = RC('Width SS', 'Bool')
+        d.Width_VA = RC('Width Value Affect', 'Num')
+        d.Width_VA_GR = RC('Width Value Affect GR', 'Num')
+        d.Clr = RC('Color', 'Num')
+        d.Clr_VA = RC('Color_VA', 'Num')
+        d.FillClr = RC('Fill Color', 'Num')
+        d.Angle_Min = RC('Angle Min', 'Num')
+        d.Angle_Max = RC('Angle Max', 'Num')
+        d.Angle_Max_VA = RC('Angle Max VA', 'Num')
+
+        d.Angle_Max_VA_BP = RC('Angle Max VA BP', 'Bool')
+
+        d.Rad_In = RC('Radius Inner', 'Num')
+        d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
+        d.Rad_Out = RC('Radius Outer', 'Num')
+        d.Rad_Out_SS = RC('Radius Outer SS', 'Bool')
+        d.Height = RC('Height', 'Num')
+        d.Height_VA = RC('Height_VA', 'Num')
+        d.Height_SS = RC('Height SS', 'Bool')
+        d.Height_VA_GR = RC('Height_VA GR', 'Num')
+        d.Round = RC('Round', 'Num')
+        d.Thick = RC('Thick', 'Num')
+        d.Repeat = RC('Repeat', 'Num')
+        d.Repeat_VA = RC('Repeat_VA', 'Num')
+        d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
+        d.Y_Repeat = RC('Y_Repeat', 'Num')
+        d.Y_Repeat_VA = RC('Y_Repeat_VA', 'Num')
+        d.Y_Repeat_VA_GR = RC('Y_Repeat_VA GR', 'Num')
+        d.Gap = RC('Gap', 'Num')
+        d.Gap_VA = RC('Gap_VA', 'Num')
+        d.Gap_VA_GR = RC('Gap_VA GR', 'Num')
+        d.X_Gap = RC('X_Gap', 'Num')
+        d.X_Gap_VA = RC('X_Gap_VA', 'Num')
+        d.X_Gap_VA_GR = RC('X_Gap_VA GR', 'Num')
+        d.Y_Gap = RC('Y_Gap', 'Num')
+        d.Y_Gap_VA = RC('Y_Gap_VA', 'Num')
+        d.Y_Gap_VA_GR = RC('Y_Gap_VA GR', 'Num')
+        d.RPT_Clr = RC('RPT_Clr', 'Num')
+        d.RPT_Clr_VA = RC('RPT_Clr_VA', 'Num')
+        d.Fill = RC('Fill', 'Bool')
+        d.Texture_Angle = RC('Texture_Angle', 'Num')
+        d.Gradient_Start = RC('Gradient_Start', 'Num')
+        d.Special_Fill = RC('Special_Fill')
+        d.Clr2 = RC('Color2', 'Num')
+        d.RPT_Clr2 = RC('RPT_Clr2', 'Num')
+
+
+        if d.Type and  d.Type:find('Filled') then 
+            d.Fill = true 
+        end
+
+
+        local path = RC('Image_Path')
+
+        if path and path~='nil' then
+            d.AtchImgFileNm = path
+            d.AtchImgFileNm = TruncatePath(path)
+
+            local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Attached Drawings',d.AtchImgFileNm )
+            
+
+            d.Image = im.CreateImage(dir_path)
+            im.Attach(ctx, d.Image)
+        end
     end
+
+    return FP.Draw
+
 end
 
 function Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
@@ -6063,84 +6190,128 @@ end
 function Save_Attached_Drawings(FP, file,Fx_P)
 
     if FP.Draw then
-        if Fx_P then 
-            file:write(Fx_P.. '. Number of attached drawings = ', #FP.Draw or '', '\n')
-        else
-            file:write('Number of attached drawings = ', #FP.Draw or '', '\n')
-        end
-        for D, v in ipairs(FP.Draw) do
-            
-            local function WRITE(name, val)
-                local val = tostring(val)
-                if val =='nil' then val = nil end 
-                if Fx_P then 
-                    file:write(Fx_P..'. Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
-                else
-                    file:write('Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
+        local function Save_total_number_of_drawings()
+            local Index = 0
+            for D, v in ipairs(FP.Draw) do
+                if v[1] then 
+                    for I, V in ipairs(v) do 
+                        Index = Index + 1 
+                    end
+                else 
+                    Index = Index + 1 
                 end
             end
-            WRITE('Type', v.Type)
-            WRITE('X Offset', v.X_Offset)
-            WRITE('X Offset Value Affect', v.X_Offset_VA)
-            WRITE('X Offset Value Affect BP', v.X_Offset_VA)
 
-            WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
-            WRITE('Y offset', v.Y_Offset)
-            WRITE('Y Offset Value Affect', v.Y_Offset_VA)
-            WRITE('Y Offset Value Affect BP', v.Y_Offset_VA)
+            if Fx_P then 
+                file:write(Fx_P.. '. Number of attached drawings = ', Index or '', '\n')
+            else
+                file:write('Number of attached drawings = ', Index or '', '\n')
+            end
+        end
 
-            WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
-            WRITE('Width', v.Width)
-            WRITE('Width SS', v.Width_SS)
-            WRITE('Width Value Affect', v.Width_VA)
-            WRITE('Width Value Affect GR', v.Y_Offset_VA_GR)
-            WRITE('Color', v.Clr)
-            WRITE('Color_VA', v.Clr_VA)
-            WRITE('Fill Color', v.FillClr)
-            WRITE('Angle Min', v.Angle_Min)
-            WRITE('Angle Max', v.Angle_Max)
-            WRITE('Angle Max VA', v.Angle_Max_VA)
-            WRITE('Angle Max VA BP', v.Angle_Max_VA_BP)
+        Save_total_number_of_drawings()         
+        local Index = 1 
+        for D, v in ipairs(FP.Draw) do
+            
+            
+            local function Save_All_Info(Index, V )
+                local D = Index and Index or D 
 
-            WRITE('Radius Inner', v.Rad_In)
-            WRITE('Radius Inner SS', v.Rad_In_SS)
-            WRITE('Radius Outer', v.Rad_Out)
-            WRITE('Radius Outer SS', v.Rad_Out_SS)
-            WRITE('Thick', v.Thick)
-            WRITE('Height', v.Height)
-            WRITE('Height SS', v.Height_SS)
+                local v = V or v
+                local function WRITE(name, val, Index)
+                    local D = Index and Index or D 
+    
+                    local val = tostring(val)
+                    if val =='nil' then val = nil end 
 
-            WRITE('Height_VA', v.Height_VA)
-            WRITE('Height_VA GR', v.Height_VA_GR)
-            WRITE('Round', v.Round)
-            WRITE('Repeat', v.Repeat)
-            WRITE('Repeat_VA', v.Repeat_VA)
-            WRITE('Repeat_VA GR', v.Repeat_VA_GR)
-            WRITE('Y_Repeat', v.Y_Repeat)
-            WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
-            WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
-            WRITE('Gap', v.Gap)
-            WRITE('Gap_VA', v.Gap_VA)
-            WRITE('Gap_VA GR', v.Gap_VA_GR)
-            WRITE('X_Gap', v.X_Gap)
-            WRITE('X_Gap_VA', v.X_Gap_VA)
-            WRITE('X_Gap_VA GR', v.X_Gap_VA_GR)
-            WRITE('Y_Gap', v.Y_Gap)
-            WRITE('Y_Gap_VA', v.Y_Gap_VA)
-            WRITE('Y_Gap_VA GR', v.Y_Gap_VA_GR)
-            WRITE('RPT_Clr', v.RPT_Clr)
-            WRITE('RPT_Clr_VA', v.RPT_Clr_VA)
-            WRITE('Image_Path', v.AtchImgFileNm)
-            WRITE('Fill', v.Fill)
-            if v.Type=='Circle' then 
-                WRITE('RPT_Clr2', v.RPT_Clr2)
-                WRITE('Color2', v.Clr2)
-                WRITE('Special_Fill', v.Special_Fill)
-                WRITE('Texture_Angle', v.Texture_Angle)
-                WRITE('Gradient_Start', v.Gradient_Start)
+                    if not val or val ==false or val == 0 or val == '0.0' or val =='false' then return end 
+    
+                    if Fx_P then 
+                        file:write(Fx_P..'. Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
+                    else
+                        file:write('Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
+                    end
+                end
+
+
+
+                WRITE('Type', v.Type)
+                WRITE('X Offset', v.X_Offset)
+                WRITE('X Offset Value Affect', v.X_Offset_VA)
+                WRITE('X Offset Value Affect BP', v.X_Offset_VA_BP) 
+
+                WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
+                WRITE('Y offset', v.Y_Offset)
+                WRITE('Y Offset Value Affect', v.Y_Offset_VA)
+                WRITE('Y Offset Value Affect BP', v.Y_Offset_VA_BP)
+
+                WRITE('Y Offset Value Affect GR', v.Y_Offset_VA_GR)
+                WRITE('Width', v.Width)
+                WRITE('Width SS', v.Width_SS)
+                WRITE('Width Value Affect', v.Width_VA)
+                WRITE('Width Value Affect GR', v.Y_Offset_VA_GR)
+                WRITE('Color', v.Clr)
+                WRITE('Color_VA', v.Clr_VA)
+                WRITE('Fill Color', v.FillClr)
+                WRITE('Angle Min', v.Angle_Min)
+                WRITE('Angle Max', v.Angle_Max)
+                WRITE('Angle Max VA', v.Angle_Max_VA)
+                WRITE('Angle Max VA BP', v.Angle_Max_VA_BP)
+
+                WRITE('Radius Inner', v.Rad_In)
+                WRITE('Radius Inner SS', v.Rad_In_SS)
+                WRITE('Radius Outer', v.Rad_Out)
+                WRITE('Radius Outer SS', v.Rad_Out_SS)
+                WRITE('Thick', v.Thick)
+                WRITE('Height', v.Height)
+                WRITE('Height SS', v.Height_SS)
+
+                WRITE('Height_VA', v.Height_VA)
+                WRITE('Height_VA GR', v.Height_VA_GR)
+
+                WRITE('Round', v.Round)
+                WRITE('Repeat', v.Repeat)
+                WRITE('Repeat_VA', v.Repeat_VA)
+                WRITE('Repeat_VA GR', v.Repeat_VA_GR)
+                WRITE('Y_Repeat', v.Y_Repeat)
+                WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
+                WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
+                WRITE('Gap', v.Gap)
+                WRITE('Gap_VA', v.Gap_VA)
+                WRITE('Gap_VA GR', v.Gap_VA_GR)
+                WRITE('X_Gap', v.X_Gap)
+                WRITE('X_Gap_VA', v.X_Gap_VA)
+                WRITE('X_Gap_VA GR', v.X_Gap_VA_GR)
+                WRITE('Y_Gap', v.Y_Gap)
+                WRITE('Y_Gap_VA', v.Y_Gap_VA)
+                WRITE('Y_Gap_VA GR', v.Y_Gap_VA_GR)
+                WRITE('RPT_Clr', v.RPT_Clr)
+                WRITE('RPT_Clr_VA', v.RPT_Clr_VA)
+                WRITE('Image_Path', v.AtchImgFileNm)
+                WRITE('Fill', v.Fill)
+                if v.Type=='Circle' then 
+                    WRITE('RPT_Clr2', v.RPT_Clr2)
+                    WRITE('Color2', v.Clr2)
+                    WRITE('Special_Fill', v.Special_Fill)
+                    WRITE('Texture_Angle', v.Texture_Angle)
+                    WRITE('Gradient_Start', v.Gradient_Start)
+                end
             end
 
 
+            if v[1] then 
+                for I, V in ipairs(v) do 
+                    file:write(Fx_P..'. Draw Item ' .. Index .. ': ' .. 'Under Preset' ..' = ', v.Belong_To_Preset or '' ,'\n')
+
+                    Save_All_Info(Index, V)
+                    Index = Index + 1 
+
+                end
+            else 
+                Save_All_Info(Index)
+                Index = Index + 1 
+
+            end
         end
     end
 end

@@ -1567,9 +1567,10 @@ end
 ---@param CLR number
 ---@param HowMuch number
 ---@return integer
-function Change_Clr_A(CLR, HowMuch)
+function Change_Clr_A(CLR, HowMuch, SetDirect)
     local R, G, B, A = im.ColorConvertU32ToDouble4(CLR)
-    local A = SetMinMax(A + HowMuch, 0, 1)
+    local A =SetDirect and SetDirect or SetMinMax(A + HowMuch, 0, 1)
+
     return im.ColorConvertDouble4ToU32(R, G, B, A)
 end
 
@@ -1891,6 +1892,7 @@ end
 function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                             
     if not FP.Draw  then return end
+
     local prm = FP
     
     local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
@@ -1901,10 +1903,10 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
         Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
     end
 
-    
 
-    
-    for i, v in ipairs(FP.Draw) do
+
+    local function Draw(v)
+        
         if v.Bypass then goto END_OF_LOOP end 
         local fill = v.Fill ==true  and 'Filled' 
 
@@ -2239,6 +2241,17 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
         end
 
         ::END_OF_LOOP::
+    end
+    for i, v in ipairs(FP.Draw) do
+        if type(v)== 'table' then 
+             
+            for I, V in ipairs(v) do 
+                if not  v.Bypass then 
+                    Draw(V)
+                end
+            end 
+            Draw(v)
+        end
     end
 
 end
@@ -5365,6 +5378,7 @@ function Draw_Background(FxGUID)
                 im.DrawList_AddCircleFilled(WDL, L, T, D.R,
                     D.clr or 0xffffffff)
             elseif D.Type == 'Text' and D.Txt then
+                
                 im.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
                     D.FtSize or 13, L, T, D.clr or 0xffffffff, D.Txt)
             elseif D.Type == 'Picture' then
