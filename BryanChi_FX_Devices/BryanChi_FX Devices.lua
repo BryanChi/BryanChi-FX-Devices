@@ -2621,7 +2621,7 @@ function loop()
             local track = r.GetTrack(0, T)
             local TrkID = r.GetTrackGUID(track)
             for i, v in ipairs(MacroNums) do
-                if Trk[TrkID].Mod[i].Val ~= nil then
+                if Trk[TrkID].Mod and Trk[TrkID].Mod[i].Val ~= nil then
                     r.SetProjExtState(0, 'FX Devices', 'Macro' .. i .. 'Value of Track' .. TrkID, Trk[TrkID].Mod[i].Val)
                 end
             end
