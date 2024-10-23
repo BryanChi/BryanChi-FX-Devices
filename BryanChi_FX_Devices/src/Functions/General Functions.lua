@@ -608,17 +608,20 @@ function extractSpecificPrmProperty(Str, Fx_P, Id, Type)
 end
 
 function extract_prm_sections(text, Fx_P)
+
     local start = '-----------------Prm ' ..Fx_P.. '-----------------\n'
 
     local END = '-----------------Prm ' ..(Fx_P+1)..'-----------------\n'
 
     -- Find positions for the exact section
     local stPos, stEnd = text:find(start, 1 , true )
-    local edPos, edEnd = text:find(END, stPos + #start, true)
 
     if not stPos then
         return nil -- If the start is not found, return nil
     end
+
+
+    local edPos, edEnd = text:find(END, stPos + #start, true)
 
 
     if not edPos then

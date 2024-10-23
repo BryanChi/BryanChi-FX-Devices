@@ -1,16 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.1
+-- @version 1.0beta16.5.2
 -- @changelog
---  - 9 New layouts made by todoublez  ( 7 UAD plugins + Basslane Pro + bx_2098 EQ)
---  - Added new icon for 'Record Last Touch'
---  - added new layouts: Transmutator (JMGSound) and kHs Flanger (Kilohearts)
---  - Layout Editor: Can now create analog style knobs in attached drawings using the new parameters for circles : Special Fill - Gradient and metallic
---  - Layout Editor: Added attached presets now goes into it's own tree when added by clicking the plus button.
---  - Layout Editor: Optimized attached drawings saving process so only changed parameters are saved.
---  - Layout Editor: Fixed some bipolar settings in attached drawings are not being saved.
---  - Layout Editor: Fixed unused colors not being deleted from the color palette.
---  - Layout Editor Background: Fixed Adding new text not showing up in Background edit mode.
+--  - Many new layouts by todoublez. 
+--  - Many new available pngs for knobs and switches provided by todoublez.
+--  - Layout Editor: Fixed bug where children attached drawings size sync are not working.
+--  - Layout Editor: Fixed bug where attached drawings pictures are not recalled when loading a layout.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -18,25 +13,7 @@
 --   src/Fonts/*.ttf
 --   src/Functions/*.lua
 --   src/FX Layout Plugin Scripts/*.lua
---   src/FX Layouts/ReaComp (Cockos).ini
---   src/FX Layouts/ValhallaDelay (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaFreqEcho (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaShimmer (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaSpaceModulator (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaSupermassive (Valhalla DSP, LLC).ini
---   src/FX Layouts/ValhallaVintageVerb (Valhalla DSP, LLC).ini
---   src/FX Layouts/kHs Flanger (Kilohearts).ini
---   src/FX Layouts/Transmutator (JMGSound).ini
---   src/FX Layouts/kHs Phase Distortion (Kilohearts).ini
---   src/FX Layouts/UAD UA 1176LN Rev E (Universal Audio, Inc.).ini
---   src/FX Layouts/UAD UA 1176AE (Universal Audio, Inc.).ini
---   src/FX Layouts/UAD UA 1176 Rev A (Universal Audio, Inc.).ini
---   src/FX Layouts/UAD UA 1176LN Legacy (Universal Audio, Inc.).ini
---   src/FX Layouts/UAD Teletronix LA-2A Legacy (Universal Audio, Inc.).ini
---   src/FX Layouts/Basslane Pro (Tone Projects).ini
---   src/FX Layouts/bx_2098 EQ (Plugin Alliance).ini
---   src/FX Layouts/UAD Fairchild 670 (Universal Audio, Inc.).ini
---   src/FX Layouts/UAD Neve 33609 C (Universal Audio, Inc.).ini
+--   src/FX Layouts/*.ini
 --   src/FXChains/ReaDrum Machine.RfxChain
 --   src/Images/*.png
 --   src/Images/Backgrounds/*.png
