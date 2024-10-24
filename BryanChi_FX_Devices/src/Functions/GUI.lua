@@ -594,7 +594,7 @@ function Button_Color_Change(trigger, color )
 end
 
 
-function Draw_A_Cursor_Shape( x, y, scale, col, angle )
+function Draw_A_Cursor_Shape( x, y, scale, col, angle, width, concavity )
     local function rotatePoint(x, y, center_x, center_y, theta)
         local cos_theta = math.cos(theta)
         local sin_theta = math.sin(theta)
@@ -613,13 +613,13 @@ function Draw_A_Cursor_Shape( x, y, scale, col, angle )
 
     local  tx = x    ;
     local  ty = y -2.5 * scale ;
-    local  rbx = x + 2 * scale ;
+    local  rbx = x + width * scale ;
     local  rby = y + 3 * scale;
     local  bx = x ;
-    local  by = y + 2 * scale;
-    local  lbx = x - 2 * scale ;
+    local  by = y + (2 - concavity) * scale;  -- Adjust the bottom point based on concavity
+    local  lbx = x - width * scale ;
     local  lby = y + 3 * scale ;
-    local WDL = im.GetForegroundDrawList(ctx)
+    local WDL = im.GetWindowDrawList(ctx)
 
      -- Rotate each point around the center (x, y) by theta
     local tx, ty = rotatePoint(tx, ty, x, y, angle)
@@ -836,7 +836,7 @@ end
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
 
     im.SetNextItemWidth(ctx, 40)
-    local radius_outer = 10
+    local radius_outer = WET_DRY_KNOB_SZ/2
     local pos = { im.GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
     local CircleClr
@@ -855,8 +855,7 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
         Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx] or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
 
-        im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 +
-            item_inner_spacing[2])
+        im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 + item_inner_spacing[2])
 
         local value_changed = false
         local is_active = im.IsItemActive(ctx)
@@ -921,6 +920,8 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
 
         if FX[FxGUID].DeltaP_V ~= 1 then
+            --im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, 0x444444ff, 16)
+
             im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
             im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
                 center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
@@ -1019,57 +1020,74 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end 
     end
     local function Push_Clr()
+        im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'))
 
         if FX[FxGUID].TitleClr then
-            WinbtnClrPop = 3
             if not FX[FxGUID].TitleClrHvr then
-                FX[FxGUID].TitleClrAct, FX[FxGUID].TitleClrHvr = Generate_Active_And_Hvr_CLRs(
-                    FX[FxGUID].TitleClr)
+                FX[FxGUID].TitleClrAct, FX[FxGUID].TitleClrHvr = Generate_Active_And_Hvr_CLRs( FX[FxGUID].TitleClr)
             end
-            im.PushStyleColor(ctx, im.Col_ButtonHovered,
-                FX[FxGUID].TitleClrHvr or 0x22222233)
-            im.PushStyleColor(ctx, im.Col_ButtonActive,
-                FX[FxGUID].TitleClrAct or 0x22222233)
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, FX[FxGUID].TitleClrHvr or 0x22222233)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, FX[FxGUID].TitleClrAct or 0x22222233)
         else
-            WinbtnClrPop = 1
-        end
-        im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID].TitleClr or 0x22222233)
-    end
+            local Hvr, Act = Generate_Active_And_Hvr_CLRs( ThemeClr('FX_Title_Clr'))
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, Hvr )
+            im.PushStyleColor(ctx, im.Col_ButtonActive, Act )
 
+           
+        end 
+        WinbtnClrPop = 3
+
+    end
+    local function Rpt_If_Multi_Select_FX (func, ...)
+        if If_Multi_Select_FX(FxGUID) then 
+            for i, v in ipairs(Trk[TrkID].SelFX) do 
+                local idx = Find_FxID_By_GUID(v)
+                func(..., idx )
+            end
+            return true 
+        end
+    end
 
     Push_Clr()
     local WindowBtn 
+    local function Add_Prm_Btn()
+        
+        if im.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
+            fx.TtlHvr = true
+            if not CantAddPrm then
+                TtlR, TtlB = im.GetItemRectMax(ctx)
+                local L, T = TtlR - WET_DRY_KNOB_SZ * 1.25 , TtlB - WET_DRY_KNOB_SZ*0.95
+                local TtlB , TtlR    = TtlB - (WET_DRY_KNOB_SZ*0.05), TtlR - (WET_DRY_KNOB_SZ*0.25)
+                local sz = WET_DRY_KNOB_SZ * 0.9
+
+                if im.IsMouseHoveringRect(ctx, L, T,  TtlR ,TtlB ) then
+                    im.DrawList_AddRectFilled(WDL, L, T,  TtlR ,TtlB , ThemeClr('FX_Title_Clr'))
+                    im.DrawList_AddRect(WDL, L, T,  TtlR ,TtlB , getClr(im.Col_Text))
+                    im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, sz, TtlR - 15, TtlB - sz, getClr(im.Col_Text), '+')
+                    if IsLBtnClicked then
+                        im.OpenPopup(ctx, 'Add Parameter' .. FxGUID)
+                        im.SetNextWindowPos(ctx, TtlR, TtlB)
+                        AddPrmPopupOpen = FxGUID
+                    end
+                end
+            end
+        else
+            fx.TtlHvr = nil
+        end
+    end
     
 
     if (not fx.Collapse and not fx.V_Win_Btn_Height or isContainer) or NoVert then
         if not fx.NoWindowBtn then
             local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
             if DebugMode then Name = FxGUID end
-            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,
-                (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)  - 38, 20) -- create window name button
+            local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
+            im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
+            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
+            im.PopStyleVar(ctx)
 
+            Add_Prm_Btn()
 
-            if im.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
-                fx.TtlHvr = true
-                if not CantAddPrm then
-                    TtlR, TtlB = im.GetItemRectMax(ctx)
-                    if im.IsMouseHoveringRect(ctx, TtlR - 20, TtlB - 20, TtlR, TtlB) then
-                        im.DrawList_AddRectFilled(WDL, TtlR, TtlB, TtlR - 20, TtlB - 20,
-                            getClr(im.Col_ButtonHovered))
-                        im.DrawList_AddRect(WDL, TtlR, TtlB, TtlR - 20, TtlB - 19,
-                            getClr(im.Col_Text))
-                        im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, 20, TtlR - 15,
-                            TtlB - 20, getClr(im.Col_Text), '+')
-                        if IsLBtnClicked then
-                            im.OpenPopup(ctx, 'Add Parameter' .. FxGUID)
-                            im.SetNextWindowPos(ctx, TtlR, TtlB)
-                            AddPrmPopupOpen = FxGUID
-                        end
-                    end
-                end
-            else
-                fx.TtlHvr = nil
-            end
         end
 
     elseif (fx.V_Win_Btn_Height and not fx.Collapse) then
@@ -1097,7 +1115,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
 
 
-    HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
+    --HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
 
     -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
     local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
@@ -1164,15 +1182,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end 
     end
 
-    local function Rpt_If_Multi_Select_FX (func, ...)
-        if If_Multi_Select_FX(FxGUID) then 
-            for i, v in ipairs(Trk[TrkID].SelFX) do 
-                local idx = Find_FxID_By_GUID(v)
-                func(..., idx )
-            end
-            return true 
-        end
-    end
+
 
     if FX.LayEdit ~=FxGUID then 
         
@@ -1943,27 +1953,15 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
         
         local Thick             = (v.Thick or 2)
         local Gap, X_Gap, Y_Gap = v.Gap, v.X_Gap, v.Y_Gap
-        local Clr_VA
-        if v.Clr_VA then
-            Clr_VA = BlendColors(v.Clr or 0xffffffff, v.Clr_VA, Val)
-        end
+        local Clr_VA = v.Clr_VA and  BlendColors(v.Clr or 0xffffffff, v.Clr_VA, Val)
 
-        if v.X_Gap_VA and v.X_Gap_VA ~= 0 then
-            X_Gap = (v.X_Gap or 0) * Val * v.X_Gap_VA
-        end
-        if v.Y_Gap_VA and v.Y_Gap_VA ~= 0 then
-            Y_Gap = (v.Y_Gap or 0) * Val * v.Y_Gap_VA
-        end
+        local X_Gap = (v.X_Gap_VA and v.X_Gap_VA ~= 0) and (v.X_Gap or 0) * Val * v.X_Gap_VA or (v.X_Gap or 0)
+        local Y_Gap = (v.Y_Gap_VA and v.Y_Gap_VA ~= 0) and (v.Y_Gap or 0) * Val * v.Y_Gap_VA or (v.Y_Gap or 0)
+        local Gap = (v.Gap_VA and v.Gap_VA ~= 0 and v.Gap) and v.Gap * Val * v.Gap_VA or v.Gap
+        local Thick = (v.Thick_VA and v.Thick_VA ~= 0) and (v.Thick or 2) * (v.Thick_VA * Val) or (v.Thick or 2)
 
-        if v.Gap_VA and v.Gap_VA ~= 0 and v.Gap then
-            Gap = v.Gap * Val * v.Gap_VA
-        end
-
-        if v.Thick_VA then
-            Thick = (v.Thick or 2) * (v.Thick_VA * Val)
-        end
-
-        if v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled' then
+        local function Draw_Line_Or_Rect(v)
+            if not  (v.Type == 'Line' or v.Type == 'Rect' or v.Type == 'Rect Filled') then return end
             if   v.Type == 'Rect' or v.Type == 'Rect Filled' then
                 v.Width, v.Height =v.Width or im.GetItemRectSize(ctx), v.Height or select(2, im.GetItemRectSize(ctx))
             elseif v.Type == 'Line'  then
@@ -2034,7 +2032,12 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
                 im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
             end
-        elseif v.Type == 'Circle' or v.Type == 'Circle Filled' then
+
+            
+        end
+
+        local function Draw_Circles(v)
+            if not (v.Type == 'Circle' or v.Type == 'Circle Filled') then return end
             local w, h = 10
             if FP.Type == 'Knob' or Prm_Type =='Knob' then
                 w, h = r .ImGui_GetItemRectSize(ctx)
@@ -2081,7 +2084,11 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
                 im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
             end
-        elseif v.Type == 'Knob Pointer' or v.Type == 'Knob Range' or v.Type == 'Knob Image' or v.Type == 'Knob Circle'or v.Type == 'Knob Circle Filled' then
+        end
+
+        local function Draw_Knob_Pointer_Or_Range_Or_Image(v)
+            local types = {'Knob Pointer', 'Knob Range', 'Knob Circle Filled', 'Knob Circle', 'Knob Image', 'Knob Numbers'}
+            if not tablefind(types, v.Type) then return end
             local w, h = im.GetItemRectSize(ctx)
             local h = w 
             local x, y = x + w / 2 + (v.X_Offset or 0), y + w / 2 + (v.Y_Offset or 0)
@@ -2099,14 +2106,45 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
             local OUT = v.Rad_Out or 0
             local Def_W = w / 2 
             local W = v.Width or Def_W
-
+            
             if v.Type == 'Knob Pointer' then
-                im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
-            elseif v.Type == 'Knob Range' then
+               -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+                local function drawTrianglePointer(triangleWidth)
+                    local triangleSize = (OUT - IN) * 0.6 -- Reduced size for a shorter triangle
+                    local tipX, tipY = x + angle_cos * OUT, y + angle_sin * OUT
+                    local baseX, baseY = x + angle_cos * IN, y + angle_sin * IN
+                    local perpX, perpY = -angle_sin, angle_cos
+                    local WID = triangleWidth or 0.45 -- Width of the triangle base, default to 0.45 if not provided
+
+                    local leftX = baseX + perpX * triangleSize * WID
+                    local leftY = baseY + perpY * triangleSize * WID
+                    local rightX = baseX - perpX * triangleSize * WID
+                    local rightY = baseY - perpY * triangleSize * WID
+                    
+                    im.DrawList_AddTriangleFilled(WDL, tipX, tipY, leftX, leftY, rightX, rightY, Clr_VA or v.Clr or 0x999999aa)
+                end
+
+                if not v.Pointer_Type or v.Pointer_Type == 'Line'   then
+                    im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+                elseif v.Pointer_Type == 'Cursor' then
+               -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+                    
+                    local pointerSize = (OUT - IN) * 0.2
+                    local pointerX = x + angle_cos * (OUT - pointerSize)
+                    local pointerY = y + angle_sin * (OUT - pointerSize)  
+                    local pointerColor = Clr_VA or v.Clr or 0x999999aa
+                    local pointerAngle = angle + math.pi / 2 -- Adjust angle to point away from the center
+
+                    Draw_A_Cursor_Shape(pointerX, pointerY, pointerSize, pointerColor, pointerAngle, v.Thick or 0.45, v.Shape or 0.45)
+                elseif v.Pointer_Type == 'Triangle' then
+                    drawTrianglePointer(v.Thick or 0.45)
+                end
+            
+            elseif v.Type == 'Knob Range' or v.Type =='Knob Numbers' then
                 local function AddRange(G)
                     if  v.Repeat and v.Repeat~= 0 then 
-                        local rpt = (v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
-                        local gap = (v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1   
+                        local rpt = (v.Repeat_VA and v.Repeat_VA~= 0) and Val * v.Repeat_VA or 1
+                        local gap = (v.Gap_VA and v.Gap_VA~= 0) and Val * v.Gap* v.Gap_VA or 1   
 
 
                         
@@ -2114,20 +2152,25 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                             local t = (i/v.Repeat- 0) / (1 - 0)
                             local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
                             local ANGLE_MAX = ANGLE_MAX
-
+                            if v.Type == 'Knob Numbers' then VV = 1 end 
                             ANGLE_MAX = (v.Angle_Max_VA and v.Angle_Max_VA~=0) and ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN)   * (VV * v.Angle_Max_VA) or ANGLE_MAX
-
-
-
                             local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                            
-
                             local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
 
                             local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
                             local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
                             local Clr = BlendColors(v.Clr or 0xffffffff, v.RPT_Clr or 0xff33ffff, i / v.Repeat)
-                            im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
+                            if v.Type == 'Knob Numbers' then
+                                local hi, lo = v.Value_Range_High or v.Repeat, v.Value_Range_Low or 0
+                                local val =  (i / v.Repeat) * (hi - lo) + lo
+                                local val = round(val, v.Decimal_Places or 1)
+                                if v.Decimal_Places == 0 or not v.Decimal_Places then
+                                    val = math.floor(val)
+                                end
+                                im.DrawList_AddTextEx(WDL, Arial_12, 12, x1, y1, Clr or v.Clr or 0x999999aa, tostring(val))
+                            else
+                                im.DrawList_AddLine(WDL, x1, y1, x2, y2, Clr or v.Clr or 0x999999aa, Thick)
+                            end
                         end
 
                     elseif not v.Repeat or v.Repeat == 0 then 
@@ -2215,7 +2258,10 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 im.DrawList_AddLine(WDL, x - l, y - l, x + l, y + l, 0xffffffdd)
                 im.DrawList_AddLine(WDL, x - l, y + l, x + l, y - l, 0xffffffdd)
             end
-        elseif v.Type == 'Image' and v.Image then
+        end
+
+        local function Draw_Image(v)
+            if not v.Image then return end
             local w, h = im.Image_GetSize(v.Image)
             local Def_W = Get_Default_Param_Width_By_Type(FP.Type)
             if FP.Type == 'Knob' then Def_W = Def_W * 2 end
@@ -2234,12 +2280,21 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 
 
             Repeat(v.Repeat, v.Repeat_VA, v.X_Gap or 0, v.Y_Gap or 0, AddImage, nil, v.RPT_Clr, v.Clr,v) 
-        elseif v.Type == 'Gain Reduction Text' and not 
-        FX[FxGUID].DontShowGR then
-            local GR = round(GR, 1)
-            im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
+        end
+        local function Draw_Gain_Reduction_Text(v)
+            if v.Type == 'Gain Reduction Text' and not FX[FxGUID].DontShowGR then
+                local GR = round(GR, 1)
+                im.DrawList_AddTextEx(WDL, Arial_12, 12, x, y, v.Clr or 0xffffffff, GR or '')
+            end
         end
 
+
+        Draw_Line_Or_Rect(v)    
+        Draw_Circles(v)
+        Draw_Knob_Pointer_Or_Range_Or_Image(v)
+        Draw_Image(v)
+        Draw_Line_Or_Rect(v)
+        Draw_Gain_Reduction_Text(v)
         ::END_OF_LOOP::
     end
     for i, v in ipairs(FP.Draw) do
@@ -2933,7 +2988,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local FX_Name = FX[FxGUID].CustomTitle or  ChangeFX_Name(tree[i].fxname)
                             FX[FxGUID][0] = FX[FxGUID][0] or {}
 
-                            --if DragFX_ID == i -1 then msg(FX_Idx) Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx) goto endOfLoop end
 
                             
                             local function Solo()
@@ -3520,8 +3574,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local MouseX, MouseY = im.GetMousePos(ctx)
                 if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true then
                     im.BeginDisabled(ctx); R, T = im.GetItemRectMax(ctx)
-                    local L, T = im.GetItemRectMin(ctx); local R, _ = im.GetItemRectMax(
-                        ctx); B = T + 20
+                    local L, T = im.GetItemRectMin(ctx); local R, _ = im.GetItemRectMax( ctx); B = T + 20
+                    local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
                     im.DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
                     im.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
 
@@ -3537,8 +3591,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
 
                     if LE.SelectedItem == 'Title' then
-                        im.DrawList_AddRect(WinDrawList, L, T, R,
-                            T + 20, 0x999999ff)
+                        im.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
                     end
 
                     if MouseX > R - 5 and MouseX < R + 5 and MouseY > T and MouseY < B then --if hover on right edge
@@ -3557,11 +3610,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                         if Mods == 0 then
                             if MouseDiff > LE.GridSize then
-                                FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth + LE.GridSize; LE.MouseX_before =
-                                    im.GetMousePos(ctx); LE.BeenEdited = true
+                                FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth + LE.GridSize; LE.MouseX_before = im.GetMousePos(ctx); LE.BeenEdited = true
                             elseif MouseDiff < -LE.GridSize then
-                                FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth - LE.GridSize; LE.MouseX_before =
-                                    im.GetMousePos(ctx); LE.BeenEdited = true
+                                FX[FxGUID].TitleWidth = FX[FxGUID].TitleWidth - LE.GridSize; LE.MouseX_before = im.GetMousePos(ctx); LE.BeenEdited = true
                             end
                         end
                         if Mods == Shift then
@@ -3965,7 +4016,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         FX[FxGUID] = FX[FxGUID] or {}
                         FX[FxGUID][0]= FX[FxGUID][0] or {}
                         FX[FxGUID][0].V  = FX[FxGUID][0].V  or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet') )
+                       --im.SetCursorPosX(ctx, im.GetCursorPosX(ctx) - WET_DRY_KNOB_SZ*1.5)
                         Wet.ActiveAny, Wet.Active, FX[FxGUID][0].V = Add_WetDryKnob(ctx, 'a', '', FX[FxGUID][0].V, 0, 1, FX_Idx)
+
                     end
 
                     if im.BeginDragDropTarget(ctx) then
@@ -4023,6 +4076,30 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
             end
+            local function Window_Title_Area()
+                local sz= WET_DRY_KNOB_SZ
+                local gap = 5
+                SL( nil, gap)
+                local St = {im.GetCursorScreenPos(ctx)}
+
+                AddWindowBtn(FxGUID, FX_Idx )
+                If_LayEdit_Activated__WindowBtn()
+                If_DebugMode_Active()
+                If_Open_Morph_Settings()
+
+                local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr')
+                local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
+                SL( nil, gap)
+                local pos ={ im.GetCursorScreenPos(ctx)}
+                im.DrawList_AddRectFilled(WDL, pos[1], pos[2], pos[1] + gap, pos[2] + sz, clr, 0)
+                SL( nil, 0)
+                local pos ={ im.GetCursorScreenPos(ctx)}
+                local ENDpos = {im.GetCursorScreenPos(ctx)}
+
+                im.DrawList_AddRectFilled(WDL, pos[1]- gap, pos[2], ENDpos[1] + sz, ENDpos[2] + sz, clr, FX_Title_Round)
+                AddWetDryKnob_If_not_SpecialLayoutFX()
+                im.DrawList_AddRect(WDL, St[1]-gap/2, St[2], ENDpos[1] + sz, ENDpos[2] + sz, clr_outline, FX_Title_Round, nil,1)
+            end
 
             
 
@@ -4042,20 +4119,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             If_LayEdit_Activated()
 
             im.SameLine(ctx, nil, 0)
-            
-            AddWindowBtn(FxGUID, FX_Idx )
 
-            If_LayEdit_Activated__WindowBtn()
+            Window_Title_Area()
 
-
-
-            If_DebugMode_Active()
-
-            If_Open_Morph_Settings()
-
-
-            im.SameLine(ctx)
-            AddWetDryKnob_If_not_SpecialLayoutFX()
             Disable_If_LayEdit('Begin')
 
             if Need_Create_Regular_Layout() then
@@ -4410,7 +4476,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                         end
                         if im.IsItemClicked(ctx, 1) and Mods == Ctrl and not AssigningMacro then
-                            im.OpenPopup(ctx, '##prm Context menu' .. FP.Num)
+                            im.OpenPopup(ctx, '##prm Context menu' .. (FP.Num or 0))
                         end
                         if im.BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                             if im.Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then

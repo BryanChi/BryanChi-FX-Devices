@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.2
+-- @version 1.0beta16.5.3
 -- @changelog
---  - Many new layouts by todoublez. 
---  - Many new available pngs for knobs and switches provided by todoublez.
---  - Layout Editor: Fixed bug where children attached drawings size sync are not working.
---  - Layout Editor: Fixed bug where attached drawings pictures are not recalled when loading a layout.
+--  - Changed the look of the FX title buttons.
+--  - Layout Editor: New options for knob pointers (Line, Triangle, Cursor)
+--  - Layout Editor: Various bug fixes.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

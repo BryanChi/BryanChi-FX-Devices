@@ -448,6 +448,7 @@ function ShowStyleEditor(OpenStyleEditor)
                     im.Text(ctx, name)
                 end
             end
+            _G['FX_Title_Clr'] = Change_Clr_A(ThemeClr('FX_Title_Clr'), nil, 1)
 
 
 

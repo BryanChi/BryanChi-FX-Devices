@@ -2543,6 +2543,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         AddOption('Knob Pointer')
                         AddOption('Knob Range')
                         AddOption('Knob Circle')
+                        AddOption('Knob Numbers')
 
                         AddOption('Knob Image')
 
@@ -2588,12 +2589,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         local Thick = { 'Knob Pointer', 'Line', 'Rect', 'Circle' }
                         local Round = { 'Rect', 'Rect Filled' }
                         local Gap = { 'Circle', 'Circle Filled', 'Knob Range', 'Rect'}
-                        local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Circle Filled', 'Knob Image' }
-                        local RadiusInOut = { 'Knob Pointer', 'Knob Range' }
-                        local Radius = { 'Knob Circle', 'Knob Image','Knob Circle Filled' }
+                        local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Circle Filled', 'Knob Image', 'Knob Numbers' }
+                        local RadiusInOut = { 'Knob Pointer', 'Knob Range'}
+                        local Radius = { 'Knob Circle', 'Knob Image','Knob Circle Filled' ,'Knob Numbers' } -- this = radius IN
                         local BL_Repeat = {  'Knob Image', 'Knob Pointer', 'Gain Reduction Text' }
                         local GR_Text = { 'Gain Reduction Text' }
                         local Fill = {'Circle', 'Knob Circle', 'Rect'}
+
 
                         local X_Gap_Shown_Name = 'X Gap:'
                         local DefW, DefH
@@ -2666,11 +2668,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                         
-                            local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar)
+                            local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar, Sz)
                                 local Column = 1
                                 if Name:find('_VA') then Column = 2 end
                                 im.TableSetColumnIndex(ctx, Column)
-                                local itmW = WidthSyncBtn and -WidthSyncBtnSz or Bipolar and BipolarSz or  -FLT_MIN
+                                local itmW = WidthSyncBtn and -WidthSyncBtnSz or Bipolar and BipolarSz or Sz or  -FLT_MIN
 
                                 im.PushItemWidth(ctx, itmW)
 
@@ -2899,10 +2901,45 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             if SetRowName('Radius', nil, Radius) then
                                 AddVal('Rad_In', FS.Sldr_W or Df.KnobRadius, 0.1, 0, 300, '%.2f', true, true )
                             end
+                            if SetRowName('Value Range', nil, {'Knob Numbers'}) then
+                                im.TableSetColumnIndex(ctx, 1)
+                                im.Text(ctx,'Low: ') SL()
+                                AddVal('Value_Range_Low', 0, 1, -1000, 1000, '%.1f', nil, nil, nil, 40 )
+                                SL(nil, 20)
+                                im.Text(ctx,'High: ') SL()
+                                AddVal('Value_Range_High', 10, 1,  -1000, 1000, '%.1f' ,true, nil, nil, 40)
+                            end
+                            if SetRowName('Decimal Places', nil, {'Knob Numbers'}) then
+                                AddVal('Decimal_Places', 0, 1, 0, 10, '%.0f', true)
+                            end
 
                             if SetRowName('Thickness', nil, Thick) then
-                                AddVal('Thick', 2, 0.5, 0, 60, '%.1f', true)
+                                local stepSize = (D.Pointer_Type and (D.Pointer_Type == 'Kite' or D.Pointer_Type == 'Triangle')) and 0.1 or 0.5
+                                AddVal('Thick', 2, stepSize, 0, 60, '%.1f', true)
                             end
+                            if SetRowName('Pointer type', nil, {'Knob Pointer'}) then
+                                im.TableSetColumnIndex(ctx, 1)
+                                local WIDTH = (D.Pointer_Type and  D.Pointer_Type == 'Cursor' ) and 120 or -FLT_MIN
+                                im.SetNextItemWidth(ctx, WIDTH)
+                                if im.BeginCombo(ctx, '##Pointer type' .. LBL, D.Pointer_Type or 'Line') then
+                                    if im.Selectable(ctx, 'Line') then D.Pointer_Type = 'Line' end
+                                    if im.Selectable(ctx, 'Triangle') then D.Pointer_Type = 'Triangle' end
+                                    if im.Selectable(ctx, 'Cursor') then D.Pointer_Type = 'Cursor' end
+                                    im.EndCombo(ctx)
+                                end
+                                if D.Pointer_Type and  D.Pointer_Type == 'Cursor' then
+                                    SL(nil, 15)
+                                    im.Text(ctx, 'Shape: ')
+                                    im.SameLine(ctx)
+                                    im.SetNextItemWidth(ctx, 100)
+                                    AddVal('Shape', 0, 0.05, -10, 10, '%.2f', true)
+                                end
+                                im.TableNextRow(ctx)
+                            end
+
+
+
+
                             if SetRowName('Edge Round', nil, Round) then
                                 AddVal('Round', 0, 0.1, 0, 100, '%.1f', true)
                             end
@@ -3196,7 +3233,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         im.Text(ctx, 'Background Color:')
         im.SameLine(ctx)
-        _, FX[FxGUID].BgClr = im.ColorEdit4(ctx, '##' .. FxGUID .. 'BgClr',
+        _, FX[FxGUID].BgClr = im.ColorEdit3(ctx, '##' .. FxGUID .. 'BgClr',
             FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff,
             im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf|
             im.ColorEditFlags_AlphaBar)
@@ -3206,11 +3243,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         im.Text(ctx, 'FX Title Color:')
         im.SameLine(ctx)
-        _, FX[FxGUID].TitleClr = im.ColorEdit4(ctx, '##' .. FxGUID .. 'Title Clr',
-            FX[FxGUID].TitleClr or 0x22222233,
-            im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf|
-            im.ColorEditFlags_AlphaBar)
-
+        im.SetNextItemWidth(ctx, 200)
+        _, FX[FxGUID].TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'), im.ColorEditFlags_NoInputs)
+        FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
         im.Text(ctx, 'Custom Title:')
         im.SameLine(ctx)
         local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
@@ -3498,7 +3533,9 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
         d.Angle_Max_VA = RC('Angle Max VA', 'Num')
 
         d.Angle_Max_VA_BP = RC('Angle Max VA BP', 'Bool')
-
+        d.Value_Range_Low = RC('Value Range Low', 'Num')
+        d.Value_Range_High = RC('Value Range High', 'Num')
+        d.Decimal_Places = RC('Decimal Places', 'Num')
         d.Rad_In = RC('Radius Inner', 'Num')
         d.Rad_In_SS = RC('Radius Inner SS', 'Bool')
         d.Rad_Out = RC('Radius Outer', 'Num')
@@ -3532,6 +3569,8 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
         d.Special_Fill = RC('Special_Fill')
         d.Clr2 = RC('Color2', 'Num')
         d.RPT_Clr2 = RC('RPT_Clr2', 'Num')
+        d.Pointer_Type = RC('Pointer_Type')
+        d.Shape = RC('Shape', 'number')
 
 
         if d.Type and  d.Type:find('Filled') then 
@@ -6276,6 +6315,9 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                 WRITE('Radius Inner SS', v.Rad_In_SS)
                 WRITE('Radius Outer', v.Rad_Out)
                 WRITE('Radius Outer SS', v.Rad_Out_SS)
+                WRITE('Value Range Low', v.Value_Range_Low)
+                WRITE('Value Range High', v.Value_Range_High)
+                WRITE('Decimal Places', v.Decimal_Places)
                 WRITE('Thick', v.Thick)
                 WRITE('Height', v.Height)
                 WRITE('Height SS', v.Height_SS)
@@ -6303,6 +6345,8 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                 WRITE('RPT_Clr_VA', v.RPT_Clr_VA)
                 WRITE('Image_Path', v.AtchImgFileNm)
                 WRITE('Fill', v.Fill)
+                WRITE('Pointer_Type', v.Pointer_Type)
+                WRITE('Shape', v.Shape)
                 if v.Type=='Circle' then 
                     WRITE('RPT_Clr2', v.RPT_Clr2)
                     WRITE('Color2', v.Clr2)

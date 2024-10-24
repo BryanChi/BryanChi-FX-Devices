@@ -296,6 +296,9 @@ function Customizable_Colors()
     Container_Accent_Clr_Not_Focused = 0x49CC8577;
     Accent_Clr =  0x49CC85ff ;
     Accent_Clr_Not_Focused = 0x49CC8577;
+    FX_Title_Clr = 0x222222ff;
+    FX_Title_Clr_Outline = 0x555555ff
+
     
     }
     local I = 1
