@@ -5845,8 +5845,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 end
                 FX[FxGUID].Draw = T.Draw
             else
-                local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices',
-                    'src', 'FX Layouts')
+                local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
                 local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
 
                 -- Create directory for file if it doesn't exist
@@ -6408,7 +6407,8 @@ end
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
 function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
-    local dir_path = ConcatPath(r.GetResourcePath(), 'Scripts', 'FX Devices', 'BryanChi_FX_Devices', 'src', 'FX Layouts')
+
+    local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
     --local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
