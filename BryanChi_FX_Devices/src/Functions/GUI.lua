@@ -2130,14 +2130,14 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
                     
                     local pointerSize = (OUT - IN) * 0.2
-                    local pointerX = x + angle_cos * (OUT - pointerSize)
-                    local pointerY = y + angle_sin * (OUT - pointerSize)  
+                    local pointerX = x + angle_cos * (OUT - pointerSize*2.5)
+                    local pointerY = y + angle_sin * (OUT - pointerSize*2.5)  
                     local pointerColor = Clr_VA or v.Clr or 0x999999aa
                     local pointerAngle = angle + math.pi / 2 -- Adjust angle to point away from the center
 
                     Draw_A_Cursor_Shape(pointerX, pointerY, pointerSize, pointerColor, pointerAngle, v.Thick or 0.45, v.Shape or 0.45)
                 elseif v.Pointer_Type == 'Triangle' then
-                    drawTrianglePointer(v.Thick or 0.45)
+                    drawTrianglePointer((v.Thick or 0.9) / 2)
                 end
             
             elseif v.Type == 'Knob Range' or v.Type =='Knob Numbers' then
@@ -2465,7 +2465,7 @@ function DrawMetallicKnob(ctx, centerX, centerY, radius, gradientRepeats, startA
     local drawList = im.GetWindowDrawList(ctx)
     local segments = 64  -- Adjust for smoother circle
     local overlap = 0.1  -- Overlap factor
-
+    local startAngle = startAngle or 0
     -- Create a radial gradient effect with overlapping triangles
     for i = 0, segments do
         local angle = startAngle + (i / segments) * 2 * math.pi
@@ -4076,17 +4076,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
             end
-            local function Window_Title_Area()
-                local sz= WET_DRY_KNOB_SZ
-                local gap = 5
-                SL( nil, gap)
-                local St = {im.GetCursorScreenPos(ctx)}
-
-                AddWindowBtn(FxGUID, FX_Idx )
-                If_LayEdit_Activated__WindowBtn()
-                If_DebugMode_Active()
-                If_Open_Morph_Settings()
-
+            local function Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
+                if FX[FxGUID].Collapse then return end
                 local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr')
                 local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
                 SL( nil, gap)
@@ -4099,6 +4090,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 im.DrawList_AddRectFilled(WDL, pos[1]- gap, pos[2], ENDpos[1] + sz, ENDpos[2] + sz, clr, FX_Title_Round)
                 AddWetDryKnob_If_not_SpecialLayoutFX()
                 im.DrawList_AddRect(WDL, St[1]-gap/2, St[2], ENDpos[1] + sz, ENDpos[2] + sz, clr_outline, FX_Title_Round, nil,1)
+
+
+            end
+            local function Window_Title_Area()
+                local sz= WET_DRY_KNOB_SZ
+                local gap = 5
+                SL( nil, gap)
+                local St = {im.GetCursorScreenPos(ctx)}
+
+                AddWindowBtn(FxGUID, FX_Idx )
+                If_LayEdit_Activated__WindowBtn()
+                If_DebugMode_Active()
+                If_Open_Morph_Settings()
+                Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
             end
 
             
@@ -4329,6 +4334,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                 ToDef = { ID = FX_Idx, P = P_Num, V = Df }
                                             end
                                         end
+
                                     elseif Mods == Alt then
                                         if Prm.Deletable then
                                             DeletePrm(FxGUID, Fx_P, FX_Idx)
@@ -5416,62 +5422,70 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     return WinW
 end
 
-function Draw_Background(FxGUID)
+function Draw_Background(FxGUID, pos, Draw_Which)
 
-    if FX[FxGUID].Draw and not FX[FxGUID].Collapse then
-        for i, Type in ipairs(FX[FxGUID].Draw) do
-            FX[FxGUID].Draw[i] = FX[FxGUID].Draw[i] or {}
-            local D = FX[FxGUID].Draw[i]
-            local L = Win_L + D.L
-            local T = Win_T + D.T
-            local R = Win_L + (D.R or 0)
-            local B = Win_T + D.B
-            local Round = FX[FxGUID].Draw.Df_EdgeRound or 0
+    if not FX[FxGUID].Draw or FX[FxGUID].Collapse then return end
+    local function Draw_Itm (i  )
+        FX[FxGUID].Draw[i] = FX[FxGUID].Draw[i] or {}
+        local D = FX[FxGUID].Draw[i]
+        local pos = pos or {}
+        local L = pos[1] or (Win_L + D.L)
+        local T = pos[2] or (Win_T + D.T)
+        local R = pos[3] or (Win_L + (D.R or 0))
+        local B = pos[4] or (Win_T + D.B)
+        local Round = FX[FxGUID].Draw.Df_EdgeRound or 0
+        local WDL = WDL or im.GetWindowDrawList(ctx)
+        if D.Type == 'line' then
+            im.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
+        elseif D.Type == 'V-line' then
+            im.DrawList_AddLine(WDL, Win_L + D.L, Win_T + D.T,
+                Win_L + D.L, Win_T + D.B, D.clr or 0xffffffff)
+        elseif D.Type == 'rectangle' then
+            im.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
+        elseif D.Type == 'rect fill' then
+            im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff,
+                Round)
+        elseif D.Type == 'circle' then
+            im.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
+        elseif D.Type == 'circle fill' then
+            im.DrawList_AddCircleFilled(WDL, L, T, D.R,
+                D.clr or 0xffffffff)
+        elseif D.Type == 'Text' and D.Txt then
+            
+            im.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
+                D.FtSize or 13, L, T, D.clr or 0xffffffff, D.Txt)
+        elseif D.Type == 'Picture' then
+            if not D.Image then
+                im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
+                im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2,
+                    0xffffffff, 'Add Image path', R - L)
+            else
+                if D.KeepImgRatio then
+                    local w, h = im.Image_GetSize(D.Image)
 
-            if D.Type == 'line' then
-                im.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
-            elseif D.Type == 'V-line' then
-                im.DrawList_AddLine(WDL, Win_L + D.L, Win_T + D.T,
-                    Win_L + D.L, Win_T + D.B, D.clr or 0xffffffff)
-            elseif D.Type == 'rectangle' then
-                im.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
-            elseif D.Type == 'rect fill' then
-                im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff,
-                    Round)
-            elseif D.Type == 'circle' then
-                im.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
-            elseif D.Type == 'circle fill' then
-                im.DrawList_AddCircleFilled(WDL, L, T, D.R,
-                    D.clr or 0xffffffff)
-            elseif D.Type == 'Text' and D.Txt then
-                
-                im.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
-                    D.FtSize or 13, L, T, D.clr or 0xffffffff, D.Txt)
-            elseif D.Type == 'Picture' then
-                if not D.Image then
-                    im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
-                    im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2,
-                        0xffffffff, 'Add Image path', R - L)
+                    local H_ratio = w / h
+                    local size = R - L
+
+
+                    im.DrawList_AddImage(WDL, D.Image, L, T, L + size,
+                        T + size * H_ratio, 0, 0, 1, 1, D.clr or 0xffffffff)
                 else
-                    if D.KeepImgRatio then
-                        local w, h = im.Image_GetSize(D.Image)
-
-                        local H_ratio = w / h
-                        local size = R - L
-
-
-                        im.DrawList_AddImage(WDL, D.Image, L, T, L + size,
-                            T + size * H_ratio, 0, 0, 1, 1, D.clr or 0xffffffff)
-                    else
-                        im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B,
-                            L, B,
-                            _1, _2, _3, _4, _5, _6, _7, _8, D.clr or 0xffffffff)
-                    end
+                    im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B,
+                        L, B,
+                        _1, _2, _3, _4, _5, _6, _7, _8, D.clr or 0xffffffff)
                 end
-                -- ImageAngle(ctx, Image, 0, R - L, B - T, L, T)
             end
+            -- ImageAngle(ctx, Image, 0, R - L, B - T, L, T)
         end
     end
+    if Draw_Which then 
+        Draw_Itm (Draw_Which  )
+    else 
+        for i, Type in ipairs(FX[FxGUID].Draw) do
+            Draw_Itm (i  )
+        end
+    end
+
 end
 
 function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InClr, PointerClr, RangeClr)

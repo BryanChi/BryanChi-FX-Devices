@@ -231,6 +231,7 @@ function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLb
 
     if FP.V_Pos == 'Free' then
         local Ox, Oy = im.GetCursorScreenPos(ctx)
+
         im.DrawList_AddTextEx(draw_list, _G[V_Font], FP.V_FontSize or Knob_DefaultFontSize,
             pos[1] + (FP.V_Pos_X or 0), pos[2] + (FP.V_Pos_Y or 0), FP.V_Clr or 0xffffffff, FormatPV)--,(Radius or 20) * 2)
     end
@@ -847,22 +848,46 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             im.TextWrapped(ctx, 'Select an item to start editing')
             AddSpacing(15)
         else
-            im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
-            AddSpacing(5)
-            im.Text(ctx, 'Type:')
-            im.SameLine(ctx)
-            im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999933)
-            local D = Draw[FX.Win_Name_S[FX_Idx]]
+            local typelbl; 
             FX[FxGUID].Draw = FX[FxGUID].Draw or {}
             local D = FX[FxGUID].Draw
             local FullWidth = -50
 
-            local typelbl; local It = Draw.SelItm
-            --D[It or 1] = D[It or 1] or {}
+            local function Show_Selected_Drawing_Btns()
+                local sz = 100
+                im.BeginChild(ctx, 'Drawings Preview', FullWidth, sz)
+                SL()
+                for i, v in ipairs(D) do 
+
+                    local pos = {im.GetCursorScreenPos(ctx)}
+                    if im.Button(ctx, i..'## Drawing Selection', sz,sz) then 
+                        Draw.SelItm = i
+                    end
+                    pos[3], pos[4] =  im.GetItemRectMax(ctx)
+                    pos[1], pos[2] = pos[1]+2, pos[2]+2
+                    pos[3], pos[4] = pos[3]-2, pos[4]-2
+                    if Draw.SelItm == i then 
+                        Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'),nil, nil , 2 )
+                    end 
+                    Draw_Background(FxGUID, pos, i)
+                   SL(nil, 2) 
+                end
+                im.EndChild(ctx)
+            end
+
+
+            Show_Selected_Drawing_Btns()
+            local It = Draw.SelItm
+
+            im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
+            AddSpacing(5)
+            im.Text(ctx, 'Type:')
+            im.SameLine(ctx)
+            --im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999933)
 
 
             if Draw.SelItm then typelbl = D[It].Type end
-            if Draw.Type == nil then Draw.Type = 'line' end
+            Draw.Type = Draw.Type or 'line'
             im.SetNextItemWidth(ctx, FullWidth)
             if im.BeginCombo(ctx, '##', typelbl or Draw.Type or 'line', im.ComboFlags_NoArrowButton) then
                 local function setType(str)
@@ -883,7 +908,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.EndCombo(ctx)
             end
 
-            if It then
+            if It then 
                 if im.BeginTable(ctx, "DrawProperties", 2, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then
                     im.TableSetupColumn(ctx, "Property", im.TableColumnFlags_WidthFixed, 150)
                     im.TableSetupColumn(ctx, "Value", im.TableColumnFlags_WidthStretch)
@@ -927,7 +952,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         im.Text(ctx, "Start Pos X:")
                         im.TableNextColumn(ctx)
                         im.SetNextItemWidth(ctx, -FLT_MIN)
-                        _, D[It].L = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'L', D[It].L, 1, 0, Win_W, '%.0f')
+                        _, D[It].L = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'L', D[It].L, 1, -Win_W, Win_W*2, '%.0f')
 
                         if D[It].Type ~= 'V-line' and D[It].Type ~= 'circle' and D[It].Type ~= 'circle fill' then
                             im.TableNextRow(ctx)
@@ -935,7 +960,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.Text(ctx, "End Pos X:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, 0, Win_W, '%.0f')
+                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, -Win_W, Win_W*2, '%.0f')
                         end
 
                         if D[It].Type == 'circle' or D[It].Type == 'circle fill' then
@@ -944,7 +969,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.Text(ctx, "Radius:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, 0, Win_W, '%.0f')
+                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, -Win_W, Win_W*2, '%.0f')
                         end 
 
                         im.TableNextRow(ctx)
@@ -952,7 +977,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         im.Text(ctx, "Start Pos Y:")
                         im.TableNextColumn(ctx)
                         im.SetNextItemWidth(ctx, -FLT_MIN)
-                        _, D[It].T = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'T', D[It].T, 1, 0, Win_H, '%.0f')
+                        _, D[It].T = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f')
 
                         if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
                             im.TableNextRow(ctx)
@@ -960,7 +985,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.Text(ctx, "End Pos Y:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, 0, Win_H, '%.0f')
+                            _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f')
                         end
 
                         if D[It].Type == 'Text' then
@@ -991,8 +1016,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
 
 
-
-            im.PopStyleColor(ctx)
         end
     elseif LE.Sel_Items[1] then
         local FS  = FX[FxGUID][LE.Sel_Items[1]]
@@ -1120,10 +1143,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 if FS.V_Pos ~= 'None' then
 
                     im.SetNextItemWidth(ctx, 50)
-                    local EditPosX, PosX = im.DragDouble(ctx,
-                        ' ##EditValuePosX' .. FxGUID .. LE.Sel_Items[1],
-                        FS.V_Pos_X or 0,
-                        0.25, nil, nil, '%.2f')
+                    local EditPosX, PosX = im.DragDouble(ctx, ' ##EditValuePosX' .. FxGUID .. LE.Sel_Items[1], FS.V_Pos_X or 0, 0.25, nil, nil, '%.2f')
                     SL()
                     if EditPosX then
                         for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_X = PosX end
@@ -1135,10 +1155,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             local function Value_Pos_Y()
                 if FS.V_Pos ~= 'None' then
                     im.SetNextItemWidth(ctx, 50)
-                    local EditPosY, PosY = im.DragDouble(ctx,
-                        ' ##EditValuePosY' .. FxGUID .. LE.Sel_Items[1],
-                        FS.V_Pos_Y or 0,
-                        0.25, nil, nil, '%.2f')
+                    local EditPosY, PosY = im.DragDouble(ctx, ' ##EditValuePosY' .. FxGUID .. LE.Sel_Items[1], FS.V_Pos_Y or 0, 0.25, nil, nil, '%.2f')
                     SL()
                     if EditPosY then
                         for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_Y = PosY end
@@ -1352,9 +1369,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.TableSetColumnIndex(ctx,1 ) 
                 Value_Pos()
                 im.TableSetColumnIndex(ctx,2 ) 
-                Value_Pos_Y()
+                Value_Pos_X()
                 im.TableSetColumnIndex(ctx,3 ) 
-                Value_Pos_X()   
+                Value_Pos_Y()   
 
                 im.TableSetColumnIndex(ctx,4)
 
@@ -3218,7 +3235,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
     end -------------------- End of Repeat for every selected item
-    if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] then
+    if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and not Draw.DrawMode[FxGUID] then
         im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
 
         im.Text(ctx, 'Edge Round:')
@@ -3230,22 +3247,24 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         im.SameLine(ctx)
         Edited, FX[FxGUID].GrbRound = im.DragDouble(ctx, '##' .. FxGUID .. 'GrbRound',
             FX[FxGUID].GrbRound, 0.01, 0, 40, '%.2f')
-
+        im.BeginGroup(ctx)
         im.Text(ctx, 'Background Color:')
-        im.SameLine(ctx)
-        _, FX[FxGUID].BgClr = im.ColorEdit3(ctx, '##' .. FxGUID .. 'BgClr',
-            FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff,
-            im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf|
-            im.ColorEditFlags_AlphaBar)
+        im.SetNextItemWidth(ctx, 200)
+        _, FX[FxGUID].BgClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff, im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
         if FX[FxGUID].BgClr == im.GetColor(ctx, im.Col_FrameBg) then
             HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
         end
+        im.EndGroup(ctx)
+        SL()
+        im.BeginGroup(ctx)
 
         im.Text(ctx, 'FX Title Color:')
-        im.SameLine(ctx)
         im.SetNextItemWidth(ctx, 200)
         _, FX[FxGUID].TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'), im.ColorEditFlags_NoInputs)
         FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
+        im.EndGroup(ctx)
+
+
         im.Text(ctx, 'Custom Title:')
         im.SameLine(ctx)
         local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
@@ -3772,6 +3791,8 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local BtnL, BtnT = im.GetItemRectMin(ctx)
     local BtnR, BtnB = im.GetItemRectMax(ctx)
+    local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+
 
     local function Knob_Interaction()
             
@@ -3864,7 +3885,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
         end
     end
-    if_Drag_Knob()
 
     local function ShowTooltip_if_Active()
         if (is_hovered or Tweaking == P_Num .. FxGUID) and (V_Pos == 'None' or not V_Pos) then
@@ -3883,7 +3903,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         end
     end
 
-   Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos)
     
     local function Drawings_For_Styles()
         if Style == 'Pro C' then
@@ -4162,7 +4181,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if V_Pos ~= 'None' and V_Pos then
             im.PushFont(ctx, _G[V_Font])
     
-            local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
     
             if FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FX[FxGUID][Fx_P].V_Round) end
@@ -4354,6 +4372,11 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         end
     
     end
+
+    if_Drag_Knob()
+
+    Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos)
+
     If_V_Pos_Is_Only_When_Active( FP, is_active, Format_P_V)
     --Knob_Interaction()
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
@@ -4438,7 +4461,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local FP = FX[FxGUID][Fx_P]
     local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-
+    local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
 
     labeltoShow = labeltoShow or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
@@ -4449,7 +4472,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
 
-    if not FX[FxGUID][Fx_P].Name then return end 
+    if not FP.Name then return end 
     local CC = FP.WhichCC or -1
 
 
@@ -4584,19 +4607,23 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     MakeSlider()
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
+    Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value ,nil,  FxGUID)
+
     After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) 
     --[[ Write_Label_And_Value_If_Vert()
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) ]]
     local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-    Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value ,nil,  FxGUID)
     im.PopStyleColor(ctx, ClrPop)
 
     im.EndGroup(ctx)
     
     Suzukis_Work_ParamLink_And_MouseWheelAdjust()
 
-
+    --[[ if im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) and im.IsMouseDoubleClicked(ctx,0) then
+        msg('double clicked')
+    end ]]
+    --@@todo add double click to reset to default
 
 
     RemoveModulationIfDoubleRClick(FxGUID, Fx_P, P_Num, FX_Idx)
@@ -4648,7 +4675,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or not FP.V_Pos )
     local SzX, SzY = im.GetItemRectSize(ctx)
     local MsX, MsY = im.GetMousePos(ctx)
-    Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), pos[2] - SzY - line_height --[[ + button_y ]] , Format_P_V )
+    local PosY = FP.Type =='V-Slider' and pos[2]-line_height or pos[2] - SzY - line_height --[[ + button_y ]]
+    Show_Value_Tooltip(tooltip_Tirgger, SetMinMax(MsX, pos[1], pos[1] + SzX), PosY , Format_P_V )
 
     local t            = (p_value - v_min) / (v_max - v_min)
     local Clr_SldrGrab = im.GetColor(ctx, im.Col_SliderGrabActive)
@@ -4840,7 +4868,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx)
     end
 
-
+    
 
 
 
@@ -5100,7 +5128,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FontSize then
         Font = 'Arial_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
     end
-    if FX[FxGUID][Fx_P].Lbl_Clr then im.PushStyleColor(ctx, im.Col_Text, FX[FxGUID][Fx_P].Lbl_Clr) end
+    if FP.Lbl_Clr then im.PushStyleColor(ctx, im.Col_Text, FP.Lbl_Clr) end
     local popClr
     local function moveCursor()
         if not FP.Lbl_Pos_X and not FP.Lbl_Pos_Y then return end 
@@ -5108,23 +5136,26 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         im.SetCursorPos(ctx, X + (FP.Lbl_Pos_X or 0) , Y + (FP.Lbl_Pos_Y or 0 ))
         return X, Y 
     end
+    local function Write_Lable()
+        if FP.Lbl_Pos == 'Left' then
+            im.AlignTextToFramePadding(ctx)
+    
+            im.Text(ctx, FP.CustomLbl or FP.Name)
+            SL()
+    
+        elseif FP.Lbl_Pos == 'Top' then
+            local X , Y = moveCursor()
+    
+            im.Text(ctx, FP.CustomLbl or FP.Name)
+            if X then 
+    
+                im.SetCursorPos(ctx, X, Y+ im.GetTextLineHeight(ctx))
+            end
+        end
+    end
 
     im.BeginGroup(ctx)
-    if FP.Lbl_Pos == 'Left' then
-        im.AlignTextToFramePadding(ctx)
-
-        im.Text(ctx, FP.CustomLbl or FP.Name)
-        SL()
-
-    elseif FP.Lbl_Pos == 'Top' then
-        local X , Y = moveCursor()
-
-        im.Text(ctx, FP.CustomLbl or FP.Name)
-        if X then 
-
-            im.SetCursorPos(ctx, X, Y+ im.GetTextLineHeight(ctx))
-            end
-    end
+    Write_Lable()
     local lbl
     if FP.V_Pos == 'None' or FP.V_Pos == 'Free' then
         lbl = ' '
@@ -5134,29 +5165,28 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         TextW = im.CalcTextSize(ctx, lbl)
     elseif Lbl_Type == 'Use Prm Name as Lbl' then
-        lbl = FX[FxGUID][Fx_P].Name
+        lbl = FP.Name
         TextW = im.CalcTextSize(ctx, lbl)
     elseif Lbl_Type and Lbl_Type ~= 'Use Prm Name as Lbl' then
         lbl = Lbl_Type
         TextW = im.CalcTextSize(ctx, Lbl_Type)
-        FX[FxGUID][Fx_P].Switch_W = TextW
+        FP.Switch_W = TextW
     else --Use Value As Label
         _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     end
 
 
-
     if FP.Lbl_Pos == 'Within' then lbl = FP.CustomLbl or FP.Name end
 
-    FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) 
+    FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) 
 
 
-    if FX[FxGUID][Fx_P].Switch_On_Clr then
-        if FX[FxGUID][Fx_P].V == 1 then
+    if FP.Switch_On_Clr then
+        if FP.V == 1 then
             popClr = 2
-            im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID][Fx_P].Switch_On_Clr)
+            im.PushStyleColor(ctx, im.Col_Button, FP.Switch_On_Clr)
             im.PushStyleColor(ctx, im.Col_ButtonHovered,
-                Change_Clr_A(FX[FxGUID][Fx_P].Switch_On_Clr, -0.2))
+                Change_Clr_A(FP.Switch_On_Clr, -0.2))
         else
             popClr = 2
             im.PushStyleColor(ctx, im.Col_Button, BgClr or 0x00000000)
@@ -5178,7 +5208,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     if not FP.Image and not image then
 
-        im.Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FX[FxGUID][Fx_P].Sldr_W or TextW)
+        im.Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Sldr_W or TextW)
     else -- if there's an image
         local img = FP.Image or image
 
@@ -5188,7 +5218,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         local l, t = im.GetItemRectMin(ctx)
         local r, b = im.GetItemRectMax(ctx)
         local clr = FP.BgClr
-        if FX[FxGUID][Fx_P].V == 1 then
+        if FP.V == 1 then
             clr = FP.Switch_On_Clr
         end
         im.DrawList_AddImage(WDL, img, l, t , r,b, 0, uvmin, 1, uvmax, clr)
@@ -5200,19 +5230,19 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     if im.IsItemClicked(ctx, 0) then
         if FP.SwitchType == 'Momentary' then
-            FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].SwitchTargV
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].SwitchTargV or 0)
+            FP.V = FP.SwitchTargV
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FP.SwitchTargV or 0)
             if im.IsItemDeactivated(ctx) then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].SwitchBaseV or 1)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FP.SwitchBaseV or 1)
             end
         else -- if it's a toggle
             local Value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
             if Value == 0 then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 1)
-                FX[FxGUID][Fx_P].V = 1
+                FP.V = 1
             elseif Value == 1 then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0)
-                FX[FxGUID][Fx_P].V = 0
+                FP.V = 0
             end
         end
     end
@@ -5225,14 +5255,14 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.V_Clr then im.PopStyleColor(ctx) end
     --Sync Value if user tweak plugin's actual GUI.
 
-    if focusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FX[FxGUID][Fx_P].WhichCC then
-        FX[FxGUID][Fx_P].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+    if focusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FP.WhichCC then
+        FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     end
 
-    if FX[FxGUID][Fx_P].SwitchType == 'Momentary' then
+    if FP.SwitchType == 'Momentary' then
         clr = 0x00000000
     else
-        if FX[FxGUID][Fx_P].V == 0 then clr = 0x00000022 else clr = 0xffffff22 end
+        if FP.V == 0 then clr = 0x00000022 else clr = 0xffffff22 end
     end
     local X, Y = im.GetItemRectMin(ctx); local W, H = im.GetItemRectSize(ctx)
     local DL = im.GetWindowDrawList(ctx)
@@ -5253,7 +5283,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         local Cx, Cy = im.GetCursorScreenPos(ctx)
         local _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         im.DrawList_AddTextEx(DL, _G[Font], FontSize or 11, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0),
-            FP.Lbl_Clr or getClr(im.Col_Text), lbl)
+            FP.V_Clr or getClr(im.Col_Text), lbl)
     end
     if FP.V_Pos == 'Within' then im.PopFont(ctx) end
 
@@ -5264,7 +5294,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     im.PopStyleVar(ctx)
     if FontSize then im.PopFont(ctx) end
     if popClr then im.PopStyleColor(ctx, popClr) end
-    if FX[FxGUID][Fx_P].Lbl_Clr then im.PopStyleColor(ctx) end
+    if FP.Lbl_Clr then im.PopStyleColor(ctx) end
     if Value == 0 then return 0 else return 1 end
 end
 

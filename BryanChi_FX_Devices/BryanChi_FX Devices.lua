@@ -2,9 +2,16 @@
 -- @author Bryan Chi
 -- @version 1.0beta16.5.3
 -- @changelog
---  - Changed the look of the FX title buttons.
---  - Layout Editor: New options for knob pointers (Line, Triangle, Cursor)
---  - Layout Editor: Various bug fixes.
+--  - NEW! Layout Editor: BG Edit - Add new Drawing selector with preview drawings. 
+--  - Fix Window Title Decoration if collapsed
+--  - Fix crash if dock script. 
+--  - Fix ReaComp and ReaGate layout.
+--  - Add a few more layouts : Heatwave, UAD Hemisphere Mic Collections. 
+--  - Layout Editor: BG Edit - Allow drawings to go over the bounds of the FX layout. (Convenient for cropping/stretching images )
+--  - Layout Editor: Fix Value pos X and Y reversed
+--  - Layout Editor: Fix setting value to ‘Free’ makes value invisible.
+--  - Layout Editor: Fix Switch’s Value color has no effect. 
+--  - Layout Editor: Make FX layout settings disappear when background edit mode is active.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -112,7 +119,7 @@ function loop()
     im.PushStyleColor(ctx, im.Col_MenuBarBg, TrkClr or 0x00000000)
     im.PushStyleColor(ctx, im.Col_WindowBg, Window_BG or CustomColorsDefault.Window_BG)
     --------------------------==  BEGIN GUI----------------------------------------------------------------------------
-    local visible, open = im.Begin(ctx, 'FX Devices', true, im.WindowFlags_NoScrollWithMouse | im.WindowFlags_NoScrollbar | im.WindowFlags_MenuBar | im.WindowFlags_NoCollapse | im.WindowFlags_NoNav)
+    local visible, OpenMainWIN = im.Begin(ctx, 'FX Devices', true, im.WindowFlags_NoScrollWithMouse | im.WindowFlags_NoScrollbar | im.WindowFlags_MenuBar | im.WindowFlags_NoCollapse | im.WindowFlags_NoNav)
     im.PopStyleColor(ctx, 2) -- for menu  bar and window BG
 
     local Viewport = im.GetWindowViewport(ctx)
@@ -120,9 +127,6 @@ function loop()
     VP.FDL = VP.FDL or im.GetForegroundDrawList(ctx)
     VP.X, VP.Y = im.GetCursorScreenPos(ctx)
 
-    ----------------------------------------------------------------------------
-    -- ImGUI Variables-----------------------------------------------------------
-    ----------------------------------------------------------------------------
     GetAllMods( )
 
 
@@ -2586,11 +2590,15 @@ function loop()
     end 
     If_No_LT_Track()
     At_End_Of_Loop()
-    im.End(ctx)
-    
 
-    if open then
+    if OpenMainWIN and visible then
+        im.End(ctx)
+    end
+
+    if OpenMainWIN  then
         PDefer(loop)
+
+
     else --on script close
         NumOfTotalTracks = r.GetNumTracks()
         for T = 0, NumOfTotalTracks - 1, 1 do
