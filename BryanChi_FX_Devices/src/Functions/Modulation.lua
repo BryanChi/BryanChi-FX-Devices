@@ -214,7 +214,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
 
     if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
     if --[[Assign Mod]] (AssigningMacro or AssigningMidiMod) and RC then
-        local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+         _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
         if not ValBeforeMod or ValBeforeMod == '' then
             r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
         end
@@ -413,8 +413,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
         ModAmt = ((MouseDrag / 100) or 0) + (ModAmt or 0)
-        if ModAmt + p_value > 1 then ModAmt = 1 - p_value end
-        if ModAmt + p_value < 0 then ModAmt = -p_value end
+       --[[  if ModAmt + p_value > 1 then ModAmt = 1 - p_value end
+        if ModAmt + p_value < 0 then ModAmt = -p_value end ]]
 
 
         if Type == 'Pro-Q' then 
@@ -434,7 +434,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             local BipolarOut 
 
             FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
-
+            msg(FP.ModAMT[M])
             if Mods == Alt and IsRBtnHeld then 
                 -- FP.ModAMT[M] = math.abs( FP.ModAMT[M])
                 BipolarOut =  FP.ModAMT[M]  + 100
@@ -4648,4 +4648,14 @@ function Create_Diy_TrkID_If_None_Exist()
         r.SetProjExtState(0, 'FX Devices', 'Track GUID Number for jsfx' .. TrkID, PM.DIY_TrkID[TrkID])
     end
 
+end
+
+
+function Prm_Modulation_tooltip_Win(FP)
+    if  im.IsItemHovered(ctx) then 
+        if not FP.WhichCC then return end
+        im.BeginTooltip(ctx)
+        Simple_CurveEditor()
+        im.EndTooltip(ctx)
+    end
 end

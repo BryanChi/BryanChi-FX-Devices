@@ -1,17 +1,12 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.3
+-- @version 1.0beta16.5.4
 -- @changelog
---  - NEW! Layout Editor: BG Edit - Add new Drawing selector with preview drawings. 
---  - Fix Window Title Decoration if collapsed
---  - Fix crash if dock script. 
---  - Fix ReaComp and ReaGate layout.
---  - Add a few more layouts : Heatwave, UAD Hemisphere Mic Collections. 
---  - Layout Editor: BG Edit - Allow drawings to go over the bounds of the FX layout. (Convenient for cropping/stretching images )
---  - Layout Editor: Fix Value pos X and Y reversed
---  - Layout Editor: Fix setting value to ‘Free’ makes value invisible.
---  - Layout Editor: Fix Switch’s Value color has no effect. 
---  - Layout Editor: Make FX layout settings disappear when background edit mode is active.
+--  - Modulation : Fix knob dragging stuck when there's modulation assigned.
+--  - Modulation : Fix macro values not retaining when re-opening script.
+--  - Modulation : Fix Knob behavior for right dragging to adjust modulation amount. 
+--  - Modulation : allow modulation to go over 100%.
+--  - Layout Editor : Fix knob dragging stuck when the parameter has a big step size.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

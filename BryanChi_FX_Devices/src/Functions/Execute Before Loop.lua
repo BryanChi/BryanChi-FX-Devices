@@ -1057,6 +1057,7 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     Retrieve_All_Saved_Data_Of_Project()
     attachImagesAndFonts()
     PluginScripts()
+    Get_Modulator_JSFX_Info()
     VersionNumber = GetVersionNum()
 
     FX_LIST, CAT = ReadFXFile()
@@ -1082,3 +1083,19 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     os_separator = package.config:sub(1, 1)
 
 end 
+
+
+function Get_Modulator_JSFX_Info()
+    local MacrosJSFXExist = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0--[[RecFX]], 0)
+    local TrkID = r.GetTrackGUID(LT_Track)
+    if MacrosJSFXExist == 0 then
+        for i= 0, 7, 1 do 
+            local v = r.TrackFX_GetParamNormalized(LT_Track, 0, i)
+            local I = i+1
+            Trk[TrkID].Mod= Trk[TrkID].Mod or {}
+            Trk[TrkID].Mod[I] = Trk[TrkID].Mod[I] or {}
+            Trk[TrkID].Mod[I].Val = v 
+        end
+    end
+end 
+

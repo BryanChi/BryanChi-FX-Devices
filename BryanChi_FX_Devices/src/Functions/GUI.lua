@@ -581,6 +581,10 @@ function CurveEditor(W,H, PtsTB, lbl)
 
 end
 
+function Simple_CurveEditor()
+
+end
+
 function Button_Color_Change(trigger, color )
     if trigger then
         local Clr = color or CustomColorsDefault[color]
@@ -4369,7 +4373,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             ------ EXECUTION -----
                             local pos = Create_Item()
                             
-
+                            --Prm_Modulation_tooltip_Win(FP)
 
                             --Draw_Attached_Drawings(FP,FX_Idx, pos, p_value)
                             Item_Interaction()
@@ -4405,14 +4409,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                 "param." .. P_Num .. ".plink.midi_bus")
                             if bf == "15" then -- reset FX Devices' modulation bus/chan
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus",
-                                    0)         -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num ..
-                                    ".plink.midi_chan", 1)
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect",
-                                    -1)
-                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active",
-                                    0)
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_bus", 0)         -- reset bus and channel because it does not update automatically although in parameter linking midi_* is not available
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.midi_chan", 1)
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.effect", -1)
+                                r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0)
                                 if FX[FxGUID][Fx_P].ModAMT then
                                     for Mc = 1, 8, 1 do
                                         if FX[FxGUID][Fx_P].ModAMT[Mc] then

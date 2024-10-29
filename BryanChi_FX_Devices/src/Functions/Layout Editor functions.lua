@@ -3733,12 +3733,14 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if not FxGUID then return end
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
+    local FP = FX[FxGUID][Fx_P]
 
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
-    local p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) or  p_value or 0
+
+    local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
+    msg('p_value = ' .. p_value)
     local radius_outer = Radius or Df.KnobRadius;
 
-    local FP = FX[FxGUID][Fx_P]
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
     if LblTextSize ~= 'No Font' then
         Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
@@ -3757,7 +3759,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local CenteredLblPos = TextW < (Radius or 0) * 2 and pos[1] + Radius - TextW / 2 or pos[1]
 
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
-    local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+
     local line_height = im.GetTextLineHeight(ctx)
     local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
@@ -3765,7 +3767,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         { { im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing) } }
     local mouse_delta = { im.GetMouseDelta(ctx) }
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
-
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
     local BtnOffset
@@ -3810,7 +3811,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     local step = (v_max - v_min) / (200.0 * stepscale)
                     --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
                     local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
-
                     p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
                     if p_value < v_min then p_value = v_min end
                     if p_value > v_max then p_value = v_max end
@@ -3836,10 +3836,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         --if user turn knob on ImGui
         if Tweaking == P_Num .. FxGUID then
-            FX[FxGUID][Fx_P].V = p_value
             if not FP.WhichCC and not FP.Cont_Which_CC then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                
+            FX[FxGUID][Fx_P].V = p_value
+
             else
                 local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
 
@@ -3859,30 +3859,34 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if Mods == Shift then stepscale = 3 end
             local step = (v_max - v_min) / (200.0 * stepscale)
             --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
-           -- local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+            local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
 
             p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
+
             if p_value < v_min then p_value = v_min end
             if p_value > v_max then p_value = v_max end
             if ValBeforeMod then Save_to_Trk( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation',p_value) end 
             --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             MvingP_Idx = F_Tp
             Tweaking = P_Num .. FxGUID
+            
         end
 
 
         --if user turn knob on ImGui
         if Tweaking == P_Num .. FxGUID then
-            FX[FxGUID][Fx_P].V = p_value
+
+
             if not FP.WhichCC and not FP.Cont_Which_CC then
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                
-            else
-               -- local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
 
+            else
+                local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
                 local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                --msg('FX[FxGUID][Fx_P].V = ' .. FX[FxGUID][Fx_P].V)
             end
+            FX[FxGUID][Fx_P].V = p_value
         end
     end
 
@@ -4232,7 +4236,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 r.gmem_write(8, 0)
                 PM.TimeNow = nil
             end
-        end
+        end 
 
         if FP.ModAMT or FP.Cont_ModAMT then -- Draw modlines  circular
             --im.DrawListSplitter_SetCurrentChannel(FX[FxGUID].splitter,2)
@@ -4246,6 +4250,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                  --if Modulation has been assigned to params
                  local P_V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
+                 
                  --- indicator of where the param is currently
                  local PosAftrMod = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * (P_V_Norm)
 
@@ -4314,16 +4319,17 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
         end -- of reapeat for every macro
 
-        if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro then
+
+
+        if --[[ Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and ]] AssigningMacro and FP.ModAMT and  FP.ModAMT[1] then
             local M = AssigningMacro
 
             RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1)
 
             FP.ModAMT[M] = ((-RightBtnDragY / 100) or 0) + (FP.ModAMT[M] or 0)
-
-            if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
-            if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end
-
+            
+           --[[  if FP.ModAMT[M] + p_value > 1 then FP.ModAMT[M] = 1 - p_value end
+            if FP.ModAMT[M] + p_value < 0 then FP.ModAMT[M] = -p_value end ]]
             local BipolarOut
             if Mods == Alt then
                 FP.ModAMT[M] = math.abs(FP.ModAMT[M])
@@ -4341,8 +4347,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign, BipolarOut or FP.ModAMT[M])
             im.ResetMouseDragDelta(ctx, 1)
 
-            r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID,
-                FP.ModAMT[M])
+            r.SetProjExtState(0, 'FX Devices', 'Param -' .. Trk.Prm.Assign .. 'Macro - ' .. AssigningMacro .. FxGUID, FP.ModAMT[M])
         end
 
 
@@ -4377,7 +4382,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos)
 
-    If_V_Pos_Is_Only_When_Active( FP, is_active, Format_P_V)
+    If_V_Pos_Is_Only_When_Active( FP, is_active, FormatPV)
     --Knob_Interaction()
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
     ShowTooltip_if_Active()
@@ -5609,12 +5614,13 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     --if user tweak drag on ImGui
     if Tweaking == P_Num .. FxGUID then
-        FX[FxGUID][Fx_P].V = p_value
         if not FP.WhichCC then
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+            FX[FxGUID][Fx_P].V = p_value
+
         else
             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
         end
     end
 
