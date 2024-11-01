@@ -1,12 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.4
+-- @version 1.0beta16.5.5
 -- @changelog
---  - Modulation : Fix knob dragging stuck when there's modulation assigned.
---  - Modulation : Fix macro values not retaining when re-opening script.
---  - Modulation : Fix Knob behavior for right dragging to adjust modulation amount. 
---  - Modulation : allow modulation to go over 100%.
---  - Layout Editor : Fix knob dragging stuck when the parameter has a big step size.
+--  - Layout Editor : for Switch: Allow setting value's text color when switch is on.
+--  - bug fixes.
+--  - Added Many layouts made by Doublez!  
+--  - Added layout made by theFrxst : Wider (stereo width)
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

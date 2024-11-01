@@ -4082,6 +4082,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local function Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
                 if FX[FxGUID].Collapse then return end
+                if FX_Name:find('Container') then return end
                 local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr')
                 local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
                 SL( nil, gap)

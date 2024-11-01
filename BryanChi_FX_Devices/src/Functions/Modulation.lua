@@ -434,7 +434,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             local BipolarOut 
 
             FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
-            msg(FP.ModAMT[M])
             if Mods == Alt and IsRBtnHeld then 
                 -- FP.ModAMT[M] = math.abs( FP.ModAMT[M])
                 BipolarOut =  FP.ModAMT[M]  + 100

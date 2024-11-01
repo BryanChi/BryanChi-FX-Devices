@@ -1329,6 +1329,27 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                 end
             end
+            local function Value_Clr()
+
+                local DragV_Clr_edited, Drag_V_Clr = im.ColorEdit4(ctx, '##V  Clr' .. LE.Sel_Items[1], FS.V_Clr or im.GetColor(ctx, im.Col_Text), im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                if DragV_Clr_edited then
+                    for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = Drag_V_Clr end
+                end
+
+            end
+
+            local function On_Color_If_Switch ()
+                if FS.Type == 'Switch' then 
+                    SL(nil, 0 )
+                    im.Text(ctx, ' Off | On')
+                    SL()
+                    local DragV_Clr_edited, Drag_V_Clr = im.ColorEdit4(ctx, '##V_Clr_IF_SWITCH_ON' .. LE.Sel_Items[1], FS.V_Clr_IF_SWITCH_ON or im.GetColor(ctx, im.Col_Text), im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                    if DragV_Clr_edited then
+                        for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr_IF_SWITCH_ON = Drag_V_Clr end
+                    end
+    
+                end
+            end
 
             im.NewLine(ctx)
             if im.BeginTable(ctx, 'Labels and Values', 7,flags, -R_ofs) then 
@@ -1374,11 +1395,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 Value_Pos_Y()   
 
                 im.TableSetColumnIndex(ctx,4)
-
-                DragV_Clr_edited, Drag_V_Clr = im.ColorEdit4(ctx, '##V  Clr' .. LE.Sel_Items[1], FS.V_Clr or im.GetColor(ctx, im.Col_Text), im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                if DragV_Clr_edited then
-                    for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Clr = Drag_V_Clr end
-                end
+                Value_Clr()
+                On_Color_If_Switch ()
                 im.TableSetColumnIndex(ctx, 5 )
                 Value_Font_Size()
                 im.TableSetColumnIndex(ctx, 6 )
@@ -2251,27 +2269,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
                         local CP = FX[FxGUID][P][ConditionPrm]
                         --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
-                        Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx,
-                            'ConditionPrm' ..
-                            FP.ConditionPrm .. (PrmName or '') .. '1## CP',
-                            FX[FxGUID][P][ConditionPrm] or 0,
-                            FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs,
-                            Style,
-                            FxGUID, PID, FX[FxGUID][PID].ManualValues,
-                            FX[FxGUID][P][ConditionPrm_V][1] or 'Unassigned', nil,
-                            'No Lbl')
+                        Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'ConditionPrm' .. FP.ConditionPrm .. (PrmName or '') .. '1## CP', FX[FxGUID][P][ConditionPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, FX[FxGUID][P][ConditionPrm_V][1] or 'Unassigned', nil, 'No Lbl')
 
                         if Value_Selected then
                             for i, v in pairs(LE.Sel_Items) do
-                                FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v]
-                                    [ConditionPrm_V] or
-                                    {}
-                                FX[FxGUID][v][ConditionPrm_V_Norm] = FX[FxGUID][v]
-                                    [ConditionPrm_V_Norm] or {}
+                                FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v] [ConditionPrm_V] or {}
+                                FX[FxGUID][v][ConditionPrm_V_Norm] = FX[FxGUID][v] [ConditionPrm_V_Norm] or {}
                                 FX[FxGUID][v][ConditionPrm_V][1] = V_Formatted
-                                FX[FxGUID][v][ConditionPrm_V_Norm][1] = r
-                                    .TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                                        fp[ConditionPrm])
+                                FX[FxGUID][v][ConditionPrm_V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[ConditionPrm])
                             end
                         end
                         if not FX[FxGUID][P][ConditionPrm_V][1] then
@@ -2284,24 +2289,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     if i > 1 then
                                         im.Text(ctx, 'or at value:')
                                         im.SameLine(ctx)
-                                        local Value_Selected, V_Formatted = AddCombo(ctx,
-                                            LT_Track,
-                                            FX_Idx, 'CondPrmV' .. (PrmName or '') .. v ..
-                                            ConditionPrm,
-                                            FX[FxGUID][P][ConditionPrm] or 0,
-                                            FX[FxGUID][PID].ManualValuesFormat or
-                                            'Get Options',
-                                            -R_ofs, Style, FxGUID, PID,
-                                            FX[FxGUID][PID].ManualValues,
-                                            v, nil, 'No Lbl')
+                                        local Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. ConditionPrm, FX[FxGUID][P][ConditionPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl')
                                         if Value_Selected then
                                             for I, v in pairs(LE.Sel_Items) do
-                                                FX[FxGUID][v][ConditionPrm_V][i] =
-                                                    V_Formatted
-                                                FX[FxGUID][v][ConditionPrm_V_Norm][i] = r
-                                                    .TrackFX_GetParamNormalized(LT_Track,
-                                                        FX_Idx,
-                                                        FX[FxGUID][P][ConditionPrm])
+                                                FX[FxGUID][v][ConditionPrm_V][i] = V_Formatted
+                                                FX[FxGUID][v][ConditionPrm_V_Norm][i] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][P][ConditionPrm])
                                             end
                                         end
                                     end
@@ -2309,8 +2301,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             end
                         end
                         if im.Button(ctx, ' + or at value:##' .. ConditionPrm) then
-                            FX[FxGUID][P][ConditionPrm_V] = FX[FxGUID][P]
-                                [ConditionPrm_V] or {}
+                            FX[FxGUID][P][ConditionPrm_V] = FX[FxGUID][P] [ConditionPrm_V] or {}
                             table.insert(FX[FxGUID][P][ConditionPrm_V], '')
                         end
                         im.SameLine(ctx)
@@ -3738,7 +3729,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
 
     local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
-    msg('p_value = ' .. p_value)
     local radius_outer = Radius or Df.KnobRadius;
 
     local V_Font, Font = Arial_12, Font_Andale_Mono_12
@@ -5053,8 +5043,9 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, V[i])
                             _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                             im.PopStyleColor(ctx, 3)
-                            im.EndCombo(ctx)
                             if FP.V_FontSize then im.PopFont(ctx) end
+
+                            im.EndCombo(ctx)
 
                             return true, _G[LabelValue]
                         end
@@ -5205,11 +5196,19 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         end
     end
 
-
-    if FP.V_Clr then im.PushStyleColor(ctx, im.Col_Text, FP.V_Clr) end
-
+    local function pushClr()
 
 
+        if FP.V_Clr_IF_SWITCH_ON and FP.V == (FP.SwitchTargV or 1)  then 
+            im.PushStyleColor(ctx, im.Col_Text, FP.V_Clr_IF_SWITCH_ON)
+            return 1
+        elseif FP.V_Clr then 
+             im.PushStyleColor(ctx, im.Col_Text, FP.V_Clr) 
+            return 1
+        end
+    end
+
+    local PopClr_Value =   pushClr()
 
     if not FP.Image and not image then
 
@@ -5299,6 +5298,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     im.PopStyleVar(ctx)
     if FontSize then im.PopFont(ctx) end
     if popClr then im.PopStyleColor(ctx, popClr) end
+    if PopClr_Value then im.PopStyleColor(ctx, PopClr_Value) end 
     if FP.Lbl_Clr then im.PopStyleColor(ctx) end
     if Value == 0 then return 0 else return 1 end
 end
@@ -5839,6 +5839,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.Invisible           = v.Invisible
                     FP.ImgAngleMinOfs      = v.ImgAngleMinOfs
                     FP.DontRotateImg       = v.DontRotateImg
+                    FP.V_Clr_IF_SWITCH_ON = v.V_Clr_IF_SWITCH_ON
 
                     for i = 2, 5, 1 do
                         FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
@@ -5946,6 +5947,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Pos_X     = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
                             FP.Lbl_Pos_Y     = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
                             FP.Switch_On_Clr = RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
+                            FP.V_Clr_IF_SWITCH_ON = RecallInfo(Ct, 'V_Clr_IF_SWITCH_ON', Fx_P, 'Num')
+
                             FP.Invisible     = RecallInfo(Ct, 'Invisible', Fx_P, 'Bool')
                             FP.DontRotateImg       = RecallInfo(Ct, 'DontRotateImg', Fx_P, 'Bool')
                             FP.ImgAngleMinOfs      = RecallInfo(Ct, 'ImgAngleMinOfs', Fx_P, 'Num')
@@ -6038,6 +6041,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                 FP.SwitchType   = nil
                                 FP.SwitchBaseV  = nil
                                 FP.SwitchTargV  = nil
+                                FP.V_Clr_IF_SWITCH_ON =  nil
+
                             end
                         end
                         GetProjExt_FxNameNum(FxGUID)
@@ -6488,6 +6493,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Invisible', FP.Invisible)
             write('DontRotateImg', FP.DontRotateImg)
             write('ImgAngleMinOfs', FP.ImgAngleMinOfs)
+            write('V_Clr_IF_SWITCH_ON', FP.V_Clr_IF_SWITCH_ON)
 
 
 
