@@ -30,12 +30,11 @@ function demo.PopStyle()
         im.PopStyleColor(ctx, DefaultStylePop)
     end ]]
 
+
     if app.style_editor and app.style_editor.push_count > 0 then
-
         im.PopStyleColor(ctx, #app.style_editor.style.colors)   
-    else 
-
-        im.PopStyleColor(ctx, DefaultStylePop)
+    elseif DefaultThemeActive then 
+        im.PopStyleColor(ctx, DEFAULT_STYLE_POP)
     end
 
 
@@ -71,7 +70,7 @@ function demo.PushStyle()
         im.PushStyleColor(ctx, im.Col_ButtonActive, 0x57575786)
         im.PushStyleColor(ctx, im.Col_SliderGrab, 0x616161FF)
         im.PushStyleColor(ctx, im.Col_SliderGrabActive, 0xD1D1D1AC)
-        DefaultStylePop = 9
+        DEFAULT_STYLE_POP = 9
     end
 end
 
