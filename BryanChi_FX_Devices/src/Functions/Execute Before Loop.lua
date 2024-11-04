@@ -439,6 +439,7 @@ function Retrieve_User_Settings()
                 Ctrl_Scroll = storedTable.ctrl_scroll
                 ProC.GR_NATIVE = storedTable.proc_gr_native
                 ProQ.Analyzer = storedTable.proq_analyzer
+                USE_MOD_CONTROL_POPUP =storedTable.USE_MOD_CONTROL_POPUP
                 --Use_SystemFont = storedTable.use_systemfont
             end
         end

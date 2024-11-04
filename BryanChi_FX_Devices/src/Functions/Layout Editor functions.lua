@@ -1262,7 +1262,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                 end
                 if isClr2 then 
+                    if im.IsItemHovered(ctx) then 
 
+                        tooltip('Color when Param value is at 100%')
+                    end
                     if not FS[var] then Cross_Out() end 
                     SL()
                     if  FS[var] then 
@@ -3884,7 +3887,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
             else
                 local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
-
                 local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
             end
@@ -4363,7 +4365,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
 
-        if --[[ Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and ]] AssigningMacro and FP.ModAMT and  FP.ModAMT[1] then
+        if Trk.Prm.Assign and F_Tp == Trk.Prm.Assign and AssigningMacro and FP.ModAMT and  FP.ModAMT[1] then
             local M = AssigningMacro
 
             RightBtnDragX, RightBtnDragY = im.GetMouseDragDelta(ctx, x, y, 1)
@@ -5056,7 +5058,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     end
     local function EndCOMBO()
         im.PopStyleColor(ctx, 3)
-        if FP.V_FontSize then im.PopFont(ctx) end
+
         im.EndCombo(ctx)
 
     end
@@ -5071,6 +5073,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         end
         im.PushStyleColor(ctx, im.Col_Text, V_Clr)
         local rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
+        if FP.V_FontSize then im.PopFont(ctx) end
+
         im.PopStyleColor(ctx)
         if rv  then
             -----Style--------
@@ -5136,7 +5140,6 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
             end
         end
         -- DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
-        if FP.V_FontSize then im.PopFont(ctx) end
     end
 
     local rv, v_format = begincombo(ctx)

@@ -209,11 +209,13 @@ MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
 function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
     local FP = FX[FxGUID][Fx_P]
     local RC = im.IsItemClicked(ctx, 1)
+
     if FP then  FP.ModBipolar = FP.ModBipolar or {} end 
 
 
     if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
     if --[[Assign Mod]] (AssigningMacro or AssigningMidiMod) and RC then
+
          _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
         if not ValBeforeMod or ValBeforeMod == '' then
             r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
@@ -246,9 +248,6 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
         end
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods',FP.WhichMODs, true)
 
-        --r.SetProjExtState(0, 'FX Devices', 'Prm'..F_Tp..'Has Which Macro Assigned, TrkID ='..TrkID, Trk.Prm.WhichMcros[F_Tp..TrkID])
-        --[[ r.gmem_write(7, CC) --tells jsfx to retrieve P value
-        r.gmem_write(JSFX.P_ORIG_V + CC, p_value) ]]
 
         r.gmem_write(6, CC)
 
@@ -433,7 +432,8 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             local M = AssigningMacro
             local BipolarOut 
 
-            FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
+            FP.ModAMT[M] = SetMinMax( CalculateModAmt(FP.ModAMT[M]) , -1, 1 )
+
             if Mods == Alt and IsRBtnHeld then 
                 -- FP.ModAMT[M] = math.abs( FP.ModAMT[M])
                 BipolarOut =  FP.ModAMT[M]  + 100
@@ -451,7 +451,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                 r.gmem_write(1000 * AssigningMacro + Trk.Prm.Assign,  FP.ModAMT[M]) -- tells jsfx the param's mod amount
             end
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. M .. 'Mod Amt',FP.ModAMT[M], true)
-       
+
 
         end
         if Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMidiMod then 
@@ -4640,6 +4640,8 @@ end
 
 
 
+
+
 function Create_Diy_TrkID_If_None_Exist()
 
     if PM.DIY_TrkID[TrkID] == nil then
@@ -4657,4 +4659,99 @@ function Prm_Modulation_tooltip_Win(FP)
         Simple_CurveEditor()
         im.EndTooltip(ctx)
     end
+end
+
+
+function Show_Modulator_Control_Panel(pos,FP)
+    if not USE_MOD_CONTROL_POPUP then return end 
+    if not FP.WhichCC then return end 
+    if im.IsItemActive(ctx) then return end
+    if (not im.IsItemHovered(ctx) and not (Mod_Control_Win_Hvr == FP.Num)  ) then return  end 
+
+    local sz = 50
+    local winSz = {sz, sz*1}
+    local It = 0
+    local Hvr_Win
+    local PrmSz = {im.GetItemRectSize(ctx)}
+
+    Mod_Control_Win_Hvr = Mod_Control_Win_Hvr or FP.Num 
+    local Need_Create_Win = {}
+    for i , v in ipairs(MacroNums) do 
+        if FP.ModAMT and FP.ModAMT[i] then 
+            table.insert(Need_Create_Win, i)
+        end
+    end
+
+
+
+
+
+    for i , v in ipairs(MacroNums) do 
+
+        if FP.ModAMT and FP.ModAMT[i] then 
+
+            local xP = pos[1]+PrmSz[1]/2  +  (It)*sz   -( (#Need_Create_Win) * sz/2)
+
+            im.SetNextWindowPos(ctx, xP , pos[2]-sz*1 - 5)
+            im.SetNextWindowSize(ctx, winSz[1], winSz[2])
+            im.PushStyleVar(ctx, im.StyleVar_WindowPadding, 0,0)
+            im.Begin(ctx, 'Modulation Bar'..i.. 'Prm = '..FP.Num, true,  im.WindowFlags_NoDecoration)
+            local Clr = EightColors.Bright_HighSat[i]
+            local SzW , SzH = im.GetWindowSize(ctx)
+            local WinX, WinY = im.GetWindowPos(ctx)
+            local WDL = im.GetForegroundDrawList(ctx)
+            local rv, val , center= AddKnob_Simple(ctx, 'Mod'..i , FP.ModAMT[i] ,  sz/2 , knobSizeOfs, OutClr, InClr, 0x00000000, Clr , 'Mod Range Control')
+
+            local function Keep_Win_Open_If_Hvr_Or_Active ()
+                if im.IsMouseHoveringRect( ctx,WinX, WinY , WinX + SzW, WinY + SzH) or rv or FP.Right_Dragging_Mod_Ctrl then 
+                    Mod_Control_Win_Hvr = FP.Num 
+                    Hvr_Win = true 
+                end 
+            end
+
+            --im.Button(ctx,' aefjnasdfnjkdfasf ',sz,sz)
+            if rv==1  then 
+
+                Trk.Prm.Assign = FP.WhichCC
+                
+            elseif rv == 2 then 
+                rv = 'Right-Dragging' 
+                --[[ msg(FX_Idx)
+                AssignMod (FP.FxGUID, Fx_P, FX_Idx, P_Num, p_value, rv) ]]
+                AssigningMacro = i 
+                Trk.Prm.Assign = FP.WhichCC
+                FP.Right_Dragging_Mod_Ctrl = true 
+                r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
+                    r.gmem_write(6, FP.WhichCC)
+            end
+            if not IsRBtnHeld then 
+                AssigningMacro = nil 
+                FP.Right_Dragging_Mod_Ctrl = nil
+            end
+
+
+
+            Keep_Win_Open_If_Hvr_Or_Active ()
+            --im.DrawList_AddRect(WDL, WinX, WinY , WinX + SzW, WinY + SzH, 0xffffffff)
+            
+
+            im.End(ctx)
+
+            im.PopStyleVar(ctx)
+
+            It = It + 1 
+        end
+    end
+
+    if not Hvr_Win then 
+
+        Mod_Control_NOT_HVR_TIME = (Mod_Control_NOT_HVR_TIME or 0 )+1 
+        
+
+        if Mod_Control_NOT_HVR_TIME > 10 then
+            Mod_Control_Win_Hvr = false
+            Mod_Control_NOT_HVR_TIME = 0 
+        end
+    end
+
 end

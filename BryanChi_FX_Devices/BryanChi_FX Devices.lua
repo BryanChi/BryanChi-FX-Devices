@@ -1,10 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.6
+-- @version 1.0beta16.5.7
 -- @changelog
---  - Layout Editor : Add new parameter - Color 2 for affecting Label and Text color by the param value.
---  - Layout Editor : Fix having switch Value color will crash script. (ReaComp)
---  - Layout Editor : Fix crash for manual values for selection type if value font size is set. 
+--  - Added option to enable Modulation Control Popup window on mouse hover. Available in Settings - General behavior.
+--  - Layout Editor : Add tooltip helper when user hover on Color 2.
+--  - Layout Editor : Fix Selecting Selection crashes.
+--  - Minor fix to ReaComp layout
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

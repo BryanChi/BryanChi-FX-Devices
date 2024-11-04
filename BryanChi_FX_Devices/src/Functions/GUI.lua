@@ -4317,6 +4317,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     AddCombo(ctx, LT_Track, FX_Idx, Prm.Name .. FxGUID .. '## actual', Prm.Num, FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm.Style, FxGUID, Fx_P, FP.ManualValues)
                                     MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Selection', curX, CurY)
                                 end
+                                
                                 return pos
                             end
 
@@ -4372,8 +4373,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
 
                             ------ EXECUTION -----
+                            ---
                             local pos = Create_Item()
-                            
+                            Show_Modulator_Control_Panel(pos, FP)
+
                             --Prm_Modulation_tooltip_Win(FP)
 
                             --Draw_Attached_Drawings(FP,FX_Idx, pos, p_value)
@@ -5489,7 +5492,7 @@ function Draw_Background(FxGUID, pos, Draw_Which)
 
 end
 
-function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InClr, PointerClr, RangeClr)
+function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InClr, PointerClr, RangeClr, style)
     local Size = Size or 15
     local p_value = p_value or 0
     local radius_outer = Size or Df.KnobRadius -- Radius ;
@@ -5576,7 +5579,8 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
 
     local radius_outer = Size + (knobSizeOfs or 0)
     local t = p_value
-    local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+    local angle =  ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+
     local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
     local radius_inner = radius_outer * 0.40
 
@@ -5584,15 +5588,23 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
         im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffff88)
     end     
 
+    if style == 'Mod Range Control' then 
+        local ANGLE_MIN = 3.141592 * 1.5
+        local angle = (ANGLE_MIN) + (ANGLE_MAX - (ANGLE_MIN)) * t
+        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, ANGLE_MIN, angle)
+        im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.2)
+        im.DrawList_PathClear(draw_list)
+        HighlightHvredItem()
+
+
+    else 
         im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,OutClr or im.GetColor(ctx, im.Col_Button))
-        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
-            center[2] + angle_sin * radius_inner,
-            center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), PointerClr or Clr_SldrGrab,  2)
+        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), PointerClr or Clr_SldrGrab,  2)
         im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
         im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.7)
         im.DrawList_PathClear(draw_list)
         im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner, InClr or im.GetColor(ctx, is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or im.Col_FrameBg))
-
+    end
      
     return Knob_Click, p_value, center
 end

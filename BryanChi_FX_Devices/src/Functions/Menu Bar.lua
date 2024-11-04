@@ -6,6 +6,7 @@ function StoreSettings()
             ctrl_scroll = Ctrl_Scroll,
             proc_gr_native = ProC.GR_NATIVE,
             proq_analyzer = ProQ.Analyzer,
+            USE_MOD_CONTROL_POPUP = USE_MOD_CONTROL_POPUP
             --use_systemfont = Use_SystemFont
         }
     )
@@ -99,6 +100,7 @@ function Settings()
             _, ProC.GR_NATIVE = im.Checkbox(ctx, 'Use Native Gain Reduction for Pro-C', ProC.GR_NATIVE)
             _, ProQ.Analyzer = im.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
             --_, Use_SystemFont = im.Checkbox(ctx, 'Use System Font', Use_SystemFont)
+            _, USE_MOD_CONTROL_POPUP = im.Checkbox(ctx, 'Modulation Control Popup on Mouse Hover', USE_MOD_CONTROL_POPUP)
             StoreSettings()
             im.EndMenu(ctx)
         end
