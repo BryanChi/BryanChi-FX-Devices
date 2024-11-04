@@ -1950,7 +1950,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     FX[FxGUID][v].Style = Style;
                     if img then
                         FX[FxGUID][v].Image = img
-                        FX[FxGUID][v].ImgFilesName = ImgPath
+
+                        FX[FxGUID][v].ImgFilesName = TruncatePath(ImgPath)
                     else
                         FX[FxGUID][v].ImgFilesName = nil
                     end
@@ -6025,7 +6026,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Clr_At_Full      = RecallInfo(Ct, 'Lbl_Clr_At_Full', Fx_P, 'Num')
 
                             local FileName       = RecallInfo(Ct, 'Custom Image', Fx_P)
-
+                            msg(FileName)
                             if FileName then
                                 local FileName = TruncatePath(FileName)
                                 FP.ImgFilesName = FileName
@@ -6067,9 +6068,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             end
 
                             if Prm.InstAdded[FxGUID] ~= true then
-                                StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable',
-                                    'AddingFromExtState',
-                                    Fx_P, FX_Idx, TrkID)
+                                StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState', Fx_P, FX_Idx, TrkID)
                                 r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
                             end
 

@@ -6,6 +6,7 @@
 --  - Layout Editor : Add tooltip helper when user hover on Color 2.
 --  - Layout Editor : Fix Selecting Selection crashes.
 --  - Minor fix to ReaComp layout
+--  - Attempt to fix 1175 compressor crashing
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
