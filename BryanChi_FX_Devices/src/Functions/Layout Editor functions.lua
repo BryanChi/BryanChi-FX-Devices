@@ -5241,7 +5241,10 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         else --Use Value As Label
             _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         end
-        if FP.Lbl_Pos == 'Within' then lbl = FP.CustomLbl or FP.Name end
+        if FP.Lbl_Pos == 'Within' then 
+            lbl = FP.CustomLbl or FP.Name 
+            im.PushFont(ctx,  _G[Font])
+        end
 
         return lbl, TextW
     end
@@ -5360,7 +5363,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
             FP.V_Clr or getClr(im.Col_Text), lbl)
     end
     if FP.V_Pos == 'Within' then im.PopFont(ctx) end
-
+    if FP.Lbl_Pos == 'Within' then im.PopFont(ctx) end
 
     im.EndGroup(ctx)
 

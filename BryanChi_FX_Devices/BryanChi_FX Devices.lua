@@ -1,12 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.7
+-- @version 1.0beta16.5.8
 -- @changelog
---  - Added option to enable Modulation Control Popup window on mouse hover. Available in Settings - General behavior.
---  - Layout Editor : Add tooltip helper when user hover on Color 2.
---  - Layout Editor : Fix Selecting Selection crashes.
---  - Minor fix to ReaComp layout
---  - Attempt to fix 1175 compressor crashing
+--  - Layout Editor : Fix label font size deosn't have any effect on Switches.
+--  - Fix crash upon launching script if no track is present in current project.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

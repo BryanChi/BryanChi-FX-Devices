@@ -1087,6 +1087,7 @@ end
 
 
 function Get_Modulator_JSFX_Info()
+    if not LT_Track then return end 
     local MacrosJSFXExist = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0--[[RecFX]], 0)
     local TrkID = r.GetTrackGUID(LT_Track)
     if MacrosJSFXExist == 0 then
