@@ -2,8 +2,10 @@
 -- @author Bryan Chi
 -- @version 1.0beta16.5.8
 -- @changelog
---  - Layout Editor : Fix label font size deosn't have any effect on Switches.
---  - Fix crash upon launching script if no track is present in current project.
+--  - NEW! In Layout Editor it's now possible to choose fonts for labels and values.
+--  - For knobs, Added 'top' as an option for value positon.
+--  - add new indicator for adding fx window.
+--  - Fix error message popping up if close by clicking the X on the top right of ImGui.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -68,6 +70,7 @@ r.SetToggleCommandState(0, CommanID, 1)
 
 
 function loop()
+    If_New_Font()
     local validctx = r.ImGui_ValidatePtr(ctx,'ImGui_Context*')
     
     if ChangeFont then
@@ -81,13 +84,7 @@ function loop()
             ChangeFont_Var = nil
         end
     end
-    --[[ if ChangeFontSize_TB then 
-        for i, v in ipairs(ChangeFontSize_TB) do 
-            v.FontSize = ChangeFontSize_Size
-        end 
-        ChangeFontSize_TB = nil
-        ChangeFontSize_Size = nil 
-    end  ]]    
+
     GetLT_FX_Num()
     GetLTParam()
 
@@ -122,7 +119,7 @@ function loop()
     GetAllMods( )
 
 
-    if visible and LT_Track then
+    if visible and LT_Track and OpenMainWIN then
         
     
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
@@ -2592,6 +2589,7 @@ function loop()
 
 
     else --on script close
+        im.End(ctx)
         NumOfTotalTracks = r.GetNumTracks()
         for T = 0, NumOfTotalTracks - 1, 1 do
             local track = r.GetTrack(0, T)
@@ -2604,7 +2602,6 @@ function loop()
             Delete_All_FXD_AnalyzerFX(track)
         end
         r.SetToggleCommandState(0, CommanID, 0)
-
     end
     Track_Fetch_At_End = r.GetLastTouchedTrack()
 

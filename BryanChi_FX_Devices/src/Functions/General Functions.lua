@@ -2026,14 +2026,12 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
     end
 
+    im.PushStyleVar(ctx, im.StyleVar_WindowBorderSize , 3)
+    im.PushStyleColor(ctx, im.Col_Border, 0xffffffff)
     if im.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
-        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX) then
-            AddedFX = true
-            im.CloseCurrentPopup(ctx)
-        end -- Add FX Window
         im.SeparatorText(ctx, "PLUGINS")
         for i = 1, #CAT do
 
@@ -2111,7 +2109,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
         DndAddFX_SRC(LAST_USED_FX)
         im.SeparatorText(ctx, "UTILS")
-        if im.Selectable(ctx, 'Add FX Layering', false) then
+        if im.Selectable(ctx, 'FX Layering', false) then
             local FX_Idx = FX_Idx
             --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
             local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
@@ -2183,7 +2181,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
             if val & 4 ~= 0 then
                 r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
             end
-        elseif im.Selectable(ctx, 'Add Band Split', false) then
+        elseif im.Selectable(ctx, 'Band Split', false) then
             r.gmem_attach('FXD_BandSplit')
             table.insert(AddFX.Name, 'FXD Saike BandSplitter')
             table.insert(AddFX.Pos, FX_Idx)
@@ -2205,16 +2203,26 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
         if AddedFX then RetrieveFXsSavedLayout(Sel_Track_FX_Count) end
 
+        im.SeparatorText(ctx, "Search")
 
+        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX) then
+            AddedFX = true
+            im.CloseCurrentPopup(ctx)
+        end -- Add FX Window
 
         if CloseAddFX_Popup then
             im.CloseCurrentPopup(ctx)
             CloseAddFX_Popup = nil
         end
+
+
         im.EndPopup(ctx)
     else
         Dvdr.Clr[ClrLbl or ''] = 0x131313ff
     end
+    
+    im.PopStyleColor(ctx)
+    im.PopStyleVar(ctx)
 end
 
 function If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
@@ -2421,103 +2429,113 @@ end
 
 
 function At_Begining_of_Loop()
-    ------- Add FX ---------
-    for i, v in ipairs(AddFX.Name) do
-        if v:find('FXD Gain Reduction Scope') then
-            local FxGUID = ProC.GainSc_FXGUID
+   
 
-            FX[FxGUID] = FX[FxGUID] or {}
-            FX[FxGUID].ProC_ID = math.random(1000000, 9999999)
-            r.gmem_attach('CompReductionScope')
-            r.gmem_write(2002, FX[FxGUID].ProC_ID)
-            r.gmem_write(FX[FxGUID].ProC_ID, AddFX.Pos[i])
-            r.gmem_write(2000, PM.DIY_TrkID[TrkID])
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProC_ID ' .. FxGUID, FX[FxGUID].ProC_ID, true)
-        elseif v:find('FXD Saike BandSplitter') then
-            r.gmem_attach('FXD_BandSplit')
-            BandSplitID = BandSplitID or math.random(1000000, 9999999)
-            r.gmem_write(0, BandSplitID)
-        elseif v:find('FXD Band Joiner') then
-
+    local function If_Need_Add_FX ()
+        for i, v in ipairs(AddFX.Name) do
+            if v:find('FXD Gain Reduction Scope') then
+                local FxGUID = ProC.GainSc_FXGUID
+    
+                FX[FxGUID] = FX[FxGUID] or {}
+                FX[FxGUID].ProC_ID = math.random(1000000, 9999999)
+                r.gmem_attach('CompReductionScope')
+                r.gmem_write(2002, FX[FxGUID].ProC_ID)
+                r.gmem_write(FX[FxGUID].ProC_ID, AddFX.Pos[i])
+                r.gmem_write(2000, PM.DIY_TrkID[TrkID])
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ProC_ID ' .. FxGUID, FX[FxGUID].ProC_ID, true)
+            elseif v:find('FXD Saike BandSplitter') then
+                r.gmem_attach('FXD_BandSplit')
+                BandSplitID = BandSplitID or math.random(1000000, 9999999)
+                r.gmem_write(0, BandSplitID)
+            elseif v:find('FXD Band Joiner') then
+    
+            end
+    
+    
+    
+            AddFX_HideWindow(LT_Track, v, -1000 - AddFX.Pos[i])
+            if v:find('FXD Band Joiner') then
+                local SplittrID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i] - 1)
+                local JoinerID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i])
+                FX[SplittrID] = FX[SplittrID] or {}
+                FX[SplittrID].AttachToJoiner = JoinerID
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID, JoinerID, true)
+            elseif v:find('FXD Gain Reduction Scope') then
+                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, AddFX.Pos[i])
+    
+                SyncAnalyzerPinWithFX(AddFX.Pos[i], AddFX.Pos[i] - 1, FX_Name)
+            end
+    
+           --[[  if  AddFX.Parallel then 
+                r.TrackFX_SetNamedConfigParm( LT_Track, AddFX.Pos[i], 'parallel', '1' )
+            end ]]
+    
+    
+            TREE = BuildFXTree(LT_Track)
+    
         end
-
-
-
-        AddFX_HideWindow(LT_Track, v, -1000 - AddFX.Pos[i])
-        if v:find('FXD Band Joiner') then
-            local SplittrID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i] - 1)
-            local JoinerID = r.TrackFX_GetFXGUID(LT_Track, AddFX.Pos[i])
-            FX[SplittrID] = FX[SplittrID] or {}
-            FX[SplittrID].AttachToJoiner = JoinerID
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Splitter\'s Joiner FxID ' .. SplittrID, JoinerID, true)
-        elseif v:find('FXD Gain Reduction Scope') then
-            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, AddFX.Pos[i])
-
-            SyncAnalyzerPinWithFX(AddFX.Pos[i], AddFX.Pos[i] - 1, FX_Name)
-        end
-
-       --[[  if  AddFX.Parallel then 
-            r.TrackFX_SetNamedConfigParm( LT_Track, AddFX.Pos[i], 'parallel', '1' )
-        end ]]
-
-
-        TREE = BuildFXTree(LT_Track)
-
+    
     end
 
+    local function If_Ned_Del_FX ()
 
+        if Sel_Track_FX_Count then
+            for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
+                local function Do(FX_Idx)
+                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
+                    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
 
+                    if FX_Name == 'JS: FXD Gain Reduction Scope' then
+                        if string.find(PreviousFX, 'Pro%-C 2') == nil then
+                            r.TrackFX_Delete(LT_Track, FX_Idx)
+                        end
+                    end
+                    if FX_Name == 'JS: FXD Split to 4 channels' then
+                        if string.find(NextFX, 'Pro%-C 2') == nil and not AddFX.Name[1] then
+                            r.TrackFX_Delete(LT_Track, FX_Idx)
+                        end
+                        local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
+                        local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
 
-    ----- Del FX ------
-    if Sel_Track_FX_Count then
-        for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-            local function Do(FX_Idx)
-                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
-                local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+                        if ProC_pin ~= SplitPin then
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
+                            local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
 
-                if FX_Name == 'JS: FXD Gain Reduction Scope' then
-                    if string.find(PreviousFX, 'Pro%-C 2') == nil then
-                        r.TrackFX_Delete(LT_Track, FX_Idx)
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
+                            r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
+                        end
                     end
                 end
-                if FX_Name == 'JS: FXD Split to 4 channels' then
-                    if string.find(NextFX, 'Pro%-C 2') == nil and not AddFX.Name[1] then
-                        r.TrackFX_Delete(LT_Track, FX_Idx)
-                    end
-                    local ProC_pin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 0)
-                    local SplitPin = r.TrackFX_GetPinMappings(LT_Track, FX_Idx, 0, 0)
 
-                    if ProC_pin ~= SplitPin then
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 0, ProC_pin, 0) -- input L
-                        local R = r.TrackFX_GetPinMappings(LT_Track, FX_Idx + 1, 0, 1)
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 0, 1, R, 0)        -- input R
+                local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
+                    'container_count')
 
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 0, ProC_pin, 0) -- out L
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 1, R, 0)        -- out R
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 2, 2 * R, 0)    -- out L Compare
-                        r.TrackFX_SetPinMappings(LT_Track, FX_Idx, 1, 3, 4 * R, 0)    -- out R Compare
+                if is_container then
+                    for i = 1, container_count, 1 do
+                        local Idx = tonumber(select(2,
+                            r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
+                        if Idx then
+                            Do(Idx)
+                        end
                     end
+                else
+                    Do(FX_Idx)
                 end
             end
+            TREE = BuildFXTree(LT_Track)
 
-            local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                'container_count')
-
-            if is_container then
-                for i = 1, container_count, 1 do
-                    local Idx = tonumber(select(2,
-                        r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
-                    if Idx then
-                        Do(Idx)
-                    end
-                end
-            else
-                Do(FX_Idx)
-            end
         end
-        TREE = BuildFXTree(LT_Track)
-
     end
+
+    If_Need_Add_FX ()   
+    If_Ned_Del_FX ()
+
+
+
+
 
 
     for i, v in ipairs(DelFX.GUID) do 
@@ -2947,4 +2965,27 @@ function Get_Default_Param_Height_By_Type(type)
  
     end
     return DefH
+end
+
+function Attach_New_Font_On_Next_Frame(Ft, Sz, Italic, Bold)
+    NEED_ATACH_NEW_FONT = Ft
+    NEED_ATACH_NEW_FONT_SZ = Sz
+     NEED_ATACH_NEW_FONT_Italic = Italic 
+     NEED_ATACH_NEW_FONT_Bold = Bold 
+
+end 
+
+function If_New_Font()
+    if not NEED_ATACH_NEW_FONT then return end 
+
+    local Italic, Bold = NEED_ATACH_NEW_FONT_Italic and im.FontFlags_Italic or 0 , NEED_ATACH_NEW_FONT_Bold and im.FontFlags_Bold or 0
+    local f = NEED_ATACH_NEW_FONT
+    local s = NEED_ATACH_NEW_FONT_SZ
+
+    local Font = f.. '_' .. s ..(Italic~=0 and '_Italic' or '') .. (Bold~=0 and '_Bold' or '')
+    _G[Font] = im.CreateFont( f , s , Italic | Bold)
+    im.Attach(ctx, _G[Font])
+    NEED_ATACH_NEW_FONT , NEED_ATACH_NEW_FONT_SZ = nil ,nil
+    NEED_ATACH_NEW_FONT_Italic , NEED_ATACH_NEW_FONT_Bold = nil, nil 
+
 end

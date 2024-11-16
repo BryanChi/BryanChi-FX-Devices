@@ -211,6 +211,7 @@ end
 
 function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos)
     if not FP then return end   
+    if NEED_ATACH_NEW_FONT then return end
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V) or FP.V_Clr or getClr(im.Col_Text)
     if FP.Lbl_Pos == 'Free' or Lbl_Pos == 'Free' then
@@ -512,6 +513,7 @@ end
 function Align_Text_To_Center_Of_X(text, width, x_offset, y_offset)
     local CurX = im.GetCursorPosX(ctx)
     local w = im.CalcTextSize(ctx, text)
+    ttp(w)
     im.SetCursorPosX(ctx, CurX - w / 2 + width / 2 + (x_offset or 0))
     if y_offset and y_offset ~= 0  then 
         local CurY = im.GetCursorPosY(ctx)
@@ -1139,15 +1141,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         end
         
         local function Label_and_Value_Table()
-            
+
 
 
             local function Value_Pos_X()
                 if FS.V_Pos ~= 'None' then
 
-                    im.SetNextItemWidth(ctx, 50)
+                    im.SetNextItemWidth(ctx, 40)
                     local EditPosX, PosX = im.DragDouble(ctx, ' ##EditValuePosX' .. FxGUID .. LE.Sel_Items[1], FS.V_Pos_X or 0, 0.25, nil, nil, '%.2f')
-                    SL()
                     if EditPosX then
                         for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_X = PosX end
                     end
@@ -1157,24 +1158,17 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
             local function Value_Pos_Y()
                 if FS.V_Pos ~= 'None' then
-                    im.SetNextItemWidth(ctx, 50)
+                    im.SetNextItemWidth(ctx, 40)
                     local EditPosY, PosY = im.DragDouble(ctx, ' ##EditValuePosY' .. FxGUID .. LE.Sel_Items[1], FS.V_Pos_Y or 0, 0.25, nil, nil, '%.2f')
-                    SL()
                     if EditPosY then
                         for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].V_Pos_Y = PosY end
                     end
                 end
             end
 
-            local function FreeLblPosSettings()
-                if FS.Lbl_Pos ~= 'None' then
-                    
-                
-                end
-            end
 
             local function Value_Pos()
-                im.SetNextItemWidth(ctx, -FLT_MIN)
+                im.SetNextItemWidth(ctx, 110)
 
                 if im.BeginCombo(ctx, '## V Pos' .. LE.Sel_Items[1], FS.V_Pos or 'Default', im.ComboFlags_NoArrowButton) then
                     AddOption('Free', 'V_Pos')
@@ -1187,6 +1181,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         AddOption('Top', 'V_Pos')
                         
                     elseif FS.Type == 'Knob' then
+                        AddOption('Top', 'V_Pos')
                         AddOption('Bottom', 'V_Pos')
                         AddOption('Within', 'V_Pos')
                     elseif FS.Type == 'Switch' or FS.Type == 'Selection' then
@@ -1206,7 +1201,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                     im.EndCombo(ctx)
                 end
-                im.SameLine(ctx)
 
 
             end
@@ -1238,8 +1232,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                     im.EndCombo(ctx)
                 end
-                im.SameLine(ctx)
-                FreeLblPosSettings()
             end
 
 
@@ -1280,61 +1272,42 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
             local function Label_X_Pos()
-                im.SetNextItemWidth(ctx, 50)
+                im.SetNextItemWidth(ctx, 40)
                 local EditPosX, PosX = im.DragDouble(ctx, ' ##EditLblPosX' .. FxGUID .. LE.Sel_Items[1], FS.Lbl_Pos_X or 0, 0.25, nil, nil, '%.2f')
                 if EditPosX then
                     for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Pos_X = PosX end
                 end
             end
             local function Label_Y_Pos()
-                im.SetNextItemWidth(ctx, 50)
+                im.SetNextItemWidth(ctx, 40)
                 local EditPosY, PosY = im.DragDouble(ctx, ' ##EditLblPosY' .. FxGUID .. LE.Sel_Items[1], FS.Lbl_Pos_Y or 0, 0.25, nil, nil, '%.2f')
                 if EditPosY then
                     for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Lbl_Pos_Y = PosY end
                 end
             end
             local function Label_Font_Size()
-                im.SetNextItemWidth(ctx, 50)
-                local Drag, ft = im.DragDouble(ctx,
-                    '##EditFontSize' .. FxGUID .. (LE.Sel_Items[1] or ''),
-                    FS.FontSize or Knob_DefaultFontSize, 0.25, 6, 64, '%.2f')
+                im.SetNextItemWidth(ctx, 40)
+                local Drag, ft = im.DragDouble(ctx, '##EditFontSize' .. FxGUID .. (LE.Sel_Items[1] or ''), FS.FontSize or Knob_DefaultFontSize, 0.25, 6, 64, '%.2f')
                 if Drag then
                     local sz = roundUp(ft, 1)
-                    if not _G['Font_Andale_Mono' .. '_' .. sz] then
-                        _G['Font_Andale_Mono' .. '_' .. sz] = im.CreateFont('andale mono', sz)
-                        ChangeFont = FS
-                        ChangeFont_Size = sz
-                    end
-
-                    ChangeFontSize_TB = {}
                     for i, v in pairs(LE.Sel_Items) do
-                        table.insert(ChangeFontSize_TB, FX[FxGUID][v])
+                        GetFonts(FX[FxGUID][v]) 
                         FX[FxGUID][v].FontSize = ft
                     end
-                    ChangeFontSize_Size = ft
+
                 end
             end
 
             local function Value_Font_Size()
-                im.SetNextItemWidth(ctx, 50)
+                im.SetNextItemWidth(ctx, 40)
                 local Drag, ft = im.DragDouble(ctx,'##EditV_FontSize' .. FxGUID .. (LE.Sel_Items[1] or ''),FX[FxGUID][LE.Sel_Items[1]].V_FontSize or Knob_DefaultFontSize, 0.25, 6,64,'%.2f')
                 if Drag then
                     local sz = roundUp(ft, 1)
-                    if not _G['Arial' .. '_' .. sz] then
-                        -- _G['Arial' .. '_' .. sz] = im.CreateFont('Arial', sz)
-                        ChangeFont = FS
-                        ChangeFont_Size = sz
-                        ChangeFont_Font = 'Arial'
-                    end
-                    --[[ for i, v in pairs(LE.Sel_Items) do
-                        FX[FxGUID][v].V_FontSize = ft
-                    end ]]
-                    ChangeFontSize_TB = {}
+
                     for i, v in pairs(LE.Sel_Items) do
-                        table.insert(ChangeFontSize_TB, FX[FxGUID][v])
+                        GetFonts(FX[FxGUID][v]) 
                         FX[FxGUID][v].V_FontSize = ft
                     end
-                    ChangeFontSize_Size = ft
                 end
             end
             local function Value_Decimal_Places ()
@@ -1360,6 +1333,44 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                 end
             end
+            local function Font_Choice (Var, Italic, Bold)
+                FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 'FontAwesome6'
+            }
+                im.SetNextItemWidth(ctx, 100)
+                if im.BeginCombo(ctx, '##' ..Var .. LE.Sel_Items[1], FS[Var]) then 
+                    for I, V in ipairs(FONT_CHOICES) do
+                        im.PushFont(ctx, _G[V])
+                        if im.Selectable(ctx, V) then
+                            ToAllSelItm(Var, V, FxGUID)
+                            --ChangeFont = FS
+                           -- Attach_New_Font_On_Next_Frame(V, FS.Font or 12, FS[Italic], FS[Bold])
+                            
+                        end
+                        im.PopFont(ctx)
+                    end
+                    im.EndCombo(ctx)
+                end
+               --[[  SL()
+                if im.CheckBox(ctx, 'Italic##Italic'..Var .. LE.Sel_Items[1], FS.Font_Italic) then 
+                    ToAllSelItm(Italic, true, FxGUID)
+                    Attach_New_Font_On_Next_Frame(FS[Var] or 'Arial', FS.Font or 12, FS[Italic], FS[Bold])
+
+                end
+                SL(nil, 0 )
+                if im.CheckBox(ctx, 'Bold##Bold'..Var .. LE.Sel_Items[1], FS.Font_Bold) then 
+                    ToAllSelItm(Bold, true, FxGUID)
+                    Attach_New_Font_On_Next_Frame(FS[Var] or 'Arial', FS.Font or 12, FS[Italic], FS[Bold])
+
+                end ]]
+            end
+
+            local function Italic_or_Bold(Var, Font, which)
+                if im.Checkbox(ctx, '##'..Var .. LE.Sel_Items[1], FS[Var]) then 
+                    ToAllSelItm(Var, toggle(FS[Var]), FxGUID)
+                    --Attach_New_Font_On_Next_Frame(FS[Font] or 'Arial', FS.Font or 12, FS[], FS.Font_Bold)
+                end
+            end
+
             local function Value_Clr()
 
                 local DragV_Clr_edited, Drag_V_Clr = im.ColorEdit4(ctx, '##V  Clr' .. LE.Sel_Items[1], FS.V_Clr or im.GetColor(ctx, im.Col_Text), im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
@@ -1372,41 +1383,41 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
             im.NewLine(ctx)
-            if im.BeginTable(ctx, 'Labels and Values', 8,flags, -R_ofs) then 
+            if im.BeginTable(ctx, 'Labels and Values', 11,flags, -R_ofs) then 
                 im.TableSetupColumn(ctx, '', im.TableColumnFlags_WidthFixed)
-                im.TableSetupColumn(ctx, 'Pos')
+                im.TableSetupColumn(ctx, 'Pos',im.TableColumnFlags_WidthFixed)
                 im.TableSetupColumn(ctx, 'X', im.TableColumnFlags_WidthFixed)
                 im.TableSetupColumn(ctx, 'Y', im.TableColumnFlags_WidthFixed)
                 im.TableSetupColumn(ctx, 'Color', im.TableColumnFlags_WidthFixed)
                 im.TableSetupColumn(ctx, 'Color 2', im.TableColumnFlags_WidthFixed)
-
                 im.TableSetupColumn(ctx, 'Size', im.TableColumnFlags_WidthFixed)
+                im.TableSetupColumn(ctx, 'Font')
+                im.TableSetupColumn(ctx, 'Italic',im.TableColumnFlags_WidthFixed)
+                im.TableSetupColumn(ctx, 'Bold',im.TableColumnFlags_WidthFixed)
                 im.TableSetupColumn(ctx, 'Decimal')
-
                 im.TableHeadersRow(ctx)
-
                 im.TableNextRow(ctx)
+
                 im.TableSetColumnIndex(ctx, 0 ) 
                 im.Text(ctx, 'Label')
-                
                 im.TableSetColumnIndex(ctx, 1 )
                 Label_Pos()
                 im.TableSetColumnIndex(ctx, 2 )
                 Label_X_Pos()
-                
                 im.TableSetColumnIndex(ctx, 3 )
                 Label_Y_Pos()
-
                 im.TableSetColumnIndex(ctx, 4 )
                 ColorChooser('##Lbl Clr', 'Lbl_Clr')
                 im.TableSetColumnIndex(ctx, 5 )
-
                 ColorChooser('##Lbl Clr  at full', 'Lbl_Clr_At_Full', true )
                 im.TableSetColumnIndex(ctx, 6 )
-
                 Label_Font_Size()
-
-
+                im.TableSetColumnIndex(ctx, 7 )
+                Font_Choice ('Lbl_FONT','Lbl_Italic', 'Lbl_Bold')
+                im.TableSetColumnIndex(ctx, 8 )
+                Italic_or_Bold('Lbl_Italic', 'Lbl_FONT')
+                im.TableSetColumnIndex(ctx, 9 )
+                Italic_or_Bold('Lbl_Bold', 'Lbl_FONT')
 
 
                 im.TableNextRow(ctx)
@@ -1428,9 +1439,16 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.TableSetColumnIndex(ctx, 6 )
                 Value_Font_Size()
                 im.TableSetColumnIndex(ctx, 7 )
+                Font_Choice ('Val_FONT', 'Val_Italic', 'Val_Bold')
+                im.TableSetColumnIndex(ctx, 8 )
+                Italic_or_Bold('Val_Italic')
+                im.TableSetColumnIndex(ctx, 9 )
+                Italic_or_Bold('Val_Bold')
+
+
+                im.TableSetColumnIndex(ctx, 10 )
 
                 Value_Decimal_Places ()
-
                 im.EndTable(ctx)
             end
         end
@@ -3679,7 +3697,7 @@ end
 
 
 function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
-
+    if NEED_ATACH_NEW_FONT then return end
     local TextW, h      = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
     local SldrR, SldrB  = im.GetItemRectMax(ctx)
     local SldrL, SldrT  = im.GetItemRectMin(ctx)
@@ -3785,13 +3803,16 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
     local radius_outer = Radius or Df.KnobRadius;
+    --[[ 
+    local Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1) ]]
+    local Font, V_Font = GetFonts(FP)
 
-    local V_Font, Font = Arial_12, Font_Andale_Mono_12
-    if LblTextSize ~= 'No Font' then
-        Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-        V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-        im.PushFont(ctx, _G[Font])
-    end
+
+    im.PushFont(ctx, _G[Font])
+
+
+
     local Radius       = Radius or 0
 
     local pos          = { im.GetCursorScreenPos(ctx) }
@@ -3817,6 +3838,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local BtnOffset
 
     if Lbl_Pos == 'Top' then BtnOffset = -line_height end
+    local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
 
 
 
@@ -3824,8 +3846,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     WhichClick()
     local is_active = im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), im.ButtonFlags_MouseButtonLeft) -- ClickButton to alternate left/right dragging
-
-
 
      local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
@@ -3837,7 +3857,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     local BtnL, BtnT = im.GetItemRectMin(ctx)
     local BtnR, BtnB = im.GetItemRectMax(ctx)
-    local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
 
 
@@ -4230,30 +4249,31 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         if V_Pos ~= 'None' and V_Pos then
             im.PushFont(ctx, _G[V_Font])
     
-
-    
-            if FX[FxGUID][Fx_P].V_Round then FormatPV = RoundPrmV(FormatPV, FX[FxGUID][Fx_P].V_Round) end
-    
-    
+            FormatPV = FP.V_Round and RoundPrmV(FormatPV, FP.V_Round) or FormatPV
             local ValueTxtW = im.CalcTextSize(ctx, FormatPV, nil, nil, true)
-            --[[ if ValueTxtW < Radius * 2 then
-                CenteredVPos = pos[1] + Radius - ValueTxtW / 2
-            else ]]
-                CenteredVPos = pos[1] + Radius - ValueTxtW / 2
-            --end
+
             local Y_Offset, drawlist
-    
+            local CenteredVPos = pos[1] + Radius - ValueTxtW / 2
+            local pX = CenteredVPos+ (FP.V_Pos_X or 0)
+            local FtSz = FP.V_FontSize or Knob_DefaultFontSize
+
+            if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
+
+
             if V_Pos == 'Within' then 
                 Y_Offset = radius_outer * 1.2 
-            end
-            if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
-            if V_Pos =='Bottom' then
-                --[[ Align_Text_To_Center_Of_X(FormatPV, radius_outer * 2, FP.V_Pos_X, (FP.V_Pos_Y or 0) - (Y_Offset or 0))
-                MyText(FormatPV,  _G[V_Font], FX[FxGUID][Fx_P].V_Clr or 0xffffffff) ]]
+            elseif V_Pos =='Top' then 
 
-                im.DrawList_AddTextEx(draw_list, _G[V_Font], FP.V_FontSize or Knob_DefaultFontSize, CenteredVPos+ (FP.V_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0) + (FP.V_Pos_Y or 0), V_Clr, FormatPV)
+                local SldrL, SldrT  = im.GetItemRectMin(ctx)
+                local TextW, h      = im.CalcTextSize(ctx, FormatPV, nil, nil, true)
+                local p2 = SldrT -h + item_inner_spacing[2] - (Y_Offset or 0) + (FP.V_Pos_Y or 0)
+                im.DrawList_AddTextEx(draw_list, _G[V_Font], FtSz,pX ,p2 , V_Clr, FormatPV)
+
+            elseif V_Pos =='Bottom' then
+
+                im.DrawList_AddTextEx(draw_list, _G[V_Font], FtSz, pX, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0) + (FP.V_Pos_Y or 0), V_Clr, FormatPV)
             elseif V_Pos == 'Within' then 
-                im.DrawList_AddTextEx(draw_list, _G[V_Font], FP.V_FontSize or Knob_DefaultFontSize, CenteredVPos+ (FP.V_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] - radius_outer * 1.2   + (FP.V_Pos_Y or 0), V_Clr, FormatPV)
+                im.DrawList_AddTextEx(draw_list, _G[V_Font], FtSz, pX, pos[2] + radius_outer * 2 + item_inner_spacing[2] - radius_outer * 1.2   + (FP.V_Pos_Y or 0), V_Clr, FormatPV)
             end
             im.PopFont(ctx)
         end
@@ -4265,12 +4285,10 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
         end ]]
         if Lbl_Pos == 'Within' and Style == 'FX Layering' then
             local ValueTxtW = im.CalcTextSize(ctx, labeltoShow, nil, nil, true)
-            CenteredVPos = pos[1] + Radius - ValueTxtW / 2 + 0.5
-            Y_Offset = radius_outer * 1.3 - 1
+            local CenteredVPos = pos[1] + Radius - ValueTxtW / 2 + 0.5
+            local Y_Offset = radius_outer * 1.3 - 1
     
-            im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos,
-                pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88,
-                labeltoShow--[[ , (Radius or 20) * 2 ]])
+            im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88, labeltoShow--[[ , (Radius or 20) * 2 ]])
         end
     end
 
@@ -4465,6 +4483,35 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     im.EndGroup(ctx)
 end
 
+function GetFonts (FP)
+    local FtSz = roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local Font = 'Font_Andale_Mono_' .. FtSz
+    if FP.Lbl_FONT then 
+        Font = FP.Lbl_FONT.. '_' .. FtSz ..(FP.Lbl_Italic and '_Italic' or '') .. (FP.Lbl_Bold and '_Bold' or '')
+    end
+
+    if not r.ImGui_ValidatePtr(_G[Font], 'ImGui_Font*') then 
+        Attach_New_Font_On_Next_Frame(FP.Lbl_FONT or 'Font_Andale_Mono', FtSz, FP.Lbl_Italic, FP.Lbl_Bold)
+        return 
+    end
+
+
+
+
+    local FtSz = roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1 )
+    local V_Font = 'Arial_' .. FtSz
+    if FP.Val_FONT then 
+        V_Font = FP.Val_FONT.. '_' .. FtSz 
+        V_Font = FP.Val_FONT.. '_' .. FtSz ..(FP.Val_Italic and '_Italic' or '') .. (FP.Val_Bold and '_Bold' or '')
+    end
+    if not r.ImGui_ValidatePtr(_G[V_Font], 'ImGui_Font*') then 
+        Attach_New_Font_On_Next_Frame(FP.Val_FONT or 'Arial', FtSz, FP.Val_Italic, FP.Val_Bold)
+        return 
+    end
+
+    return Font, V_Font
+end
+
 ---@param ctx ImGui_Context
 ---@param label string
 ---@param labeltoShow string
@@ -4509,14 +4556,15 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
-    local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+
+    local Font, V_Font = GetFonts (FP)
+    
     local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
 
     labeltoShow = labeltoShow or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
 
-    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
+    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
     
 
 
@@ -4952,8 +5000,10 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
 
     im.BeginGroup(ctx)
-    local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-    local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    --local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    --local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+    local Font, V_Font = GetFonts(FP)
+
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, V_Norm) or FP.Lbl_Clr or getClr(im.Col_Text)
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
@@ -5071,6 +5121,9 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         if FP.V_FontSize then im.PushFont(ctx, _G[V_Font]) end
         if Width or FX[FxGUID][Fx_P].Combo_W then
             im.SetNextItemWidth(ctx, Width or (FX[FxGUID][Fx_P].Combo_W + (ExtraW or 0)))
+        else 
+            local sz = im.CalcTextSize(ctx, LabelOveride or _G[LabelValue])
+            im.SetNextItemWidth(ctx, sz+ (ExtraW or 0))
         end
         im.PushStyleColor(ctx, im.Col_Text, V_Clr)
         local rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
@@ -5079,7 +5132,6 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         im.PopStyleColor(ctx)
         if rv  then
             -----Style--------
-
             im.PushStyleColor(ctx, im.Col_Header, 0x44444433)
             local AccentClr = im.GetColor(ctx, im.Col_SliderGrabActive)
             im.PushStyleColor(ctx, im.Col_HeaderHovered, AccentClr)
@@ -5179,13 +5231,16 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
-    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
     local pos = {im.GetCursorScreenPos(ctx)}
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
+    --local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
+
+    --local Font = FontSize and 'Arial_' .. roundUp(FontSize, 1)
     
-    local Font = FontSize and 'Arial_' .. roundUp(FontSize, 1)
+    local Font, V_Font = GetFonts(FP)
+
     --[[ if FontSize then
         Font = 'Arial_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
     end ]]
@@ -5427,11 +5482,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local mouse_delta = { im.GetMouseDelta(ctx) }
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
+    local Font, V_Font = GetFonts(FP)
 
-    local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
-
-
-    local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
 
     if type(FP) ~= 'table' then
         FX[FxGUID][Fx_P] = {}
@@ -5902,6 +5954,12 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.V_Pos_Y             = v.V_Pos_Y
                     FP.Lbl_Pos_X           = v.Lbl_Pos_X
                     FP.Lbl_Pos_Y           = v.Lbl_Pos_Y
+                    FP.Lbl_FONT            = v.Lbl_FONT
+                    FP.Val_FONT            = v.Val_FONT
+                    FP.Lbl_Italic          = v.Lbl_Italic
+                    FP.Val_Italic          = v.Val_Italic
+                    FP.Lbl_Bold            = v.Lbl_Bold
+                    FP.Val_Bold            = v.Val_Bold
                     FP.Image               = v.Image
                     FP.ImgFilesName        = v.ImgFilesName
                     FP.ConditionPrm        = v.ConditionPrm
@@ -6020,6 +6078,12 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Pos_X     = RecallInfo(Ct, 'Label Free Pos X', Fx_P, 'Num')
                             FP.Lbl_Pos_Y     = RecallInfo(Ct, 'Label Free Pos Y', Fx_P, 'Num')
                             FP.Switch_On_Clr = RecallInfo(Ct, 'Switch On Clr', Fx_P, 'Num')
+                            FP.Lbl_FONT      = RecallInfo(Ct, 'Label Font', Fx_P)
+                            FP.Val_FONT      = RecallInfo(Ct, 'Value Font', Fx_P)
+                            FP.Lbl_Italic      = RecallInfo(Ct, 'Label Font Italic', Fx_P, 'Bool')
+                            FP.Lbl_Bold      = RecallInfo(Ct, 'Label Font Bold', Fx_P, 'Bool')
+                            FP.Val_Italic      = RecallInfo(Ct, 'Value Font Italic', Fx_P, 'Bool')
+                            FP.Val_Bold      = RecallInfo(Ct, 'Value Font Bold', Fx_P, 'Bool')
 
 
                             FP.Invisible     = RecallInfo(Ct, 'Invisible', Fx_P, 'Bool')
@@ -6029,7 +6093,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Clr_At_Full      = RecallInfo(Ct, 'Lbl_Clr_At_Full', Fx_P, 'Num')
 
                             local FileName       = RecallInfo(Ct, 'Custom Image', Fx_P)
-                            msg(FileName)
+
                             if FileName then
                                 local FileName = TruncatePath(FileName)
                                 FP.ImgFilesName = FileName
@@ -6558,6 +6622,13 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Value Font Size', FP.V_FontSize)
             write('Custom Label', FP.CustomLbl)
             write('Font Size', FP.FontSize)
+            write('Label Font', FP.Lbl_FONT)
+            write('Value Font', FP.Val_FONT)
+            write('Label Font Italic', FP.Lbl_Italic)
+            write('Label Font Bold', FP.Lbl_Bold)
+            write('Value Font Italic', FP.Val_Italic)
+            write('Value Font Bold', FP.Val_Bold)
+
             write('Slider Height', FP.Height)
             write('BgClr', FP.BgClr)
             write('GrbClr', FP.GrbClr)

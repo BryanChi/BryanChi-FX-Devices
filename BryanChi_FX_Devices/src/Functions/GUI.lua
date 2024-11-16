@@ -1645,6 +1645,7 @@ end
 ---@param color? number rgba
 ---@param WrapPosX? number
 function MyText(text, font, color, WrapPosX, center)
+    if NEED_ATACH_NEW_FONT then return end 
     if WrapPosX then im.PushTextWrapPos(ctx, WrapPosX) end
 
    
@@ -4818,7 +4819,21 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             --HOVER_RECT = im.IsWindowHovered(ctx,  im.HoveredFlags_RectOnly)
             HoverOnWindow = im.IsWindowHovered(ctx, im.HoveredFlags_AllowWhenBlockedByActiveItem)
             WinW          = im.GetWindowSize(ctx)
+            local function Draw_Lines_If_Popup_Open()
 
+                if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx)  then 
+                    local WDL = im.GetWindowDrawList(ctx)
+                    local w,h = im.GetItemRectSize(ctx)
+                    local l ,t = im.GetItemRectMin(ctx)
+                    local z = 20 
+                    local ctX, ctY = l + w/2  , t + h /2
+                    local x1, x2 = ctX - z /2  , ctX+ z /2 
+                    local y1 ,y2 = ctY - z/2 , ctY + z/2
+                    im.DrawList_AddRect(WDL, x1, y1, x2, y2 , 0xffffffff  )
+                    im.DrawList_AddLine(Glob.FDL, ctX, y1 ,ctX, t-20, 0xffffffff ,3)
+
+                end
+            end
 
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and Wet.ActiveAny ~= true and Knob_Active ~= true and not Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 
                 or Sel_Track_FX_Count == 0 or AddLastSpace  then
@@ -4837,19 +4852,23 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 local x, y = im.GetCursorScreenPos(ctx)
                 im.SetCursorScreenPos(ctx, x, Glob.WinT)
                 local BtnSign =  AddPlusSign and '+' or ''
+
+                local BtnSign = im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx)  and '' or BtnSign
+
                 im.PushFont(ctx, Arial_30)
                 im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
-                BTN_Btwn_FXWindows = im.Button(ctx, BtnSign..'##Button between Windows', w, 210)
+                local btn  = im.Button(ctx, BtnSign..'##Button between Windows', w, 210)
+                Draw_Lines_If_Popup_Open()
                 im.PopStyleColor(ctx)
                 im.PopFont(ctx)
                 local l ,t = im.GetItemRectMin(ctx)
 
                 FX_Insert_Pos = FX_Idx
 
-                if BTN_Btwn_FXWindows then
+                if btn then
                     FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
                     local x, y = im.GetCursorScreenPos(ctx)
-                    im.SetNextWindowPos(ctx, x+10 , y - 230)
+                    im.SetNextWindowPos(ctx, x-w/2 ,VP.Y-300)
                     im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
                 end
                 im.PopStyleColor(ctx, 2)
@@ -4868,7 +4887,22 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             
 
             AddFX_Menu(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
-            
+            if SpaceIsBeforeRackMixer == 'Normal' then
+                if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx) then 
+                    ADD_FX_MENU_WIN_SZ_X, ADD_FX_MENU_WIN_SZ_Y = im.GetWindowSize(ctx)
+                    local l, t  = im.GetItemRectMin(ctx)
+                    local w, h  = im.GetItemRectSize(ctx)
+                    local WDL = im.GetWindowDrawList(ctx)
+                    local h = 220 
+                    im.DrawList_AddLine(Glob.FDL, l+w/2 , t, l+w/2, t- 20 , 0xffffffff, 3)
+                    
+                    im.DrawList_AddRect(WDL, l , t, l+w, t+h , 0xffffffff)
+                    im.DrawList_AddRect(WDL, l , t, l+w, t+h , 0xffffffff)
+
+                end
+            end
+
+
 
             im.EndChild(ctx)
         end
@@ -5640,12 +5674,16 @@ function AddSpaceBtwnFXs_FIRST(FX_Idx, FxGUID)
             end
             local CurX = im.GetCursorPosX(ctx)
 
-            local SpcW = AddSpaceBtwnFXs(Idx)
+            local SpcW = AddSpaceBtwnFXs(Idx, 'Normal')
+
+        
+           
         elseif FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID[FX_Idx] and FXGUID[FX_Idx] then
             AddSpaceBtwnFXs(FX_Idx, true)
         elseif FX_Idx == RepeatTimeForWindows then
         end
     end
+
 end
 
 

@@ -913,7 +913,12 @@ function GetAllMods( )
    
 end 
 function attachImagesAndFonts()
-
+    FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 'FontAwesome6'
+            }
+    for i , v in ipairs(FONT_CHOICES) do    
+        _G[v] = im.CreateFont(v, 15)
+        im.Attach(ctx, _G[v])
+    end
     local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
     script_folder       = script_folder .. '/src'
     icon1               = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
@@ -954,6 +959,8 @@ function attachImagesAndFonts()
     for i, v in pairs(Img) do
         im.Attach(ctx, v)
     end
+
+
 
     --[[ for i = 6, 64, 1 do
         _G['Arial_' .. i] = im.CreateFont('Arial', i)
