@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.8
+-- @version 1.0beta16.5.9
 -- @changelog
 --  - NEW! In Layout Editor it's now possible to choose fonts for labels and values.
 --  - For knobs, Added 'top' as an option for value positon.
