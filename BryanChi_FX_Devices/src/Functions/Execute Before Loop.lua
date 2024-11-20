@@ -912,8 +912,33 @@ function GetAllMods( )
     end
    
 end 
+
+function GetInstalledFontsUnix()
+    local fonts = {}
+    local pipe = io.popen('find /System/Library/Fonts /Library/Fonts ~/.fonts ~/.local/share/fonts -type f 2>/dev/null')
+    if pipe then
+        for font in pipe:lines() do
+            if not HasNonEnglishCharacters(font) then 
+                local font = font:match(".*/(.*)")      
+                local font = font:match("^[^.]+")
+
+                table.insert(fonts, font)
+
+                msg(font)
+            end
+        end
+        pipe:close()
+    end
+    return fonts
+end
+function HasNonEnglishCharacters(str)
+    -- Check if the string contains characters outside A-Z, a-z, and basic punctuation
+    return str:match("[^%w%s%p]") ~= nil
+end
+
 function attachImagesAndFonts()
-    FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 'FontAwesome6'
+    
+    FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 
             }
     for i , v in ipairs(FONT_CHOICES) do    
         _G[v] = im.CreateFont(v, 15)

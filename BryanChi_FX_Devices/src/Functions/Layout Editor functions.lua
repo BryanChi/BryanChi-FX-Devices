@@ -223,8 +223,11 @@ function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLb
     local BtnL, BtnT = im.GetItemRectMin(ctx)
     local BtnR, BtnB = im.GetItemRectMax(ctx)
     if FP.Lbl_Pos == 'Top' or Lbl_Pos == 'Top' then
+        im.PushFont(ctx, _G[Font])
         local line_height = im.GetTextLineHeight(ctx)
-        local Y = BtnT - line_height  + (FP.Lbl_Pos_Y or 0)
+        im.PopFont(ctx)
+
+        local Y = BtnT - line_height  + (FP.Lbl_Pos_Y or 0) 
         local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
         im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or Knob_DefaultFontSize, X, Y, Lbl_Clr, label--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
     end
@@ -1334,11 +1337,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
             end
             local function Font_Choice (Var, Italic, Bold)
-                FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 'FontAwesome6'
-            }
+
                 im.SetNextItemWidth(ctx, 100)
                 if im.BeginCombo(ctx, '##' ..Var .. LE.Sel_Items[1], FS[Var]) then 
                     for I, V in ipairs(FONT_CHOICES) do
+                        msg(V)
                         im.PushFont(ctx, _G[V])
                         if im.Selectable(ctx, V) then
                             ToAllSelItm(Var, V, FxGUID)
@@ -3666,10 +3669,15 @@ function Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
 
     if Lbl_Pos == 'Left' then
-        im.AlignTextToFramePadding(ctx)
+
+
         MyText(labeltoShow, _G[Font], Lbl_Clr or 0xaaaaaaff)
+        --im.Text(ctx, labeltoShow)
+
         im.SameLine(ctx, nil, 8)
-        im.AlignTextToFramePadding(ctx)
+
+        --[[ im.SliderDouble(ctx, '##ansdjknas', FP.V or 0, FP.V_Round or 1, 0, 1)
+        im.AlignTextToFramePadding(ctx) ]]
     end
     if Lbl_Pos == 'Within-Left' then
         local x , y = im.GetCursorPos(ctx)
@@ -3677,6 +3685,16 @@ function Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,
         MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, Lbl_Clr)
         im.SetCursorPos(ctx,x,y)
         --im.DrawList_AddText(draw_list, SldrL, SldrT + H / 3 , FP.Lbl_Clr or txtclr, labeltoShow)
+    end
+
+    if _G[Font] then 
+        local H = im.GetTextLineHeight(ctx)
+        im.PushFont(ctx, _G[Font])
+        local w, h = im.CalcTextSize(ctx, labeltoShow)
+
+        
+        im.SetCursorPosY(ctx, im.GetCursorPosY(ctx) + (h-H)/2 --[[ + h / 4 ]])
+        im.PopFont(ctx)
     end
 end
 
@@ -3822,7 +3840,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local CenteredVPos
     im.BeginGroup(ctx)
 
-    local CenteredLblPos = TextW < (Radius or 0) * 2 and pos[1] + Radius - TextW / 2 or pos[1]
+    local CenteredLblPos = --[[ TextW < (Radius or 0) * 2 and ]] pos[1] + Radius - TextW / 2 --[[ or pos[1] ]]
 
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
@@ -3846,6 +3864,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     WhichClick()
     local is_active = im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height + item_inner_spacing[2] + (BtnOffset or 0), im.ButtonFlags_MouseButtonLeft) -- ClickButton to alternate left/right dragging
+    MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Knob', curX, CurY)
 
      local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
@@ -4240,7 +4259,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
         if Lbl_Pos == 'Bottom' then --Write Bottom Label
             local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =pos[1]
-            local X, Y = CenteredLblPos or pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
+            local X, Y = (CenteredLblPos or pos[1] )+ (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
             local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
             local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
 
@@ -4564,7 +4583,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
     labeltoShow = labeltoShow or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
 
-    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
     
 
 
@@ -4580,7 +4598,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, item_inner_spacing, item_inner_spacing)
     end ]]
 
-    im.BeginGroup(ctx)
     local function PushClrs()
  
 
@@ -4671,9 +4688,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         im.SetNextItemWidth(ctx, Sldr_Width)
         if Vertical == 'Vert' then
             _, p_value = im.VSliderDouble(ctx, label, Sldr_Width, FP.Height or Height or 160, p_value, v_min, v_max, ' ')
+            MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'V-Slider', curX, CurY)
         else
             _, p_value = im.SliderDouble(ctx, label, p_value, v_min, v_max, ' ', im.SliderFlags_NoInput)
+            MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Sldr', curX, CurY)
         end
+
         if GrabSize then im.PopStyleVar(ctx) end
         im.PopStyleVar(ctx)
 
@@ -4701,8 +4721,12 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
     FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
-    
+    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
+    im.BeginGroup(ctx)
+
     MakeSlider()
+    
+
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
     Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value ,nil,  FxGUID)
@@ -4713,8 +4737,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) ]]
     local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     im.PopStyleColor(ctx, ClrPop)
-
     im.EndGroup(ctx)
+
     
     Suzukis_Work_ParamLink_And_MouseWheelAdjust()
 
@@ -5127,6 +5151,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         end
         im.PushStyleColor(ctx, im.Col_Text, V_Clr)
         local rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
+        MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
+        
         if FP.V_FontSize then im.PopFont(ctx) end
 
         im.PopStyleColor(ctx)
@@ -5245,26 +5271,13 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         Font = 'Arial_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
     end ]]
     local popClr
-    local function moveCursor()
-        if not FP.Lbl_Pos_X and not FP.Lbl_Pos_Y then return end 
-        local X , Y  = im.GetCursorPos(ctx)
-        im.SetCursorPos(ctx, X + (FP.Lbl_Pos_X or 0) , Y + (FP.Lbl_Pos_Y or 0 ))
-        return X, Y 
-    end
+
     local function Write_Lable()
         local txt = FP.CustomLbl or FP.Name
-        if FP.Lbl_Pos == 'Left' then
-            im.AlignTextToFramePadding(ctx)
-            MyText(txt, _G[Font], Lbl_Clr)
-            SL()
+        if FP.Lbl_Pos == 'Top' then
 
-        elseif FP.Lbl_Pos == 'Top' then
-            local X , Y = moveCursor()
     
             MyText(txt, _G[Font], Lbl_Clr)
-            if X then 
-                im.SetCursorPos(ctx, X, Y+ im.GetTextLineHeight(ctx))
-            end
         end
     end
     local function pushClr()
@@ -5325,8 +5338,10 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     im.BeginGroup(ctx)
 
+    local txt = FP.CustomLbl or FP.Name
+    local FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(txt, Font,V_Font, FormatPV, FP, FP.Lbl_Pos, FP.V_Pos)
     Write_Lable()
-
     local lbl, TextW =  Calc_Text_Size_And_Lbl()
 
 
@@ -5359,6 +5374,8 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
             uvmin, 1, uvmax, FP.BgClr or 0xffffff00) ]]
 
     end
+    MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Switch', curX, CurY)
+
 
 
     if im.IsItemClicked(ctx, 0) then
@@ -5520,7 +5537,8 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
     _, p_value = im.DragDouble(ctx, label, p_value, DragSpeed, v_min, v_max, ' ', im.SliderFlags_NoInput)
-    
+    MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Drag', curX, CurY)
+
     
 
     im.SetNextItemAllowOverlap( ctx)

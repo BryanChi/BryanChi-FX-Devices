@@ -3229,8 +3229,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local L, T, R, B, w, h = HighlightSelectedItem(FillClr, 0xffffff77, 0, nil,nil,nil,nil, nil, nil , 1,1, 'GetItemRect', nil, nil, 2) 
 
                                     if clickBtn and Mods == 0 then 
-
                                         im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx+1)
+
                                     elseif clickBtn and Mods == Alt then 
                                         local idx = AddFX_HideWindow(LT_Track, 'Container', -1000 - FX_Idx -1)
                                         r.TrackFX_SetNamedConfigParm(LT_Track, idx, 'parallel', '1')
@@ -4289,34 +4289,29 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                     if CreateParam or not FP.ConditionPrm then
-                        local Prm = FP
+                        local FP = FP
                         local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
-                        if Prm and FxGUID then
+                        if FP and FxGUID then
 
                             ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                             local function Create_Item()
                                 local pos =  { im.GetCursorScreenPos(ctx) }
 
                                 --- Add Parameter controls ---------
-                                if Prm.Type == 'Slider' or (not Prm.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
-                                    AddSlider(ctx, '##' .. (Prm.Name or Fx_P) .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, Prm.Lbl, 8)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Sldr', curX, CurY)
-                                elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and Prm.Type == nil) then
-                                    AddKnob(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V, 0, 1, Fx_P, FX_Idx, Prm.Num, Prm.Style, Prm.Sldr_W or Df.KnobRadius, 0, Disabled, Prm.FontSize, Prm.Lbl_Pos or 'Bottom', Prm.V_Pos)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Knob', curX, CurY)
-                                elseif Prm.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
-                                    AddSlider(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Style, Prm.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, Prm.Lbl, nil, Prm.Sldr_H or 160)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'V-Slider', curX, CurY)
-                                elseif Prm.Type == 'Switch' then
-                                    AddSwitch(LT_Track, FX_Idx, Prm.V or 0, Prm.Num, Prm.BgClr, Prm.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp, Prm.FontSize, FxGUID)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Switch', curX, CurY)
-                                elseif Prm.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
-                                    AddDrag(ctx, '##' .. Prm.Name .. FX_Name, Prm.CustomLbl or Prm.Name, Prm.V or 0, 0, 1, Fx_P, FX_Idx, Prm.Num, Prm.Style, Prm.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, Prm.Lbl_Pos, Prm.V_Pos, Prm.DragDir)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Drag', curX, CurY)
-                                elseif Prm.Type == 'Selection' then
-                                    AddCombo(ctx, LT_Track, FX_Idx, Prm.Name .. FxGUID .. '## actual', Prm.Num, FP.ManualValuesFormat or 'Get Options', Prm.Sldr_W, Prm.Style, FxGUID, Fx_P, FP.ManualValues)
-                                    MakeItemEditable(FxGUID, Fx_P, Prm.Sldr_W, 'Selection', curX, CurY)
+                                if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
+                                    AddSlider(ctx, '##' .. (FP.Name or Fx_P) .. FX_Name, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, FP.Lbl, 8)
+                                elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
+                                    AddKnob(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl, FP.V, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or Df.KnobRadius, 0, Disabled, FP.FontSize, FP.Lbl_Pos or 'Bottom', FP.V_Pos)
+                                    --MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Knob', curX, CurY)
+                                elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
+                                    AddSlider(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, FP.Lbl, nil, FP.Sldr_H or 160)
+                                elseif FP.Type == 'Switch' then
+                                    AddSwitch(LT_Track, FX_Idx, FP.V or 0, FP.Num, FP.BgClr, FP.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp, FP.FontSize, FxGUID)
+                                elseif FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
+                                    AddDrag(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl or FP.Name, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, FP.Lbl_Pos, FP.V_Pos, FP.DragDir)
+                                elseif FP.Type == 'Selection' then
+                                    AddCombo(ctx, LT_Track, FX_Idx, FP.Name .. FxGUID .. '## actual', FP.Num, FP.ManualValuesFormat or 'Get Options', FP.Sldr_W, FP.Style, FxGUID, Fx_P, FP.ManualValues)
                                 end
                                 
                                 return pos
@@ -4333,7 +4328,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                             local FX_Name = ChangeFX_Name(FX_Name)
                                             Content = file:read('*a')
                                             local Ct = Content
-                                            local P_Num = Prm.Num
+                                            local P_Num = FP.Num
                                             local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx, P_Num)
                                             local Df = RecallGlobInfo(Ct, P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
                                             if Df then
@@ -4343,7 +4338,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         end
 
                                     elseif Mods == Alt then
-                                        if Prm.Deletable then
+                                        if FP.Deletable then
                                             DeletePrm(FxGUID, Fx_P, FX_Idx)
                                         end
 
@@ -4355,19 +4350,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local function Double_Click_To_Reset_Value()
                                 if ToDef.ID and ToDef.V then
                                     r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
-                                    if Prm.WhichCC then
-                                        if Trk.Prm.WhichMcros[Prm.WhichCC .. TrkID] then
+                                    if FP.WhichCC then
+                                        if Trk.Prm.WhichMcros[FP.WhichCC .. TrkID] then
                                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
                                                 "param." .. ToDef.P .. ".plink.active", 0) -- 1 active, 0 inactive
                                             r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
                                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. ToDef.P .. 'Value before modulation', ToDef.V, true)
-                                            r.gmem_write(7, Prm.WhichCC) --tells jsfx to retrieve P value
+                                            r.gmem_write(7, FP.WhichCC) --tells jsfx to retrieve P value
                                             PM.TimeNow = r.time_precise()
-                                            r.gmem_write(JSFX.P_ORIG_V + Prm.WhichCC, ToDef.V)
-                                            ParameterMIDILink(ToDef.ID, ToDef.P, 1, false, 15, 16, 176, Prm.WhichCC, false)
+                                            r.gmem_write(JSFX.P_ORIG_V + FP.WhichCC, ToDef.V)
+                                            ParameterMIDILink(ToDef.ID, ToDef.P, 1, false, 15, 16, 176, FP.WhichCC, false)
                                         end
                                     end
-                                    Prm.V = ToDef.V
+                                    FP.V = ToDef.V
 
                                     ToDef = {}
                                 end
@@ -4392,7 +4387,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local click_pos = { im.GetMouseClickedPos(ctx, 0) }
                             im.DrawList_AddLine(draw_list, click_pos[1], click_pos[2], mouse_pos[1],
                                 mouse_pos[2], 0xB62424FF, 4.0) -- Draw a line between the button and the mouse cursor
-                            local P_Num = Prm.Num
+                            local P_Num = FP.Num
                             lead_fxid = FX_Idx                             -- storing the original fx id
                             fxidx = FX_Idx                         -- to prevent an error in layout editor function by not changing FX_Idx itself
                             lead_paramnumber = P_Num
@@ -4410,7 +4405,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                         end
                         if im.IsItemClicked(ctx, 1) and Mods == Shift then
-                            local P_Num = Prm.Num
+                            local P_Num = FP.Num
                             local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
                                 "param." .. P_Num .. ".plink.midi_bus")
                             if bf == "15" then -- reset FX Devices' modulation bus/chan
@@ -4491,9 +4486,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                         if im.BeginPopup(ctx, '##prm Context menu' .. (FP.Num or 0)) then
                             if im.Selectable(ctx, 'Toggle Add Parameter to Envelope', false) then
-                                local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false)    -- Check if envelope is on
+                                local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false)    -- Check if envelope is on
                                 if env == nil then                                               -- Envelope is off
-                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, true) -- true = Create envelope
+                                    local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, true) -- true = Create envelope
                                 else                                                             -- Envelope is on
                                     local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                                     if string.find(EnvelopeStateChunk, "VIS 1") then             -- VIS 1 = visible, VIS 0 = invisible
@@ -4510,7 +4505,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 r.UpdateArrange()
                             end
                             if im.Selectable(ctx, 'Remove Envelope', false) then
-                                local env = r.GetFXEnvelope(LT_Track, FX_Idx, Prm.Num, false) -- Check if envelope is on
+                                local env = r.GetFXEnvelope(LT_Track, FX_Idx, FP.Num, false) -- Check if envelope is on
                                 if env == nil then                                            -- Envelope is off
                                     local nothing
                                 else                                                          -- Envelope is on
@@ -4527,39 +4522,39 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                             if im.Selectable(ctx, 'Toggle Add Audio Control Signal (Sidechain)') then
                                 local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
+                                    "param." .. FP.Num .. ".acs.active") -- Active(true, 1), Deactivated(true, 0), UnsetYet(false)
                                 if retval and buf == "1" then             -- Toggle
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num ..
                                         ".acs.active", 0)
                                 else
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num ..
                                         ".acs.active", 1)
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num .. ".acs.chan",
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num .. ".acs.chan",
                                         1)
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num ..
                                         ".acs.stereo", 1)
                                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
-                                        Prm.Num .. ".mod.visible", 1)
+                                        FP.Num .. ".mod.visible", 1)
                                 end
                             end
                             if im.Selectable(ctx, 'Toggle Add LFO') then
                                 local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".lfo.active")
+                                    "param." .. FP.Num .. ".lfo.active")
                                 if retval and buf == "1" then
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num ..
                                         ".lfo.active", 0)
                                 else
-                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. Prm.Num ..
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. FP.Num ..
                                         ".lfo.active", 1)
                                     r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." ..
-                                        Prm.Num .. ".mod.visible", 1)
+                                        FP.Num .. ".mod.visible", 1)
                                 end
                             end
                             if im.Selectable(ctx, 'Toggle Add CC Link') then
                                 local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".plink.active")
+                                    "param." .. FP.Num .. ".plink.active")
                                 local rv, bf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".plink.midi_bus")
+                                    "param." .. FP.Num .. ".plink.midi_bus")
                                 if bf == "15" then
                                     value = 1
                                     local retval, retvals_csv = r.GetUserInputs('Set CC value', 2,
@@ -4643,19 +4638,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                 end
                                 if retvals ~= nil then
-                                    ParameterMIDILink(FX_Idx, Prm.Num, value, false, 0, 1, 176, retvals, false)
+                                    ParameterMIDILink(FX_Idx, FP.Num, value, false, 0, 1, 176, retvals, false)
                                 end
                             end
                             if im.Selectable(ctx, 'Toggle Open Modulation/Link Window') then
                                 local retval, buf = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".mod.visible")
+                                    "param." .. FP.Num .. ".mod.visible")
                                 if retval and buf == "1" then
                                     value = 0
                                 else
                                     value = 1
                                 end
                                 local window = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx,
-                                    "param." .. Prm.Num .. ".mod.visible", value)
+                                    "param." .. FP.Num .. ".mod.visible", value)
                             end
                             im.EndPopup(ctx)
                         end
@@ -4868,7 +4863,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 if btn then
                     FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
                     local x, y = im.GetCursorScreenPos(ctx)
-                    im.SetNextWindowPos(ctx, x-w/2 ,VP.Y-300)
+                    im.SetNextWindowPos(ctx,l ,VP.Y-300)
                     im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
                 end
                 im.PopStyleColor(ctx, 2)

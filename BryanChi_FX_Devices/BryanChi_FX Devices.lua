@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.5.9
+-- @version 1.0beta16.6
 -- @changelog
---  - NEW! In Layout Editor it's now possible to choose fonts for labels and values.
---  - For knobs, Added 'top' as an option for value positon.
---  - add new indicator for adding fx window.
---  - Fix error message popping up if close by clicking the X on the top right of ImGui.
+--  - Layout Editor : Optimize item outline indication.
+--  - Layout Editor : Fix label position for 'top' and 'Left' to account for font size
+--  - Fix add FX menu position.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -63,6 +62,7 @@ GetLTParam()
 local CommanID = r.NamedCommandLookup('_RSfc35279165adeb0f3708a5921116cc0fee7a78f6')
 
 ctx = im.CreateContext('FX Devices', im.ConfigFlags_DockingEnable)
+
 Retrieve_All_Info_Needed_Before_Main_Loop()
 r.SetToggleCommandState(0, CommanID, 1)
 
