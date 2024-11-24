@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.6
+-- @version 1.0beta16.6.1
 -- @changelog
 --  - Scroll position is now saved and restored when switching tracks.
 --  - make selecting font available in background editor.
