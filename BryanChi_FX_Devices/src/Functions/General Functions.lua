@@ -997,6 +997,11 @@ function SaveDrawings(FX_Idx, FxGUID)
             write('Text', D.Txt, i)
             write('ImagePath', D.BgImgFileName, i)
             write('KeepImgRatio', tostring(D.KeepImgRatio), i)
+            write('Font', D.Font, i)
+            write('FontSize', D.FtSize, i)
+            write('FontBold', tostring(D.Font_Bold), i)
+            write('FontItalic', tostring(D.Font_Italic), i)
+            
             file:write('\n')
         end
     end
@@ -2685,11 +2690,34 @@ function Anim_Update(dt, duration,  startValue,endValue, time )
 end
 
 
+function Restore_Scroll_Pos(TrkID)
+    if Trk[TrkID].ScrollX then
+        im.SetScrollX(ctx, Trk[TrkID].ScrollX)
+    end
+end
+
+function When_User_Switch_Track_Beginning_Of_Loop()
+    local function Store_Scroll_Pos(TrkID)
+        local X = tonumber(im.GetScrollX(ctx))
+        if type(X) ~= 'number'  then  return end
+        Trk[TrkID].ScrollX = X
+    end
+
+    
+    if TrkID_End and  (TrkID ~= TrkID_End) then 
+        Store_Scroll_Pos(TrkID_End)
+
+        Restore_Scroll_Pos(TrkID)
+
+    end
+end
+
 
 function When_User_Switch_Track()
 
     -- if user switch selected track...
     local layoutRetrieved
+    
 
     if TrkID ~= TrkID_End then
         if TrkID_End ~= nil and TrkID ~= nil then
@@ -2702,17 +2730,21 @@ function When_User_Switch_Track()
                 r.gmem_write(1000 * m + P, 0)
             end
         end
-
         RetrieveFXsSavedLayout(Sel_Track_FX_Count)
         TREE = BuildFXTree(LT_Track)
 
+
+
+        
         layoutRetrieved = true
         SyncTrkPrmVtoActualValue()
         LT_TrackNum = math.floor(r.GetMediaTrackInfo_Value(LT_Track, 'IP_TRACKNUMBER'))
     end
+
+
+
     if TrkID ~= TrkID_End and TrkID_End ~= nil and Sel_Track_FX_Count > 0 then
         Sendgmems = nil
-        
         Open_Cont_LFO_Win = nil
         if Sendgmems == nil then
             r.gmem_attach('ParamValues')

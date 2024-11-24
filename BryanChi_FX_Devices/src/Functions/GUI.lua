@@ -2068,7 +2068,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                    
                     DrawMetallicKnob(ctx, X, Y, Rad + (Gap or 0), v.Gradient_Start , v.Texture_Angle ,clr, clr2)
                 elseif  v.Special_Fill == 'Gradient' then
-                    Draw_Filled_Circle_With_Gradient_And_Angle( X, Y, Rad + (Gap or 0), clr, clr2, v.Gradient_Start , v.Texture_Angle)
+                    Draw_Filled_Circle_With_Gradient_And_Angle( X, Y, Rad + (Gap or 0), clr, clr2, v.Gradient_Start , v.Texture_Angle or 0)
                 else
                  
                     im.DrawList_AddCircleFilled(WDL, X, Y, Rad + (Gap or 0), clr)
@@ -4817,15 +4817,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             local function Draw_Lines_If_Popup_Open()
 
                 if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx)  then 
+                    local WinW, WinH = im.GetWindowSize(ctx)
+                    local L,T = im.GetWindowPos(ctx)
                     local WDL = im.GetWindowDrawList(ctx)
                     local w,h = im.GetItemRectSize(ctx)
                     local l ,t = im.GetItemRectMin(ctx)
                     local z = 20 
                     local ctX, ctY = l + w/2  , t + h /2
                     local x1, x2 = ctX - z /2  , ctX+ z /2 
-                    local y1 ,y2 = ctY - z/2 , ctY + z/2
+                    local y1 ,y2 = ctY - z/2 ,  ctY + z/2
                     im.DrawList_AddRect(WDL, x1, y1, x2, y2 , 0xffffffff  )
-                    im.DrawList_AddLine(Glob.FDL, ctX, y1 ,ctX, t-20, 0xffffffff ,3)
+                    im.DrawList_AddLine(Glob.FDL, ctX, y1 ,ctX, T-WinH, 0xffffffff ,3)
 
                 end
             end
@@ -5476,22 +5478,27 @@ function Draw_Background(FxGUID, pos, Draw_Which)
         elseif D.Type == 'rectangle' then
             im.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
         elseif D.Type == 'rect fill' then
-            im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff,
-                Round)
+            im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
         elseif D.Type == 'circle' then
             im.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
         elseif D.Type == 'circle fill' then
-            im.DrawList_AddCircleFilled(WDL, L, T, D.R,
-                D.clr or 0xffffffff)
+            im.DrawList_AddCircleFilled(WDL, L, T, D.R, D.clr or 0xffffffff)
         elseif D.Type == 'Text' and D.Txt then
-            
-            im.DrawList_AddTextEx(WDL, D.Font or Font_Andale_Mono_13,
-                D.FtSize or 13, L, T, D.clr or 0xffffffff, D.Txt)
+            local it = D.Font_Italic and '_Italic' or ''
+            local bd = D.Font_Bold and '_Bold' or ''
+            local basefont = D.Font or 'Font_Andale_Mono'
+            local fontsize = D.FtSize or 13
+            local str = basefont .. '_' .. fontsize .. it .. bd
+            if not _G[str]    then
+                Attach_New_Font_On_Next_Frame(basefont ,fontsize, D.Font_Italic, D.Font_Bold)
+            else
+                local Ft = (_G[str])
+                im.DrawList_AddTextEx(WDL, Ft, fontsize, L, T, D.clr or 0xffffffff, D.Txt)
+            end
         elseif D.Type == 'Picture' then
             if not D.Image then
                 im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
-                im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2,
-                    0xffffffff, 'Add Image path', R - L)
+                im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2, 0xffffffff, 'Add Image path', R - L)
             else
                 if D.KeepImgRatio then
                     local w, h = im.Image_GetSize(D.Image)
@@ -5620,6 +5627,11 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
     if style == 'Mod Range Control' then 
         local ANGLE_MIN = 3.141592 * 1.5
         local angle = (ANGLE_MIN) + (ANGLE_MAX - (ANGLE_MIN)) * t
+        -- draw bg
+        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, 3.141592*0.75 , 3.141592*2.25)
+        im.DrawList_PathStroke(draw_list, 0xffffff22 , nil, radius_outer * 0.2)
+        im.DrawList_PathClear(draw_list)
+        -- draw knob
         im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, ANGLE_MIN, angle)
         im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.2)
         im.DrawList_PathClear(draw_list)

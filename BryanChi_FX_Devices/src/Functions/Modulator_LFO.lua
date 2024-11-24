@@ -406,33 +406,16 @@ function open_LFO_Win(Track, Macro)
                 ChangeLFO(14,  Node[i].ctrlX  , 9,'Node'..i..'Ctrl X')
 
 
-                --ttp(-Normalize_Val (LFO.Win.L, LFO.Win.R,  Node.ctrlX  )  ..'\n    '..Normalize_Val (Win_T, Win_T + LFO.Win.h, Node.ctrlY))
                 ChangeLFO(14,  Node[i].ctrlY , 10, 'Node'..i..'Ctrl Y')
-
-                --ttp( 'X = '.. -Normalize_Val (lastX, v,  Node.ctrlX)+1 .. ' \n '.. 'Y = '.. Normalize_Val (lastY, Y , Node.ctrlY))
-
                 
             end
             
             PtsX = {}
             PtsY = {}
-
-            --[[ for t = 0, 1, 0.1 do
-                local startX = lastX
-                local startY = lastY
-                local controlX = CtrlX
-                local controlY = CtrlY
-                local endX = v
-                local endY = Y
-                local x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * controlX + t * t * endX
-                local y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * controlY + t * t * endY
-                table.insert(PtsX, x)
-                table.insert(PtsY, y)
-            end ]]
-            PtsX, PtsY =  Curve_3pt_Bezier(lastX,lastY,CtrlX,CtrlY,X,Y)
+            
+            PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
 
             if Wheel_V~=0 then Sqr = ( Sqr or 0 ) + Wheel_V / 100 end 
-
         
             --im.DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
 
@@ -440,7 +423,6 @@ function open_LFO_Win(Track, Macro)
             for i, v in ipairs(PtsX) do  
                 if i > 1 then      -- >1 because you need two points to draw a line
                     im.DrawList_AddLine(FDL, PtsX[i-1] ,PtsY[i-1], PtsX[i],PtsY[i], 0xffffffff)
-                --  im.DrawList_AddText(FDL, PtsX[i-1] ,PtsY[i-1], 0xffffffff,i)
                 end
                 ----- things below don't need >1 because jsfx needs all points to draw lines
 
@@ -452,16 +434,12 @@ function open_LFO_Win(Track, Macro)
 
                 r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
                 r.gmem_write(5, Macro)
-                --[[ 
-                r.gmem_write(1000+i*N, NormX) -- gmem 1000 ~ 1999 = X coordinates
-                r.gmem_write(2000+i*N, NormY) -- gmem 2000 ~ 2999 = Y coordinates ]]
+
                 table.insert(All_Coord.X,  NormX or 0)
                 table.insert(All_Coord.Y,  NormY or 0)
 
             end
             r.gmem_write(6, #Node*11)
-
-            --im.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
         end
 
 

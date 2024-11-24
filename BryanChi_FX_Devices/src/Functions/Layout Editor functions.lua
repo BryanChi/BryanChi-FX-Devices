@@ -516,7 +516,6 @@ end
 function Align_Text_To_Center_Of_X(text, width, x_offset, y_offset)
     local CurX = im.GetCursorPosX(ctx)
     local w = im.CalcTextSize(ctx, text)
-    ttp(w)
     im.SetCursorPosX(ctx, CurX - w / 2 + width / 2 + (x_offset or 0))
     if y_offset and y_offset ~= 0  then 
         local CurY = im.GetCursorPosY(ctx)
@@ -1001,8 +1000,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.TableNextColumn(ctx)
                             im.Text(ctx, "Text:")
                             im.TableNextColumn(ctx)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
                             _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
-
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
                             im.Text(ctx, "Font Size:")
@@ -1010,12 +1009,37 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local rv, Sz = im.InputInt(ctx, '## font size ' .. It, D[It].FtSize or 12)
                             if rv then
                                 D[It].FtSize = Sz
-                                if not _G['Font_Andale_Mono' .. '_' .. Sz] then
-                                    _G['Font_Andale_Mono' .. '_' .. Sz] = im.CreateFont('andale mono', Sz)
-                                    ChangeFont = D[It]
-                                else
-                                    D[It].Font = _G['Font_Andale_Mono' .. '_' .. Sz]
+                            end
+                            im.TableNextRow(ctx)
+                            im.TableNextColumn(ctx)
+                            im.Text(ctx, "Font:")
+                            im.TableNextColumn(ctx)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            local FONT = (D[It].Font or 'Andale_Mono')
+                            im.PushItemWidth(ctx,  300)
+                            local rv, FONT = im.BeginCombo(ctx, '## font ' .. It,  FONT , 0)
+                            if rv then
+                                for i , v in ipairs(FONT_CHOICES) do
+                                    if im.Selectable(ctx, v) then
+                                        D[It].Font = v
+                                    end
                                 end
+                                im.EndCombo(ctx)
+                            end
+
+                            SL()
+                            im.SetNextItemWidth(ctx, 150)
+                            local ft = D[It].Font or 'Andale_Mono'
+
+                            local rv, bold = im.Checkbox(ctx, "Bold", D[It].Font_Bold)
+                            if rv then
+                                D[It].Font_Bold = toggle(D[It].Font_Bold)
+                            end
+                            SL()
+
+                            local rv, italic = im.Checkbox(ctx, "Italic", D[It].Font_Italic)
+                            if rv then
+                                D[It].Font_Italic = toggle(D[It].Font_Italic)
                             end
                         end
                     end
@@ -1341,36 +1365,21 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.SetNextItemWidth(ctx, 100)
                 if im.BeginCombo(ctx, '##' ..Var .. LE.Sel_Items[1], FS[Var]) then 
                     for I, V in ipairs(FONT_CHOICES) do
-                        msg(V)
                         im.PushFont(ctx, _G[V])
                         if im.Selectable(ctx, V) then
                             ToAllSelItm(Var, V, FxGUID)
-                            --ChangeFont = FS
-                           -- Attach_New_Font_On_Next_Frame(V, FS.Font or 12, FS[Italic], FS[Bold])
                             
                         end
                         im.PopFont(ctx)
                     end
                     im.EndCombo(ctx)
                 end
-               --[[  SL()
-                if im.CheckBox(ctx, 'Italic##Italic'..Var .. LE.Sel_Items[1], FS.Font_Italic) then 
-                    ToAllSelItm(Italic, true, FxGUID)
-                    Attach_New_Font_On_Next_Frame(FS[Var] or 'Arial', FS.Font or 12, FS[Italic], FS[Bold])
 
-                end
-                SL(nil, 0 )
-                if im.CheckBox(ctx, 'Bold##Bold'..Var .. LE.Sel_Items[1], FS.Font_Bold) then 
-                    ToAllSelItm(Bold, true, FxGUID)
-                    Attach_New_Font_On_Next_Frame(FS[Var] or 'Arial', FS.Font or 12, FS[Italic], FS[Bold])
-
-                end ]]
             end
 
             local function Italic_or_Bold(Var, Font, which)
                 if im.Checkbox(ctx, '##'..Var .. LE.Sel_Items[1], FS[Var]) then 
                     ToAllSelItm(Var, toggle(FS[Var]), FxGUID)
-                    --Attach_New_Font_On_Next_Frame(FS[Font] or 'Arial', FS.Font or 12, FS[], FS.Font_Bold)
                 end
             end
 
@@ -6256,7 +6265,10 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
                             D.BgImgFileName = RecallInfo(Ct, 'ImagePath', 'D' .. i)
                             D.KeepImgRatio = RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
-                           
+                            D.Font = RecallInfo(Ct,'Font' ,'D' .. i)
+                            D.FtSize = RecallInfo(Ct,'FontSize', 'D' .. i, 'Num')
+                            D.Font_Bold = RecallInfo(Ct,'FontBold', 'D' .. i, 'Bool')
+                            D.Font_Italic = RecallInfo(Ct,'FontItalic','D' .. i, 'Bool')
                             if D.BgImgFileName then
                                 
                                 local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Backgrounds', D.BgImgFileName)

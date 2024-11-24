@@ -924,7 +924,6 @@ function GetInstalledFontsUnix()
 
                 table.insert(fonts, font)
 
-                msg(font)
             end
         end
         pipe:close()

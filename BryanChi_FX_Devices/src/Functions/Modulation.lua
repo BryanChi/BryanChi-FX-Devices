@@ -1268,6 +1268,7 @@ function SetTypeToFollower(Mc, i)
     end
 end
 function SetTypeToMacro(Mc, i )
+
     if Mc.Type  ~= 'Macro' then 
         if im.Selectable(ctx, 'Macro', false) then
             Mc.Type = 'Macro'
@@ -1291,6 +1292,19 @@ function SetTypeToLFO(Mc, i)
         r.gmem_write(5, i)  -- tells jsfx which macro
        -- Mc.Name = 'LFO ' .. i
 
+    end
+end
+
+function SetTypeToRandom(Mc, i)
+
+    if Mc.Type  ~= 'Random' then 
+        if im.Selectable(ctx, 'Random', false) then
+            Mc.Type = 'Random'
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'Random', true)
+            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 7) -- tells jsfx macro type = Random
+            r.gmem_write(5, i) -- tells jsfx which macro
+        end
     end
 end
 
@@ -1472,11 +1486,9 @@ function LFO_BOX(Mc, i, Height, Width)
             end ]]
             local BtnSz = 11
 
-            LFO.Pin = PinIcon(LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz, 'LFO window pin' .. Macro,
-                0x00000000, ClrTint)
+            LFO.Pin = PinIcon(LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz, 'LFO window pin' .. Macro, 0x00000000, ClrTint)
             SL()
 
-            --local rv = im.ImageButton(ctx, '## copy' .. Macro, Img.Copy, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint)
             local WDL = im.GetWindowDrawList(ctx)
             local rv = im.Button(ctx, '## copy', 17, 17)
             DrawListButton(WDL, "0", 0x00000000, false, true, icon1_middle, false)
@@ -2646,9 +2658,6 @@ function Create_Header_For_Track_Modulators()
             if MacroNameEdited then
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro' .. i .. 's Name' .. TrkID, I.Name, true)
             end
-
-
-
             im.PopStyleColor(ctx, clrPop)
         elseif Mc.Type == 'env' then
             if Mods == Shift then DragSpeed = 0.0001 else DragSpeed = 0.01 end
@@ -2913,7 +2922,7 @@ function Create_Header_For_Track_Modulators()
                 local tweaking
                 -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
                 im.SetNextWindowPos(ctx, HdrPosL, VP.Y - 385)
-                if im.Begin(ctx, 'LFO Shape Edit Window' .. Macro, true, im.WindowFlags_NoDecoration + im.WindowFlags_AlwaysAutoResize) then
+                if im.Begin(ctx, 'LFO Shape Edit Window' .. Macro, true, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
                     local Node = Mc.Node
                     local function ConverCtrlNodeY(lastY, Y)
                         local Range = (math.max(lastY, Y) - math.min(lastY, Y))
@@ -3988,27 +3997,20 @@ function Create_Header_For_Track_Modulators()
 
 
 
-
-            ---- this part draws modulation histogram (Deprecated)
-            --[[  local MOD = math.abs(SetMinMax(r.gmem_read(100 + i) / 127, -1, 1))
-            Mc.StepV = Mc.StepV or {}
-            table.insert(Mc.StepV, MOD* Mc.Gain * 4)
-
-            if #Mc.StepV > W then
-                table.remove(Mc.StepV, 1)
-            end
-            for s = 0, W, G do
-                local last = SetMinMax(s - 1, 0, W)
-                im.DrawList_AddLine(WDL, L + s, T + H - (Mc.StepV[last] or 0), L + s + G,
-                    T + H - (Mc.StepV[s] or 0), EightColors.LFO[i], 2)
-                --im.DrawList_PathLineTo(WDL, L+s,  Y_Mid+math.sin(s/Mc.Freq) * Mc.Gain)
-            end ]]
-
-
             Save_LFO_Dialog (Macro, L, T - LFO.DummyH, Mc)
         end
 
 
+        local function Add_Type_Options()
+            im.SeparatorText(ctx, 'Set Type to :')
+
+            SetTypeToMacro()
+            SetTypeToEnv()
+            SetTypeToStepSEQ()
+            SetTypeToFollower()
+            SetTypeToLFO()
+            SetTypeToRandom(Mc,i)
+        end
 
 
 
@@ -4033,41 +4035,19 @@ function Create_Header_For_Track_Modulators()
                 r.TrackList_AdjustWindows(false)
                 r.UpdateArrange()
             end
-            im.SeparatorText(ctx, 'Set Type to :')
-
-            SetTypeToMacro()
-            SetTypeToEnv()
-            SetTypeToStepSEQ()
-            SetTypeToFollower()
-            SetTypeToLFO()
+            Add_Type_Options()
             im.EndPopup(ctx)
         elseif im.BeginPopup(ctx, 'Env' .. i .. 'Menu') then
-            SetTypeToMacro()
-            SetTypeToStepSEQ()
-            SetTypeToFollower()
-            SetTypeToLFO()
+            Add_Type_Options()
             im.EndPopup(ctx)
         elseif im.BeginPopup(ctx, 'Step' .. i .. 'Menu') then
-            im.SeparatorText(ctx, 'Set Type to :')
-            SetTypeToMacro()
-            SetTypeToEnv()
-            SetTypeToFollower()
-            SetTypeToLFO()
+            Add_Type_Options()
             im.EndPopup(ctx)
         elseif im.BeginPopup(ctx, 'Follower' .. i .. 'Menu') then
-            im.SeparatorText(ctx, 'Set Type to :')
-            SetTypeToMacro()
-            SetTypeToEnv()
-            SetTypeToStepSEQ()
-            SetTypeToLFO()
+            Add_Type_Options()
             im.EndPopup(ctx)
         elseif im.BeginPopup(ctx, 'LFO' .. i .. 'Menu') then
-            im.SeparatorText(ctx, 'Set Type to :')
-
-            SetTypeToMacro()
-            SetTypeToEnv()
-            SetTypeToStepSEQ()
-            SetTypeToFollower()
+            Add_Type_Options()
             im.EndPopup(ctx)
         end
 
@@ -4138,6 +4118,46 @@ function MacroKnob(mc, i, Size , TB, ColumnID)
     end
 end
 
+
+
+function Random_Modulator_Box(Mc, i )
+    if Mc.Type ~= 'Random' then return end
+    local boxWidth, boxHeight = 100, 30
+    local L, T = im.GetCursorScreenPos(ctx)
+    local WinW, WinH = 100, 100 
+
+    local function parameters()
+
+        if im.Begin(ctx, "RandomModulatorPopup", true, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
+            im.Text(ctx, "Random Modulator Options")
+
+            if im.IsWindowHovered(ctx) then
+                HOVERED_ON_RANDOM = i 
+            end
+            im.End(ctx)
+        end
+    end
+    im.InvisibleButton(ctx, "RandomModulatorBox", boxWidth, boxHeight)
+    SL()
+    local hvr = im.IsItemHovered(ctx)
+    if hvr then
+        im.SetNextWindowPos(ctx, L, T - WinH)
+        --[[ if not im.IsPopupOpen(ctx, "RandomModulatorPopup") then
+            im.OpenPopup(ctx, "RandomModulatorPopup")
+        end ]]
+        parameters()
+    end
+    if HOVERED_ON_RANDOM == i or hvr  then
+        im.SetNextWindowPos(ctx, L, T  - WinH)
+        parameters()
+    end
+    
+    -- Draw a visible outline for the invisible button
+    local drawList = im.GetWindowDrawList(ctx)
+    im.DrawList_AddRect(drawList, L, T, L + boxWidth, T + boxHeight, 0xFFFFFFFF)
+end
+
+
 function Create_Header_For_Track_Modulators__Squared_Modulators()
     MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
     Trk[TrkID] = Trk[TrkID] or {}
@@ -4151,7 +4171,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
     im.PushStyleVar( ctx, im.StyleVar_WindowPadding, 1,1)
 
 
-    im.BeginChild(ctx, 'Modulation Bar', nil ,LineHeight + 5, im.ChildFlags_Border)
+    im.BeginChild(ctx, 'Modulation Bar', nil ,LineHeight + 5)
 
     local function Calc_How_Many_Columns()
         local num = 0
@@ -4576,7 +4596,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         MacroKnob(mc,i, LineHeight /1.85,'Track' , ColumnID)
         LFO_BOX(mc, i, LineHeight, 60)
         Follower_Box(mc,i , 30, TrkID, 'ParamValues')
-
+        Random_Modulator_Box(mc, i )
         If_Macro_Is_StepSEQ()
         WhenRightClickOnModulators(i) -- this has to be before step SEQ because the rightclick function is within step seq function
         Show_Help_Msg()
@@ -4620,6 +4640,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             SetTypeToStepSEQ(mc, i)
             SetTypeToFollower(mc, i)
             SetTypeToLFO(mc, i)
+            SetTypeToRandom(mc, i )
             im.EndPopup(ctx)
         end
     end
@@ -4700,8 +4721,18 @@ function Show_Modulator_Control_Panel(pos,FP)
             local SzW , SzH = im.GetWindowSize(ctx)
             local WinX, WinY = im.GetWindowPos(ctx)
             local WDL = im.GetForegroundDrawList(ctx)
-            local rv, val , center= AddKnob_Simple(ctx, 'Mod'..i , FP.ModAMT[i] ,  sz/2 , knobSizeOfs, OutClr, InClr, 0x00000000, Clr , 'Mod Range Control')
 
+            local function Show_Mod_Amt_Txt_If_Dragging()
+                if FP.Right_Dragging_Mod_Ctrl and Trk.Prm.Assign == FP.WhichCC and AssigningMacro == i then 
+                    local x , y = im.GetItemRectMin(ctx)
+                    local w, h = im.GetItemRectSize(ctx)
+                    local sz = sz/2
+                    local WDL = im.GetWindowDrawList(ctx)      
+                    local str = roundUp( FP.ModAMT[AssigningMacro] * 100 , 1)
+                    local TxtSz = im.CalcTextSize(ctx, str)
+                    im.DrawList_AddText(WDL, x+w/2 - TxtSz / 2 , y+sz/1.5, 0xffffff99, str )
+                end
+            end
             local function Keep_Win_Open_If_Hvr_Or_Active ()
                 if im.IsMouseHoveringRect( ctx,WinX, WinY , WinX + SzW, WinY + SzH) or rv or FP.Right_Dragging_Mod_Ctrl then 
                     Mod_Control_Win_Hvr = FP.Num 
@@ -4709,22 +4740,24 @@ function Show_Modulator_Control_Panel(pos,FP)
                 end 
             end
 
-            --im.Button(ctx,' aefjnasdfnjkdfasf ',sz,sz)
+
+            local rv, val , center= AddKnob_Simple(ctx, 'Mod'..i , FP.ModAMT[i] ,  sz/2 , knobSizeOfs, nil, nil, nil, Clr , 'Mod Range Control')
+            Show_Mod_Amt_Txt_If_Dragging()
+
+
             if rv==1  then 
 
                 Trk.Prm.Assign = FP.WhichCC
                 
             elseif rv == 2 then 
                 rv = 'Right-Dragging' 
-                --[[ msg(FX_Idx)
-                AssignMod (FP.FxGUID, Fx_P, FX_Idx, P_Num, p_value, rv) ]]
                 AssigningMacro = i 
                 Trk.Prm.Assign = FP.WhichCC
                 FP.Right_Dragging_Mod_Ctrl = true 
                 r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
-                    r.gmem_write(6, FP.WhichCC)
+                r.gmem_write(6, FP.WhichCC)
             end
-            if not IsRBtnHeld then 
+            if FP.Right_Dragging_Mod_Ctrl and  not IsRBtnHeld then 
                 AssigningMacro = nil 
                 FP.Right_Dragging_Mod_Ctrl = nil
             end
@@ -4732,8 +4765,6 @@ function Show_Modulator_Control_Panel(pos,FP)
 
 
             Keep_Win_Open_If_Hvr_Or_Active ()
-            --im.DrawList_AddRect(WDL, WinX, WinY , WinX + SzW, WinY + SzH, 0xffffffff)
-            
 
             im.End(ctx)
 

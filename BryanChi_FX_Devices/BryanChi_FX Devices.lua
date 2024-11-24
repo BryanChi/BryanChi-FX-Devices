@@ -2,9 +2,10 @@
 -- @author Bryan Chi
 -- @version 1.0beta16.6
 -- @changelog
---  - Layout Editor : Optimize item outline indication.
---  - Layout Editor : Fix label position for 'top' and 'Left' to account for font size
---  - Fix add FX menu position.
+--  - Scroll position is now saved and restored when switching tracks.
+--  - make selecting font available in background editor.
+--  - Fix Add Fx menu draw line.
+--  - Fix crash when recalling layout if attached drawing is set to gradient.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -403,7 +404,7 @@ function loop()
 
             local ViewPort_DL = im.GetWindowDrawList(ctx)
             im.DrawList_AddLine(ViewPort_DL, 0, 0, 0, 0, Clr.Dvdr.outline) -- Needed for drawlist to be active
-
+            When_User_Switch_Track_Beginning_Of_Loop()
             for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
                 retval, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx) --i used to be i-1
                 FXGUID[FX_Idx] = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
