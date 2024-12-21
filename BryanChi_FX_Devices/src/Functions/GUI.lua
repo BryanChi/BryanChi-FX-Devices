@@ -37,7 +37,18 @@ function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
 end
 
 
-
+function Drag_With_Bar(ctx, str, v, v_speed, v_min, v_max, format, flags, clr)
+    
+    local rv, v = im.DragDouble(ctx, '##'..str, v, v_speed, v_min, v_max, format, flags)
+    local x, y = im.GetItemRectMin(ctx)
+    local w, h = im.GetItemRectSize(ctx)
+    local v_norm = v/(v_max - v_min)
+    local WDL = WDL or im.GetWindowDrawList(ctx)
+    im.DrawList_AddRectFilled(WDL , x, y, x+w * v_norm , y+h, clr or 0xffffff44)
+    SL()
+    im.Text(ctx, str)
+    return rv, v 
+end
 
 
 
@@ -189,7 +200,28 @@ end
 end
 
 
+function Draw_Single_Curve(nX, X, nY, Y, curve , thick , lineClr, ofs)
+    local range = nX - X
+    local Pts = { x = {}, y = {} }
+    local inc = 0.5
+    for i = X, nX, inc do
+        local I = (i - X) / (nX - X)
+        local y = (Y + (nY - Y) * I)
+        local y = GetCurveValue(y, curve or 0, math.min(Y, nY), math.max(Y, nY), math.min(Y, nY), math.max(Y, nY))
+        table.insert(Pts.y, y)
+        table.insert(Pts.x, i)
+    end
 
+    for i, v in ipairs(Pts.x) do
+        if i ~= #Pts.x then
+            local x1, y1 = v + ofs, Pts.y[i] + ofs
+            im.DrawList_PathLineTo(WDL, x1, y1)
+        else
+            im.DrawList_PathLineTo(WDL, nX + ofs, nY + ofs)
+            im.DrawList_PathStroke(WDL, lineClr, nil, thick)
+        end
+    end
+end
 
 function CurveEditor(W,H, PtsTB, lbl)
     local Pad = 15
@@ -387,10 +419,6 @@ function CurveEditor(W,H, PtsTB, lbl)
             if mX > X and mX < L+ nX *W then 
                 if Wheel_V then 
                     v[3] =  (v[3] or 0 ) 
-                    --[[ if Wheel_V > 0 then 
-                        v[3] = (v[3]> 0 and v[3]< 1) and 1 or 0
-                    end ]]
-
                     v[3] = v[3]+ Wheel_V /10
                     Send_gmem(i, 24 )
                     r.gmem_write(15, v[3])
@@ -435,7 +463,6 @@ function CurveEditor(W,H, PtsTB, lbl)
             if AddPt   and not Hvr_Pt and not Hvr_Ctrl_Pt  then 
                 local mX, mY = im.GetMousePos(ctx)
                 local mX , mY = (mX - L ) / W  , (B-mY ) / H
-             
                 local n = PtsTB[i+1]
                 if n then 
                     if mX > v[1] and mX < n[1] and #PtsTB<10 then 
@@ -467,112 +494,22 @@ function CurveEditor(W,H, PtsTB, lbl)
 
             if not v[3] then 
                 im.DrawList_AddLine(WDL, x1, y1, x2, y2, lineClr, thick)
-            else 
-                --local l =  PtsTB[i-1]
-
-                -- local lX, lY = L +l[1] * W , B- l[2] * H
-               -- local cX, cY = v[3]* W + L , B - v[4] * H 
-
-                local range = nX-X   
-
-                local Pts = {x={}, y={}}
-                --[[ local nX, nY = PtsTB[i+1][1] , PtsTB[i+1][2]
-                local X, Y = PtsTB[i][1], PtsTB[i][2]
-                for i= X, nX-X , (nX-X )/100 do 
-                    
-                    -- y at this x point normalized
-                    local I = i / (nX - X)
-                    local y =  ( Y + (nY-Y) * I    )
-
-
-                    local y = GetCurveValue(y , v[5] or 0, math.min(Y, nY), math.max(Y, nY), X, nX )
-                    table.insert(Pts.y, y)
-                    table.insert(Pts.x, X+i)
-
-                end ]]
-
-                local inc = 0.5
-                for i = X ,  nX  ,  inc do 
-                    local I = ( i - X ) / (nX - X) 
-                    local y =  ( Y + (nY-Y) * I    )
-                    local y = GetCurveValue(y , v[3] or 0 ,  math.min(Y, nY), math.max(Y, nY)  , math.min(Y, nY), math.max(Y, nY))
-                    table.insert(Pts.y,  y)
-                    table.insert(Pts.x, i)
-                end
-
-                for i, v in ipairs(Pts.x) do 
-                    if i ~= #Pts.x then 
-                        local x1, y1 = v +ofs, Pts.y[i] + ofs
-                        im.DrawList_PathLineTo(WDL , x1, y1)
-                    else 
-                        im.DrawList_PathLineTo(WDL , nX + ofs, nY +ofs)
-                        im.DrawList_PathStroke(WDL, lineClr ,nil, thick)
-
-                    end
-                end
-
-
---[[ 
-            local Pts = SmoothCurveFromLine(x1, y1, x2, y2, range/3, v[5])
-
-            -- local pts = SmoothCurve(lX, lY, x1, y1, nX, nY, v[4], range/3)
-            --local ptsX, ptsY = Curve_3pt_Bezier(x1, y1, cX, cY, nX, nY, range/3)
-            for i, v in ipairs(Pts) do 
-                if i ~= #Pts then 
-                    im.DrawList_AddLine(WDL, v.x , v.y , Pts[i+1].x , Pts[i+1].y , lineClr, thick)
-                end
-            end ]]
-
-
-
---[[                 for i, v in ipairs(ptsX) do 
-                    if i ~= #ptsX then 
-                        im.DrawList_AddLine(WDL, v , ptsY[i] , ptsX[i+1] , ptsY[i+1] , lineClr, thick)
-                    end
-                end
- ]]
-
-
-
-
-                
+            else
+                Draw_Single_Curve(nX, X, nY, Y, v[3] , thick,lineClr, ofs)
             end
-            --[[ local Dx , Dy = nX - X   ,  Y - nY
-            local mX, mY = v[1]+Dx /2 ,  v[2] - Dy /2
-            
-
-
-            -- Add Node between the two points
-            local cX, cY = v[3] and  v[3]* W + L , v[4] and  B - v[4] * H 
-            im.SetCursorScreenPos(ctx, cX or   (x1+Dx /2 - ofs)   , cY or  (y1 - Dy /2  - ofs))
-            local DtX, DtY = RoundBtn(PtSz, PtSz, i .. 'Control Node', 0xffffffff, 0xffffff44, PtSz/4)
-            if im.IsItemHovered(ctx) then Hvr_Ctrl_pt = true end 
-            if DtX then  
-
-                v[3] = (v[3] or n[1]) + DtX/W
-                v[4] = (v[4] or n[2]) - DtY/H
-                v[5] = (v[5] or 0 ) + DtY /100
-            end ]]
-
         end
-        
-
-
-    end 
-
-
-   
-
-    if PtsTB[1][1] + L ~= L then 
-        local X, Y = L + PtsTB[1][1] * W   + PtSz / 2 , B - PtsTB[1][2] * H + PtSz / 2 
-        im.DrawList_AddLine(WDL, L, Y, X,  Y, lineClr, thick)
     end
-    if PtsTB[#PtsTB][1]+ R ~= R then 
-        local X, Y = L + PtsTB[#PtsTB][1] * W  , B - PtsTB[#PtsTB][2] * H + PtSz /2
-        
-        im.DrawList_AddLine(WDL, X, Y, R ,  Y, lineClr, thick)
+    if PtsTB[1] then
+        if  PtsTB[1][1] + L ~= L then 
+            local X, Y = L + PtsTB[1][1] * W   + PtSz / 2 , B - PtsTB[1][2] * H + PtSz / 2 
+            im.DrawList_AddLine(WDL, L, Y, X,  Y, lineClr, thick)
+        end
+        if PtsTB[#PtsTB][1]+ R ~= R then 
+            local X, Y = L + PtsTB[#PtsTB][1] * W  , B - PtsTB[#PtsTB][2] * H + PtSz /2
+            
+            im.DrawList_AddLine(WDL, X, Y, R ,  Y, lineClr, thick)
+        end
     end
-    
     SaveCurve()
 
     return PtsTB
@@ -839,7 +776,6 @@ end
 ---@return integer p_value
 function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, P_Num)
 
-    im.SetNextItemWidth(ctx, 40)
     local radius_outer = WET_DRY_KNOB_SZ/2
     local pos = { im.GetCursorScreenPos(ctx) }
     local center = { pos[1] + radius_outer, pos[2] + radius_outer }
@@ -854,7 +790,9 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     local FxGUID = FXGUID[FX_Idx] or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local p_value = p_value or 1
     if FxGUID then
+        if FX[FxGUID].NoWetDryKnob then return  end
         FX[FxGUID] = FX[FxGUID] or {}
+        im.SetNextItemWidth(ctx, 40)
 
 
         Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx] or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
@@ -1055,7 +993,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     Push_Clr()
     local WindowBtn 
     local function Add_Prm_Btn()
-        
+        if FX[FxGUID].Dont_Allow_Add_Prm then return end
         if im.IsItemHovered(ctx) and FindStringInTable(SpecialLayoutFXs, FX_Name) == false then
             fx.TtlHvr = true
             if not CantAddPrm then
@@ -1085,6 +1023,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         if not fx.NoWindowBtn then
             local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
             if DebugMode then Name = FxGUID end
+
             local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
             im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
             WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
@@ -1119,7 +1058,6 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     FX.Enable[FX_Idx] = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
 
 
-    --HighlightSelectedItem(BgClr, 0xffffff11, -1, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
 
     -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
     local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
@@ -1327,8 +1265,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local P_Name = select(2,
                 r.TrackFX_GetParamName(LT_Track, FX_Idx, i - 1))
             if im.TextFilter_PassFilter(PrmFilter, P_Name) then
-                rv[i], CheckBox[i - 1] = im.Checkbox(ctx, (i - 1) .. '. ' .. P_Name,
-                    CheckBox[i - 1])
+                rv[i], CheckBox[i - 1] = im.Checkbox(ctx, (i - 1) .. '. ' .. P_Name, CheckBox[i - 1])
                 if rv[i] then
                     local RepeatPrmFound
 
@@ -1446,40 +1383,27 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
         if im.Button(ctx, 'Save all values as default', -FLT_MIN) then
-            local dir_path = CurrentDirectory .. 'src'
-            local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
-            local file = io.open(file_path, 'a+')
+            local dir_path = ConcatPath (CurrentDirectory, 'src', 'FX Default Values')
+            r.RecursiveCreateDirectory(dir_path, 0)
+            local FX_Name = ChangeFX_Name(FX_Name)
+            local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+            local file = io.open(file_path, 'w')
 
             if file then
-                local FX_Name = ChangeFX_Name(FX_Name)
-                Content = file:read('*a')
-                local Ct = Content
-
-                local pos = Ct:find(FX_Name)
-                if pos then
-                    file:seek('set', pos - 1)
-                else
-                    file:seek('end')
-                end
-
+               
                 file:write(FX_Name, '\n')
                 local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
                 PrmCount = PrmCount - 4
                 file:write('Number of Params: ', PrmCount, '\n')
-
                 local function write(i, name, Value)
                     file:write(i, '. ', name, ' = ', Value or '', '\n')
                 end
-
                 for i = 0, PrmCount, 1 do
                     local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
                     local _, N = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
                     write(i, N, V)
                 end
-
                 file:write('\n')
-
-
                 file:close()
             end
             im.CloseCurrentPopup(ctx)
@@ -1495,14 +1419,11 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             im.SetNextItemWidth(ctx, -FLT_MIN)
 
 
-            Edited, FX.Def_Sldr_W[FxGUID] = im.DragInt(ctx,
-                '##' .. FxGUID .. 'Default Width', FX.Def_Sldr_W[FxGUID] or 160,
-                LE.GridSize, 50, 300)
+            Edited, FX.Def_Sldr_W[FxGUID] = im.DragInt(ctx, '##' .. FxGUID .. 'Default Width', FX.Def_Sldr_W[FxGUID] or 160, LE.GridSize, 50, 300)
 
 
             if Edited then
-                r.SetProjExtState(0, 'FX Devices',
-                    'Default Slider Width for FX:' .. FxGUID, FX.Def_Sldr_W[FxGUID])
+                r.SetProjExtState(0, 'FX Devices', 'Default Slider Width for FX:' .. FxGUID, FX.Def_Sldr_W[FxGUID])
             end
         end
 
@@ -1514,19 +1435,15 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
         if im.BeginCombo(ctx, '## P type', FX[FxGUID].DefType or 'Slider', im.ComboFlags_NoArrowButton) then
-            if im.Selectable(ctx, 'Slider', false) then
-                FX[FxGUID].DefType = 'Slider'
-                r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX[FxGUID].DefType)
-            elseif im.Selectable(ctx, 'Knob', false) then
-                FX[FxGUID].DefType = 'Knob'
-                r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX[FxGUID].DefType)
-            elseif im.Selectable(ctx, 'Drag', false) then
-                FX[FxGUID].DefType = 'Drag'
-                r.SetProjExtState(0, 'FX Devices', 'Default Param type for FX:' .. FxGUID,
-                    FX[FxGUID].DefType)
+            local function Op (type)
+                if im.Selectable(ctx, type, false) then
+                    FX[FxGUID].DefType = type 
+                    Save_to_Trk('Default Param type for FX:', FX[FxGUID].DefType, LT_Track)
+                end
             end
+            Op ('Slider')
+            Op ('Drag')
+            Op ('Knob')
             im.EndCombo(ctx)
         end
         im.EndPopup(ctx)
@@ -2068,6 +1985,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                    
                     DrawMetallicKnob(ctx, X, Y, Rad + (Gap or 0), v.Gradient_Start , v.Texture_Angle ,clr, clr2)
                 elseif  v.Special_Fill == 'Gradient' then
+
                     Draw_Filled_Circle_With_Gradient_And_Angle( X, Y, Rad + (Gap or 0), clr, clr2, v.Gradient_Start , v.Texture_Angle or 0)
                 else
                  
@@ -2505,6 +2423,7 @@ function Draw_Filled_Circle_With_Gradient_And_Angle(centerX, centerY, radius, co
     -- Convert the angle to radians for trigonometric functions
     local angleRad = math.rad(angle)
     local thickness = 1
+    local gradientStart = gradientStart or 0
     -- Loop through the vertical positions (y-axis)
     for y = -radius, radius, thickness do
         -- Calculate the relative position in the circle
@@ -2571,7 +2490,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     --local FxGUID = FXGUID[FX_Idx]
     local FxNameS = FX.Win_Name_S[FX_Idx]
     local Hide
-    FX.DL = im.GetWindowDrawList(ctx)
+
 
     function Highlight_selected_FX(FX_Idx)
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -2616,7 +2535,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
     FX_Name = string.sub(FX_Name, 1, (string.find(FX_Name, '%(') or 30) - 1)
     FX_Name = string.gsub(FX_Name, '-', ' ')
-    WDL = FX.DL
+    WDL = im.GetWindowDrawList(ctx)
 
 
     FX[FxGUID] = FX[FxGUID] or {}
@@ -3344,7 +3263,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             Show_Preview_FXBtn_For_DragDrop(i == rpt and  (Create_Insert_FX_Preview==FX_Idx+1))
 
                             if drag then 
-                                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL, fx.Round --[[rounding]])
+                                HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL --[[rounding]])
                             end
 
                             
@@ -3442,7 +3361,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     FX[FxGUID] = FX[FxGUID] or {}
     local fx = FX[FxGUID]
 
-    local PrmCount = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID))) or 0
+    local PrmCount = Load_from_Trk('Prm Count' ,  LT_Track, 'num') or 0
+    local DefaultWidth
     local Def_Sldr_W = 160
     if FX.Def_Sldr_W[FxGUID] then Def_Sldr_W = FX.Def_Sldr_W[FxGUID] end
 
@@ -3809,9 +3729,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if FXsBL == 'Has Blacklist saved to FX' then -- if there's FX-specific BL settings
                                     Load_FX_Proj_Glob = 'FX'
                                 else
-                                    local _, whether = r.GetProjExtState(0,
-                                        'FX Devices - Preset Morph',
-                                        'Whether FX has Blacklist' .. (FX.Win_Name_S[FX_Idx] or ''))
+                                    local _, whether = r.GetProjExtState(0, 'FX Devices - Preset Morph', 'Whether FX has Blacklist' .. (FX.Win_Name_S[FX_Idx] or ''))
                                     if whether == 'Yes' then Load_FX_Proj_Glob = 'Proj' end
                                 end
 
@@ -4241,27 +4159,21 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             if not FX[FxGUID][Fx_P][ConditionPrm_PID] then
                                 for i, v in ipairs(FX[FxGUID]) do
                                     if v.Num == FX[FxGUID][Fx_P][ConditionPrm] then
-                                        FX[FxGUID][Fx_P][ConditionPrm_PID] =
-                                            i
+                                        FX[FxGUID][Fx_P][ConditionPrm_PID] = i
                                     end
                                 end
                             end
                             local PID = FP[ConditionPrm_PID]
 
                             if FX[FxGUID][PID].ManualValues then
-                                local V = round(
-                                    r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                                        FP[ConditionPrm]),
-                                    3)
+                                local V = round( r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP[ConditionPrm]), 3)
                                 if FP[ConditionPrm_V_Norm] then
                                     for i, v in ipairs(FP[ConditionPrm_V_Norm]) do
                                         if V == round(v, 3) then Pass = true end
                                     end
                                 end
                             else
-                                local _, V = r.TrackFX_GetFormattedParamValue(LT_Track,
-                                    FX_Idx,
-                                    FP[ConditionPrm])
+                                local _, V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, FP[ConditionPrm])
                                 for i, v in ipairs(FP[ConditionPrm_V]) do
                                     if V == v then Pass = true end
                                 end
@@ -4318,24 +4230,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
 
                             local function Item_Interaction()
-                                if im.IsItemClicked(ctx) and LBtnDC then
+                                if im.IsItemClicked(ctx) and LBtnDC then    
                                     if Mods == 0 then
-                                        local dir_path = CurrentDirectory .. 'src'
-                                        local file_path = ConcatPath(dir_path, 'FX Default Values.ini')
-                                        local file = io.open(file_path, 'r')
-
-                                        if file then
-                                            local FX_Name = ChangeFX_Name(FX_Name)
-                                            Content = file:read('*a')
-                                            local Ct = Content
-                                            local P_Num = FP.Num
-                                            local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx, P_Num)
-                                            local Df = RecallGlobInfo(Ct, P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
-                                            if Df then
-                                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, Df)
-                                                ToDef = { ID = FX_Idx, P = P_Num, V = Df }
-                                            end
-                                        end
+                                        Set_Prm_To_Default(FX_Idx, FP)
 
                                     elseif Mods == Alt then
                                         if FP.Deletable then
@@ -5528,7 +5425,7 @@ function Draw_Background(FxGUID, pos, Draw_Which)
 
 end
 
-function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InClr, PointerClr, RangeClr, style)
+function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InClr, PointerClr, RangeClr, style, FP)
     local Size = Size or 15
     local p_value = p_value or 0
     local radius_outer = Size or Df.KnobRadius -- Radius ;
@@ -5543,14 +5440,8 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
     local pos          = { im.GetCursorScreenPos(ctx) }
     local center       = { pos[1] + radius_outer, pos[2] + radius_outer}
     local Clr_SldrGrab = Change_Clr_A(getClr(im.Col_SliderGrabActive), -0.2)
-
-
     ClickButton = WhichClick()
     local CenteredLblPos, CenteredVPos
-
-
-
-
     local line_height = im.GetTextLineHeight(ctx)
     local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
@@ -5564,40 +5455,74 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
     local ANGLE_MAX = 3.141592 * 2.25
     local BtnOffset
     local Knob_Active
+    local function Interaction()
+        if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
+            if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
+                im.SetDragDropPayload(ctx, 'my_type', 'my_data')
+                Knob_Active  = true
+                Clr_SldrGrab = getClr(im.Col_Text)
+                HideCursorTillMouseUp(0)
+                im.SetMouseCursor(ctx, im.MouseCursor_None)
+                if  style ~= 'Mod Range Control' then 
+                    if -mouse_delta[2] ~= 0.0 then
+                        local stepscale = 1
+                        if Mods == Shift then stepscale = 3 end
+                        local step = --[[ (v_max - v_min) ]] 1 / (200.0 * stepscale)
+                        p_value = p_value + (-mouse_delta[2] * step)
+                        p_value = SetMinMax(p_value , 0 , 1 )
+                        --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
+                        --MvingP_Idx = F_Tp
+                        --Tweaking = P_Num .. FxGUID
+                    end
+                end
+                im.EndDragDropSource(ctx)
+            end
+            --[[ elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
+            DnD_PLink_SOURCE(FX_Idx, P_Num) ]]
+        end
+    end
+
+    local function Draw()
+            
+        local radius_outer = Size + (knobSizeOfs or 0)
+        local t = p_value
+        local angle =  ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+        local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+        local radius_inner = radius_outer * 0.40
+
+        if style == 'Mod Range Control' then
+            local ANGLE_MIN = 3.141592 * 1.5
+            local angle = (ANGLE_MIN) + (ANGLE_MAX - (ANGLE_MIN)) * t
+            -- draw bg
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, 3.141592 * 0.75, 3.141592 * 2.25)
+            im.DrawList_PathStroke(draw_list, 0xffffff22, nil, radius_outer * 0.2)
+            im.DrawList_PathClear(draw_list)
+            -- draw knob
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, ANGLE_MIN, angle)
+            im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.2)
+            im.DrawList_PathClear(draw_list)
+            --[[ if not Knob_Active then
+                HighlightHvredItem()
+            end ]]
+            if im.IsItemHovered(ctx) and not FP.Right_Dragging_Mod_Ctrl then 
+                im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer*0.95, 0xffffff33, nil,2)
+            end
+        else
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, OutClr or im.GetColor(ctx, im.Col_Button))
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), PointerClr or Clr_SldrGrab, 2)
+            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
+            im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.7)
+            im.DrawList_PathClear(draw_list)
+            local clr = InClr or im.GetColor(ctx, is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or im.Col_FrameBg)
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner, clr)
+        end
+    end
+
 
 
 
     local Active = im.InvisibleButton(ctx, label or '##', Size*2, Size*2, ClickButton) -- ClickButton to alternate left/right dragging
-
-    --Highlight_Itm(WDL, nil, 0xffffffff)
-
-    if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
-        if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
-            im.SetDragDropPayload(ctx, 'my_type', 'my_data')
-            Knob_Active  = true
-            Clr_SldrGrab = getClr(im.Col_Text)
-
-            HideCursorTillMouseUp(0)
-            im.SetMouseCursor(ctx, im.MouseCursor_None)
-            if -mouse_delta[2] ~= 0.0 then
-                local stepscale = 1
-                if Mods == Shift then stepscale = 3 end
-                local step = --[[ (v_max - v_min) ]] 1 / (200.0 * stepscale)
-                p_value = p_value + (-mouse_delta[2] * step)
-
-                p_value = SetMinMax(p_value , 0 , 1 )
-
-                value_changed = true
-                --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                --MvingP_Idx = F_Tp
-                --Tweaking = P_Num .. FxGUID
-            end
-            im.EndDragDropSource(ctx)
-        end
-        --[[ elseif ClickButton == im.ButtonFlags_MouseButtonRight and not AssigningMacro then -- right drag to link parameters
-        DnD_PLink_SOURCE(FX_Idx, P_Num) ]]
-    end
-     
+     Interaction()
     if im.IsItemClicked(ctx, 1 ) then 
         Knob_Click = 2 
     end 
@@ -5613,39 +5538,10 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
     end ]]
 
 
-    local radius_outer = Size + (knobSizeOfs or 0)
-    local t = p_value
-    local angle =  ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-
-    local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
-    local radius_inner = radius_outer * 0.40
-
-    if Active then 
-        im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, 0xffffff88)
+    if Knob_Active then 
+        im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer* 0.95, 0xffffff88)
     end     
-
-    if style == 'Mod Range Control' then 
-        local ANGLE_MIN = 3.141592 * 1.5
-        local angle = (ANGLE_MIN) + (ANGLE_MAX - (ANGLE_MIN)) * t
-        -- draw bg
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, 3.141592*0.75 , 3.141592*2.25)
-        im.DrawList_PathStroke(draw_list, 0xffffff22 , nil, radius_outer * 0.2)
-        im.DrawList_PathClear(draw_list)
-        -- draw knob
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 1.2, ANGLE_MIN, angle)
-        im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.2)
-        im.DrawList_PathClear(draw_list)
-        HighlightHvredItem()
-
-
-    else 
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,OutClr or im.GetColor(ctx, im.Col_Button))
-        im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), PointerClr or Clr_SldrGrab,  2)
-        im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
-        im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.7)
-        im.DrawList_PathClear(draw_list)
-        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner, InClr or im.GetColor(ctx, is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or im.Col_FrameBg))
-    end
+    Draw()
      
     return Knob_Click, p_value, center
 end
@@ -5944,4 +5840,28 @@ function Show_Helper_Message()
 
     end
 
+end
+function Slider_Double_Click()
+    local double_click_time = 0.5
+    local last_click_time = LAST_CLICK_TIME or 0
+
+    if im.IsItemClicked(ctx, 0) then
+
+        local click_time = im.GetTime(ctx)
+        msg('now = ' .. click_time.. '\n last_click_time = ' .. last_click_time)
+       if LAST_CLICK_TIME then 
+            if LAST_CLICK_TIME < im.GetTime(ctx) -double_click_time then 
+                msg('no ')
+            else msg("Double")
+            end
+       end
+        LAST_CLICK_TIME = click_time
     end
+    --[[ if LAST_CLICK_TIME then 
+       -- msg('LAST_CLICK_TIME = ' .. LAST_CLICK_TIME.. 'Time now = ' .. im.GetTime(ctx))
+        if LAST_CLICK_TIME < im.GetTime(ctx) -double_click_time then 
+            msg('clear')
+            LAST_CLICK_TIME = nil
+        end
+    end ]]
+end

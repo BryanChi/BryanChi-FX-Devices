@@ -1,7 +1,8 @@
-  fnoindex: true
+noindex: true
 
 desc:FXD Macros
 import cookdsp.jsfx-inc
+import FXD Macros - Default Values.jsfx-inc
 
 
 slider1:0<0,1>Macro 1
@@ -28,6 +29,7 @@ slider21:0<0,1>Automatable Param 5
 slider22:0<0,1>Automatable Param 6
 slider23:0<0,1>Automatable Param 7
 slider24:0<0,1>Automatable Param 8
+slider25:0<100000000, 999999999> Diy_Trk_ID
 
 
 
@@ -50,15 +52,21 @@ is_init = 0;
 midiamp = midinote = 0;
 
 totalTrackCount =  gmem[0];
-trkGUID_Num = gmem[1];
-
+gmem[4] == 0.1 ? ( // if user is using ImGui to insert jsfx 
+    trkGUID_Num = gmem[1];
+  slider25 = trkGUID_Num;
+):( // if user is loading project
+  trkGUID_Num = slider25;
+);
+AAA_INIT_TRKGUID = trkGUID_Num;
 
 
 //gmem offsets ------------------------------
 //gmem 1 = this track's DIY GUID
 //gmem 2 = Selected track's Diy GUID
 //gmem 3 = Prm Inst
-//gmem 4 = if 1 then user is R-Dragging on prm
+//gmem 4 = if 0.1 then user is inserting the jsfx, and imgui is informing the DIY_Trk_ID to jsfx
+         //if 1 then user is R-Dragging on prm
          //if 2 then user is adjusting env atk
          //if 3 then user is adjusting env rel
          //if 4.1 then Mod 1 is Env, 4.2 then Mod 2 is Env
@@ -90,6 +98,10 @@ trkGUID_Num = gmem[1];
 //jsfx table 2000~3000 = Mod2's mod amount for param 1 ~ 1000 
 //etc .. 8000
 
+//jsfx table 200000~201000 = Mod curve for param 1 ~ 1000's 1st Modulator modulation
+//jsfx table 201000~202000 = Mod curve for param 1 ~ 1000's 2nd Modulator modulation
+//etc .. up to 232000  -- up to 32 modulators
+
 //jsfx table 500000~501000 = Velocity mod amount for param 1 ~ 1000 
 //jsfx table 501001~501130 = Cruve for velocity ( 1~10 is X axis, 11~20 is y axis, 21~ 30 is expo or log curve amount
 //jsfx table 510000~511000 = Random mod amount for param 1 ~ 1000 
@@ -101,6 +113,7 @@ trkGUID_Num = gmem[1];
 ModAmt = 1000;
 PsUsed = 100; 
 P_OrigV = 100000 ;  //Parameter's original values before modulation
+MOD_CURVE = 200000;
 SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
 Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
 McOut =  1;
@@ -126,81 +139,6 @@ function SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ()(
   );
 );
   SAVE_AND_LOAD_ALL_MIDI_MOD_INFO();
-//  Follower Gain 
-  Mc1.Fol_Gain= 0.7 ; 
-  Mc2.Fol_Gain= 0.7 ; 
-  Mc3.Fol_Gain= 0.7 ; 
-  Mc4.Fol_Gain= 0.7 ; 
-  Mc5.Fol_Gain= 0.7 ; 
-  Mc6.Fol_Gain= 0.7 ; 
-  Mc7.Fol_Gain= 0.7 ; 
-  Mc8.Fol_Gain= 0.7 ; 
-
-//LFO Gain auto 
-  Mc1.LFO_Gain_Auto= 0 ;
-  Mc2.LFO_Gain_Auto= 0 ;
-  Mc3.LFO_Gain_Auto= 0 ;
-  Mc4.LFO_Gain_Auto= 0 ;
-  Mc5.LFO_Gain_Auto= 0 ;
-  Mc6.LFO_Gain_Auto= 0 ;
-  Mc7.LFO_Gain_Auto= 0 ;
-  Mc8.LFO_Gain_Auto= 0 ;
-
-// LFO Spd 
-  Mc1.LFO_Spd = 1;
-  Mc2.LFO_Spd = 1;
-  Mc3.LFO_Spd = 1;
-  Mc4.LFO_Spd = 1;
-  Mc5.LFO_Spd = 1;
-  Mc6.LFO_Spd = 1;
-  Mc7.LFO_Spd = 1;
-  Mc8.LFO_Spd = 1;
-//LFO Spd Auto
-  Mc1.LFO_Spd_Auto= 0 ;
-  Mc2.LFO_Spd_Auto= 0 ;
-  Mc3.LFO_Spd_Auto= 0 ;
-  Mc4.LFO_Spd_Auto= 0 ;
-  Mc5.LFO_Spd_Auto= 0 ;
-  Mc6.LFO_Spd_Auto= 0 ;
-  Mc7.LFO_Spd_Auto= 0 ;
-  Mc8.LFO_Spd_Auto= 0 ;
-//LFO_Len '
-
-  Mc1.LFO_Len = 4;
-  Mc2.LFO_Len = 4;
-  Mc3.LFO_Len = 4;
-  Mc4.LFO_Len = 4;
-  Mc5.LFO_Len = 4;
-  Mc6.LFO_Len = 4;
-  Mc7.LFO_Len = 4;
-  Mc8.LFO_Len = 4;
-// LGO_Gain 
-  Mc1.LFO_Gain = 1;
-  Mc2.LFO_Gain = 1;
-  Mc3.LFO_Gain = 1;
-  Mc4.LFO_Gain = 1;
-  Mc5.LFO_Gain = 1;
-  Mc6.LFO_Gain = 1;
-  Mc7.LFO_Gain = 1;
-  Mc8.LFO_Gain = 1;
-
-// SEQ DNom And Leng
-  Mc1.SEQ_DNom = 1;
-  Mc1.SEQ_Leng = 8;
-  Mc2.SEQ_DNom = 1;
-  Mc2.SEQ_Leng = 8;
-  Mc3.SEQ_DNom = 1;
-  Mc3.SEQ_Leng = 8;
-  Mc4.SEQ_DNom = 1;
-  Mc4.SEQ_Leng = 8;
-  Mc5.SEQ_DNom = 1;
-  Mc5.SEQ_Leng = 8;
-  Mc6.SEQ_DNom = 1;
-  Mc6.SEQ_Leng = 8;
-  Mc7.SEQ_DNom = 1;
-  Mc7.SEQ_Leng = 8;
-  Mc8.SEQ_DNom = 1;
-  Mc8.SEQ_Leng = 8;
 
 function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
 (
@@ -238,8 +176,6 @@ function Calculate_Midi_Mod(v , TB_ofs) local (rpt, out, X, nX, Y, nY , ofs, C)(
   ofs = TB_ofs + Midi_Mod_Curve_Ofs;  // =  1000 for velocity,  11000  for random
   out = 0;
   rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
-  rpt!= 0 ? ( AAA_RPT = rpt;);
-  AAAA_NOTE = v ;
   rpt> 1 ? (  //for every point 
     i = 1;
     while( out==0)(  
@@ -308,9 +244,18 @@ function Set_Midi_Mod_Curve(mode )local (pt, id) (
 
   );
 );
+function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
+  mode == 24 ? (// if user is tweaking Velocity curve's start or end point
 
+    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+    pt = gmem[11]; // tells which point is user dragging 
+
+    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+
+  );
+);
 function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id)(
-  mode==25? (
+  mode== 25? (
     id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
     //pt = gmem[11]; // tells which point is user dragging 
     Velo_ModAmt[Midi_Mod_Curve_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity 
@@ -330,17 +275,16 @@ function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id)(
 
 );
 
-function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
-  mode == 24 ? (// if user is tweaking Velocity curve's start or end point
 
-    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
-    pt = gmem[11]; // tells which point is user dragging 
 
-    Velo_ModAmt[Midi_Mod_Curve_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
-
+function Set_Modulator_Curve(mode) local (prm, mod) (
+  mode == 26 ? (
+    prm = gmem[6];
+    mod = gmem[5];
+    MOD_CURVE[mod*1000+prm] = gmem[8];
+    MOD_CURVE[mod*1000+prm] = Save(MOD_CURVE[mod*1000+prm]);
   );
 );
-
 
 
 
@@ -379,6 +323,10 @@ function SaveAllModulatorInfo()(
   this.freq = file_var(0,this.freq);
   this.lp.c = file_var(0,this.lp.c);
   this.lp.freq = file_var(0,this.lp.freq);
+
+  this.Rdm_Chance = file_var( 0, this.Rdm_Chance);
+  this.Rdm_Smooth = file_var( 0, this.Rdm_Smooth);
+  this.RDM_Interval = file_var( 0, this.RDM_Interval);
 );
 
 
@@ -417,39 +365,51 @@ Mc6.follow(10);
 Mc7.follow(10);
 Mc8.follow(10);
 
-Mc1.Macro = 1;
-Mc2.Macro = 2;
-Mc3.Macro = 3;
-Mc4.Macro = 4;
-Mc5.Macro = 5;
-Mc6.Macro = 6;
-Mc7.Macro = 7;
-Mc8.Macro = 8;
 
 
 
 
-Mc1.EnvToImGui = 101;
-Mc2.EnvToImGui = 102;
-Mc3.EnvToImGui = 103;
-Mc4.EnvToImGui = 104;
-Mc5.EnvToImGui = 105;
-Mc6.EnvToImGui = 106;
-Mc7.EnvToImGui = 107;
-Mc8.EnvToImGui = 108;
-Mc1.LFO_PlayPos = 109;
-Mc2.LFO_PlayPos = 110;
-Mc3.LFO_PlayPos = 111;
-Mc4.LFO_PlayPos = 112;
-Mc5.LFO_PlayPos = 113;
-Mc6.LFO_PlayPos = 114;
-Mc7.LFO_PlayPos = 115;
-Mc8.LFO_PlayPos = 116;
+function RDM_Chance(v)( this.RDM_Chance = v );
+function RDM_Smooth(v)(this.RDM_Smooth = v ) ; 
+function RDM_Interval(v)(this.RDM_Interval = v ) ;
 
+function RANDOM_Change_Prop(mode)local(mc)(
+  mc = gmem[5]; 
+  mode == 27.1?(
+    mc == 1 ? (Mc1.RDM_Interval(gmem[8]) );
+    mc == 2 ? (Mc2.RDM_Interval(gmem[8]) );
+    mc == 3 ? (Mc3.RDM_Interval(gmem[8]) );
+    mc == 4 ? (Mc4.RDM_Interval(gmem[8]) );
+    mc == 5 ? (Mc5.RDM_Interval(gmem[8]) );
+    mc == 6 ? (Mc6.RDM_Interval(gmem[8]) );
+    mc == 7 ? (Mc7.RDM_Interval(gmem[8]) ); 
+    mc == 8 ? (Mc8.RDM_Interval(gmem[8]) );
+  );
+  mode == 27.2?(
+    mc == 1 ? ( Mc1.RDM_Smooth(gmem[8]) );
+    mc == 2 ? ( Mc2.RDM_Smooth(gmem[8]) );
+    mc == 3 ? ( Mc3.RDM_Smooth(gmem[8]) );
+    mc == 4 ? ( Mc4.RDM_Smooth(gmem[8]) );
+    mc == 5 ? ( Mc5.RDM_Smooth(gmem[8]) );
+    mc == 6 ? ( Mc6.RDM_Smooth(gmem[8]) );
+    mc == 7 ? ( Mc7.RDM_Smooth(gmem[8]) ); 
+    mc == 8 ? ( Mc8.RDM_Smooth(gmem[8]) );
+  );
+  mode == 27.3?(
+    mc == 1 ? (Mc1.RDM_Chance(gmem[8]) );
+    mc == 2 ? (Mc2.RDM_Chance(gmem[8]) );
+    mc == 3 ? (Mc3.RDM_Chance(gmem[8]) );
+    mc == 4 ? (Mc4.RDM_Chance(gmem[8]) );
+    mc == 5 ? (Mc5.RDM_Chance(gmem[8]) );
+    mc == 6 ? (Mc6.RDM_Chance(gmem[8]) );
+    mc == 7 ? (Mc7.RDM_Chance(gmem[8]) ); 
+    mc == 8 ? (Mc8.RDM_Chance(gmem[8]) );
+  );
 
-
-
-
+  this.Rdm_Chance = save(this.Rdm_Chance);
+  this.Rdm_Smooth = save(this.Rdm_Smooth);
+  this.RDM_Interval = save(this.RDM_Interval);
+);
 
 
 function ChangeRange(V1, V2 , Max)(
@@ -466,17 +426,19 @@ function ChangeRange(V1, V2 , Max)(
 function SendInfoBackToImGui()
 (
   this.type =='step'?(
-    (gmem[this.EnvToImGui] = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127);
+    (gmem[100 + this.Macro] = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127);
     gmem[this.LFO_PlayPos] = this.CurrentPos;
   ):this.type =='env'?(
-    gmem[this.EnvToImGui] = this.masr_do(midiamp)
+    gmem[100 + this.Macro] = this.masr_do(midiamp)
   ):this.type =='Fol' ? (
-    gmem[this.EnvToImGui] =  this.FOL_out*this.FOL_Gain*127
+    gmem[100 + this.Macro] =  this.FOL_out*this.FOL_Gain*127
   ):this.type =='LFO'?(
-   gmem[this.EnvToImGui] = this.LFOout;
+   gmem[100 + this.Macro] = this.LFOout;
    gmem[this.LFO_PlayPos] = this.CurrentPos;
-
+  ):this.type == 'Rdm'?(
+    gmem[100 + this.Macro] = this.out;
   );
+
 );
 
 
@@ -500,8 +462,6 @@ function CalculateLFO()(
     s = (x2 - x1)  ; // s for segment
     x1_howMuch  =  (x2-p) / s ;
     x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
-
- 
 
     x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
       this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
@@ -669,12 +629,11 @@ function SetMacroAttribute( x , y )
     Macro==8?(Mc8.FOL_Gain = y);
 );
 
-function CalculatMacroAmt() local (BipolarRange , MR )
+function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
 (
   BipolarRange = 0;
   MR = ModRange;
   
-
   ModRange> 100 ? (     // if it's bipolar 
     BipolarRange = (ModRange- 100) ; 
     MR = (ModRange- 100) * 2;
@@ -698,7 +657,7 @@ function CalculatMacroAmt() local (BipolarRange , MR )
 
 
   ):this.type =='Fol' ? ( // if macro  is Follower 
-
+  
     this.out = this.FOL_out*this.FOL_Gain  ;
 
   ):this.type=='LFO'    ?( // if type is LFO
@@ -708,14 +667,29 @@ function CalculatMacroAmt() local (BipolarRange , MR )
     this.LFO_Spd_Auto!= 0 ? (
       this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
     );
-
     this.EnvOrLoop == 0 ? (
       this.LFO_Calc_Play_Pos ();
       this.CalculateLFO();
     );
+  ):this.type =='Rdm' ? ( // if type is random
+    this.Rdm_time = this.Rdm_time + 1 * (samplesblock/64) ; 
+    this.Rdm_time > this.RDM_Interval  ? (
 
-    
+      rand(100) < this.RDM_Chance ? (
+      this.Rdm_Next_Out = rand(1); //create next point 
+      );
 
+
+      this.Rdm_Smooth == 0 ?(
+        this.Rdm_Next_Out!= 0 ? ( this.Out = this.Rdm_Next_Out); //set current output to next point
+      );
+      this.Rdm_time = 0;
+    );
+    this.Rdm_Smooth != 0   ? (// if there's smooth, and next point is created
+      Rdm_Smooth =  10 - this.Rdm_Smooth*0.99 /10;
+      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) *  min ((this.Rdm_time/this.RDM_Interval) * Rdm_Smooth, 1  );
+
+    );
   ):(   //if type is macro
     this.Out = (this.Slider )   
   );
@@ -724,7 +698,6 @@ function CalculatMacroAmt() local (BipolarRange , MR )
 
 
 );
-
 
 
 function SetTypeTo (T)
@@ -749,42 +722,45 @@ function Check_If_Bipolar(ModAmt)
   );
 
 );
-function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID)  // i is the track param number
+
+
+function If_User_Set_Type_To_Random() (
+  mode == 27? (
+    SetTypeTo('Rdm')
+  );
+);
+function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID, Curve)  // i is the track param number
 (
   M = 1;
   total = 0 ;
   Bi_ofs= 0;
 
-
-  AA_FIRST_P_V = P_OrigV[1];
-
   loop ( 8, 
     ID = 1000 * (M-1) + i ;
+    ModAmt[ID] != 0 ? (
+      ModAMT[ID]> 99 ? (     // if it's bipolar 
+        Bi_ofs = (ModAmt[ID]- 100)  ;
+        Amt = (ModAmt[ID]- 100)*2 ;
+      ):(Amt = ModAmt[ID]  );  // if unipolar 
 
-
-    ModAMT[ID]> 99 ? (     // if it's bipolar 
-      Bi_ofs = (ModAmt[ID]- 100)  ;
-      Amt = (ModAmt[ID]- 100)*2 ;
-    ):(Amt = ModAmt[ID]  ;);  // if unipolar 
-
-   
-
-
-    ModAmt[ID] != 0 ? ( total += McOut[M] * Amt - Bi_ofs  ) ; 
-
-
+      Curve = MOD_CURVE[M*1000+i];
+      out = McOut[M];
+      Curve!= 0 ? (  // if there's mod curve set 
+        out = GetCurveValue(McOut[M], -Curve, 0, 1, 0 , 1 );
+      );
+      total += out * Amt - Bi_ofs  
+    );
     M+=1
   );
 
   //if there's velocity modulation
   Velo_ModAmt[i] !=0 ? ( total += NOTE_ON_VELO *  Velo_ModAmt[i] );
-  A_Velo_ModAmt = Velo_ModAmt[1];
+
   //if there's Random 1 modulation
   RAND1_ModAmt[i] != 0 ? (total += RAND1_Out * RAND1_ModAmt[i] );
   RAND2_ModAmt[i] != 0 ? (total += RAND2_Out * RAND2_ModAmt[i] );
   RAND3_ModAmt[i] != 0 ? (total += RAND3_Out * RAND3_ModAmt[i] );
 
-  AA_Rand_MOD1 = RAND1_ModAmt[1];
 
 
   KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
@@ -792,160 +768,14 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk2) );
 
 
-  AA_KeyTrk1_ModAmt = KeyTrk1_ModAmt [1];
+
 
   total *127 ; 
 );
 
-@gfx
-  /*
-  // -------------------------------------------------------------
-  function display_memory (PstartA, PstartB, Plength, Pformat, PnameA, PnameB)
-  // -------------------------------------------------------------
-  local ( Ldigits Ldecimals Lsize Lwidth Lrows Lidx LX0 LX1 LY1 save_gfxx save_gfxa )
-  (
-      gfx_w - mouse_x > 400 ? 
-          Lwidth = 8
-        : Lwidth = 4;
-      Pformat == $'A' ? (
-          Ldigits   = 1;
-          Ldecimals = 0;
-          Lwidth *=2;
-      ):(
-          Ldigits   = floor(Pformat);
-          Ldecimals = (Pformat - Ldigits) * 10;
-      );
-      Lsize     = Ldigits + Ldecimals +1;
-      Ldecimals > 0 ? Lsize +=1; 
-      Lrows     = ceil((Plength / Lwidth));
-  // .... for unlimited rows
-  //Lrows = floor((gfx_h - mouse_y) / 12);
 
-      LX0 = gfx_w - (Lsize*8 +8) * Lwidth *2 -40;
-      LX1 = LX0 + (Lsize*8 +8) * Lwidth + 15;
-      LY1 = max(2+ gfx_h -Lrows *(12+1) -20, mouse_y -10);
-
-  // ----------------------------- 
-  // .... background
-      save_gfxa = gfx_a;
-      gfx_a = 0.75;
-  //
-
-      //    set_colour(PALE_YELLOW);
-      gfx_r =0.90; gfx_g =0.80; gfx_b =0.50;
-      gfx_x = LX0 -10; 
-      gfx_y = LY1 -15;
-      gfx_rectto(LX1 -15, gfx_h -10);
-      
-      //set_colour(GREY_1);
-      gfx_x = LX0 -5;
-      gfx_y = LY1 -10;
-      gfx_printf(PnameA);
-  //
-      //set_colour(CYAN);
-      gfx_r =0.10; gfx_g =0.85; gfx_b =0.85;
-      gfx_x = LX1 -10;
-      gfx_y = LY1 -15;
-      gfx_rectto(gfx_w -15, gfx_h -10);
-
-    // set_colour(GREY_1);
-      gfx_x = LX1 -5;
-      gfx_y = LY1 -10;
-      gfx_printf(PnameB);
-  //
-  // -----------------------------
-  //
-      //set_colour(GREY_1);
-    gfx_r =0.15; gfx_g =0.15; gfx_b =0.20;
-
-  // .... left-hand data
-      gfx_x = LX0; gfx_y = LY1 +5;
-      Lidx = 0;
-      loop(Lrows,
-          loop(Lwidth,
-              save_gfxx = gfx_x;
-              Pformat == $'A' ? ( 
-                  gfx_drawchar(PstartA[Lidx]);
-              ):(
-                  PstartA[Lidx] >= 0 ? gfx_x +=8;
-                  gfx_drawnumber(PstartA[Lidx], Ldecimals);
-                  gfx_x = save_gfxx + Lsize*8 +8;  
-              );
-              Lidx +=1;
-          );
-          gfx_x = LX0; gfx_y += 12;
-          Lidx % (Lwidth * 4) == 0 ? gfx_y +=4;
-      );
-
-  // .... right-hand data
-      gfx_x = LX1; gfx_y = LY1 +5;
-      Lidx = 0;
-      loop(Lrows,
-          loop(Lwidth,
-              save_gfxx = gfx_x;
-              Pformat == $'A' ? ( 
-                  gfx_drawchar(PstartB[Lidx]);
-              ):(
-                  PstartB[Lidx] >= 0 ? gfx_x +=8;
-                  gfx_drawnumber(PstartB[Lidx], Ldecimals);
-                  gfx_x = save_gfxx + Lsize*8 +8;  
-              );
-              Lidx +=1;
-          );
-          gfx_x = LX1; gfx_y += 12;
-          Lidx % (Lwidth * 4) == 0 ? gfx_y +=4;
-      );
-
-      gfx_a = save_gfxa;
-
-  ); // end of function 
-
-
-
-
-  // -------------------------------------------------------
-  function print_strings(Pfirst, Pnum)
-  // -------------------------------------------------------
-  local ( save_gfxx save_gfxy save_gfxa Lidx Lmaxchars LX1 LY1 )
-  (
-      Lmaxchars = 50;
-      save_gfxx = gfx_x;
-      save_gfxy = gfx_y;
-      save_gfxa = gfx_a;
-      Lidx = Pfirst;
-      LX1 = gfx_w - Lmaxchars * 8 -10;
-      LY1 = max(gfx_h -Pnum *12 -20, mouse_y -10);
-
-  // .... background
-      gfx_a = 0.75;
-      //set_colour(CYAN);
-      gfx_r =0.10; gfx_g =0.85; gfx_b =0.85;
-      gfx_x = LX1;
-      gfx_y = LY1;
-      gfx_rectto(gfx_w -15, gfx_h -10);
-      
-    // set_colour(GREY_1);
-      gfx_y = LY1 +4;
-      loop(Pnum,
-          gfx_x = LX1 +4;
-          gfx_printf("%3d %s", Lidx, Lidx);
-          Lidx +=1;
-          gfx_y +=12;
-      );
-
-      gfx_x = save_gfxx;
-      gfx_y = save_gfxy;
-      gfx_a = save_gfxa;
-  );  // end of function
-
-
-gfx_lineto(0 , 1000, 1);
-gfx_line(0, 0 , 1000, 1000,  1 );
-gfx_drawstr('adsf',0,  0, 0);
-
-print_strings(20, 100)
-*/
 @slider
+
 Mc1.Slider = slider1;
 Mc2.Slider = slider2;
 Mc3.Slider = slider3;
@@ -954,17 +784,19 @@ Mc5.Slider = slider5;
 Mc6.Slider = slider6;
 Mc7.Slider = slider7;
 Mc8.Slider = slider8;
-
+//slider25 = trkGUID_Num;
+trkGUID_Num = slider25;
 
 @serialize 
-
+AA_SERIALIZE = 12312312;
+//trkGUID_Num = save(trkGUID_Num);
 
 P.Inst = file_var(0,P.Inst);
-AA_Serialize =1 ;
-
 
 
 i=1;    
+
+
 while ( i <= P.Inst)(
   m = 1 ; 
   while ( m <= 8)(
@@ -980,10 +812,21 @@ while ( i <= P.Inst)(
 
 i=0;
 
+
 while(i<=80000)(
-  
-    Velo_ModAmt[i] = file_var(0, Velo_ModAmt[i]);
+
+   // Velo_ModAmt[i] = file_var(0, Velo_ModAmt[i]);
+  MOD_CURVE[1000+i] != 0 (
+    MOD_CURVE[1000+i] = file_var(0, MOD_CURVE[1000+i]); //  recall mod curves, 
     i+=1;
+  );
+);
+
+i = 0;
+while(i<=32000)(//  recall mod curves for all 32000 slots
+
+  MOD_CURVE[i] = file_var(0, MOD_CURVE[i]); 
+  i+=1;
 );
 
 i = P_OrigV;
@@ -991,7 +834,6 @@ while(i<=P_OrigV+1000) (
   a[i] = file_var(0, a[i]);
   i+=1;
 );
-
 
 
 
@@ -1026,16 +868,17 @@ Mc8.DoFollower();
 
 
 @block
+
 Automate = 16; // first one will be 17 
 
 // Calculate current play position
-  beat_per_spl = tempo / (srate * 60);
-  beat_per_block = beat_per_spl * samplesblock;
+beat_per_spl = tempo / (srate * 60);
+beat_per_block = beat_per_spl * samplesblock;
 
-  play_state == 1  && playstate_started == 0  ? (
-    //bp = beat_position;
-    playstate_started = 1 ; 
-  ); 
+play_state == 1  && playstate_started == 0  ? (
+  //bp = beat_position;
+  playstate_started = 1 ; 
+); 
 
   
 
@@ -1245,8 +1088,9 @@ trkGUID_Num === gmem[2]? (
     Macro==7?(Mc7.LFO_Gain = gmem[9];);
     Macro==8?(Mc8.LFO_Gain = gmem[9];);
   );
-  
-  A_LFO_1 = a[30001];
+
+  If_User_Set_Type_To_Random(mode) ;
+
   mode == 15?(  // if user changing LFO Shape
     SetTypeTo('LFO');
     Pts_Count = gmem[6];
@@ -1363,17 +1207,11 @@ trkGUID_Num === gmem[2]? (
   //Set_Midi_Mod_Curve(mode );
   Set_Midi_Mod_Curve_All_Pts(mode);
   Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode);
+  Set_Modulator_Curve(mode);
+  RANDOM_Change_Prop(mode);
   id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
   pt = gmem[11]; // tells which point is user dragging 
 
-  A_gmem12 = gmem[12];
-  A_gmem11 = gmem[11];
-  A_gmem9 = gmem[9];
-
-  AA_FirstCurveX = a[511021];
-  AA_2curveX = a[511021];
-  AA_1curveY = a[511011];
-  AA_2curveY = a[511012];
 
 
 
@@ -1385,11 +1223,7 @@ trkGUID_Num === gmem[2]? (
     gmem[8] != 0?( // if paramV + Mod is over 1...
       a[Param+ Macro*1000] = gmem[Param+ Macro*1000]  // this is mod amount for the modulator on the parameter
     );
-   
   );
-
-
-
 
 
 ); // --------------------- End of if track is selected -----------------------
@@ -1565,3 +1399,4 @@ play_state == 1 || play_state == 5? (
   PlayState = 1 ; 
 ):( PlayState = 0 );
 //display_memory(note_ons, offsets, 64, 3, "Note Ons", "Offsets");
+

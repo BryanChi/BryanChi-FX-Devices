@@ -5,7 +5,7 @@ FX_Title_Round = 6
 Default_WindowBtnWidth = 180
 PAR_FX_MIXER_WIN_W = 170
 Tooltip= {}
-JSFX={P_ORIG_V=100000 ; Velo_Mod=500000}
+JSFX={P_ORIG_V=100000 ; Velo_Mod=500000 ; CURVE = 200000 }
 JSFX.Random1 = JSFX.Velo_Mod + 10000
 JSFX.Random2 = JSFX.Velo_Mod + 20000
 JSFX.Random3 = JSFX.Velo_Mod + 30000

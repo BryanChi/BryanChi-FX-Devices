@@ -3903,7 +3903,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                     if Mods == Shift then stepscale = 3 end
                     local step = (v_max - v_min) / (200.0 * stepscale)
                     --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
-                    local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+                    local ValBeforeMod = Load_from_Trk( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
                     p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
                     if p_value < v_min then p_value = v_min end
                     if p_value > v_max then p_value = v_max end
@@ -3951,7 +3951,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             if Mods == Shift then stepscale = 3 end
             local step = (v_max - v_min) / (200.0 * stepscale)
             --local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
-            local ValBeforeMod = Load_Trk_Info( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
+            local ValBeforeMod = Load_from_Trk( 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')                    
 
             p_value = (ValBeforeMod or p_value) + (-mouse_delta[2] * step)
 
@@ -4700,12 +4700,18 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
             MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'V-Slider', curX, CurY)
         else
             _, p_value = im.SliderDouble(ctx, label, p_value, v_min, v_max, ' ', im.SliderFlags_NoInput)
+            local PosL, PosT = im.GetItemRectMin(ctx)
+            local PosR, PosB = im.GetItemRectMax(ctx)
+            if im.IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and im.IsMouseDoubleClicked(ctx, 0)    then   
+                Set_Prm_To_Default(FX_Idx, FP)
+            end
             MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Sldr', curX, CurY)
         end
 
         if GrabSize then im.PopStyleVar(ctx) end
         im.PopStyleVar(ctx)
 
+        
     end
 
     local function Suzukis_Work_ParamLink_And_MouseWheelAdjust()
@@ -4734,6 +4740,11 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     im.BeginGroup(ctx)
 
     MakeSlider()
+    if im.IsMouseDoubleClicked( ctx, 0)  then
+        if im.IsItemClicked(ctx, 0)  then 
+            msg("a")
+        end 
+    end
     
 
     local is_active = im.IsItemActive(ctx)
@@ -4749,8 +4760,8 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     im.EndGroup(ctx)
 
     
-    Suzukis_Work_ParamLink_And_MouseWheelAdjust()
-
+    --Suzukis_Work_ParamLink_And_MouseWheelAdjust()
+    
     --[[ if im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) and im.IsMouseDoubleClicked(ctx,0) then
         msg('double clicked')
     end ]]
@@ -5448,7 +5459,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     im.EndGroup(ctx)
 
-    --im.DrawList_AddRectFilled(DL, X, Y, X + W, Y + H, clr, FX.Round[FxGUID] or 0)
+
     im.PopStyleVar(ctx)
     --if FontSize then im.PopFont(ctx) end
     if popClr then im.PopStyleColor(ctx, popClr) end
@@ -6037,6 +6048,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
                     T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
                     PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                    FX[FxGUID].FileLine = nil 
                 else
                     Draw[FX_Name] = nil
                 end
@@ -6172,7 +6184,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
                         end
-                        GetProjExt_FxNameNum(FxGUID)
+                        GetProjExt_FxNameNum(FxGUID, LT_Track)
                         Prm.InstAdded[FxGUID] = true
                     end
                 else ---- if no editings has been saved to extstate
@@ -6219,7 +6231,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
                             end
                         end
-                        GetProjExt_FxNameNum(FxGUID)
+                        GetProjExt_FxNameNum(FxGUID, LT_Track)
                     end
                 end
 
@@ -6352,13 +6364,13 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
         FX[FxGUID] = FX[FxGUID] or {}
         -- local Index = #FX[FxGUID] or 0
         table.insert(FX[FxGUID], Fx_P)
-        FX.Prm.Count[FxGUID] = (FX.Prm.Count[FxGUID] or 0) + 1
+        FX[FxGUID].PrmCount = (FX[FxGUID].PrmCount or 0) + 1
+
         P = #FX[FxGUID] + 1
     end
 
+    Save_to_Trk('Prm Count'..FxGUID,P, LT_Track)
 
-    r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, P)
-    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Prm Count' .. FxGUID, P, true)
 
 
     FX[FxGUID][P] = FX[FxGUID][P] or {}
@@ -6367,8 +6379,8 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     FX[FxGUID][P].Deletable = IsDeletable
 
     if not P_Name then return end 
-    r.SetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID, P_Name)
-    r.SetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID, P_Num)
+    Save_to_Trk('FX'..P..'Name'..FxGUID, P_Name, LT_Track)
+    Save_to_Trk('FX'..P..'Num'..FxGUID, P_Num, LT_Track)
     table.insert(Prm.Num, P_Num)
 
 

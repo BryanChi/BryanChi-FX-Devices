@@ -35,8 +35,22 @@ function deepCopy(orig)
 end
 
 
-function Save_to_Trk(str,v, trk )
-    r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, tostring(v), true) 
+function Save_to_Trk(str,v, trk  )
+
+    local _ , v = r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, tostring(v), true) 
+end
+
+function Load_from_Trk(str, trk, type)
+    local trk = trk or LT_Track
+    local _ , v = r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, '', false) 
+    if type == 'bool' then
+        return v == 'true' and true or false
+    elseif type == 'num' then
+        return tonumber(v)
+    else
+        if v == '' then return nil end
+        return v 
+    end
 end
 
 ---@generic T
@@ -846,7 +860,7 @@ end
 ---@param V T
 ---@return boolean|nil
 ---@return T[]|nil
-function FindStringInTable(Table, V) ---TODO isn’t this a duplicate of FindExactStringInTable ?  -- this one uses string:find whereas exact uses ==
+function FindStringInTable(Table, V) 
     local found = nil
     local Tab = {}
     if V then
@@ -1073,8 +1087,10 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end
 
+
+
     if MouseBtn then
-        if im.IsMouseClicked(ctx, MouseBtn) then
+        if not MousePosX_WhenClick and im.IsMouseDown(ctx, MouseBtn) then
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
     elseif triggerKey then
@@ -1084,11 +1100,12 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
     end
 
     if MousePosX_WhenClick then
-        window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
+        local window = r.JS_Window_FromPoint(MousePosX_WhenClick, MousePosY_WhenClick)
 
         r.JS_Mouse_SetCursor(Invisi_Cursor)
 
         local function Hide()
+            if not MousePosX_WhenClick then return end 
             if MouseBtn then
                 if im.IsMouseDown(ctx, MouseBtn) then
                     im.SetMouseCursor(ctx, im.MouseCursor_None)
@@ -1096,7 +1113,8 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
                 else
                     r.JS_WindowMessage_Release(window, "WM_SETCURSOR")
                     if im.IsMouseReleased(ctx, MouseBtn) then
-                        r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                       r.JS_Mouse_SetPosition(MousePosX_WhenClick, MousePosY_WhenClick)
+                        MousePosX_WhenClick = nil
                     end
                 end
             elseif triggerKey then
@@ -1166,22 +1184,23 @@ end
 ---@param B? number p_max_y
 ---@param Rad? number radius
 function IfTryingToAddExistingPrm(Fx_P, FxGUID, Shape, L, T, R, B, Rad)
+    local WDL = im.GetWindowDrawList(ctx)
     if Fx_P .. FxGUID == TryingToAddExistingPrm then
         if r.time_precise() > TimeNow and r.time_precise() < TimeNow + 0.1 or r.time_precise() > TimeNow + 0.2 and r.time_precise() < TimeNow + 0.3 then
             if Shape == 'Circle' then
-                im.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
+                im.DrawList_AddCircleFilled(WDL, L, T, Rad, 0x99999950)
             elseif Shape == 'Rect' then
                 local L, T = im.GetItemRectMin(ctx)
-                im.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
+                im.DrawList_AddRectFilled(WDL, L, T, R, B, 0x99999977, Rounding)
             end
         end
     end
     if Fx_P .. FxGUID == TryingToAddExistingPrm_Cont then
         local L, T = im.GetItemRectMin(ctx)
         if Shape == 'Circle' then
-            im.DrawList_AddCircleFilled(FX.DL, L, T, Rad, 0x99999950)
+            im.DrawList_AddCircleFilled(WDL, L, T, Rad, 0x99999950)
         elseif Shape == 'Rect' then
-            im.DrawList_AddRectFilled(FX.DL, L, T, R, B, 0x99999977, Rounding)
+            im.DrawList_AddRectFilled(WDL, L, T, R, B, 0x99999977, Rounding)
         end
     end
 end
@@ -1248,6 +1267,7 @@ function AddMacroJSFX(FXname, InsertPos)
     ---!!!! need to write DIY trk ID ----
     if MacrosJSFXExist == -1 then
         r.gmem_attach('ParamValues')
+        r.gmem_write(4, 0.1 )-- tells it's inserting jsfx
         r.gmem_write(1, PM.DIY_TrkID[TrkID])
         r.TrackFX_AddByName(MacroGetLT_Track, name, 0, (-1000-pos))
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
@@ -1277,19 +1297,23 @@ function GetLT_FX_Num()
 end
 
 ---@param FxGUID string
-function GetProjExt_FxNameNum(FxGUID)
+function GetProjExt_FxNameNum(FxGUID , Trk)
     local PrmCount
-    rv, PrmCount = r.GetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID)
-    if PrmCount ~= '' then FX.Prm.Count[FxGUID] = tonumber(PrmCount) end
+    local Trk = Trk or r.GetLastTouchedTrack()
     FX[FxGUID] = FX[FxGUID] or {}
+    FX[FxGUID].PrmCount = Load_from_Trk('Prm Count'..FxGUID ,  Trk, 'num')
 
-    if rv ~= 0 then
-        for P = 1, FX.Prm.Count[FxGUID], 1 do
+
+    if FX[FxGUID].PrmCount and  FX[FxGUID].PrmCount ~= 0 then
+        for P = 1, FX[FxGUID].PrmCount, 1 do
             FX[FxGUID][P] = FX[FxGUID][P] or {}
             local FP = FX[FxGUID][P]
+
             if FP then
-                _, FP.Name = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID)
-                _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID); FP.Num = tonumber(FP.Num)
+                FP.Name = Load_from_Trk('FX'..P..'Name'..FxGUID ,  Trk)
+                FP.Num = Load_from_Trk('FX'..P..'Num'..FxGUID ,  Trk, 'num')
+                --_, FP.Name = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Name' .. FxGUID)
+               -- _, FP.Num = r.GetProjExtState(0, 'FX Devices', 'FX' .. P .. 'Num' .. FxGUID); FP.Num = tonumber(FP.Num)
             end
         end
     end
@@ -1519,10 +1543,13 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
 
 
     for i, v in ipairs(FX[FxGUID]) do
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Name' .. FxGUID, FX[FxGUID][i].Name)
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Num' .. FxGUID, FX[FxGUID][i].Num)
+        Save_to_Trk('FX' .. i .. 'Name' .. FxGUID, v.Name)
+        Save_to_Trk('FX' .. i .. 'Num' .. FxGUID, v.Num)
+        --r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Name' .. FxGUID, FX[FxGUID][i].Name)
+        --r.SetProjExtState(0, 'FX Devices', 'FX' .. i .. 'Num' .. FxGUID, FX[FxGUID][i].Num)
     end
-    r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, #FX[FxGUID])
+    Save_to_Trk('Prm Count' .. FxGUID ,   #FX[FxGUID])
+   -- r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, #FX[FxGUID])
     -- Delete Proj Ext state data!!!!!!!!!!
 end
 
@@ -2725,6 +2752,7 @@ function When_User_Switch_Track()
             --[[  r.gmem_attach('TrackNameForMacro')
             reaper .gmem_write(0,NumOfTotalTracks )]]
         end
+        
         for P = 0, Trk.Prm.Inst[TrkID] or 0, 1 do
             for m = 1, 8, 1 do
                 r.gmem_write(1000 * m + P, 0)
@@ -3025,3 +3053,23 @@ end
 
 
 
+function Set_Prm_To_Default(FX_Idx, FP)
+    local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Default Values')
+    r.RecursiveCreateDirectory(dir_path, 0)
+    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    local FX_Name = ChangeFX_Name(FX_Name)
+    local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+    local file = io.open(file_path, 'r')
+
+    if file then
+        local Ct = file:read('*a')
+        file:close()
+        local P_Num = FP.Num
+        local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx, P_Num)
+        local Df = RecallGlobInfo(Ct, P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
+        if Df then
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, Df)
+            ToDef = { ID = FX_Idx, P = P_Num, V = Df }
+        end
+    end
+end

@@ -6,20 +6,30 @@ local FxGUID = PluginScript.Guid    ----!!!  is this the problem?
 --local _, FX_Name = r.TrackFX_GetFXName(LT_Track,FX_Idx)
 local fx = FX[FxGUID]
 
-fx.CustomTitle = 'Pro-Q 3'
+fx.CustomTitle = 'Pro-Q 4'
 fx.TitleWidth= 80
 fx.BgClr  = 0x101010ff
 fx.Width = 340
 fx.Dont_Allow_Add_Prm = true
+FX[FxGUID].NoWetDryKnob = true
 
 
-
+local function Get_Prms(Band)
+    local paramOfUsed = 23 * (Band - 1)
+    local paramOfEnabled = paramOfUsed + 1
+    local P_num_Freq = paramOfUsed + 2
+    local P_num_Gain = paramOfUsed + 3
+    local P_num_Q = paramOfUsed + 4
+    local P_num_Shape = paramOfUsed + 5
+    local P_num_Slope = paramOfUsed + 6
+    return paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape
+end
 -------- Add params-----------
 if Prm.InstAdded[FxGUID] ~= true then
     
     for Band = 1, 24, 1 do
-        local gain_P_num =  ((Band - 1) * 13) + 3
-        local freq_P_num =  ((Band - 1) * 13) + 2
+        local gain_P_num =  ((Band - 1) * 23) + 3
+        local freq_P_num =  ((Band - 1) * 23) + 2
 
         local Fx_P_Freq = 24+Band
 
@@ -41,20 +51,23 @@ end
 
 local function Gain ()
     if BandColor == nil then BandColor = 0x69B45D55 end
-    local color = select(3, determineBandColor(ProQ3.LT_EQBand[FxGUID]) ) or 0xffffffff
-
+    local color = select(3, determineBandColor(fx.LT_Band) ) or 0xffffffff
+    local Gain_Lbl 
     im.PushStyleColor(ctx, im.Col_Text, color)
 
-    if ProQ3.LT_EQBand[FxGUID] ~= nil then
-        Freq_LTBandNorm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 13 * (ProQ3.LT_EQBand[FxGUID] - 1) + 2)
+    if fx.LT_Band ~= nil then
+
+        local paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape = Get_Prms(fx.LT_Band)
+
+        Freq_LTBandNorm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Freq)
         Freq_LTBand = math.floor(x_to_freq(Freq_LTBandNorm * 340)) -- width
         ProQ3['Freq_LTBand - ' .. FxGUID] = Freq_LTBand
-        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 13 * (ProQ3.LT_EQBand[FxGUID] - 1) + 3)
+        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Gain  )
         --Gain = tonumber(Gain)
         Gain = -30 + Gain * 60
         FreqValueDrag[FX_Idx] = Freq_LTBandNorm
         if Gain ~= nil then
-            ProQ3['Gain_LTBand - ' .. FxGUID] = round(Gain, 1)
+            Gain_Lbl = round(Gain, 1)
         end
     end
 
@@ -68,9 +81,9 @@ local function Gain ()
     SL(nil, 20)
     im.SetNextItemWidth(ctx, 60)
 
-    if ProQ3['Gain_LTBand - ' .. FxGUID] ~= nil then
-        _, ProQ3.GainDrag[FX_Idx] = im.DragDouble(ctx, '##GainDrag', ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1, ProQ3['Gain_LTBand - ' .. FxGUID] .. 'dB')
-        ProQ3.GainDragging = im.IsItemActive(ctx)
+    if Gain_Lbl  then
+        _, ProQ3.GainDrag[FX_Idx] = im.DragDouble(ctx, '##GainDrag', ProQ3.GainDrag[FX_Idx] or 0, 0.01, 0, 1, Gain_Lbl .. 'dB')
+        fx.GainDragging = im.IsItemActive(ctx)
     end
 end 
 
@@ -86,10 +99,14 @@ local function Freq()
 end 
 
 local function Scale ()
-    SL(nil, 20)
+    if not fx.LT_Band then
+        SL(nil, 20)
+    else
+        SL(nil, 10)
+    end
     im.SetNextItemWidth(ctx, 50)
     if fx.Scale_Label ~= nil then
-        DispRangeBtnClicked = im.Button(ctx, '±' .. fx.Scale_Label .. 'dB##' .. FX_Idx, 50, 20)
+        DispRangeBtnClicked = im.Button(ctx, '±' .. fx.Scale_Label .. 'dB##' .. FX_Idx, 50)
     end
     if DispRangeBtnClicked then
         im.OpenPopup(ctx, 'ProQ Display Range ##' .. FX_Idx)
@@ -151,17 +168,20 @@ Scale()
 
 
 
+local P_num_GainScale = 555
 
 SL(340 - 60)
--- Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '',Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx, 314)
-local GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 314)
+local x, y = im.GetCursorPos(ctx) 
+im.SetCursorPos(ctx, x, y+3)
 
-Rounding = 10
+
+fx.GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_GainScale)
+Rounding = 3
 im.PushStyleVar(ctx, im.StyleVar_FrameRounding, Rounding)
-AddDrag(ctx, '##GainScale' .. FxGUID, '', GainScale, 0, 1, 0 --[[FX_P]], FX_Idx, 314, 'Pro C', 60, item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
+AddDrag(ctx, '##GainScale' .. FxGUID, '', fx.GainScale, 0, 1, 0 --[[FX_P]], FX_Idx, P_num_GainScale, 'Pro C', 60, item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
 
 if im.IsItemActivated(ctx) and im.IsMouseDoubleClicked(ctx, 0) then
-    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 314, 0.5)
+    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_num_GainScale, 0.5)
 end
 im.PopStyleVar(ctx)
 
@@ -314,34 +334,34 @@ if not FX[FxGUID].Collapse then
 
 
 
-        Freq = {}
-        Gain = {}
-        Q = {}
-        Slope = {}
-        Band_Used = {}
-        pts = {}
+        local Freq = {}
+        local Gain = {}
+        local Q = {}
+        local Slope = {}
+        local Band_Used = {}
+        local pts = {}
 
         local Band_Enabled = {}
         local Y_Mid = ProQ_Ypos_B + ProQ3.H / 2
         local y = Y_Mid
 
 
-        FXGUID_ProQ = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+
+        FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
         for Band = 1, 24, 1 do
-            local paramOfUsed = 13 * (Band - 1)
-            local paramOfEnabled = 13 * (Band - 1) + 1
-            if FXGUID_ProQ == nil then FXGUID_ProQ = 0 end
+            local paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape = Get_Prms(Band)
+            if FxGUID == nil then FxGUID = 0 end
             ProQ3.Band_UseState[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed)
-            Band_Enabled[Band .. FXGUID_ProQ] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfEnabled)
+            Band_Enabled[Band .. FxGUID] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfEnabled)
             local x = ProQ_Xpos_L
             local y = Y_Mid
             if ProQ3.Band_UseState[Band] == 1 then
-                Freq[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed + 2)
-                Slope[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, 9 + 13 * (Band - 1))
-                Gain[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed + 3)
-                _, fx['Band Shape '..Band] = r .TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, paramOfUsed + 8)
-                NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ] = x_to_freq(Freq [Band] * ProQ3.Width)
+                Freq[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Freq)
+                Slope[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Slope)
+                Gain[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Gain)
+                _, fx['Band Shape '..Band] = r .TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_num_Shape)
+                NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID] = x_to_freq(Freq [Band] * ProQ3.Width)
                 if fx['Band Shape '..Band] == 'Low Shelf' or fx['Band Shape '..Band] == 'High Shelf' then
                     Gain[Band] = -30 + Gain[Band] * 60
                     ShelfGain_Node = Gain[Band] * 1.3
@@ -354,16 +374,16 @@ if not FX[FxGUID].Collapse then
 
 
                 if ProQ3.Format == 'AU' then
-                    Q[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed + 7)
+                    Q[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
                 else
                     if fx['Band Shape '..Band] == 'Low Cut' or fx['Band Shape '..Band] == 'High Cut' then
-                        _, Q[Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, paramOfUsed + 7)
+                        _, Q[Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_num_Q)
                     else
-                        Q[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed + 7)
+                        Q[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
                     end
                 end
 
-                Q_Node[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, paramOfUsed + 7)
+                Q_Node[Band] = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
                 Q_Node[Band] = (-1 + Q_Node[Band] * 2) * 50
 
                 if Q_Node[Band] > 37 then
@@ -374,12 +394,12 @@ if not FX[FxGUID].Collapse then
             end
 
             function FillClr_LT_Band(iteration, y1)
-                if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                if fx.LT_Band == Band then
                     X2 = x + 2
-                    BandColor = determineBandColor(ProQ3.LT_EQBand[FXGUID_ProQ])
+                    BandColor = determineBandColor(fx.LT_Band)
                     i = iteration
                     if i ~= 1 then
-                        im.DrawList_AddLine(Foreground, x, y1, X2,Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
+                        im.DrawList_AddLine(Foreground, x, y1, X2,Y_Mid - pts[i .. 'B-' .. Band .. FxGUID], BandColor,1.7)
                     end
                     x = X2
                 end
@@ -397,13 +417,13 @@ if not FX[FxGUID].Collapse then
 
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 1 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         mag = zdf_magnitude(iToFreq)
                         mag = 20 * math.log(mag, 10)
                         mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag
+                        pts[i .. 'B-' .. Band .. FxGUID] = mag
                     end
                 end
 
@@ -412,19 +432,19 @@ if not FX[FxGUID].Collapse then
 
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 2 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         local mag = zdf_magnitude(iToFreq)
                         local mag = 20 * math.log(mag, 10)
                         local mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = ((pts[i .. 'B-' .. Band .. FXGUID_ProQ] + mag) / 2) * fx.Scale
+                        pts[i .. 'B-' .. Band .. FxGUID] = ((pts[i .. 'B-' .. Band .. FxGUID] + mag) / 2) * fx.Scale
                         FillClr_LT_Band(i, y)
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                        if fx.LT_Band == Band then
                             X2 = x + 2
-                            BandColor = determineBandColor(ProQ3.LT_EQBand [FXGUID_ProQ])
+                            BandColor = determineBandColor(fx.LT_Band)
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x, Y_Mid, X2, Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ], BandColor,1.7)
+                                im.DrawList_AddLine(Foreground, x, Y_Mid, X2, Y_Mid - pts[i .. 'B-' .. Band .. FxGUID], BandColor,1.7)
                             end
                             x = X2
                         end
@@ -439,11 +459,11 @@ if not FX[FxGUID].Collapse then
                 Freq_Math = Freq[Band] * ProQ3.Width
                 Gain_Math = (Gain[Band] * (ProQ3.H / 2)) / 30
 
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 2 do
                         local xscale = 800 / (ProQ3.Width - 4);
                         Q_Math = ((Q[Band] ^ 3.2) * 0.55) / 2 + 0.005
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = (Gain_Math * Euler ^ -(Q_Math * (i - Freq_Math)) ^ 2) * fx.Scale
+                        pts[i .. 'B-' .. Band .. FxGUID] = (Gain_Math * Euler ^ -(Q_Math * (i - Freq_Math)) ^ 2) * fx.Scale
 
                         FillClr_LT_Band(i, Y_Mid)
                     end
@@ -492,9 +512,9 @@ if not FX[FxGUID].Collapse then
                     mag = 20 * math.log(mag, 10)
                     mag = db_to_y(mag)
 
-                    if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                    if Band_Enabled[Band .. FxGUID] == 1 then
                         if Slope[Band] ~= 1 then
-                            pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
+                            pts[i .. 'B-' .. Band .. FxGUID] = mag *
                                 fx.Scale
                         elseif Slope[Band] == 1 then --if Slope = brickwall
                             if iToFreq > FreqToActualFreq then
@@ -502,17 +522,16 @@ if not FX[FxGUID].Collapse then
                             elseif iToFreq < FreqToActualFreq then
                                 magForBrickwall = db_to_y(0)
                             end
-                            pts[i .. 'B-' .. Band .. FXGUID_ProQ] = magForBrickwall
+                            pts[i .. 'B-' .. Band .. FxGUID] = magForBrickwall
                         end
 
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                        if fx.LT_Band == Band then
+                            BandColor = determineBandColor(fx.LT_Band)
                             local X2 = x + 2
                             if i ~= 1 then
                                 im.DrawList_AddLine(Foreground, x,
                                     Y_Mid + 100, X2,
-                                    Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
+                                    Y_Mid - pts[i .. 'B-' .. Band .. FxGUID],
                                     BandColor, 2)
                             end
                             x = X2
@@ -556,7 +575,7 @@ if not FX[FxGUID].Collapse then
 
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 1 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         local mag = zdf_magnitude(iToFreq)
@@ -564,8 +583,7 @@ if not FX[FxGUID].Collapse then
                         mag = db_to_y(mag)
 
                         if Slope[Band] ~= 1 then
-                            pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
-                                fx.Scale
+                            pts[i .. 'B-' .. Band .. FxGUID] = mag * fx.Scale
                         elseif Slope[Band] == 1 then --if Slope = brickwall
                             local magForBrickwall;
                             if iToFreq > FreqToActualFreq then
@@ -573,18 +591,14 @@ if not FX[FxGUID].Collapse then
                             elseif iToFreq < FreqToActualFreq then
                                 magForBrickwall = db_to_y(-100)
                             end
-                            pts[i .. 'B-' .. Band .. FXGUID_ProQ] = magForBrickwall
+                            pts[i .. 'B-' .. Band .. FxGUID] = magForBrickwall
                         end
 
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                        if fx.LT_Band == Band then
+                            BandColor = determineBandColor(fx.LT_Band)
                             local X2 = x + 1
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x,
-                                    Y_Mid + 100, X2,
-                                    Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
-                                    BandColor, 2)
+                                im.DrawList_AddLine(Foreground, x, Y_Mid + 100, X2, Y_Mid - pts[i .. 'B-' .. Band .. FxGUID], BandColor, 2)
                             end
                             x = X2
                         end
@@ -599,24 +613,20 @@ if not FX[FxGUID].Collapse then
                 svf_ls(FreqToActualFreq, Q[Band], Gain[Band])
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 1 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         mag = zdf_magnitude(iToFreq)
                         mag = 20 * math.log(mag, 10)
                         mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
+                        pts[i .. 'B-' .. Band .. FxGUID] = mag *
                             fx.Scale
 
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                        if fx.LT_Band == Band then
                             local X2 = x + 1
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                            BandColor = determineBandColor(fx.LT_Band)
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x, y,
-                                    X2, Y_Mid - pts
-                                    [i .. 'B-' .. Band .. FXGUID_ProQ],
-                                    BandColor)
+                                im.DrawList_AddLine(Foreground, x, y, X2, Y_Mid - pts [i .. 'B-' .. Band .. FxGUID], BandColor)
                             end
                             x = X2
                         end
@@ -629,23 +639,19 @@ if not FX[FxGUID].Collapse then
                 svf_hs(FreqToActualFreq, Q[Band], Gain[Band])
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 1 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         mag = zdf_magnitude(iToFreq)
                         mag = 20 * math.log(mag, 10)
                         mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
+                        pts[i .. 'B-' .. Band .. FxGUID] = mag *
                             fx.Scale
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                        if fx.LT_Band == Band then
                             local X2 = x + 1
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                            BandColor = determineBandColor(fx.LT_Band)
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x, y,
-                                    X2, Y_Mid - pts
-                                    [i .. 'B-' .. Band .. FXGUID_ProQ],
-                                    BandColor)
+                                im.DrawList_AddLine(Foreground, x, y, X2, Y_Mid - pts [i .. 'B-' .. Band .. FxGUID], BandColor)
                             end
                             x = X2
                         end
@@ -657,23 +663,19 @@ if not FX[FxGUID].Collapse then
                 svf_bp(FreqToActualFreq, Q[Band])
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 1 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         mag = zdf_magnitude(iToFreq)
                         mag = 20 * math.log(mag, 10)
                         mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
+                        pts[i .. 'B-' .. Band .. FxGUID] = mag *
                             fx.Scale
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                        if fx.LT_Band == Band then
                             local X2 = x + 1
-                            BandColor = determineBandColor(ProQ3.LT_EQBand
-                                [FXGUID_ProQ])
+                            BandColor = determineBandColor(fx.LT_Band)
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x,
-                                    Y_Mid + 100, X2,
-                                    Y_Mid - pts[i .. 'B-' .. Band .. FXGUID_ProQ],
-                                    BandColor)
+                                im.DrawList_AddLine(Foreground, x, Y_Mid + 100, X2, Y_Mid - pts[i .. 'B-' .. Band .. FxGUID], BandColor)
                             end
                             x = X2
                         end
@@ -685,22 +687,19 @@ if not FX[FxGUID].Collapse then
                 svf_bs(FreqToActualFreq, Q[Band])
                 local x = ProQ_Xpos_L
                 local y = Y_Mid
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
+                if Band_Enabled[Band .. FxGUID] == 1 then
                     for i = 1, ProQ3.Width, 2 do -- do 340 times
                         iToFreq = x_to_freq(i)
                         mag = zdf_magnitude(iToFreq)
                         mag = 20 * math.log(mag, 10)
                         mag = db_to_y(mag)
-                        pts[i .. 'B-' .. Band .. FXGUID_ProQ] = mag *
+                        pts[i .. 'B-' .. Band .. FxGUID] = mag *
                             fx.Scale
-                        if ProQ3.LT_EQBand[FXGUID_ProQ] == Band then
+                        if fx.LT_Band == Band then
                             local X2 = x + 2
-                            BandColor = determineBandColor(ProQ3.LT_EQBand[FXGUID_ProQ])
+                            BandColor = determineBandColor(fx.LT_Band)
                             if i ~= 1 then
-                                im.DrawList_AddLine(Foreground, x, y,
-                                    X2, Y_Mid - pts
-                                    [i .. 'B-' .. Band .. FXGUID_ProQ],
-                                    BandColor)
+                                im.DrawList_AddLine(Foreground, x, y, X2, Y_Mid - pts [i .. 'B-' .. Band .. FxGUID], BandColor)
                             end
                             x = X2
                         end
@@ -720,27 +719,29 @@ if not FX[FxGUID].Collapse then
         ----------------------
         local x = ProQ_Xpos_L
         for i = 1, ProQ3.Width, 2 do
-            pts[i .. FXGUID_ProQ] = 0
+            pts[i .. FxGUID] = 0
             for Band = 1, 24, 1 do --Add up the sum of all eq
                 if ProQ3.Band_UseState[Band] == 1 then
-                    if pts[i .. 'B-' .. Band .. FXGUID_ProQ] and Band_Enabled[Band .. FXGUID_ProQ] == 1 then
-                        pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ] + pts[i .. 'B-' .. Band .. FXGUID_ProQ]
+
+                    if pts[i .. 'B-' .. Band .. FxGUID] and Band_Enabled[Band .. FxGUID] == 1 then
+                        pts[i .. FxGUID] = pts[i .. FxGUID] + pts[i .. 'B-' .. Band .. FxGUID]
                     end
                     
                 end
             end
-            pts[i .. FXGUID_ProQ] = pts[i .. FXGUID_ProQ]
+            --pts[i .. FxGUID] = pts[i .. FxGUID]
             local X2 = x + 2
             if i ~= 1 then
-                local y1 = Y_Mid - pts[(math.max(i - 2, 3)) .. FXGUID_ProQ] * (GainScale * 2)
-                local y2 = Y_Mid - pts[i .. FXGUID_ProQ] * (GainScale * 2)
+
+                local y1 = Y_Mid - pts[(math.max(i - 2, 3)) .. FxGUID] * (fx.GainScale * 2)
+                local y2 = Y_Mid - pts[i .. FxGUID] * (fx.GainScale * 2)
 
                 im.DrawList_AddLine(Foreground, x, y1, X2, y2, 0xFFC43488, 2.5)
             end
 
 
             local Y_Mid = (ProQ_Ypos_T + ProQ3.H / 2)
-            y = Y_Mid - pts[i .. FXGUID_ProQ]
+            y = Y_Mid - pts[i .. FxGUID]
             x = X2
         end
 
@@ -833,11 +834,16 @@ if not FX[FxGUID].Collapse then
                 ProQ_Xpos_R, Y_Mid + Gain5, 0x78787822)
 
 
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1, ProQ_Xpos_R, Y_Mid - Gain1, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2, ProQ_Xpos_R, Y_Mid - Gain2, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3, ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4, ProQ_Xpos_R, Y_Mid - Gain4, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5, ProQ_Xpos_R, Y_Mid - Gain5, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1,
+                ProQ_Xpos_R, Y_Mid - Gain1, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2,
+                ProQ_Xpos_R, Y_Mid - Gain2, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
+                ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4,
+                ProQ_Xpos_R, Y_Mid - Gain4, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5,
+                ProQ_Xpos_R, Y_Mid - Gain5, 0x78787822)
         end
 
 
@@ -851,19 +857,23 @@ if not FX[FxGUID].Collapse then
 
 
         for Band = 1, 24, 1 do
-            local gain_P_num =  ((Band - 1) * 13) + 3
-            local freq_P_num =  ((Band - 1) * 13) + 2
+            local gain_P_num =  ((Band - 1) * 23) + 3
+            local freq_P_num =  ((Band - 1) * 23) + 2
+            local paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape = Get_Prms(Band)
+
             
             --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
             local FP_gain = FX[FxGUID][Band]
             FX[FxGUID][Band] = FX[FxGUID][Band] or {}
 
             
-            
             --FX[FxGUID][Band].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
             if ProQ3.Band_UseState[Band] == 1 then
-                NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ] = x_to_freq(Freq[Band] * ProQ3.Width)
-                XposNode[Band] = freq_to_scx(NodeFreq['B-' .. Band .. 'GUID-' .. FXGUID_ProQ])_, fx['Band Shape '..Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,8 + 13 * (Band - 1))
+                NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID] = x_to_freq(Freq[Band] * ProQ3.Width)
+
+                XposNode[Band] = freq_to_scx(NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID])
+
+                _, fx['Band Shape '..Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_num_Shape)
 
 
                 ----- Draw Modulation indicator 
@@ -920,10 +930,10 @@ if not FX[FxGUID].Collapse then
                 end
 
 
-                if Band_Enabled[Band .. FXGUID_ProQ] == 1 then
-                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 6, Clr_FullAlpha)
+                if Band_Enabled[Band .. FxGUID] == 1 then
+                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band] or 0, 6, Clr_FullAlpha)
                 else
-                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + (XposNode[Band] or 0), NodeY_Pos[Band] or 0, 6, Clr_HalfAlpha)
+                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + (XposNode[Band] or 0), (NodeY_Pos[Band] or 0), 6, Clr_HalfAlpha)
                 end
                 if ProQ_Xpos_L and XposNode[Band] and NodeY_Pos[Band] then
                     if Band <= 9 then
@@ -945,17 +955,14 @@ if not FX[FxGUID].Collapse then
                 if ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] == true then
                     NodeHasbeenHovered = true
                     FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
-                    im.DrawList_AddCircle(Foreground, ProQ_Xpos_L +
-                        XposNode[Band], NodeY_Pos[Band], 7.7, 0xf0f0f0ff)
+                    im.DrawList_AddCircle(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, 0xf0f0f0ff)
                     if IsLBtnHeld then
-                        im.DrawList_AddCircleFilled(Foreground,
-                            ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7,
-                            Clr_HalfAlpha)
+                        im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, Clr_HalfAlpha)
                         if IsLBtnClicked then ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = true end
                     end
 
                     local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        ((Band - 1) * 13) + 7)
+                        ((Band - 1) * 23) + 7)
                     if Wheel_V ~= 0 then --if wheel is moved
                         HoverOnScrollItem = true
                         MousePosX_AdjustingQ, Y = r.GetMousePosition()
@@ -963,21 +970,19 @@ if not FX[FxGUID].Collapse then
                         BandforQadjusting = Band
                     end
                     if IsLBtnClicked and Mods == Alt then -- delete node
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13),0)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23),0)
                         ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = false
                         HvringNode = nil
                     end
 
                     if LBtnClickCount == 2 then
                         local OnOff = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13) + 1)
+                            ((Band - 1) * 23) + 1)
 
                         if OnOff == 1 then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                                ((Band - 1) * 13) + 1, 0)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 0)
                         else
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                                ((Band - 1) * 13) + 1, 1)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 1)
                         end
                     end
                     if IsRBtnClicked == true and Mods == Ctrl then
@@ -1004,13 +1009,11 @@ if not FX[FxGUID].Collapse then
                         WheelQFineAdj = 1
                     end
                     if MousePosX_AdjustingQ_CheckXpos < MousePosX_AdjustingQ + 7 and MousePosX_AdjustingQ_CheckXpos > MousePosX_AdjustingQ - 7 then
-                        local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((BandforQadjusting - 1) * 13) + 7)
+                        local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4)
 
                         Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,1)
 
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((BandforQadjusting - 1) * 13) + 7, Q_Output)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4, Q_Output)
                     else
                         ProQ3['AdjustingQ' .. FxGUID] = false
                     end
@@ -1019,10 +1022,11 @@ if not FX[FxGUID].Collapse then
 
                 if ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] == true then
                     MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
-                    local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,((Band - 1) * 13) + 2)
-                    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
-                    local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 7)
-                    ProQ3.LT_EQBand[FxGUID] = Band
+                    local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,P_num_Freq)
+                    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Gain)
+                    local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
+
+                    fx.LT_Band = Band
 
                     if IsLBtnHeld == false then
                         ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = false
@@ -1040,11 +1044,8 @@ if not FX[FxGUID].Collapse then
                     end
 
                     if fx['Band Shape '..Band] == 'Low Cut' or fx['Band Shape '..Band] == 'High Cut' then
-                        Q_Output = Q +
-                            (-MouseDeltaY / QDragScale) *
-                            (fx.Scale / fx.DragGainScale)
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 13) + 7, Q_Output)
+                        Q_Output = Q + (-MouseDeltaY / QDragScale) * (fx.Scale / fx.DragGainScale)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 7, Q_Output)
 
                         if Freq > 1 and MouseDeltaX > 0 then
                             FreqOutput = 1
@@ -1053,7 +1054,7 @@ if not FX[FxGUID].Collapse then
                         else
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 2, FreqOutput)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 2, FreqOutput)
                     else
                         if Gain > 1 and MouseDeltaY < 0 then
                             GainOutput = 1
@@ -1091,18 +1092,10 @@ if not FX[FxGUID].Collapse then
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
 
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 13) + 2, FreqOutput)
+                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_num_Freq, FreqOutput)
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, GainOutput)
                     end
                 end
-
-
-
-
-               
-
-
-
 
                 -- if i == iPos10k then im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
                 if LT_ParamNum ~= nil then
@@ -1112,21 +1105,19 @@ if not FX[FxGUID].Collapse then
 
 
                     for i = 1, RepeatTimeForWindows, 1 do
-                        GUIDtoCompare = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
-                        if proQ_LT_GUID == GUIDtoCompare and proQ_LT_GUID ~= nil then
+                        if proQ_LT_GUID == FxGUID and proQ_LT_GUID ~= nil then
                             for i = 1, 24, 1 do
-                                if LT_ParamNum > 13 * (i - 1) and LT_ParamNum < 13 * i then
-                                    ProQ3.LT_EQBand[proQ_LT_GUID] = i
+                                if LT_ParamNum > 23 * (i - 1) and LT_ParamNum < 23 * i then
+                                    fx.LT_Band = i
                                 end
                             end
                         end
                     end
-                    if ProQ3.GainDragging == true then
+
+                    if fx.GainDragging == true then
                         MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
-
-
-                        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3)
+                        local gain_P_num = ((fx.LT_Band - 1) * 23) + 3
+                        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num) 
 
                         if Gain > 1 and MouseDeltaY < 0 then
                             GainOutput = 1
@@ -1139,7 +1130,7 @@ if not FX[FxGUID].Collapse then
                         end
                         
                         if not FP_gain.WhichCC then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 3,GainOutput)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((fx.LT_Band - 1) * 23) + 3,GainOutput)
                         elseif FP_gain.WhichCC then 
                             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
                             FP_gain.V = GainOutput
@@ -1151,12 +1142,12 @@ if not FX[FxGUID].Collapse then
 
                         MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
                         if Mods == Shift then
-                            HorizDragScale = 1300
+                            HorizDragScale = 2300
                         else
                             HorizDragScale = 400
                         end
                         local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 2)
+                            ((fx.LT_Band - 1) * 23) + 2)
 
                         if Freq > 1 and MouseDeltaX > 0 then
                             FreqOutput = 1
@@ -1166,7 +1157,7 @@ if not FX[FxGUID].Collapse then
                             FreqOutput = Freq + MouseDeltaX / HorizDragScale
                         end
                         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((ProQ3.LT_EQBand[proQ_LT_GUID] - 1) * 13) + 2,FreqOutput)
+                            ((fx.LT_Band - 1) * 23) + 2,FreqOutput)
                     end
                 end
 
@@ -1189,45 +1180,42 @@ if not FX[FxGUID].Collapse then
 
 
         if im.BeginPopup(ctx, 'Pro-Q R Click') then
-            local LTBand = ProQ3.LT_EQBand[FxGUID]
+            local LTBand = fx.LT_Band
+            local Pnum = 23 * (LTBand - 1) + 5
             if im.Button(ctx, 'Bell') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,0)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum,0)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Low Shelf') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
-                    0.11)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.11)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Low Cut') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
-                    0.22)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.22)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'High Shelf') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
-                    0.33)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.33)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'High Cut') then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8,
-                    0.44)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.44)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Notch') then
-                r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.60)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.60)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Band Pass') then
-                r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.72)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.72)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Tilt Shelf') then
-                r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 0.86)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 0.86)
                 im.CloseCurrentPopup(ctx)
             end
             if im.Button(ctx, 'Flat Tilt') then
-                r.TrackFX_SetParam(LT_Track, FX_Idx, 13 * (LTBand - 1) + 8, 1)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, Pnum, 1)
                 im.CloseCurrentPopup(ctx)
             end
             im.EndPopup(ctx)
@@ -1249,26 +1237,19 @@ if not FX[FxGUID].Collapse then
                     end
                     Band = Band + 1
                 end
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                    13 * (BandNotInUse - 1), 1)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1), 1)
                 MouseX_AddNode, MouseY_AddNode = im.GetMousePos(ctx)
 
                 local FreqToAddNode = (MouseX_AddNode - ProQ_Xpos_L) / ProQ3.Width
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                    13 * (BandNotInUse - 1) + 2, FreqToAddNode)
-                local GainToAddNode = ((((Y_Mid - MouseY_AddNode) - 100) / 100 + 1) / fx.Scale + 1) /
-                    2
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                    13 * (BandNotInUse - 1) + 3, GainToAddNode)
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 2, FreqToAddNode)
+                local GainToAddNode = ((((Y_Mid - MouseY_AddNode) - 100) / 100 + 1) / fx.Scale + 1) / 2
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 3, GainToAddNode)
                 if FreqToAddNode > 0.9 then
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                        13 * (BandNotInUse - 1) + 8, 0.5)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.5)
                 elseif FreqToAddNode < 0.1 then
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                        13 * (BandNotInUse - 1) + 8, 0.25)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.25)
                 else
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                        13 * (BandNotInUse - 1) + 8, 0.02)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.02)
                 end
             end
         end

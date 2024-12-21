@@ -1,11 +1,14 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.6.1
+-- @version 1.0beta16.7
 -- @changelog
+--  - NEW! Random Modulator
 --  - Scroll position is now saved and restored when switching tracks.
+--  - Made it compatible with Pro Q 4. 
 --  - make selecting font available in background editor.
 --  - Fix Add Fx menu draw line.
 --  - Fix crash when recalling layout if attached drawing is set to gradient.
+--  - Fix Saving default values not working correctly.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -124,7 +127,6 @@ function loop()
         
     
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
-
         Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
         HelperMsg= {}    HelperMsg.Others = {}
         GetAllInfoNeededEachLoop()
