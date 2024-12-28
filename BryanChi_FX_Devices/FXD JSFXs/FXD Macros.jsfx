@@ -20,7 +20,7 @@ slider12:0<0,127>Morph 4
 slider13:0<0,127>Morph 5
 slider14:0<0,127>Morph 6
 slider15:0<0,127>Morph 7
-slider16:0<0,127>Morph 8
+slider16:0<0,127>Morph 8s
 slider17:0<0,1>Automatable Param 1
 slider18:0<0,1>Automatable Param 2
 slider19:0<0,1>Automatable Param 3
@@ -30,6 +30,22 @@ slider22:0<0,1>Automatable Param 6
 slider23:0<0,1>Automatable Param 7
 slider24:0<0,1>Automatable Param 8
 slider25:0<100000000, 999999999> Diy_Trk_ID
+slider26:0<0,1>XY Pad 1 X
+slider27:0<0,1>XY Pad 1 Y
+slider28:0<0,1>XY Pad 2 X
+slider29:0<0,1>XY Pad 2 Y
+slider30:0<0,1>XY Pad 3 X
+slider31:0<0,1>XY Pad 3 Y
+slider32:0<0,1>XY Pad 4 X
+slider33:0<0,1>XY Pad 4 Y
+slider34:0<0,1>XY Pad 5 X
+slider35:0<0,1>XY Pad 5 Y
+slider36:0<0,1>XY Pad 6 X
+slider37:0<0,1>XY Pad 6 Y
+slider38:0<0,1>XY Pad 7 X
+slider39:0<0,1>XY Pad 7 Y
+slider40:0<0,1>XY Pad 8 X
+slider41:0<0,1>XY Pad 8 Y
 
 
 
@@ -111,6 +127,7 @@ AAA_INIT_TRKGUID = trkGUID_Num;
 
 
 ModAmt = 1000;
+X_or_Y = 40000; //   tells the param is assigned to X or Y of the XY pad , 1 is X , 2 is Y
 PsUsed = 100; 
 P_OrigV = 100000 ;  //Parameter's original values before modulation
 MOD_CURVE = 200000;
@@ -170,6 +187,30 @@ function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
         y;
     );
 );
+
+function Get_XY_PAD_SLIDERS_FOR_Y(M)(
+M == 1 ? ( Slider27; ):
+M == 2 ? ( Slider29; ): 
+M == 3 ? ( Slider31; ):
+M == 4 ? ( Slider33; ):
+M == 5 ? ( Slider35; ):
+M == 6 ? ( Slider37; ):
+M == 7 ? ( Slider39; ): 
+M == 8 ? ( Slider41; )
+);
+function Get_XY_PAD_SLIDERS_FOR_X(M)(
+M == 1 ? ( Slider26; ):
+M == 2 ? ( Slider28; ): 
+M == 3 ? ( Slider30; ):
+M == 4 ? ( Slider32; ):
+M == 5 ? ( Slider34; ):
+M == 6 ? ( Slider36; ):
+M == 7 ? ( Slider38; ): 
+M == 8 ? ( Slider40; )
+);
+
+
+
 
 
 function Calculate_Midi_Mod(v , TB_ofs) local (rpt, out, X, nX, Y, nY , ofs, C)(
@@ -526,8 +567,15 @@ function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
 
 
 
+function SAVE_XY_PAD_INFO() local (i)(
+  i = X_or_Y ; 
+  while(i < X_or_Y + 8000) ( 
 
+      a[i] = file_var(0, a[i]);
+      i+=1;
 
+  );
+);
 
 function DoMidiTriggeredActions()(
   this.EnvOrLoop == 1 ? (
@@ -713,6 +761,18 @@ function SetTypeTo (T)
   Macro==8?(Mc8.Type=T);
 );
 
+function Check_Macro_Type (Macro)
+(
+  Macro==1?(Mc1.type;):(
+  Macro==2)?(Mc2.type;):(
+  Macro==3)?(Mc3.Type;):(
+  Macro==4)?(Mc4.Type;):(
+  Macro==5)?(Mc5.Type;):(
+  Macro==6)?(Mc6.Type;):(
+  Macro==7)?(Mc7.Type;):(
+  Macro==8)?(Mc8.Type;);
+);
+
 function Check_If_Bipolar(ModAmt)
 (
   ModAmt[i]> 100 ? (     // if it's bipolar 
@@ -729,6 +789,13 @@ function If_User_Set_Type_To_Random() (
     SetTypeTo('Rdm')
   );
 );
+
+function If_User_Set_Type_To_XY() (
+  mode == 28? (
+    SetTypeTo('XY')
+  );
+);
+
 function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID, Curve)  // i is the track param number
 (
   M = 1;
@@ -744,7 +811,15 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
       ):(Amt = ModAmt[ID]  );  // if unipolar 
 
       Curve = MOD_CURVE[M*1000+i];
-      out = McOut[M];
+      Check_Macro_Type (M) == 'XY' ? (
+        X_or_Y[ID] == 1 ? (
+          out = Get_XY_PAD_SLIDERS_FOR_X(M); 
+        ):(
+          out = Get_XY_PAD_SLIDERS_FOR_Y(M)
+        );
+      ):(
+        out = McOut[M];
+      );
       Curve!= 0 ? (  // if there's mod curve set 
         out = GetCurveValue(McOut[M], -Curve, 0, 1, 0 , 1 );
       );
@@ -788,11 +863,11 @@ Mc8.Slider = slider8;
 trkGUID_Num = slider25;
 
 @serialize 
-AA_SERIALIZE = 12312312;
+AA_SERIALIZE = AA_SERIALIZE + 1;
 //trkGUID_Num = save(trkGUID_Num);
 
 P.Inst = file_var(0,P.Inst);
-
+SAVE_XY_PAD_INFO();
 
 i=1;    
 
@@ -806,7 +881,7 @@ while ( i <= P.Inst)(
     m+=1;
     
   );
-  a[P_OrigV+i] = file_var(0, a[P_OrigV+i]);
+  P_OrigV[i] = file_var(0, P_OrigV[i]);
   i+=1;
 );
 
@@ -816,7 +891,7 @@ i=0;
 while(i<=80000)(
 
    // Velo_ModAmt[i] = file_var(0, Velo_ModAmt[i]);
-  MOD_CURVE[1000+i] != 0 (
+  MOD_CURVE[1000+i] != 0 ?(
     MOD_CURVE[1000+i] = file_var(0, MOD_CURVE[1000+i]); //  recall mod curves, 
     i+=1;
   );
@@ -829,11 +904,7 @@ while(i<=32000)(//  recall mod curves for all 32000 slots
   i+=1;
 );
 
-i = P_OrigV;
-while(i<=P_OrigV+1000) ( 
-  a[i] = file_var(0, a[i]);
-  i+=1;
-);
+
 
 
 
@@ -929,10 +1000,14 @@ midi_bus=15;
 //if user tweaking track that matches trkGUID
 trkGUID_Num === gmem[2]? (
   Macro = gmem[5];
-  mode ==1?(   // if User is right-dragging on param in ImGui...
+  mode == 1?(   // if User is right-dragging on param in ImGui...
     P.Inst = gmem[3];    
     Param = gmem[6];
     Macro = gmem[5];
+    Check_Macro_Type (Macro) == 'XY' ? (
+
+      X_or_Y[Param + (Macro - 1) *1000] = gmem[9];
+    );
 
     Macro < Velo_ModAmt/*500000 */  ? (  //if assigning to mod sources 
       a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script 
@@ -1090,6 +1165,7 @@ trkGUID_Num === gmem[2]? (
   );
 
   If_User_Set_Type_To_Random(mode) ;
+  If_User_Set_Type_To_XY(mode);
 
   mode == 15?(  // if user changing LFO Shape
     SetTypeTo('LFO');
@@ -1261,7 +1337,7 @@ while (midirecv(offset, msg1, msg2, msg3)) (
 
       TotalNotesHeld+=1;
       SetBpTo0_All (midinote);
-      midisend(offset,msg1,msg2,msg3); 
+      midisend(offset,msg1,msg2, NOTE_ON_VELO* 127); 
     ) ;
   ):(noteStatus == $x80) ? (    // $x80 is probably note off
     // noteoff
@@ -1358,32 +1434,6 @@ playstate_started ? (
 
 
 //------------------------------------------------------------------------------------------------
-/*
-    midi_bus = 15;
-while (midirecv(offset, msg1, msg2, msg3)) (
-    // get noteons and noteoffs from all channels
-    midi_bus = 15;
-    (msg1 & $xF0) == $x90 || (msg1 & $xF0) == $x80 ? (
-        msg3 != 0 ? (
-            // noteon 
-            midinote = msg2;
-            // Normalizes amplitude value
-            midiamp = msg3 / 94;
-            time = time_precise();
-            
-
-            
-        ) : (
-            // noteoff
-            
-            msg2 == midinote ? midiamp = 0;
-        );
-    ) : (
-        // passthrough other events
-        midisend(offset,msg1,msg2,msg3);
-    );
-);
-*/
 
 play_state == 0 || play_state == 2 || play_state ==6 ? (
   playstate_started = 0 ;

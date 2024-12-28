@@ -1309,6 +1309,18 @@ function SetTypeToRandom(Mc, i)
         end
     end
 end
+function SetTypeToXY(Mc, i)
+
+    if Mc.Type  ~= 'XY' then 
+        if im.Selectable(ctx, 'XY', false) then
+            Mc.Type = 'XY'
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod' .. i .. 'Type', 'XY', true)
+            r.gmem_write(2,  PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 28) -- tells jsfx macro type = XY
+            r.gmem_write(5, i) -- tells jsfx which macro
+        end
+    end
+end
 
 function DrawLFOShape(Node, L, W, H, T, Clr, thick, SaveAllCoord, Macro )
     if Node then
@@ -1361,7 +1373,7 @@ function DrawLFOShape(Node, L, W, H, T, Clr, thick, SaveAllCoord, Macro )
 end
 
 
-function LFO_BOX(Mc, i, Height, Width)
+function LFO_BOX(Mc, i, Width)
     if Mc.Type ~= 'LFO' then return end 
     local Macro = i
 
@@ -1379,7 +1391,7 @@ function LFO_BOX(Mc, i, Height, Width)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. Macro .. StrName, V, true)
         end
     end
-    local H    = Height
+    local H    = Width/3
     local MOD  = math.abs(SetMinMax((r.gmem_read(100 + i) or 0) / 127, -1, 1))
     LFO.DummyH = LFO.Win.h + 20
     --LFO.DummyW  =  ( LFO.Win.w + 30) * ((Mc.LFO_leng or LFO.Def.Len)/4 )
@@ -1391,8 +1403,8 @@ function LFO_BOX(Mc, i, Height, Width)
     local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
 
 
-    local W = (VP.w - 10) / 12 - 3 -- old W 
-    local W = Width or 60
+    --local W = (VP.w - 10) / 12 - 3 -- old W 
+    local W = Width 
     local rv = im.InvisibleButton(ctx, 'LFO Button' .. i, W, H)
     Add_BG_Text_For_Modulator('LFO', 30)
     local w, h = im.GetItemRectSize(ctx)
@@ -1400,7 +1412,7 @@ function LFO_BOX(Mc, i, Height, Width)
     local WDL = im.GetWindowDrawList(ctx)
     local X_range = (LFO.Win.w) * ((Mc.LFO_leng or LFO.Def.Len) / 4)
 
-    im.DrawList_AddRect(WDL, L, T , L + w , T + h, EightColors.LFO[i])
+    im.DrawList_AddRect(WDL, L, T , L + w , T + h, 0xFFFFFF22)
 
 
     if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
@@ -2552,6 +2564,101 @@ function LFO_BOX(Mc, i, Height, Width)
 
 end
 
+function XY_BOX(Mc, i, Width)
+    if Mc.Type ~= 'XY' then return end 
+    im.BeginGroup(ctx)
+    
+    --local W = (VP.w - 10) / 12 - 3 -- old W 
+    local function PAD()
+        local pd = 2
+        local cX, cY = im.GetCursorPos(ctx)
+        im.SetCursorPos(ctx, cX+ pd , cY + pd)
+        local W = (Width or 60 ) / 3
+        local H = (Width or 60)  /3
+        local rv = im.InvisibleButton(ctx, 'LFO Button' .. i, W-pd*3, H-pd*3)
+        local w, h = im.GetItemRectSize(ctx)
+        local l, t = im.GetItemRectMin(ctx)
+        draw_dotted_line(l+w/2 ,t, l+w/2, t+h, EightColors.LFO[i], 2, 2)
+        draw_dotted_line(l ,t+h/2, l+w, t+h/2, EightColors.LFO[i], 2, 2)
+        im.SetCursorPos(ctx, cX, cY)
+        local WDL = im.GetWindowDrawList(ctx)
+
+        local Sz = 3 
+        local X = Sz + l+ (w-Sz*2) * (Mc.XY_Pad_X or 0) /127
+        local Y = -Sz + t+h - (h-Sz*2) * (Mc.XY_Pad_Y or 0) /127
+        im.DrawList_AddCircle(WDL, X , Y, Sz, EightColors.LFO[i])
+        im.DrawList_AddCircleFilled(WDL, X , Y, Sz, EightColors.LFO[i])
+
+        Highlight_Itm(WDL, nil, EightColors.LFO[i])
+    end
+    local function Open_Menu()
+        if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
+            im.OpenPopup(ctx, 'Mod' .. i .. 'Menu')
+        end
+    end
+
+    local function PAD_INTERACTION()
+        if im.IsItemActive(ctx) then        
+            HideCursorTillMouseUp(0)
+           local DtX, DtY = im.GetMouseDragDelta(ctx)
+           Mc.XY_Pad_X = SetMinMax(Mc.XY_Pad_X + DtX, 0, 127)
+           Mc.XY_Pad_Y = SetMinMax(Mc.XY_Pad_Y - DtY, 0, 127)  
+           r.TrackFX_SetParamNormalized(LT_Track, 0, 25 + (i - 1) * 2, Mc.XY_Pad_X / 127)
+           r.TrackFX_SetParamNormalized(LT_Track, 0, 26 + (i - 1) * 2, Mc.XY_Pad_Y / 127)
+
+           if DtX ~= 0 or DtY ~= 0 then 
+                im.ResetMouseDragDelta(ctx)
+           end
+
+        end
+        Open_Menu()
+    end
+    local function Assign_Macro(X_or_Y)
+        if im.IsItemClicked(ctx, 1) then
+
+            if X_or_Y == 'X' then
+                ASSIGNING_XY_PAD = 'X'
+            elseif X_or_Y == 'Y' then
+                ASSIGNING_XY_PAD = 'Y'
+            end
+        end 
+        if ASSIGNING_XY_PAD then 
+            if ASSIGNING_XY_PAD == 'X' then 
+                r.gmem_write(9, 1 )
+            elseif ASSIGNING_XY_PAD == 'Y' then 
+                r.gmem_write(9, 2)
+            end
+        end
+    end
+
+    local function Drags()
+
+        local flg = im.SliderFlags_NoInput
+        im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 0)
+        local cX, cY = im.GetCursorPos(ctx)
+        --im.Text(ctx, 'X :')
+        im.SetNextItemWidth(ctx, Width/1.5)
+        _, Mc.XY_Pad_X = im.DragDouble(ctx, '##X', Mc.XY_Pad_X or 0, 1, 0, 127, 'X : %.0f', flg)
+        Assign_Macro('X')
+        im.SetCursorPos(ctx, cX , cY + 15)
+        im.SetNextItemWidth(ctx, Width/1.5)
+
+
+        _, Mc.XY_Pad_Y = im.DragDouble(ctx, '##Y', Mc.XY_Pad_Y or 0, 1, 0, 127, 'Y : %.f', flg)
+        Assign_Macro('Y')
+        im.PopStyleVar(ctx)
+        im.SetCursorPos(ctx, cX, cY)
+
+    end
+
+    PAD()
+    PAD_INTERACTION()
+    SL()
+    Drags()
+    im.EndGroup(ctx)
+    Open_Menu()
+    
+end
 
 
 
@@ -4660,9 +4767,11 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         local ItmSz=98
         MacroKnob(mc,i, LineHeight /1.85,'Track' , ColumnID)
 
-        LFO_BOX(mc, i, LineHeight  , ItmSz )
+        LFO_BOX(mc, i  , ItmSz )
         Follower_Box(mc,i , ItmSz/3, TrkID, 'ParamValues')
         Random_Modulator_Box(mc, i , ItmSz )
+        XY_BOX(mc, i , ItmSz)
+
         If_Macro_Is_StepSEQ()
         WhenRightClickOnModulators(i) -- this has to be before step SEQ because the rightclick function is within step seq function
         Show_Help_Msg()
@@ -4707,6 +4816,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             SetTypeToFollower(mc, i)
             SetTypeToLFO(mc, i)
             SetTypeToRandom(mc, i )
+            SetTypeToXY(mc, i)
             im.EndPopup(ctx)
         end
     end

@@ -111,13 +111,7 @@ function RoundBtn (W,H , lbl, clr, fillclr, fillsz)
 
 end
 
-function DrawDottedLine(x,y, x2,y2, clr, len, gap)
-    local Dist= (x2-x) + (y2-y) 
-    local WDL = WDL or im.GetWindowDrawList(ctx)
-    for i=0, Dist, len+gap do 
 
-    end
-end
 
 function draw_dotted_line(x1, y1, x2, y2, clr, segment_length, gap)
     local ImGui = reaper.ImGui
@@ -4209,21 +4203,23 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                             local function Create_Item()
                                 local pos =  { im.GetCursorScreenPos(ctx) }
-
+                                local Lbl = '##' .. (FP.Name or Fx_P) .. FX_Name.. FP.Num
                                 --- Add Parameter controls ---------
                                 if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
-                                    AddSlider(ctx, '##' .. (FP.Name or Fx_P) .. FX_Name, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, FP.Lbl, 8)
+                                    AddSlider(ctx, Lbl, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, FP.Lbl, 8)
                                 elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
-                                    AddKnob(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl, FP.V, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or Df.KnobRadius, 0, Disabled, FP.FontSize, FP.Lbl_Pos or 'Bottom', FP.V_Pos)
+                                    AddKnob(ctx, Lbl, FP.CustomLbl, FP.V, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or Df.KnobRadius, 0, Disabled, FP.FontSize, FP.Lbl_Pos or 'Bottom', FP.V_Pos)
                                     --MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Knob', curX, CurY)
                                 elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
-                                    AddSlider(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, FP.Lbl, nil, FP.Sldr_H or 160)
+                                    AddSlider(ctx, Lbl, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, FP.Lbl, nil, FP.Sldr_H or 160)
                                 elseif FP.Type == 'Switch' then
                                     AddSwitch(LT_Track, FX_Idx, FP.V or 0, FP.Num, FP.BgClr, FP.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp, FP.FontSize, FxGUID)
                                 elseif FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
-                                    AddDrag(ctx, '##' .. FP.Name .. FX_Name, FP.CustomLbl or FP.Name, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, FP.Lbl_Pos, FP.V_Pos, FP.DragDir)
+                                    AddDrag(ctx, Lbl, FP.CustomLbl or FP.Name, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, FP.Lbl_Pos, FP.V_Pos, FP.DragDir)
                                 elseif FP.Type == 'Selection' then
                                     AddCombo(ctx, LT_Track, FX_Idx, FP.Name .. FxGUID .. '## actual', FP.Num, FP.ManualValuesFormat or 'Get Options', FP.Sldr_W, FP.Style, FxGUID, Fx_P, FP.ManualValues)
+                                elseif FP.Type == 'XY Pad - X' then
+                                    Add_XY_Pad(ctx, FP, FxGUID, FX_Idx)
                                 end
                                 
                                 return pos
@@ -5840,28 +5836,4 @@ function Show_Helper_Message()
 
     end
 
-end
-function Slider_Double_Click()
-    local double_click_time = 0.5
-    local last_click_time = LAST_CLICK_TIME or 0
-
-    if im.IsItemClicked(ctx, 0) then
-
-        local click_time = im.GetTime(ctx)
-        msg('now = ' .. click_time.. '\n last_click_time = ' .. last_click_time)
-       if LAST_CLICK_TIME then 
-            if LAST_CLICK_TIME < im.GetTime(ctx) -double_click_time then 
-                msg('no ')
-            else msg("Double")
-            end
-       end
-        LAST_CLICK_TIME = click_time
-    end
-    --[[ if LAST_CLICK_TIME then 
-       -- msg('LAST_CLICK_TIME = ' .. LAST_CLICK_TIME.. 'Time now = ' .. im.GetTime(ctx))
-        if LAST_CLICK_TIME < im.GetTime(ctx) -double_click_time then 
-            msg('clear')
-            LAST_CLICK_TIME = nil
-        end
-    end ]]
 end

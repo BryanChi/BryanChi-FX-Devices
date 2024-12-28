@@ -1091,6 +1091,7 @@ function HideCursorTillMouseUp(MouseBtn, triggerKey)
 
     if MouseBtn then
         if not MousePosX_WhenClick and im.IsMouseDown(ctx, MouseBtn) then
+            
             MousePosX_WhenClick, MousePosY_WhenClick = r.GetMousePosition()
         end
     elseif triggerKey then

@@ -1,14 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.7
+-- @version 1.0beta16.7.2
 -- @changelog
---  - NEW! Random Modulator
---  - Scroll position is now saved and restored when switching tracks.
---  - Made it compatible with Pro Q 4. 
---  - make selecting font available in background editor.
---  - Fix Add Fx menu draw line.
---  - Fix crash when recalling layout if attached drawing is set to gradient.
---  - Fix Saving default values not working correctly.
+--  - NEW! XY pad Modulator 
+--  - Fix: Prevent parameters with the same name from affecting each other.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

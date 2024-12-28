@@ -745,108 +745,92 @@ if not FX[FxGUID].Collapse then
             x = X2
         end
 
+        local function Draw_Grid()
+            local Y = Y_Mid + 70
+
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos50 - 3, Y, 0x78787899, '50')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos100 - 5, Y, 0x78787899, '100')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos200 - 5, Y, 0x78787899, '200')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos500 - 5, Y, 0x78787899, '500')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos1k - 5, Y, 0x78787899, '1k')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos2k - 5, Y, 0x78787899, '2k')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos5k - 5, Y, 0x78787899, '5k')
+            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5, ProQ_Xpos_L + iPos10k - 5, Y, 0x78787899, '10k')
+
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos50, ProQ_Ypos_B, ProQ_Xpos_L + iPos50, ProQ_Ypos_T + 300, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos100, ProQ_Ypos_B, ProQ_Xpos_L + iPos100, ProQ_Ypos_T + 300, 0x78787844)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos200, ProQ_Ypos_B, ProQ_Xpos_L + iPos200, ProQ_Ypos_T + 300, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos500, ProQ_Ypos_B, ProQ_Xpos_L + iPos500, ProQ_Ypos_T + 300, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos1k, ProQ_Ypos_B, ProQ_Xpos_L + iPos1k, ProQ_Ypos_T + 300, 0x78787844)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos2k, ProQ_Ypos_B, ProQ_Xpos_L + iPos2k, ProQ_Ypos_T + 300, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos5k, ProQ_Ypos_B, ProQ_Xpos_L + iPos5k, ProQ_Ypos_T + 300, 0x78787822)
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos10k, ProQ_Ypos_B, ProQ_Xpos_L + iPos10k, ProQ_Ypos_T + 300, 0x78787844)
+
+            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid, ProQ_Xpos_R, Y_Mid, 0x78787844)
+
+            if fx.Scale_Label == 30 or fx.Scale_Label == 3 then
+                local Gain10 = Y_Mid + (ProQ_Ypos_T - Y_Mid) / 3
+                local Gain20 = Y_Mid + ((ProQ_Ypos_T - Y_Mid) / 3) * 2
+                local GainMinus10 = Y_Mid - (ProQ_Ypos_T - Y_Mid) / 3
+                local GainMinus20 = Y_Mid - ((ProQ_Ypos_T - Y_Mid) / 3) * 2
+
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain10, ProQ_Xpos_R,
+                    Gain10, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain20, ProQ_Xpos_R,
+                    Gain20, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus10,
+                    ProQ_Xpos_R, GainMinus10, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus20,
+                    ProQ_Xpos_R, GainMinus20, 0x78787822)
+            elseif fx.Scale_Label == 12 then
+                local Gain3 = (ProQ_Ypos_T - Y_Mid) / 4
+                local Gain6 = ((ProQ_Ypos_T - Y_Mid) / 4) * 2
+                local Gain9 = ((ProQ_Ypos_T - Y_Mid) / 4) * 3
+
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
+                    ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain6,
+                    ProQ_Xpos_R, Y_Mid + Gain6, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain9,
+                    ProQ_Xpos_R, Y_Mid + Gain9, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
+                    ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain6,
+                    ProQ_Xpos_R, Y_Mid - Gain6, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain9,
+                    ProQ_Xpos_R, Y_Mid - Gain9, 0x78787822)
+            elseif fx.Scale_Label == 6 then
+                local Gain1 = (ProQ_Ypos_T - Y_Mid) / 6
+                local Gain2 = Gain1 * 2
+                local Gain3 = Gain1 * 3
+                local Gain4 = Gain1 * 4
+                local Gain5 = Gain1 * 5
+
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain1,
+                    ProQ_Xpos_R, Y_Mid + Gain1, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain2,
+                    ProQ_Xpos_R, Y_Mid + Gain2, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
+                    ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain4,
+                    ProQ_Xpos_R, Y_Mid + Gain4, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain5,
+                    ProQ_Xpos_R, Y_Mid + Gain5, 0x78787822)
 
 
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos50 - 3, Y_Mid + 86, 0x78787899, '50')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos100 - 5, Y_Mid + 86, 0x78787899, '100')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos200 - 5, Y_Mid + 86, 0x78787899, '200')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos500 - 5, Y_Mid + 86, 0x78787899, '500')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos1k - 5, Y_Mid + 86, 0x78787899, '1k')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos2k - 5, Y_Mid + 86, 0x78787899, '2k')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos5k - 5, Y_Mid + 86, 0x78787899, '5k')
-        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 9.5,
-            ProQ_Xpos_L + iPos10k - 5, Y_Mid + 86, 0x78787899, '10k')
-
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos50, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos50, ProQ_Ypos_T + 300, 0x78787822)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos100, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos100, ProQ_Ypos_T + 300, 0x78787844)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos200, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos200, ProQ_Ypos_T + 300, 0x78787822)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos500, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos500, ProQ_Ypos_T + 300, 0x78787822)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos1k, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos1k, ProQ_Ypos_T + 300, 0x78787844)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos2k, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos2k, ProQ_Ypos_T + 300, 0x78787822)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos5k, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos5k, ProQ_Ypos_T + 300, 0x78787822)
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L + iPos10k, ProQ_Ypos_B,
-            ProQ_Xpos_L + iPos10k, ProQ_Ypos_T + 300, 0x78787844)
-
-        im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid, ProQ_Xpos_R, Y_Mid,
-            0x78787844)
-
-        if fx.Scale_Label == 30 or fx.Scale_Label == 3 then
-            local Gain10 = Y_Mid + (ProQ_Ypos_T - Y_Mid) / 3
-            local Gain20 = Y_Mid + ((ProQ_Ypos_T - Y_Mid) / 3) * 2
-            local GainMinus10 = Y_Mid - (ProQ_Ypos_T - Y_Mid) / 3
-            local GainMinus20 = Y_Mid - ((ProQ_Ypos_T - Y_Mid) / 3) * 2
-
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain10, ProQ_Xpos_R,
-                Gain10, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Gain20, ProQ_Xpos_R,
-                Gain20, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus10,
-                ProQ_Xpos_R, GainMinus10, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, GainMinus20,
-                ProQ_Xpos_R, GainMinus20, 0x78787822)
-        elseif fx.Scale_Label == 12 then
-            local Gain3 = (ProQ_Ypos_T - Y_Mid) / 4
-            local Gain6 = ((ProQ_Ypos_T - Y_Mid) / 4) * 2
-            local Gain9 = ((ProQ_Ypos_T - Y_Mid) / 4) * 3
-
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
-                ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain6,
-                ProQ_Xpos_R, Y_Mid + Gain6, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain9,
-                ProQ_Xpos_R, Y_Mid + Gain9, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
-                ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain6,
-                ProQ_Xpos_R, Y_Mid - Gain6, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain9,
-                ProQ_Xpos_R, Y_Mid - Gain9, 0x78787822)
-        elseif fx.Scale_Label == 6 then
-            local Gain1 = (ProQ_Ypos_T - Y_Mid) / 6
-            local Gain2 = Gain1 * 2
-            local Gain3 = Gain1 * 3
-            local Gain4 = Gain1 * 4
-            local Gain5 = Gain1 * 5
-
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain1,
-                ProQ_Xpos_R, Y_Mid + Gain1, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain2,
-                ProQ_Xpos_R, Y_Mid + Gain2, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain3,
-                ProQ_Xpos_R, Y_Mid + Gain3, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain4,
-                ProQ_Xpos_R, Y_Mid + Gain4, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid + Gain5,
-                ProQ_Xpos_R, Y_Mid + Gain5, 0x78787822)
-
-
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1,
-                ProQ_Xpos_R, Y_Mid - Gain1, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2,
-                ProQ_Xpos_R, Y_Mid - Gain2, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
-                ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4,
-                ProQ_Xpos_R, Y_Mid - Gain4, 0x78787822)
-            im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5,
-                ProQ_Xpos_R, Y_Mid - Gain5, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain1,
+                    ProQ_Xpos_R, Y_Mid - Gain1, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain2,
+                    ProQ_Xpos_R, Y_Mid - Gain2, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain3,
+                    ProQ_Xpos_R, Y_Mid - Gain3, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain4,
+                    ProQ_Xpos_R, Y_Mid - Gain4, 0x78787822)
+                im.DrawList_AddLine(Foreground, ProQ_Xpos_L, Y_Mid - Gain5,
+                    ProQ_Xpos_R, Y_Mid - Gain5, 0x78787822)
+            end
         end
-
-
+        Draw_Grid()
         ----------------------
         --Draw Nodes
         ----------------------

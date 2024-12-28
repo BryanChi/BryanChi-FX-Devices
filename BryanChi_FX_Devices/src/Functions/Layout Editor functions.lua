@@ -1148,6 +1148,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     SetItemType('Switch')
                 elseif im.Selectable(ctx, 'Selection', false) then
                     SetItemType('Selection')
+                elseif im.Selectable(ctx, 'XY Pad', false) then
+                    SetItemType('XY Pad')
                 end
                 im.EndCombo(ctx)
             end
@@ -3182,9 +3184,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             
         end
 
-
-
-
         local function Colors_Table()
             local function ThirdColoumn()
 
@@ -3254,6 +3253,84 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         end
 
+        local function XY_Pad_Properties ()
+
+
+            --[[ local function Belong_To_Which_Pad()
+                FX[FxGUID].XY_Pad_TB  = FX[FxGUID].XY_Pad_TB or {}
+                if not FX[FxGUID].XY_Pad_TB[1] then FX[FxGUID].XY_Pad_TB[1] = 'XY_Pad 1' end
+                if im.BeginCombo(ctx, '##Belong_To_Which_Pad', FS.XY_Pad or 'None') then 
+                    --im.Selectable(ctx, 'XY_Pad 1')
+                    for i, v in ipairs(FX[FxGUID].XY_Pad_TB) do 
+                        local Lbl = v.name or 'XY_Pad '..i
+                        if LE.Renaming_XY_Pad == i then 
+                            local rv, nm = im.InputText(ctx, '##Rename XY Pad', Lbl, r.ImGui_InputTextFlags_EnterReturnsTrue())
+                            if rv then 
+                                msg('rv')
+                                FX[FxGUID].XY_Pad_TB[i].name = nm
+                                LE.Renaming_XY_Pad = nil 
+                            end
+                        else
+                            if im.Button(ctx, Lbl) then 
+                                FS.XY_Pad = Lbl
+                            end
+                        end
+                        SL()
+                        if im.Button(ctx, 'R') then 
+                            LE.Renaming_XY_Pad = i 
+                        end
+                    end
+                    if im.Button(ctx, 'Add New') then 
+                        table.insert(FX[FxGUID].XY_Pad_TB, 'XY_Pad ' .. #FX[FxGUID].XY_Pad_TB + 1)
+                    end
+                    im.EndCombo(ctx)
+                end
+            end ]]
+
+            local function Set_Selected_Prms_As_XY_Pad()
+                if #LE.Sel_Items == 2 then 
+                    if im.Button(ctx, 'Set Parameters as XY Pad') then 
+
+    
+                        FX[FxGUID][LE.Sel_Items[1]].Type = 'XY Pad - X'
+                        FX[FxGUID][LE.Sel_Items[1]].XY_Pad_Y_PNum = FX[FxGUID][LE.Sel_Items[2]].Num
+
+                        FX[FxGUID][LE.Sel_Items[2]].Type = 'XY Pad - Y'
+    
+                        --[[ for i, v in ipairs(LE.Sel_Items) do 
+                            FX[FxGUID][v].XY_Pad = #TB
+                        end ]]
+                    end
+                end
+            end
+
+
+            Set_Selected_Prms_As_XY_Pad()
+
+            if FS.Type ~= 'XY Pad' then return end  
+            if im.BeginTable(ctx, 'XY Pad Properties', 5, flags, -R_ofs) then 
+                im.TableSetupColumn(ctx, 'Belong to')
+                im.TableSetupColumn(ctx, 'X')
+                im.TableSetupColumn(ctx, 'Y')
+                im.TableSetupColumn(ctx, 'Width')
+                im.TableSetupColumn(ctx, 'Height')
+                im.TableHeadersRow(ctx)
+                im.TableNextRow(ctx)
+                im.TableSetColumnIndex(ctx, 0) 
+                Belong_To_Which_Pad()
+
+                im.TableSetColumnIndex(ctx, 1) 
+                im.Button(ctx, 'Set as X')
+                im.TableSetColumnIndex(ctx, 2) 
+                im.Button(ctx, 'Set as Y')
+                im.TableSetColumnIndex(ctx, 3) 
+                im.Text(ctx, 'Width:') SL()
+                im.TableSetColumnIndex(ctx, 4) 
+                im.Text(ctx, 'Height:') SL()
+                im.EndTable(ctx)
+            end
+        end
+
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 6)
 
         im.SeparatorText( ctx, 'Text')
@@ -3261,7 +3338,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         Label_Name()                            --[[ AddSpacing(2) ]]
         Switch_Type()
-
+        XY_Pad_Properties ()
         Label_and_Value_Table()                 --[[ AddSpacing(2) ]]
 
 
@@ -4511,6 +4588,26 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     im.EndGroup(ctx)
 end
 
+
+function Add_XY_Pad(ctx, FP, FxGUID,FX_Idx)
+    local TB = FX[FxGUID].XY_Pad_TB
+    local P_Num_Y = FP.XY_Pad_Y_PNum
+
+    im.Button(ctx, '   ##XY Pad '..FP.Num, 20, 20)
+    local V_Y = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num_Y)
+    FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+
+    if im.IsItemActive(ctx) then
+        msg('ansjd')
+        local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDragDelta(ctx, x, y, 0)
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, FP.V + Ms_Delta_X)
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, V_Y + Ms_Delta_Y)
+        if Ms_Delta_X ~= 0 or Ms_Delta_Y ~= 0 then
+            im.ResetMouseDragDelta(ctx, 0)
+        end 
+    end
+end
+
 function GetFonts (FP)
     local FtSz = roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local Font = 'Font_Andale_Mono_' .. FtSz
@@ -4740,11 +4837,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     im.BeginGroup(ctx)
 
     MakeSlider()
-    if im.IsMouseDoubleClicked( ctx, 0)  then
-        if im.IsItemClicked(ctx, 0)  then 
-            msg("a")
-        end 
-    end
+
     
 
     local is_active = im.IsItemActive(ctx)
@@ -4760,11 +4853,9 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     im.EndGroup(ctx)
 
     
-    --Suzukis_Work_ParamLink_And_MouseWheelAdjust()
+    Suzukis_Work_ParamLink_And_MouseWheelAdjust()
     
-    --[[ if im.IsItemHovered(ctx, im.HoveredFlags_RectOnly) and im.IsMouseDoubleClicked(ctx,0) then
-        msg('double clicked')
-    end ]]
+
     --@@todo add double click to reset to default
 
 
@@ -6009,6 +6100,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.DontRotateImg       = v.DontRotateImg
                     FP.V_Clr_At_Full     = v.V_Clr_At_Full
                     FP.Lbl_Clr_At_Full   = v.Lbl_Clr_At_Full
+                    FP.XY_Pad_Y_PNum     = v.XY_Pad_Y_PNum
                     
                     for i = 2, 5, 1 do
                         FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
@@ -6692,7 +6784,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
 
             write('V_Clr_At_Full', FP.V_Clr_At_Full)
             write('Lbl_Clr_At_Full', FP.Lbl_Clr_At_Full)
-
+            write('XY_Pad_Y_PNum', FP.XY_Pad_Y_PNum)
 
 
 
