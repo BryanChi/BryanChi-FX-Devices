@@ -1,9 +1,12 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.7.2
+-- @version 1.0beta16.8
 -- @changelog
---  - NEW! XY pad Modulator 
---  - Fix: Prevent parameters with the same name from affecting each other.
+--  - Layout Editor : Added undo buttons for certain actions.
+--  - Layout Editor : Allow changing the label of multiple parameters at once.  
+--  - Layout Editor : Disabling quantizing parameter positions to grid when multiple parameters are moved.
+--  - Layout Editor & Background Editor : Added multiple new menu bar buttons for aligning and spacing parameters.
+--  - Background Editor : Allow Marquee selection to edit multipl drawings at once. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

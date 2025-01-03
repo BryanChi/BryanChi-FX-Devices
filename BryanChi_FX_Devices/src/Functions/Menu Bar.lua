@@ -46,7 +46,7 @@ function If_Theres_Selected_FX()
         end
 
         local function Put_FXs_Into_Parallel_Chain()
-            if Sel_FX[2] then 
+            if Sel_FX and Sel_FX[2] then 
                 if im.Button(ctx, 'Put FXs into Parallel') then 
 
                     for i, v in ipairs(Sel_FX) do 
@@ -193,61 +193,211 @@ end
 function Layout_Edit_MenuBar_Buttons()
 
 
-    if FX.LayEdit then
-        local FxGUID = FX.LayEdit
+    if not FX.LayEdit then return end 
+    local FxGUID = FX.LayEdit
 
+    local function Grid_Adjust_Btns()
         if im.Button(ctx, 'Grid +') then
             LE.GridSize = LE.GridSize + 5
         elseif im.Button(ctx, 'Grid -') then
             LE.GridSize = LE.GridSize - 5
         end
+    end
+    local function Swap_Btns()
+        if #LE.Sel_Items == 2 then
+            if im.Button(ctx, 'Swap Positions') then
+                Create_Undo_Point('Swap Positions', FxGUID)
+                FX[FxGUID][LE.Sel_Items[1]].PosX, FX[FxGUID][LE.Sel_Items[2]].PosX = FX[FxGUID][LE.Sel_Items[2]].PosX, FX[FxGUID][LE.Sel_Items[1]].PosX
+                FX[FxGUID][LE.Sel_Items[1]].PosY, FX[FxGUID][LE.Sel_Items[2]].PosY = FX[FxGUID][LE.Sel_Items[2]].PosY, FX[FxGUID][LE.Sel_Items[1]].PosY
+            end
+        end
+    end
+    local function Align_Btns()
 
         if #LE.Sel_Items > 1 then
             SL()
-            if im.Button(ctx, 'Align Y-Axis') then
-                for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosX = FX[FxGUID][LE.Sel_Items[1]].PosX end
-            elseif im.Button(ctx, 'Align X-Axis') then
-                for i, v in ipairs(LE.Sel_Items) do FX[FxGUID][v].PosY = FX[FxGUID][LE.Sel_Items[1]].PosY end
-            end
-        end
-        if #LE.Sel_Items > 2 then
-            if im.Button(ctx, 'Equalize X Spacing') then
-                local Spc, max, min
-                local tab = {}
-                for i, v in ipairs(LE.Sel_Items) do
-                    table.insert(tab, FX[FxGUID][v].PosX)
-                end
+            im.Text(ctx, 'Align :')
+            SL()
 
-                max = math.max(table.unpack(tab))
-                min = math.min(table.unpack(tab))
-                Spc = (max - min) / (#LE.Sel_Items - 1)
-                for i, v in ipairs(LE.Sel_Items) do
-                    FX[FxGUID][v].PosX = min + Spc * (i - 1)
-                end
-            elseif im.Button(ctx, 'Equalize Y Spacing') then
-                local Spc, max, min
-                local tab = {}
-                for i, v in ipairs(LE.Sel_Items) do
-                    table.insert(tab, FX[FxGUID][v].PosY)
-                end
-                max = math.max(table.unpack(tab))
-                min = math.min(table.unpack(tab))
-                Spc = (max - min) / (#LE.Sel_Items - 1)
-                for i, v in ipairs(LE.Sel_Items) do
-                    FX[FxGUID][v].PosY = min + Spc * (i - 1)
-                end
+
+            if im.Button(ctx, 'Left') then
+                Create_Undo_Point('Align Left', FxGUID)
+                Align(LE.Sel_Items, FX[FxGUID], 'PosX', 'Min')
             end
+            if im.Button(ctx, 'Top') then
+                Create_Undo_Point('Align Top', FxGUID)
+                Align(LE.Sel_Items, FX[FxGUID], 'PosY', 'Min')
+            end
+            if im.Button(ctx, 'Right') then
+                Create_Undo_Point('Align Right', FxGUID)
+                Align(LE.Sel_Items, FX[FxGUID], 'PosX', 'Max')
+            end
+            if im.Button(ctx, 'Bottom') then
+                Create_Undo_Point('Align Bottom', FxGUID)
+                Align(LE.Sel_Items, FX[FxGUID], 'PosY', 'Max')
+            end
+            im.Separator(ctx)
+
         end
-        im.Separator(ctx)
     end
-end 
+    local function Equalize_Btns()
+        if #LE.Sel_Items > 2 then
+            im.Text(ctx,'Equalize :')
+            SL()
+            if im.Button(ctx,'X Spacing') then
+                Create_Undo_Point('Equalize X Spacing', FxGUID)
+                Equalize_Spacing(LE.Sel_Items, FX[FxGUID], 'PosX')
+            elseif im.Button(ctx, 'Y Spacing') then
+                Create_Undo_Point('Equalize Y Spacing', FxGUID)
+                Equalize_Spacing(LE.Sel_Items, FX[FxGUID], 'PosY')
+            end
+        end
+    end
 
+    
+    Grid_Adjust_Btns()
+    Align_Btns()
+    Equalize_Btns()
+    Swap_Btns()
+
+    im.Separator(ctx)
+
+end 
+    
+function Equalize_Spacing(Sel_Itms, TB, index)
+    local tb = {}
+    for i, v in ipairs(Sel_Itms) do 
+        table.insert(tb, TB[v][index])
+    end
+    local min = math.min(table.unpack(tb))
+    local max = math.max(table.unpack(tb))
+    local Spc = (max - min) / (#Sel_Itms - 1)
+    for i, v in ipairs(Sel_Itms) do TB[v][index] = min + Spc * (i - 1) end
+end
+
+function Align(Sel_Itms, TB, index, Min_or_Max)
+    local tb = {}
+    for i, v in ipairs(Sel_Itms) do 
+        table.insert(tb, TB[v][index])
+    end
+    local min = math.min(table.unpack(tb))
+    local max = math.max(table.unpack(tb))
+    for i, v in ipairs(Sel_Itms) do
+        if Min_or_Max == 'Max' then
+            TB[v][index] = max
+        elseif Min_or_Max == 'Min' then
+            TB[v][index] = min
+        end
+    end
+end
+
+function Backrgound_Edit_MenuBar_Buttons()
+    if not Draw.DrawMode then return end 
+    local FxGUID = Draw.DrawMode
+    if not FX[FxGUID] then return end
+    --local Draw = FX[FxGUID].Draw
+    Draw.SelItms = Draw.SelItms or {}
+    if #Draw.SelItms >1 then 
+        local D = FX[FxGUID].Draw
+
+        local function Preview(preview_str, func, ...)
+            if im.IsItemHovered(ctx) then 
+                if not FX[FxGUID].Draw.Preview then
+                    FX[FxGUID].Draw.Preview = deepCopy(FX[FxGUID].Draw)
+                else 
+                    func(...)
+                    Draw.Preview = preview_str
+                    tooltip('Previewing ' .. preview_str)
+                    
+                end
+            else 
+
+                if preview_str == Draw.Preview then 
+                    FX[FxGUID].Draw.Preview= nil 
+                    Draw.Preview = nil 
+                end
+            end
+        end
+
+        im.Text(ctx,'Equalize :')
+        SL()
+        if im.Button(ctx, 'X Spacing') then
+            Create_Undo_Point( 'Equalize X Spacing' , FxGUID)
+            Equalize_Spacing(Draw.SelItms, D, 'L')
+        end    
+        Preview('Equalize X Spacing', Equalize_Spacing, Draw.SelItms, FX[FxGUID].Draw.Preview, 'L')
+
+        if im.Button(ctx, 'Y Spacing') then
+            Create_Undo_Point( 'Equalize Y Spacing' , FxGUID)
+            Equalize_Spacing(Draw.SelItms, D, 'T')
+        end
+        Preview('Equalize Y Spacing', Equalize_Spacing, Draw.SelItms, FX[FxGUID].Draw.Preview, 'T')
+
+        im.Separator(ctx)
+        im.Text(ctx,'Align :')
+        SL()
+
+        if im.Button(ctx, 'Top') then
+            Create_Undo_Point( 'Align Top' , FxGUID)
+            Align(Draw.SelItms, D, 'T', 'Min')
+        end
+        Preview('Align Top', Align, Draw.SelItms, FX[FxGUID].Draw.Preview, 'T', 'Min')
+    
+        if im.Button(ctx, 'Left') then
+            Create_Undo_Point( 'Align Left' , FxGUID)   
+            Align(Draw.SelItms, D, 'L', 'Min')
+        end
+        Preview('Align Left', Align, Draw.SelItms, FX[FxGUID].Draw.Preview, 'L', 'Min')
+
+        if im.Button(ctx , 'Right') then
+            Create_Undo_Point( 'Align Right' , FxGUID)
+            Align(Draw.SelItms, D, 'L', 'Max')
+        end
+        Preview('Align Right', Align, Draw.SelItms, FX[FxGUID].Draw.Preview, 'L', 'Max')
+
+        if im.Button(ctx, 'Bottom') then
+            Create_Undo_Point( 'Align Bottom' , FxGUID)
+            Align(Draw.SelItms, D, 'T', 'Max')
+        end
+        Preview('Align Bottom', Align, Draw.SelItms, FX[FxGUID].Draw.Preview, 'T', 'Max')
+        im.Separator(ctx)
+        
+        if #Draw.SelItms == 2 then
+            if im.Button(ctx, 'Swap Positions') then
+                Create_Undo_Point('Swap Positions', FxGUID)
+                D[Draw.SelItms[1]].L, D[Draw.SelItms[2]].L = D[Draw.SelItms[2]].L, D[Draw.SelItms[1]].L
+                D[Draw.SelItms[1]].T, D[Draw.SelItms[2]].T = D[Draw.SelItms[2]].T, D[Draw.SelItms[1]].T
+            end
+        end
+
+        
+    end
+    if #Draw.SelItms > 0 then
+        if im.Button(ctx, 'Deselect All') then 
+            Draw.SelItms = {}
+        end
+    end
+end
 
 function ShowTrackName(Condition)
     if Condition then 
         im.Text(ctx, TrkName)
     end
 end 
+
+function LayEdit_and_Backrgound_Edit_Undo_Button()
+    if Draw.DrawMode or FX.LayEdit then
+        LE.Undo_Points = LE.Undo_Points or {}
+        if #LE.Undo_Points > 0 then
+            if im.Button(ctx, ( 'Undo ' .. LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name)) then
+
+                    FX[FX.LayEdit] = deepCopy (LE.Undo_Points[#LE.Undo_Points])
+                    table.remove(LE.Undo_Points, #LE.Undo_Points)
+
+            end
+        end
+    end
+end
 
 
 
@@ -277,7 +427,17 @@ end
 function MenuBar ()
 
     im.BeginMenuBar(ctx)
+    im.PushStyleColor(ctx, im.Col_Button, 0x00000033)
+    im.PushStyleColor(ctx, im.Col_Border, ThemeClr('Accent_Clr_Dark'))
+
+    im.PushStyleVar(ctx, im.StyleVar_FrameRounding, 4)
+    im.PushStyleVar(ctx, im.StyleVar_FrameBorderSize, 2)
+    LayEdit_and_Backrgound_Edit_Undo_Button()
+
     Layout_Edit_MenuBar_Buttons()
+    Backrgound_Edit_MenuBar_Buttons()
+    im.PopStyleVar(ctx,2)
+    im.PopStyleColor(ctx,2)
     Record_Last_Touch_Btn()
     Modulation_Btn()
     Envelope_Btn()

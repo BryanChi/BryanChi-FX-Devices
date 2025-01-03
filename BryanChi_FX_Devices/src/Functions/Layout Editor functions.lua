@@ -285,14 +285,24 @@ function CheckDnDType()
     FX_DRAG = dnd_type == "FX_Drag"
     FX_PLINK = dnd_type == "FX PLINK"
 end
+function Set_To_All_Draw_Items(str, v, D )
+    if Draw.SelItms then
+        for i, V in ipairs(Draw.SelItms) do
+            D[V][str] = v
+        end
+    end
+end
+
 
 
 function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
-    if Draw.DrawMode[FxGUID] == true then
-        local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
-        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
-        local D = FX[FxGUID].Draw
-        im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000033)
+    if Draw.DrawMode ~= FxGUID then return end 
+    local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
+    FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+    local D = FX[FxGUID].Draw
+    im.DrawList_AddRectFilled(WinDrawList, Win_L, Win_T, Win_R, Win_B, 0x00000033)
+    
+    local function Draw_Grid()
         -- add horizontal grid
         for i = 0, 220, LE.GridSize do
             im.DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
@@ -301,19 +311,24 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
         for i = 0, FX[FxGUID].Width or DefaultWidth, LE.GridSize do
             im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444411)
         end
-        if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItm and Draw.Time == 0 then
+    end
+
+    
+    local function Add_Drawing_If_Hold_Mouse_Down()
+        if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil and not Draw.SelItms[1] and Draw.Time == 0 then
             if Draw.Type == 'Text' then
                 im.SetMouseCursor(ctx, im.MouseCursor_TextInput)
             end
             if im.IsMouseClicked(ctx, 0) and Mods == 0 then
-                Draw.CurrentylDrawing = true
+                Draw.CurrentlyDrawing = true
                 MsX_Start, MsY_Start = im.GetMousePos(ctx);
                 CurX, CurY = im.GetCursorScreenPos(ctx)
                 Win_MsX_Start = MsX_Start - CurX; Win_MsY_Start = MsY_Start - CurY + 3
             end
 
-            if Draw.CurrentylDrawing then
+            if Draw.CurrentlyDrawing then
                 if IsLBtnHeld and Mods == 0 and MsX_Start then
+                    msg('a')
                     MsX, MsY   = im.GetMousePos(ctx)
                     CurX, CurY = im.GetCursorScreenPos(ctx)
                     Win_MsX    = MsX - CurX; Win_MsY = MsY - CurY
@@ -362,7 +377,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
                     D.Type = Draw.Type
                     D.B = Win_MsY
                     D.clr = Draw.clr or 0xffffffff
-                    --if not Draw.SelItm then Draw.SelItm = #D.Type end
+                    --if not Draw.SelItms then Draw.SelItms = #D.Type end
                 end
 
 
@@ -402,7 +417,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
 
 
             if enter then
-     
+        
                 D.Txt  = NewDrawTxt
             end
 
@@ -419,68 +434,158 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
             im.SetItemDefaultFocus(ctx)
             im.EndPopup(ctx)
         end
-        if LBtnRel then Draw.CurrentylDrawing = nil end
+        if LBtnRel then Draw.CurrentlyDrawing = nil end
 
         if im.IsMouseHoveringRect(ctx, Win_L, Win_T, Win_R, Win_B) and HvringItmSelector == nil then
-            if IsLBtnClicked then
-                Draw.SelItm = nil
+            if IsLBtnClicked and Mods == 0 then
+                --Draw.SelItms = {}
                 Draw.Time = 1
             end
         end
         if Draw.Time > 0 then Draw.Time = Draw.Time + 1 end
         if Draw.Time > 6 then Draw.Time = 0 end
-
-        if FX[FxGUID].Draw then
-            for i, D in ipairs(FX[FxGUID].Draw) do
-                local ID = FX_Name .. i
-                local CircleX, CircleY = Win_L + D.L, Win_T + D.T
-                local FDL = im.GetForegroundDrawList(ctx)
-                im.DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
-                im.DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
+    end
 
 
-                if Draw.SelItm == i then
-                    im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
+
+    local function Marquee_Select_Items()
+        if  im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
+            --if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
+            if im.IsMouseClicked(ctx,1) then 
+                Marq_Start = {im.GetMousePos(ctx)}
+                if Mods ~= Shift then 
+                    LE.Sel_Items ={}
                 end
+            end 
+
+            if im.IsMouseDown(ctx,1)  then 
+                local S = Marq_Start --Start
+                local N = {im.GetMousePos(ctx)} --now
+                local ItmCtX = L+ (R-L)/2
+                local ItmCtY = T+ (B-T)/2
+                if not S then return end 
+                local minX = math.min(S[1], N[1])
+                local minY = math.min(S[2], N[2])
+                im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff05)
+                im.DrawList_AddCircle(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
 
 
-                --if hover on item node ...
-                if im.IsMouseHoveringRect(ctx, CircleX - 5, CircleY - 5, CircleX + 5, CircleY + 10) then
-                    HvringItmSelector = true
-                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
-                    if DragItm == nil then
-                        im.DrawList_AddCircle(WDL, CircleX, CircleY, 9, 0x999999ff)
-                    end
-                    if IsLBtnClicked and Mods == 0 then
-                        Draw.SelItm = i
-                        DragItm = i
-                    end
+                -- if marquee covers item center
+
+                if minX+ math.abs(S[1]- N[1]) > ItmCtX and minX < ItmCtX 
+                    and minY+ math.abs(S[2] - N[2]) > ItmCtY and minY < ItmCtY   then 
+                    im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
+                    
+                    if not FindExactStringInTable(LE.Sel_Items , Fx_P) then 
+                        table.insert(LE.Sel_Items , Fx_P)
+                    end 
+                elseif FindExactStringInTable(LE.Sel_Items , Fx_P) then
+                    im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
+
+                end 
+            else 
+
+                Marq_Start = nil
+
+            end 
 
 
-                    if IsLBtnClicked and Mods == Alt then
-                        table.remove(FX[FxGUID].Draw , i)
-                        if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
-                            im.CloseCurrentPopup(ctx)
-                            im.EndPopup(ctx)
+
+            --end
+        end
+    end
+    local function Draw_Nodes()
+        if not FX[FxGUID].Draw or Mods == Cmd or FX[FxGUID].Draw.Preview then return end 
+
+        for i, D in ipairs(FX[FxGUID].Draw) do
+            local ID = FX_Name .. i
+            local CircleX, CircleY = Win_L + D.L, Win_T + D.T
+            local FDL = im.GetForegroundDrawList(ctx)
+            if tablefind(Draw.SelItms, i )   then 
+                im.DrawList_AddCircle(FDL, CircleX, CircleY, 8, ThemeClr('Accent_Clr'))
+            end
+            im.DrawList_AddCircle(FDL, CircleX, CircleY, 7, 0x99999999)
+            im.DrawList_AddText(FDL, Win_L + D.L - 2, Win_T + D.T - 7, 0x999999ff, i)
+            Draw.SelItms = Marquee_Selection({CircleX, CircleY}, Draw.SelItms,i)
+            
+            if tablefind(Draw.SelItms, i) then
+                im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x99999955)
+            end
+
+
+            --if hover on item node ...
+            if im.IsMouseHoveringRect(ctx, CircleX - 5, CircleY - 5, CircleX + 5, CircleY + 10) then
+                HvringItmSelector = true
+                im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
+                if DragItm == nil then
+                    im.DrawList_AddCircle(WDL, CircleX, CircleY, 9, 0x999999ff)
+                end
+                if IsLBtnClicked then
+                    if Mods == 0 then 
+                        if Draw.SelItms == {} then
+                            Draw.SelItms = {i}
+                        elseif tablefind(Draw.SelItms, i) then
+                        else
+                            Draw.SelItms = {i}
+                        end
+                    elseif Mods == Shift then 
+                        if not tablefind(Draw.SelItms, i) then 
+                            table.insert(Draw.SelItms , i)
+                        else 
+                            table.remove(Draw.SelItms, tablefind(Draw.SelItms, i))
                         end
                     end
+                    local UndoLBL = #Draw.SelItms > 1 and 'Reposition '..#Draw.SelItms..' Drawing' or 'Reposition Drawing'..i
+                    Create_Undo_Point(UndoLBL, FxGUID)
+
+                    DragItm = i
                 end
 
-                if not IsLBtnHeld then DragItm = nil end
-                if LBtnDrag and DragItm == i then --- Drag node to reposition
-                    im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
-                    im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x00000033)
-                    local Dx, Dy = im.GetMouseDelta(ctx)
-                    if D.Type[DragItm] ~= 'circle' and D.Type[DragItm] ~= 'circle fill' then
-                        D.R = D.R + Dx -- this is circle's radius
+
+                if IsLBtnClicked and Mods == Alt then
+                    table.remove(FX[FxGUID].Draw , i)
+                    if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
+                        im.CloseCurrentPopup(ctx)
+                        im.EndPopup(ctx)
                     end
-                    D.L = D.L + Dx
-                    D.T = D.T + Dy
-                    D.B = D.B + Dy
                 end
             end
+
+            if not IsLBtnHeld then DragItm = nil end
+            local function Set_To_All_Draw_Items(str, v , diff )
+                if Draw.SelItms then
+                    for i, V in ipairs(Draw.SelItms) do
+                        FX[FxGUID].Draw[V][str] = FX[FxGUID].Draw[V][str] + diff
+                    end
+                end
+            end
+            
+            if LBtnDrag and DragItm == i then --- Drag node to reposition
+                im.SetMouseCursor(ctx, im.MouseCursor_ResizeAll)
+                im.DrawList_AddCircleFilled(WDL, CircleX, CircleY, 7, 0x00000033)
+                local Dx, Dy = im.GetMouseDelta(ctx)
+                if D.Type ~= 'circle' and D.Type ~= 'circle fill' and D.Type ~= 'Text' then
+                    --D.R = D.R + Dx -- this is circle's radius
+                    Set_To_All_Draw_Items('R', D.R , Dx)
+
+                end
+               --[[  D.L = D.L + Dx
+                D.T = D.T + Dy
+                D.B = D.B + Dy ]]
+                Set_To_All_Draw_Items('L', D.L , Dx)
+                Set_To_All_Draw_Items('T', D.T , Dy)
+                Set_To_All_Draw_Items('B', D.B , Dy)
+                LE.BeenEdited = true
+            end
         end
-    end --- end of if draw mode is active
+    end
+
+
+
+    Draw_Grid()
+    Add_Drawing_If_Hold_Mouse_Down()
+
+    Draw_Nodes()
 end
 
 local min, max = math.min, math.max
@@ -719,6 +824,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
     local FxGUID = FXGUID[FX_Idx]
 
+    
     local function Get_Default_Width(FrstSelItm)
         local MaxW, MinW
         if FrstSelItm.Type == 'Knob' then
@@ -834,11 +940,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     end
     SL(nil, 30)
 
-    if Draw.DrawMode[FxGUID] then
-        if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode[FxGUID] = false end
+    if Draw.DrawMode == FxGUID then
+        if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode = nil end
     else
         if im.Button(ctx, 'Enter Background Edit') then
-            Draw.DrawMode[FxGUID] = true
+            Draw.DrawMode = FxGUID
             LE.Sel_Items = {}
         end
     end
@@ -851,7 +957,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
     if not LE.Sel_Items[1] then
-        if Draw.DrawMode[FxGUID] ~= true then
+        if Draw.DrawMode ~= FxGUID then
             im.TextWrapped(ctx, 'Select an item to start editing')
             AddSpacing(15)
         else
@@ -859,23 +965,45 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             FX[FxGUID].Draw = FX[FxGUID].Draw or {}
             local D = FX[FxGUID].Draw
             local FullWidth = -50
-
+            
             local function Show_Selected_Drawing_Btns()
                 local sz = 100
                 im.BeginChild(ctx, 'Drawings Preview', FullWidth, sz)
                 SL()
+                Draw.SelItms = Draw.SelItms or {}
                 for i, v in ipairs(D) do 
 
                     local pos = {im.GetCursorScreenPos(ctx)}
                     if im.Button(ctx, i..'## Drawing Selection', sz,sz) then 
-                        Draw.SelItm = i
+                        if Mods == 0 then
+                            if tablefind(Draw.SelItms, i) then 
+                                if #Draw.SelItms == 1 then 
+                                    Draw.SelItms = {} 
+                                else 
+                                    Draw.SelItms = {i}
+                                end
+                            else 
+                                Draw.SelItms = {i}
+                            end
+                        elseif Mods == Shift then 
+                            
+                            if tablefind(Draw.SelItms, i) then 
+                                table.remove(Draw.SelItms, tablefind(Draw.SelItms, i))
+                            else
+                                table.insert(Draw.SelItms, i)
+                            end
+                        end
                     end
                     pos[3], pos[4] =  im.GetItemRectMax(ctx)
                     pos[1], pos[2] = pos[1]+2, pos[2]+2
                     pos[3], pos[4] = pos[3]-2, pos[4]-2
-                    if Draw.SelItm == i then 
+                    if Draw.SelItms == i then 
                         Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'),nil, nil , 2 )
+                    elseif tablefind(Draw.SelItms, i) then 
+                        Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'), nil, nil , 2 )
                     end 
+
+
                     Draw_Background(FxGUID, pos, i)
                    SL(nil, 2) 
                 end
@@ -884,23 +1012,34 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
             Show_Selected_Drawing_Btns()
-            local It = Draw.SelItm
-
-            im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
+            local It = Draw.SelItms[1]
+            if not It then 
+                im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
+            end
             AddSpacing(5)
             im.Text(ctx, 'Type:')
             im.SameLine(ctx)
             --im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999933)
 
+            local function Set_To_All_Draw_Items(str, v, D )
+                if Draw.SelItms then
+                    for i, V in ipairs(Draw.SelItms) do
+                        D[V][str] = v
+                    end
+                end
+            end
+            
 
-            if Draw.SelItm then typelbl = D[It].Type end
+
+            --if Draw.SelItms then typelbl = D[It].Type end
             Draw.Type = Draw.Type or 'line'
             im.SetNextItemWidth(ctx, FullWidth)
-            if im.BeginCombo(ctx, '##', typelbl or Draw.Type or 'line', im.ComboFlags_NoArrowButton) then
+            if im.BeginCombo(ctx, '## Draw Type', typelbl or Draw.Type or 'line', im.ComboFlags_NoArrowButton) then
                 local function setType(str)
                     if im.Selectable(ctx, str, false) then
                         if It then D[It].Type = str end
                         Draw.Type = str
+                        Set_To_All_Draw_Items('Type', str , D)
                     end
                 end
                 setType('Picture')
@@ -924,10 +1063,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     im.TableNextColumn(ctx)
                     im.Text(ctx, "Color:")
                     im.TableNextColumn(ctx)
-                    if Draw.SelItm and D[It].clr then
+                    if Draw.SelItms and D[It].clr then
                         clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
                     else
                         clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                    end
+                    if clrpick then 
+                        Set_To_All_Draw_Items('clr', D[It].clr, D)
                     end
 
                     im.TableNextRow(ctx)
@@ -953,55 +1095,69 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         rv, D[It].KeepImgRatio = im.Checkbox(ctx, '##KeepImgRatio', D[It].KeepImgRatio)
                     end
 
-                    if Draw.SelItm then
-                        im.TableNextRow(ctx)
-                        im.TableNextColumn(ctx)
-                        im.Text(ctx, "Start Pos X:")
-                        im.TableNextColumn(ctx)
-                        im.SetNextItemWidth(ctx, -FLT_MIN)
-                        _, D[It].L = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'L', D[It].L, 1, -Win_W, Win_W*2, '%.0f')
-
-                        if D[It].Type ~= 'V-line' and D[It].Type ~= 'circle' and D[It].Type ~= 'circle fill' then
+                    if Draw.SelItms then
+                        local function Start_Pos_X()
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
-                            im.Text(ctx, "End Pos X:")
+                            im.Text(ctx, "Start Pos X:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, -Win_W, Win_W*2, '%.0f')
+                            _, D[It].L = im.DragDouble(ctx, '##' .. It .. 'L', D[It].L, 1, -fx.Width, fx.Width*2, '%.0f')
+                            if im.IsItemActive(ctx) then 
+                                Set_To_All_Draw_Items('L', D[It].L, D)
+                            end
                         end
-
-                        if D[It].Type == 'circle' or D[It].Type == 'circle fill' then
+                        local function End_Pos_X()
+                            if D[It].Type == 'Text' or D[It].Type == 'V-line' then return end
+                            local lbl = (D[It].Type == 'circle' or D[It].Type == 'circle fill') and 'Radius:' or  "End Pos X:"
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
-                            im.Text(ctx, "Radius:")
+                            im.Text(ctx, lbl)
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].R = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'R', D[It].R, 1, -Win_W, Win_W*2, '%.0f')
+                            _, D[It].R = im.DragDouble(ctx, '##' .. It .. 'R', D[It].R, 1, -fx.Width, fx.Width*2, '%.0f')
+
+                            if im.IsItemActive(ctx) then 
+                                Set_To_All_Draw_Items('R', D[It].R, D)
+                            end
                         end 
 
-                        im.TableNextRow(ctx)
-                        im.TableNextColumn(ctx)
-                        im.Text(ctx, "Start Pos Y:")
-                        im.TableNextColumn(ctx)
-                        im.SetNextItemWidth(ctx, -FLT_MIN)
-                        _, D[It].T = im.DragDouble(ctx, '##' .. Draw.SelItm .. 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f')
 
-                        if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
+                        local function Start_Pos_Y()
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
-                            im.Text(ctx, "End Pos Y:")
+                            im.Text(ctx, "Start Pos Y:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f')
+                            _, D[It].T = im.DragDouble(ctx, '##' .. It .. 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f')
+                            if im.IsItemActive(ctx) then 
+                                Set_To_All_Draw_Items('T', D[It].T, D)
+                            end
                         end
 
-                        if D[It].Type == 'Text' then
+                        local function End_Pos_Y()
+                            if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
+                                im.TableNextRow(ctx)
+                                im.TableNextColumn(ctx)
+                                im.Text(ctx, "End Pos Y:")
+                                im.TableNextColumn(ctx)
+                                im.SetNextItemWidth(ctx, -FLT_MIN)
+                                _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f')
+                            end
+                            if im.IsItemActive(ctx) then 
+                                Set_To_All_Draw_Items('B', D[It].B, D)
+                            end
+                        end
+                        local function TEXT()
+                            if D[It].Type ~= 'Text' then return end
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
                             im.Text(ctx, "Text:")
                             im.TableNextColumn(ctx)
                             im.SetNextItemWidth(ctx, -FLT_MIN)
                             _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
+                            Set_To_All_Draw_Items('Txt', D[It].Txt, D)
+
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
                             im.Text(ctx, "Font Size:")
@@ -1009,6 +1165,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local rv, Sz = im.InputInt(ctx, '## font size ' .. It, D[It].FtSize or 12)
                             if rv then
                                 D[It].FtSize = Sz
+                                Set_To_All_Draw_Items('FtSize', D[It].FtSize, D)
+
                             end
                             im.TableNextRow(ctx)
                             im.TableNextColumn(ctx)
@@ -1022,6 +1180,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 for i , v in ipairs(FONT_CHOICES) do
                                     if im.Selectable(ctx, v) then
                                         D[It].Font = v
+                                        Set_To_All_Draw_Items('Font', D[It].Font, D)
+
                                     end
                                 end
                                 im.EndCombo(ctx)
@@ -1034,14 +1194,26 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local rv, bold = im.Checkbox(ctx, "Bold", D[It].Font_Bold)
                             if rv then
                                 D[It].Font_Bold = toggle(D[It].Font_Bold)
+                                Set_To_All_Draw_Items('Font_Bold', D[It].Font_Bold, D)
+
                             end
                             SL()
 
                             local rv, italic = im.Checkbox(ctx, "Italic", D[It].Font_Italic)
                             if rv then
                                 D[It].Font_Italic = toggle(D[It].Font_Italic)
+                                Set_To_All_Draw_Items('Font_Italic', D[It].Font_Italic, D)
                             end
                         end
+
+                        Start_Pos_X()
+                       
+                        End_Pos_X()
+
+                        Start_Pos_Y()
+                        End_Pos_Y()
+                        TEXT()
+                      
                     end
                     im.EndTable(ctx)
                 end
@@ -1159,12 +1331,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         local function Label_Name()
             SL()
             ---Label    Show only when there's one item selected-----
-            if LE.Sel_Items[1] and not LE.Sel_Items[2] then
+            if LE.Sel_Items[1] then
                 im.Text(ctx, 'Label: '); im.SameLine(ctx)
                 im.SetNextItemWidth(ctx, 200)
                 local LblEdited, buf = im.InputText(ctx, ' ##Edit Title' .. FxGUID .. LE.Sel_Items[1], FS.CustomLbl or buf)
-                if im.IsItemActivated(ctx) then EditingPrmLbl = LE.Sel_Items[1] end
-                if im.IsItemDeactivatedAfterEdit(ctx) then FS.CustomLbl = buf end
+                --if im.IsItemActivated(ctx) then EditingPrmLbl = LE.Sel_Items[1] end
+                if im.IsItemDeactivatedAfterEdit(ctx) then ToAllSelItm('CustomLbl', buf)  end
+
+
 
             end
         end
@@ -3362,7 +3536,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
     end -------------------- End of Repeat for every selected item
-    if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and not Draw.DrawMode[FxGUID] then
+    if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and  Draw.DrawMode~= FxGUID then
         im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
 
         im.Text(ctx, 'Edge Round:')
@@ -3547,14 +3721,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
             RetrieveFXsSavedLayout(Sel_Track_FX_Count)
             im.CloseCurrentPopup(ctx)
-            Draw.DrawMode[FxGUID] = nil
+            Draw.DrawMode = nil
         end
         im.SameLine(ctx)
 
         if im.Button(ctx, '(y) Yes') then
             SaveDrawings(FX_Idx, FxGUID)
             im.CloseCurrentPopup(ctx)
-            Draw.DrawMode[FxGUID] = nil
+            Draw.DrawMode = nil
         end
         im.EndPopup(ctx)
     end
@@ -3569,7 +3743,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     im.End(ctx)
     if CloseLayEdit then
         FX.LayEdit = nil
-        Draw.DrawMode[FxGUID] = nil
+        Draw.DrawMode = nil
     end
 
 
@@ -6982,7 +7156,7 @@ end
 ---@param PosX number
 ---@param PosY number
 function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
-    if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Cmd then
+    if FX.LayEdit == FxGUID and Draw.DrawMode~= FxGUID and Mods ~= Cmd  then
         local DeltaX, DeltaY = im.GetMouseDelta(ctx); local MouseX, MouseY = im.GetMousePos(ctx)
         local FP = FX[FxGUID][Fx_P]
         local WinDrawList = im.GetWindowDrawList(ctx)
@@ -7022,10 +7196,12 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             if (Mods ~= Shift and Mods ~= Shift + Ctrl and Mods ~= Shift + Alt) and FP.PosX and FP.PosY then
                 local X_Dif, Y_Dif = math.abs(Orig_Item_Pos_X - FP.PosX), math.abs(Orig_Item_Pos_Y - FP.PosY)
                 if X_Dif > LE.GridSize*0.55 or Y_Dif > LE.GridSize*0.55 then -- if item is moved more than grid size
-                    -- qunatize pos to grid 
-
+                    -- quantize pos to grid 
+                    local diff_X =  roundUp(FP.PosX, LE.GridSize) - FP.PosX 
+                    local diff_Y = FP.PosY - roundUp(FP.PosY, LE.GridSize) 
                     FP.PosX = SetMinMax(roundUp(FP.PosX, LE.GridSize), 0,Win_W - (FP.Sldr_W or 15))
                     FP.PosY = SetMinMax(roundUp(FP.PosY, LE.GridSize), 0, 220 - 10)
+                    return diff_X, diff_Y
                 else -- move items back to original pos
 
                     FP.PosX = Orig_Item_Pos_X
@@ -7084,20 +7260,23 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                             table.insert(LE.Sel_Items,Fx_P)
                         end
                     end
+                    if tablefind(LE.Sel_Items, Fx_P) then
 
-                    if IsLBtnClicked and not ChangePrmW then
-                        ClickOnAnyItem = true
-                        FP.PosX = PosX
-                        FP.PosY = PosY
+                        if IsLBtnClicked and not ChangePrmW then
+                            ClickOnAnyItem = true
+                            FP.PosX = PosX
+                            FP.PosY = PosY
+                            local Undo_LBL = #LE.Sel_Items > 1 and 'Change '..#LE.Sel_Items..' Items Position' or 'Change '..FP.Name..' Position'
+                            Create_Undo_Point(Undo_LBL , FxGUID)
+                                if #LE.Sel_Items > 1 then
+                                    LE.ChangePos = LE.Sel_Items
+                                else
+                                    LE.ChangePos = Fx_P
+                                end
 
-                            if #LE.Sel_Items > 1 then
-                                LE.ChangePos = LE.Sel_Items
-                            else
-                                LE.ChangePos = Fx_P
-                            end
+                            Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
 
-                        Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
-
+                        end
                     end
 
                     
@@ -7157,6 +7336,8 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
                     if IsLBtnClicked then
                         local ChangeSelectedItmBounds 
+                        local Undo_LBL = #LE.Sel_Items > 1 and 'Resize '..#LE.Sel_Items..' Items' or 'Resize '..FP.Name
+                        Create_Undo_Point(Undo_LBL, FxGUID)
                         if #LE.Sel_Items > 1 then 
                             for i, v in pairs(LE.Sel_Items) do
                                 if v == Fx_P then
@@ -7177,6 +7358,8 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                     im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
                     im.DrawList_AddCircleFilled(WinDrawList, R, B, 4, 0xbbbbbbff)
                     if IsLBtnClicked then
+                        local Undo_LBL = #LE.Sel_Items > 1 and 'Resize '..#LE.Sel_Items..' Items' or 'Resize '..FP.Name
+                        Create_Undo_Point(Undo_LBL, FxGUID)
                         local ChangeSelItmRadius
                         for i, v in pairs(LE.Sel_Items) do
                             if v == Fx_P then ChangeSelItmRadius = true end
@@ -7299,62 +7482,23 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 Qunantize_Item_Pos_To_Grid(FP)
     
             elseif LBtnRel and tablefind(LE.ChangePos, Fx_P)  then  
-
-                for i, v in pairs(LE.ChangePos) do
-                    Qunantize_Item_Pos_To_Grid(FX[FxGUID][v])
-                
+                local function Quantize()
+                    local diff_X, diff_Y = Qunantize_Item_Pos_To_Grid(FX[FxGUID][LE.ChangePos[1]])
+                    for i, v in pairs(LE.ChangePos) do
+                        if i ~= 1 then
+                            FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + (diff_X or 0)
+                            FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - (diff_Y or 0)
+                        end
+                    end
                 end
+                --Quantize()
             end 
             
         end
 
-        local function Marquee_Select_Items()
-
-            if  im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-                --if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
-                if im.IsMouseClicked(ctx,1) then 
-                    Marq_Start = {im.GetMousePos(ctx)}
-                    if Mods ~= Shift then 
-                        LE.Sel_Items ={}
-                    end
-                end 
-
-                if im.IsMouseDown(ctx,1)  then 
-                    local S = Marq_Start --Start
-                    local N = {im.GetMousePos(ctx)} --now
-                    local ItmCtX = L+ (R-L)/2
-                    local ItmCtY = T+ (B-T)/2
-                    if not S then return end 
-                    local minX = math.min(S[1], N[1])
-                    local minY = math.min(S[2], N[2])
-                    im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff05)
-                    im.DrawList_AddCircle(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
-
-
-                    -- if marquee covers item center
-
-                    if minX+ math.abs(S[1]- N[1]) > ItmCtX and minX < ItmCtX 
-                        and minY+ math.abs(S[2] - N[2]) > ItmCtY and minY < ItmCtY   then 
-                        im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
-                        
-                        if not FindExactStringInTable(LE.Sel_Items , Fx_P) then 
-                            table.insert(LE.Sel_Items , Fx_P)
-                        end 
-                    elseif FindExactStringInTable(LE.Sel_Items , Fx_P) then
-                        im.DrawList_AddCircleFilled(WDL, ItmCtX,ItmCtY, 5, 0xffffff88)
-
-                    end 
-                else 
-
-                    Marq_Start = nil
-
-                end 
 
 
 
-                --end
-            end
-        end
 
 
 
@@ -7368,7 +7512,8 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         Mouse_Interaction()
         Allow_Use_Keyboard_To_Edit()    
         Change_Size_or_Move()
-        Marquee_Select_Items()
+        --Marquee_Select_Items()
+        LE.Sel_Items = Marquee_Selection({ L+ (R-L)/2 , T+ (B-T)/2}, LE.Sel_Items, Fx_P, 0xffffff88)
 
 
 
@@ -7428,4 +7573,13 @@ function Calc_strip_uv(img, V)
             im.DrawList_AddImage(WDL, FP.Image, center[1] - sz / 2, center[2] - sz / 2, center[1] + sz / 2,
                 center[2] + sz / 2, 0, uvmin, 1, uvmax, FP.BgClr or 0xffffffff)
         end ]]
+end
+
+
+
+function Create_Undo_Point(str , FxGUID)
+    LE.Undo_Points = LE.Undo_Points or {}
+    FX[FxGUID].Draw.Preview = nil 
+    table.insert(LE.Undo_Points, deepCopy(FX[FxGUID]))
+    LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name = str
 end

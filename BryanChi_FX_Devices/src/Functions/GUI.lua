@@ -1372,7 +1372,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             end
             CloseLayEdit = nil
             im.CloseCurrentPopup(ctx)
-            if Draw.DrawMode[FxGUID] then Draw.DrawMode[FxGUID] = nil end
+            if Draw.DrawMode then Draw.DrawMode = nil end
         end
 
 
@@ -3426,7 +3426,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Win_L, Win_T = im.GetItemRectMin(ctx); Win_W, Win_H = im.GetItemRectSize(ctx)
             Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
             local function Disable_If_LayEdit(Begin_or_End)
-                if (FX.LayEdit == FxGUID or Draw.DrawMode[FxGUID] == true) and Mods ~= Cmd then
+                if (FX.LayEdit == FxGUID or Draw.DrawMode == FxGUID) and Mods ~= Cmd then
                     if Begin_or_End =='Begin' then 
                         im.BeginDisabled(ctx)
                     elseif Begin_or_End =='End' then 
@@ -3438,7 +3438,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             local function If_LayEdit_Activated()
                     
-                if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true and Mods ~= Cmd then -- Resize FX or title btn
+                if FX.LayEdit == FxGUID and Draw.DrawMode ~= FxGUID and Mods ~= Cmd then -- Resize FX or title btn
                     MouseX, MouseY = im.GetMousePos(ctx)
                     Win_L, Win_T = im.GetItemRectMin(ctx)
                     Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
@@ -3491,7 +3491,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local function If_LayEdit_Activated__WindowBtn()
                 local MouseX, MouseY = im.GetMousePos(ctx)
-                if FX.LayEdit == FxGUID and Draw.DrawMode[FxGUID] ~= true then
+                if FX.LayEdit == FxGUID and Draw.DrawMode ~= FxGUID then
                     im.BeginDisabled(ctx); R, T = im.GetItemRectMax(ctx)
                     local L, T = im.GetItemRectMin(ctx); local R, _ = im.GetItemRectMax( ctx); B = T + 20
                     local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
@@ -5353,15 +5353,15 @@ end
 function Draw_Background(FxGUID, pos, Draw_Which)
 
     if not FX[FxGUID].Draw or FX[FxGUID].Collapse then return end
-    local function Draw_Itm (i  )
+    local function Draw_Itm (i  , TB  )
         FX[FxGUID].Draw[i] = FX[FxGUID].Draw[i] or {}
-        local D = FX[FxGUID].Draw[i]
+        local D = TB[i]
         local pos = pos or {}
         local L = pos[1] or (Win_L + D.L)
         local T = pos[2] or (Win_T + D.T)
         local R = pos[3] or (Win_L + (D.R or 0))
         local B = pos[4] or (Win_T + D.B)
-        local Round = FX[FxGUID].Draw.Df_EdgeRound or 0
+        local Round = TB.Df_EdgeRound or 0
         local WDL = WDL or im.GetWindowDrawList(ctx)
         if D.Type == 'line' then
             im.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
@@ -5412,10 +5412,11 @@ function Draw_Background(FxGUID, pos, Draw_Which)
         end
     end
     if Draw_Which then 
-        Draw_Itm (Draw_Which  )
+        Draw_Itm (Draw_Which , FX[FxGUID].Draw.Preview or FX[FxGUID].Draw )
     else 
-        for i, Type in ipairs(FX[FxGUID].Draw) do
-            Draw_Itm (i  )
+        local TB = FX[FxGUID].Draw.Preview or FX[FxGUID].Draw 
+        for i, Type in ipairs(TB) do
+            Draw_Itm (i , TB  )
         end
     end
 
@@ -5836,4 +5837,58 @@ function Show_Helper_Message()
 
     end
 
+end
+
+
+
+function Marquee_Selection(ItmCt, TB, V , FillClr)
+    local WDL = im.GetWindowDrawList(ctx)
+    if  im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
+        --if MouseX > L and MouseX < R - 5 and MouseY > T and MouseY < B then
+        if im.IsMouseClicked(ctx,1) then 
+            Marq_Start = {im.GetMousePos(ctx)}
+            if Mods ~= Shift then 
+                TB ={}
+            end
+        end 
+
+        if im.IsMouseDown(ctx,1)  then 
+            local S = Marq_Start --Start
+            local N = {im.GetMousePos(ctx)} --now
+            --local ItmCt ={ L+ (R-L)/2 , T+ (B-T)/2 }
+            if not S then return end 
+            local minX = math.min(S[1], N[1])
+            local minY = math.min(S[2], N[2])
+            im.DrawList_AddRectFilled(WDL, S[1], S[2], N[1], N[2], 0xffffff05)
+            im.DrawList_AddCircle(WDL, ItmCt[1],ItmCt[2], 5, 0xffffff88)
+
+
+            -- if marquee covers item center
+
+            if minX+ math.abs(S[1]- N[1]) > ItmCt[1] and minX < ItmCt[1] 
+                and minY+ math.abs(S[2] - N[2]) > ItmCt[2] and minY < ItmCt[2]   then 
+                    if FillClr then 
+                        im.DrawList_AddCircleFilled(WDL, ItmCt[1],ItmCt[2], 5, 0xffffff88)
+                    end
+
+                if not FindExactStringInTable(TB , V) then 
+                    table.insert(TB , V)
+                end 
+            elseif FindExactStringInTable(TB , V) then
+                if FillClr then 
+                    im.DrawList_AddCircleFilled(WDL, ItmCt[1],ItmCt[2], 5, 0xffffff88)
+                end
+
+            end 
+        else 
+
+            Marq_Start = nil
+
+        end 
+
+
+       
+        --end
+    end
+    return TB
 end
