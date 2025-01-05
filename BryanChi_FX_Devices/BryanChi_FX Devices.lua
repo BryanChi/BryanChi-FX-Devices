@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.8
+-- @version 1.0beta16.9
 -- @changelog
 --  - Background Editor : the repeat feature is now available for drawing shapes with specified gaps like in the attached drawings.
 --  - Background Editor : Fixed behavior when drawing lines.
