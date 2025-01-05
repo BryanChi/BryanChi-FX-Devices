@@ -2,11 +2,10 @@
 -- @author Bryan Chi
 -- @version 1.0beta16.8
 -- @changelog
---  - Layout Editor : Added undo buttons for certain actions.
---  - Layout Editor : Allow changing the label of multiple parameters at once.  
---  - Layout Editor : Disabling quantizing parameter positions to grid when multiple parameters are moved.
---  - Layout Editor & Background Editor : Added multiple new menu bar buttons for aligning and spacing parameters.
---  - Background Editor : Allow Marquee selection to edit multipl drawings at once. 
+--  - Background Editor : the repeat feature is now available for drawing shapes with specified gaps like in the attached drawings.
+--  - Background Editor : Fixed behavior when drawing lines.
+--  - Background Editor : improved layout in the properties window.
+--  - Improved layout for Snap Heap.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

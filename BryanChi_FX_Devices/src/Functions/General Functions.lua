@@ -1015,7 +1015,14 @@ function SaveDrawings(FX_Idx, FxGUID)
             write('FontSize', D.FtSize, i)
             write('FontBold', tostring(D.Font_Bold), i)
             write('FontItalic', tostring(D.Font_Italic), i)
-            
+            write('Fill', tostring (D.Fill), i)
+            write('Repeat', tostring(D.Repeat), i)
+            write('RepeatClr', tostring(D.RepeatClr), i)
+            write('XGap', D.XGap, i)
+            write('YGap', D.YGap, i)
+            write('Gap', D.Gap, i)
+            write('Thick', D.Thick, i)
+
             file:write('\n')
         end
     end

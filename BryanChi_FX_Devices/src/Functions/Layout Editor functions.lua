@@ -323,32 +323,37 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
                 Draw.CurrentlyDrawing = true
                 MsX_Start, MsY_Start = im.GetMousePos(ctx);
                 CurX, CurY = im.GetCursorScreenPos(ctx)
-                Win_MsX_Start = MsX_Start - CurX; Win_MsY_Start = MsY_Start - CurY + 3
+                Win_MsX_Start = MsX_Start - Win_L; Win_MsY_Start = MsY_Start - Win_T
             end
 
             if Draw.CurrentlyDrawing then
-                if IsLBtnHeld and Mods == 0 and MsX_Start then
-                    msg('a')
-                    MsX, MsY   = im.GetMousePos(ctx)
-                    CurX, CurY = im.GetCursorScreenPos(ctx)
-                    Win_MsX    = MsX - CurX; Win_MsY = MsY - CurY
 
-                    Rad        = MsX - MsX_Start
+
+                local MsX, MsY   = im.GetMousePos(ctx)
+                local CurX, CurY = im.GetCursorScreenPos(ctx)
+                local Win_MsX    = MsX - Win_L
+                local Win_MsY = MsY - Win_T
+                local Rad        = MsX - MsX_Start
+                if IsLBtnHeld and MsX_Start then
+
+                    local WDL = im.GetWindowDrawList(ctx)
                     local Clr  = Draw.clr or 0xffffffff
                     if Rad < 0 then Rad = Rad * (-1) end
                     if Draw.Type == 'line' then
-                        im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY_Start, Clr)
-                    elseif Draw.Type == 'V-line' then
-                        im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX_Start, MsY, Clr)
+                        MsX = Mods == Ctrl and MsX_Start or MsX
+                        MsY = Mods == Shift and MsY_Start or MsY
+                        HelperMsg.Need_Add_Mouse_Icon = 'L'
+                        HelperMsg.Ctrl_L = 'Lock Y Axis'
+                        HelperMsg.Shift_L = 'Lock X Axis'
+                        im.DrawList_AddLine(WDL, MsX_Start, MsY_Start, MsX, MsY , Clr)
+
                     elseif Draw.Type == 'rectangle' then
-                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
-                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FX[FxGUID].Draw.Df_EdgeRound or 0)
+                        
                     elseif Draw.Type == 'Picture' then
-                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
-                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                        im.DrawList_AddRect(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FX[FxGUID].Draw.Df_EdgeRound or 0)
                     elseif Draw.Type == 'rect fill' then
-                        im.DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr,
-                            FX[FxGUID].Draw.Df_EdgeRound or 0)
+                        im.DrawList_AddRectFilled(WDL, MsX_Start, MsY_Start, MsX, MsY, Clr, FX[FxGUID].Draw.Df_EdgeRound or 0) 
                     elseif Draw.Type == 'circle' then
                         im.DrawList_AddCircle(WDL, MsX_Start, MsY_Start, Rad, Clr)
                     elseif Draw.Type == 'circle fill' then
@@ -358,7 +363,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
                     end
                 end
 
-                if im.IsMouseReleased(ctx, 0) and Mods == 0 and Draw.Type ~= 'Text' then
+                if im.IsMouseReleased(ctx, 0)  and Draw.Type ~= 'Text' then
                     FX[FxGUID].Draw[(#FX[FxGUID].Draw or 0) + 1] = {}
                     local D = FX[FxGUID].Draw[(#FX[FxGUID].Draw or 1)]
 
@@ -371,12 +376,18 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
                     else
                         D.R = Win_MsX
                     end
+                   
 
                     D.L = Win_MsX_Start
                     D.T = Win_MsY_Start
                     D.Type = Draw.Type
                     D.B = Win_MsY
                     D.clr = Draw.clr or 0xffffffff
+
+                    if Draw.Type == 'line' then
+                        D.R = Mods == Ctrl and Win_MsX_Start or Win_MsX
+                        D.B = Mods == Shift and Win_MsY_Start or Win_MsY
+                    end
                     --if not Draw.SelItms then Draw.SelItms = #D.Type end
                 end
 
@@ -816,221 +827,352 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     local Color_Palette_Width = 25
     local FxGUID = r.TrackFX_GetFXGUID( LT_Track, FX_Idx)
     if FX.LayEdit ~= FxGUID then return end
-    HelperMsg.R = 'Marquee Select Items'
-    HelperMsg.Shift_R = 'Add Marquee to Selection'
-
+    if not Draw.CurrentlyDrawing then 
+        HelperMsg.R = 'Marquee Select Items'
+        HelperMsg.Shift_R = 'Add Marquee to Selection'
+        HelperMsg.Others[1] = OS:find('OSX') and '| Hold Command to hide grid' or '| Hold Ctrl to hide grid'
+    end
     im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
     im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00)
 
     local FxGUID = FXGUID[FX_Idx]
 
-    
-    local function Get_Default_Width(FrstSelItm)
-        local MaxW, MinW
-        if FrstSelItm.Type == 'Knob' then
-            DefaultW = Df.KnobRadius
-            
-        elseif FrstSelItm.Type == 'Slider' or FrstSelItm.Type == 'Drag' or not FrstSelItm.Type then
-            DefaultW = Df.Sldr_W
-
-        elseif FrstSelItm.Type == 'Selection' then
-            DefaultW = FrstSelItm.Combo_W
-
-        elseif FrstSelItm.Type == 'Switch' then
-            DefaultW = FrstSelItm.Switch_W
-
-        elseif FrstSelItm.Type == 'V-Slider' then
-            DefaultW = FrstSelItm.V_Sldr_W
-
-        end
-        return DefaultW
-    end 
 
     if CloseLayEdit then return end 
-
-    if not im.Begin(ctx, 'LayoutEdit Propertiess', true, im.WindowFlags_NoCollapse + im.WindowFlags_NoTitleBar + im.WindowFlags_NoDocking) then return end 
-
-    --if not CloseLayEdit   then    ----START CHILD WINDOW------
-    DisableScroll = true
+    if not im.Begin(ctx, 'LayoutEdit Properties', true, im.WindowFlags_NoCollapse + im.WindowFlags_NoTitleBar + im.WindowFlags_NoDocking) then return end 
 
 
-    HelperMsg.Others[1] = OS:find('OSX') and '| Hold Command to hide grid' or '| Hold Ctrl to hide grid'
 
 
-    if im.Button(ctx, 'Save') then
-        SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
-        CloseLayEdit = true; FX.LayEdit = nil
-    end
-    SL()
-    if im.Button(ctx, 'Exit##Lay') then
-        im.OpenPopup(ctx, 'Save Editing?')
-    end
-    SL()
-
-    if LE.Sel_Items[1] then
-        local I = FX[FxGUID][LE.Sel_Items[1]]
-        if im.Button(ctx, 'Delete') then
-            local tb = {}
-
-            for i, v in pairs(LE.Sel_Items) do
-                tb[i] = v
+    local function Save_Layout_Edit_Popup()
+    
+        if im.BeginPopupModal(ctx, 'Save Editing?') then
+            SaveEditingPopupModal = true
+            im.Text(ctx, 'Would you like to save the editings?')
+            if im.Button(ctx, '(n) No') or im.IsKeyPressed(ctx, im.Key_N) then
+                RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+                im.CloseCurrentPopup(ctx)
+                FX.LayEdit = nil
+                LE.SelectedItem = nil
+                CloseLayEdit = true
             end
-            table.sort(tb)
-
-            for i = #tb, 1, -1 do
-                DeletePrm(FxGUID, tb[i], FX_Idx)
+            im.SameLine(ctx)
+    
+            if im.Button(ctx, '(y) Yes') or im.IsKeyPressed(ctx, im.Key_Y) then
+                SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
+                im.CloseCurrentPopup(ctx)
+                FX.LayEdit = nil
+                LE.SelectedItem = nil
+                CloseLayEdit = true
             end
-
-            if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
-
-            LE.Sel_Items = {}
+            im.SameLine(ctx)
+    
+            if im.Button(ctx, '(c) Cancel') or im.IsKeyPressed(ctx, im.Key_C) or im.IsKeyPressed(ctx, im.Key_Escape) then
+                im.CloseCurrentPopup(ctx)
+            end
+    
+            im.EndPopup(ctx)
         end
 
-        SL(nil, 30)
+    end
 
-        if im.Button(ctx, 'Copy Properties') then
-            CopyPrm = {}
-            CopyPrm = I
+    local function Color_Palette()
+
+        local PalletteW = Color_Palette_Width
+        local Pad = 8
+        if not CloseLayEdit then
+            w, h = im.GetWindowSize(ctx)
+            im.SetCursorPos(ctx, w - PalletteW - Pad, PalletteW + Pad)
         end
 
+
+
+
+
+
+
+        if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' , PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
+            local function CheckClr(TB, Clr)
+                if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
+                    if not tablefind(TB, Clr) and TB then
+                        local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
+                        if A ~= 0 then
+                            table.insert(TB, Clr)
+                        end
+                        
+                    end
+                end
+            end
+           
+
+            local function Get_ALL_Used_Colors()
+                if FX[FxGUID] then 
+                    local Plt = {}
+
+                    for i, v in ipairs(FX[FxGUID]) do
+                        --[[ local Is_Selected
+                        for I, v in ipairs(LE.Sel_Items) do 
+                            if v == i then 
+                                Is_Selected = true 
+                            end
+                        end ]]
+
+                        CheckClr(Plt, v.Lbl_Clr)
+                        CheckClr(Plt, v.V_Clr)
+                        CheckClr(Plt, v.BgClr)
+                        CheckClr(Plt, v.GrbClr)
+                        if v.Draw then 
+                            for i, D in ipairs(v.Draw) do 
+                                CheckClr(Plt, D.Clr)
+                                CheckClr(Plt, D.Clr_VA)
+                                CheckClr(Plt, D.RPT_Clr)
+                            end
+                        end
+
+
+                    end
+                    if FX[FxGUID].Draw then 
+                        for i, v in ipairs(FX[FxGUID].Draw) do 
+                            CheckClr(Plt, v.clr)
+                        end
+                    end
+                    return Plt
+                end
+            end
+
+
+
+            ClrPallet = Get_ALL_Used_Colors()
+            
+
+            
+
+            for i, v in ipairs(ClrPallet) do
+                clrpick, LblColor1 = im.ColorEdit4(ctx, '##ClrPalette' ..i .. FxGUID, v, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                if im.IsItemClicked(ctx) and Mods == Alt then
+                    table.remove(ClrPallet, tablefind(v))
+                end
+            end
+
+
+            
+            im.EndChild(ctx)
+        end
+        
+    end
+
+    local function Save_Drawing_Popup()
+        if im.BeginPopupModal(ctx, 'Save Draw Editing?') then
+            im.Text(ctx, 'Would you like to save the Drawings?')
+            if im.Button(ctx, '(n) No') then
+                local FxNameS = FX.Win_Name_S[FX_Idx]
+                local HowManyToDelete
+                for i, Type in pairs(Draw[FxNameS].Type) do
+                    HowManyToDelete = i
+                end
+
+                for Del = 1, HowManyToDelete, 1 do
+                    local D = Draw[FxNameS]
+                    table.remove(D.Type, i)
+                    table.remove(D.L, i)
+                    table.remove(D.R, i)
+                    table.remove(D.T, i)
+                    table.remove(D.B, i)
+                    if D.Txt[i] then table.remove(D.Txt, i) end
+                    if D.clr[i] then table.remove(D.clr, i) end
+                end
+                RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+                im.CloseCurrentPopup(ctx)
+                Draw.DrawMode = nil
+            end
+            im.SameLine(ctx)
+
+            if im.Button(ctx, '(y) Yes') then
+                SaveDrawings(FX_Idx, FxGUID)
+                im.CloseCurrentPopup(ctx)
+                Draw.DrawMode = nil
+            end
+            im.EndPopup(ctx)
+        end
+    end
+
+    local function Top_Bar()
+
+        if im.Button(ctx, 'Save') then
+            SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
+            CloseLayEdit = true; FX.LayEdit = nil
+        end
         SL()
-        if CopyPrm  then 
-            if im.Button(ctx, 'Paste Properties') then
-                for i, v in pairs(LE.Sel_Items) do
-                    local I = FX[FxGUID][v]
-                    I.Type        = CopyPrm.Type
-                    I.Sldr_W      = CopyPrm.Sldr_W
-                    I.Style       = CopyPrm.Style
-                    I.V_FontSize  = CopyPrm.V_FontSize
-                    --I.CustomLbl   = CopyPrm.CustomLbl
-                    I.Image       = CopyPrm.Image
-                    I.AtchImgFileNm = CopyPrm.AtchImgFileNm
-                    I.FontSize    = CopyPrm.FontSize
-                    I.Sldr_H      = CopyPrm.Sldr_H
-                    I.BgClr       = CopyPrm.BgClr
-                    I.GrbClr      = CopyPrm.GrbClr
-                    I.Lbl_Pos     = CopyPrm.Lbl_Pos
-                    I.Lbl_Pos_X   = CopyPrm.Lbl_Pos_X
-                    I.Lbl_Pos_Y   = CopyPrm.Lbl_Pos_Y
-                    I.V_Pos       = CopyPrm.V_Pos
-                    I.Lbl_Clr     = CopyPrm.Lbl_Clr
-                    I.V_Clr       = CopyPrm.V_Clr
-                    I.DragDir     = CopyPrm.DragDir
-                    I.Value_Thick = CopyPrm.Value_Thick
-                    I.V_Pos_X     = CopyPrm.V_Pos_X
-                    I.V_Pos_Y     = CopyPrm.V_Pos_Y
-                    I.ImgFilesName   = CopyPrm.ImgFilesName
-                    I.Height      = CopyPrm.Height
-                    I.Invisible = CopyPrm.Invisible
-                    if CopyPrm.Draw then
-                        -- use this line to pool
-                        --I.Draw = CopyPrm.Draw
+        if im.Button(ctx, 'Exit##Lay') then
+            im.OpenPopup(ctx, 'Save Editing?')
+        end
+        SL()
 
-                        I.Draw = I.Draw or {}
-                        for i, v in pairs(CopyPrm.Draw) do
-                            I.Draw[i] = {}
-                            for d, v in pairs(v) do
-                                I.Draw[i][d] = v
+        if LE.Sel_Items[1] then
+            local I = FX[FxGUID][LE.Sel_Items[1]]
+            if im.Button(ctx, 'Delete') then
+                local tb = {}
+
+                for i, v in pairs(LE.Sel_Items) do
+                    tb[i] = v
+                end
+                table.sort(tb)
+
+                for i = #tb, 1, -1 do
+                    DeletePrm(FxGUID, tb[i], FX_Idx)
+                end
+
+                if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
+
+                LE.Sel_Items = {}
+            end
+
+            SL(nil, 30)
+
+            if im.Button(ctx, 'Copy Properties') then
+                CopyPrm = {}
+                CopyPrm = I
+            end
+
+            SL()
+            if CopyPrm  then 
+                if im.Button(ctx, 'Paste Properties') then
+                    for i, v in pairs(LE.Sel_Items) do
+                        local I = FX[FxGUID][v]
+                        I.Type        = CopyPrm.Type
+                        I.Sldr_W      = CopyPrm.Sldr_W
+                        I.Style       = CopyPrm.Style
+                        I.V_FontSize  = CopyPrm.V_FontSize
+                        --I.CustomLbl   = CopyPrm.CustomLbl
+                        I.Image       = CopyPrm.Image
+                        I.AtchImgFileNm = CopyPrm.AtchImgFileNm
+                        I.FontSize    = CopyPrm.FontSize
+                        I.Sldr_H      = CopyPrm.Sldr_H
+                        I.BgClr       = CopyPrm.BgClr
+                        I.GrbClr      = CopyPrm.GrbClr
+                        I.Lbl_Pos     = CopyPrm.Lbl_Pos
+                        I.Lbl_Pos_X   = CopyPrm.Lbl_Pos_X
+                        I.Lbl_Pos_Y   = CopyPrm.Lbl_Pos_Y
+                        I.V_Pos       = CopyPrm.V_Pos
+                        I.Lbl_Clr     = CopyPrm.Lbl_Clr
+                        I.V_Clr       = CopyPrm.V_Clr
+                        I.DragDir     = CopyPrm.DragDir
+                        I.Value_Thick = CopyPrm.Value_Thick
+                        I.V_Pos_X     = CopyPrm.V_Pos_X
+                        I.V_Pos_Y     = CopyPrm.V_Pos_Y
+                        I.ImgFilesName   = CopyPrm.ImgFilesName
+                        I.Height      = CopyPrm.Height
+                        I.Invisible = CopyPrm.Invisible
+                        if CopyPrm.Draw then
+                            -- use this line to pool
+                            --I.Draw = CopyPrm.Draw
+
+                            I.Draw = I.Draw or {}
+                            for i, v in pairs(CopyPrm.Draw) do
+                                I.Draw[i] = {}
+                                for d, v in pairs(v) do
+                                    I.Draw[i][d] = v
+                                end
                             end
                         end
                     end
                 end
             end
         end
-    end
-    SL(nil, 30)
+        SL(nil, 30)
 
-    if Draw.DrawMode == FxGUID then
-        if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode = nil end
-    else
-        if im.Button(ctx, 'Enter Background Edit') then
-            Draw.DrawMode = FxGUID
-            LE.Sel_Items = {}
+        if Draw.DrawMode == FxGUID then
+            if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode = nil end
+        else
+            if im.Button(ctx, 'Enter Background Edit') then
+                Draw.DrawMode = FxGUID
+                LE.Sel_Items = {}
+            end
         end
+        im.Separator(ctx)
+
     end
-
-
-
-
-    im.Separator(ctx)
-
-
-
-    if not LE.Sel_Items[1] then
+    local function Background_Edit_Properties()
+        if LE.Sel_Items[1]  then return end 
         if Draw.DrawMode ~= FxGUID then
             im.TextWrapped(ctx, 'Select an item to start editing')
             AddSpacing(15)
-        else
-            local typelbl; 
-            FX[FxGUID].Draw = FX[FxGUID].Draw or {}
-            local D = FX[FxGUID].Draw
-            local FullWidth = -50
-            
-            local function Show_Selected_Drawing_Btns()
-                local sz = 100
-                im.BeginChild(ctx, 'Drawings Preview', FullWidth, sz)
-                SL()
-                Draw.SelItms = Draw.SelItms or {}
-                for i, v in ipairs(D) do 
+            return 
+        end
 
-                    local pos = {im.GetCursorScreenPos(ctx)}
-                    if im.Button(ctx, i..'## Drawing Selection', sz,sz) then 
-                        if Mods == 0 then
-                            if tablefind(Draw.SelItms, i) then 
-                                if #Draw.SelItms == 1 then 
-                                    Draw.SelItms = {} 
-                                else 
-                                    Draw.SelItms = {i}
-                                end
+        local typelbl; 
+        FX[FxGUID].Draw = FX[FxGUID].Draw or {}
+        local D = FX[FxGUID].Draw
+        local FullWidth = -50
+        
+        local function Show_Selected_Drawing_Btns()
+            local sz = 100
+            im.BeginChild(ctx, 'Drawings Preview', FullWidth, sz)
+            SL()
+            Draw.SelItms = Draw.SelItms or {}
+            for i, v in ipairs(D) do 
+                
+                local pos = {im.GetCursorScreenPos(ctx)}
+
+                if im.Button(ctx, '##'..i..'\n'..D[i].Type ..' Drawing Selection', sz,sz) then 
+                    if Mods == 0 then
+                        if tablefind(Draw.SelItms, i) then 
+                            if #Draw.SelItms == 1 then 
+                                Draw.SelItms = {} 
                             else 
                                 Draw.SelItms = {i}
                             end
-                        elseif Mods == Shift then 
-                            
-                            if tablefind(Draw.SelItms, i) then 
-                                table.remove(Draw.SelItms, tablefind(Draw.SelItms, i))
-                            else
-                                table.insert(Draw.SelItms, i)
-                            end
+                        else 
+                            Draw.SelItms = {i}
+                        end
+                    elseif Mods == Shift then 
+                        
+                        if tablefind(Draw.SelItms, i) then 
+                            table.remove(Draw.SelItms, tablefind(Draw.SelItms, i))
+                        else
+                            table.insert(Draw.SelItms, i)
                         end
                     end
-                    pos[3], pos[4] =  im.GetItemRectMax(ctx)
-                    pos[1], pos[2] = pos[1]+2, pos[2]+2
-                    pos[3], pos[4] = pos[3]-2, pos[4]-2
-                    if Draw.SelItms == i then 
-                        Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'),nil, nil , 2 )
-                    elseif tablefind(Draw.SelItms, i) then 
-                        Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'), nil, nil , 2 )
-                    end 
-
-
-                    Draw_Background(FxGUID, pos, i)
-                   SL(nil, 2) 
                 end
-                im.EndChild(ctx)
+                pos[3], pos[4] =  im.GetItemRectMax(ctx)
+                pos[1], pos[2] = pos[1]+2, pos[2]+2
+                pos[3], pos[4] = pos[3]-2, pos[4]-2
+                if Draw.SelItms == i then 
+                    Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'),nil, nil , 2 )
+                elseif tablefind(Draw.SelItms, i) then 
+                    Highlight_Itm(WDL, nil, ThemeClr('Accent_Clr'), nil, nil , 2 )
+                end 
+
+                im.PushClipRect(ctx, pos[1], pos[2], pos[3], pos[4], 1)
+                Draw_Background(FxGUID, pos, i, true)
+                im.DrawList_AddText(WDL, pos[1], pos[2], 0x999999ff, i..'\n'..D[i].Type )
+                im.PopClipRect(ctx)
+                SL(nil, 2) 
             end
+            im.EndChild(ctx)
+        end
 
 
-            Show_Selected_Drawing_Btns()
-            local It = Draw.SelItms[1]
-            if not It then 
-                im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
+        Show_Selected_Drawing_Btns()
+        local It = Draw.SelItms[1]
+        if not It then 
+            im.Text(ctx, '(!) Hold down Left button to Draw in FX Devices')
+        end
+        AddSpacing(5)
+      
+        --im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999933)
+
+        local function Set_To_All_Draw_Items(str, v, D )
+            if Draw.SelItms then
+                for i, V in ipairs(Draw.SelItms) do
+                    D[V][str] = v
+                end
             end
-            AddSpacing(5)
+        end
+        
+        local function Type ()
             im.Text(ctx, 'Type:')
             im.SameLine(ctx)
-            --im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999933)
-
-            local function Set_To_All_Draw_Items(str, v, D )
-                if Draw.SelItms then
-                    for i, V in ipairs(Draw.SelItms) do
-                        D[V][str] = v
-                    end
-                end
-            end
-            
-
-
             --if Draw.SelItms then typelbl = D[It].Type end
             Draw.Type = Draw.Type or 'line'
             im.SetNextItemWidth(ctx, FullWidth)
@@ -1044,184 +1186,253 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
                 setType('Picture')
                 setType('line')
-                setType('V-line')
                 setType('rectangle')
-                setType('rect fill')
                 setType('circle')
-                setType('circle fill')
                 setType('Text')
 
                 im.EndCombo(ctx)
             end
+        end
 
-            if It then 
-                if im.BeginTable(ctx, "DrawProperties", 2, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then
-                    im.TableSetupColumn(ctx, "Property", im.TableColumnFlags_WidthFixed, 150)
-                    im.TableSetupColumn(ctx, "Value", im.TableColumnFlags_WidthStretch)
+        local function TEXT()
+            if not Draw.SelItms or not It then return end 
+            if D[It].Type ~= 'Text' then return end
 
-                    im.TableNextRow(ctx)
-                    im.TableNextColumn(ctx)
-                    im.Text(ctx, "Color:")
-                    im.TableNextColumn(ctx)
-                    if Draw.SelItms and D[It].clr then
-                        clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                    else
-                        clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                    end
-                    if clrpick then 
-                        Set_To_All_Draw_Items('clr', D[It].clr, D)
-                    end
+            if  im.BeginTable(ctx, "TxtProperties", 2, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then  
+                im.TableSetupColumn(ctx, "Property", im.TableColumnFlags_WidthFixed, 150)
+                im.TableSetupColumn(ctx, "Value", im.TableColumnFlags_WidthStretch)
+    
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Text:")
+                im.TableNextColumn(ctx)
+                im.SetNextItemWidth(ctx, -FLT_MIN)
+                _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
+                Set_To_All_Draw_Items('Txt', D[It].Txt, D)
 
-                    im.TableNextRow(ctx)
-                    im.TableNextColumn(ctx)
-                    im.Text(ctx, "Default edge rounding:")
-                    im.TableNextColumn(ctx)
-                    im.SetNextItemWidth(ctx, -FLT_MIN)
-                    FX[FxGUID].Draw = FX[FxGUID].Draw or {}
-                    EditER, FX[FxGUID].Draw.Df_EdgeRound = im.DragDouble(ctx, '##' .. FxGUID, FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f')
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Font Size:")
+                im.TableNextColumn(ctx)
+                local rv, Sz = im.InputInt(ctx, '## font size ' .. It, D[It].FtSize or 12)
+                if rv then
+                    D[It].FtSize = Sz
+                    Set_To_All_Draw_Items('FtSize', D[It].FtSize, D)
 
-                    if D[It].Type == 'Picture' then
-                        im.TableNextRow(ctx)
-                        im.TableNextColumn(ctx)
-                        im.Text(ctx, "File Name:")
-                        im.TableNextColumn(ctx)
-                        DragDropPics = DragDropPics or {}
-                        D[It].BgImgFileName = Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], -FLT_MIN, 'Backgrounds')
-                        
-                        im.TableNextRow(ctx)
-                        im.TableNextColumn(ctx)
-                        im.Text(ctx, "Keep Image Ratio:")
-                        im.TableNextColumn(ctx)
-                        rv, D[It].KeepImgRatio = im.Checkbox(ctx, '##KeepImgRatio', D[It].KeepImgRatio)
-                    end
-
-                    if Draw.SelItms then
-                        local function Start_Pos_X()
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, "Start Pos X:")
-                            im.TableNextColumn(ctx)
-                            im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].L = im.DragDouble(ctx, '##' .. It .. 'L', D[It].L, 1, -fx.Width, fx.Width*2, '%.0f')
-                            if im.IsItemActive(ctx) then 
-                                Set_To_All_Draw_Items('L', D[It].L, D)
-                            end
-                        end
-                        local function End_Pos_X()
-                            if D[It].Type == 'Text' or D[It].Type == 'V-line' then return end
-                            local lbl = (D[It].Type == 'circle' or D[It].Type == 'circle fill') and 'Radius:' or  "End Pos X:"
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, lbl)
-                            im.TableNextColumn(ctx)
-                            im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].R = im.DragDouble(ctx, '##' .. It .. 'R', D[It].R, 1, -fx.Width, fx.Width*2, '%.0f')
-
-                            if im.IsItemActive(ctx) then 
-                                Set_To_All_Draw_Items('R', D[It].R, D)
-                            end
-                        end 
-
-
-                        local function Start_Pos_Y()
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, "Start Pos Y:")
-                            im.TableNextColumn(ctx)
-                            im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].T = im.DragDouble(ctx, '##' .. It .. 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f')
-                            if im.IsItemActive(ctx) then 
-                                Set_To_All_Draw_Items('T', D[It].T, D)
-                            end
-                        end
-
-                        local function End_Pos_Y()
-                            if D[It].Type ~= 'line' and D[It].Type ~= 'circle fill' and D[It].Type ~= 'circle' then
-                                im.TableNextRow(ctx)
-                                im.TableNextColumn(ctx)
-                                im.Text(ctx, "End Pos Y:")
-                                im.TableNextColumn(ctx)
-                                im.SetNextItemWidth(ctx, -FLT_MIN)
-                                _, D[It].B = im.DragDouble(ctx, '##' .. It .. 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f')
-                            end
-                            if im.IsItemActive(ctx) then 
-                                Set_To_All_Draw_Items('B', D[It].B, D)
-                            end
-                        end
-                        local function TEXT()
-                            if D[It].Type ~= 'Text' then return end
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, "Text:")
-                            im.TableNextColumn(ctx)
-                            im.SetNextItemWidth(ctx, -FLT_MIN)
-                            _, D[It].Txt = im.InputText(ctx, '##' .. It .. 'Txt', D[It].Txt)
-                            Set_To_All_Draw_Items('Txt', D[It].Txt, D)
-
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, "Font Size:")
-                            im.TableNextColumn(ctx)
-                            local rv, Sz = im.InputInt(ctx, '## font size ' .. It, D[It].FtSize or 12)
-                            if rv then
-                                D[It].FtSize = Sz
-                                Set_To_All_Draw_Items('FtSize', D[It].FtSize, D)
-
-                            end
-                            im.TableNextRow(ctx)
-                            im.TableNextColumn(ctx)
-                            im.Text(ctx, "Font:")
-                            im.TableNextColumn(ctx)
-                            im.SetNextItemWidth(ctx, -FLT_MIN)
-                            local FONT = (D[It].Font or 'Andale_Mono')
-                            im.PushItemWidth(ctx,  300)
-                            local rv, FONT = im.BeginCombo(ctx, '## font ' .. It,  FONT , 0)
-                            if rv then
-                                for i , v in ipairs(FONT_CHOICES) do
-                                    if im.Selectable(ctx, v) then
-                                        D[It].Font = v
-                                        Set_To_All_Draw_Items('Font', D[It].Font, D)
-
-                                    end
-                                end
-                                im.EndCombo(ctx)
-                            end
-
-                            SL()
-                            im.SetNextItemWidth(ctx, 150)
-                            local ft = D[It].Font or 'Andale_Mono'
-
-                            local rv, bold = im.Checkbox(ctx, "Bold", D[It].Font_Bold)
-                            if rv then
-                                D[It].Font_Bold = toggle(D[It].Font_Bold)
-                                Set_To_All_Draw_Items('Font_Bold', D[It].Font_Bold, D)
-
-                            end
-                            SL()
-
-                            local rv, italic = im.Checkbox(ctx, "Italic", D[It].Font_Italic)
-                            if rv then
-                                D[It].Font_Italic = toggle(D[It].Font_Italic)
-                                Set_To_All_Draw_Items('Font_Italic', D[It].Font_Italic, D)
-                            end
-                        end
-
-                        Start_Pos_X()
-                       
-                        End_Pos_X()
-
-                        Start_Pos_Y()
-                        End_Pos_Y()
-                        TEXT()
-                      
-                    end
-                    im.EndTable(ctx)
                 end
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Font:")
+                im.TableNextColumn(ctx)
+                im.SetNextItemWidth(ctx, -FLT_MIN)
+                local FONT = (D[It].Font or 'Andale_Mono')
+                im.PushItemWidth(ctx,  300)
+                local rv, FONT = im.BeginCombo(ctx, '## font ' .. It,  FONT , 0)
+                if rv then
+                    for i , v in ipairs(FONT_CHOICES) do
+                        if im.Selectable(ctx, v) then
+                            D[It].Font = v
+                            Set_To_All_Draw_Items('Font', D[It].Font, D)
+
+                        end
+                    end
+                    im.EndCombo(ctx)
+                end
+
+                SL()
+                im.SetNextItemWidth(ctx, 150)
+                local ft = D[It].Font or 'Andale_Mono'
+
+                local rv, bold = im.Checkbox(ctx, "Bold", D[It].Font_Bold)
+                if rv then
+                    D[It].Font_Bold = toggle(D[It].Font_Bold)
+                    Set_To_All_Draw_Items('Font_Bold', D[It].Font_Bold, D)
+
+                end
+                SL()
+
+                local rv, italic = im.Checkbox(ctx, "Italic", D[It].Font_Italic)
+                if rv then
+                    D[It].Font_Italic = toggle(D[It].Font_Italic)
+                    Set_To_All_Draw_Items('Font_Italic', D[It].Font_Italic, D)
+                end
+                im.EndTable(ctx)
+            end
+        end
+
+
+        Type ()
+        TEXT()
+
+        local function  Drawing_Properties()
+            if not It or not D or not D[It] then  return end 
+            if not im.BeginTable(ctx, "DrawProperties", 4, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then return end 
+
+
+            local function Add_Val(str, index, v, step, min, max, fmt , NextRow, Width, WhiteList, BlackList)
+                if WhiteList then 
+                    if not tablefind(WhiteList, D[It].Type) then return end
+                end
+                if BlackList then 
+                    if tablefind(BlackList, D[It].Type) then return end
+                end
+                if NextRow then 
+                    im.TableNextRow(ctx) 
+                    im.TableNextColumn(ctx)
+                else 
+                    im.TableNextColumn(ctx)
+                end
+                im.Text(ctx, str)
+                if not NextRow then 
+                    im.TableNextColumn(ctx)
+
+                else
+                    im.TableNextColumn(ctx)
+                end
+
+                im.SetNextItemWidth(ctx, Width or -FLT_MIN)
+
+                _, D[It][index] = im.DragDouble(ctx, '##' .. str, D[It][index] or v, step, min, max, fmt or '%.2f')
+                if im.IsItemActive(ctx) then 
+                    Set_To_All_Draw_Items(index, D[It][index], D)
+                end
+                return v
             end
 
 
+            local function Fill()
+                if D[It].Type ~= 'rectangle' and D[It].Type ~= 'circle' then return end
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Fill ")
+                im.TableNextColumn(ctx)
+                local    clrpick, Clr = im.Checkbox(ctx, '##Drawing Color Fill', D[It].Fill)
+
+                if clrpick then 
+                    Set_To_All_Draw_Items('Fill', Clr, D)
+                end
+            end
+            local function Colors()
+
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Color:")
+                im.TableNextColumn(ctx)
+                if Draw.SelItms and D[It].clr then
+                    clrpick, D[It].clr = im.ColorEdit4(ctx, '##', D[It].clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                else
+                    clrpick, Draw.clr = im.ColorEdit4(ctx, '##', Draw.clr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+                end
+                if clrpick then 
+                    Set_To_All_Draw_Items('clr', D[It].clr, D)
+                end
+            end
+            local function Repeat_Clr()
+                if D[It].Repeat == 0 then return end
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Repeat Color:")
+                im.TableNextColumn(ctx)
+
+                local rv, CLR =  im.ColorEdit4(ctx, '##Repeat Clr', D[It].RepeatClr or 0xffffffff, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar) 
+                if rv then 
+                    Set_To_All_Draw_Items('RepeatClr', CLR, D)
+                end
+            end
+            im.TableSetupColumn(ctx, "Property", im.TableColumnFlags_WidthFixed, 150)
+            im.TableSetupColumn(ctx, "Value", im.TableColumnFlags_WidthStretch)
+            im.TableSetupColumn(ctx, "Property2", im.TableColumnFlags_WidthFixed, 150)
+            im.TableSetupColumn(ctx, "Value2", im.TableColumnFlags_WidthStretch)
+
+            Colors()
+
+            --Add_Val('Default edge rounding:', 'Df_EdgeRound', FX[FxGUID].Draw.Df_EdgeRound, 0.05, 0, 30, '%.2f', true)
+
+            if D[It].Type == 'Picture' then
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "File Name:")
+                im.TableNextColumn(ctx)
+                DragDropPics = DragDropPics or {}
+                D[It].BgImgFileName = Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], -FLT_MIN, 'Backgrounds')
+                
+                im.TableNextRow(ctx)
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Keep Image Ratio:")
+                im.TableNextColumn(ctx)
+                rv, D[It].KeepImgRatio = im.Checkbox(ctx, '##KeepImgRatio', D[It].KeepImgRatio)
+            end
+
+            if Draw.SelItms then
+               
+                local EndPosX_LBL = D[It].Type == 'circle' and 'Radius:' or 'End Pos X:'
+                if D[It].Type ~= 'Text' then
+
+                    Fill()
+                    Add_Val('Start Pos X:' , 'L', D[It].L, 1, -fx.Width, fx.Width*2, '%.0f', true)
+                    Add_Val(EndPosX_LBL,'R', D[It].R, 1, -fx.Width, fx.Width*2, '%.0f', nil)
+                    Add_Val('Start Pos Y:', 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f', true)
+                    Add_Val('End Pos Y:', 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f', nil)
+                    Add_Val('Thickness:', 'Thick', D[It].Thick, 0.1, 0, 40, '%.1f', true)
+                    Add_Val('Repeat:', 'Repeat', D[It].Repeat, 1, 0, 300, '%.0f', true)
+                    Repeat_Clr()
+                    Add_Val('X Gap:', 'XGap', D[It].XGap, 0.2, 0, 300, '%.1f', true)
+                    Add_Val('Y Gap:', 'YGap', D[It].YGap, 0.2, 0, 300, '%.1f', nil)
+                    Add_Val('Size Gap:', 'Gap', D[It].Gap, 0.2, 0, 300, '%.1f', true)
+                end
+
+                
+            end
+            im.EndTable(ctx)
         end
-    elseif LE.Sel_Items[1] then
+
+        Drawing_Properties()
+
+    
+    end
+    
+    local function FX_Title_Properties()
+        if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and  Draw.DrawMode~= FxGUID then
+            im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
+
+            im.Text(ctx, 'Edge Round:')
+            im.SameLine(ctx)
+            Edited, FX[FxGUID].Round = im.DragDouble(ctx, '##' .. FxGUID .. 'Round',
+                FX[FxGUID].Round, 0.01, 0, 40, '%.2f')
+
+            im.Text(ctx, 'Grab Round:')
+            im.SameLine(ctx)
+            Edited, FX[FxGUID].GrbRound = im.DragDouble(ctx, '##' .. FxGUID .. 'GrbRound',
+                FX[FxGUID].GrbRound, 0.01, 0, 40, '%.2f')
+            im.BeginGroup(ctx)
+            im.Text(ctx, 'Background Color:')
+            im.SetNextItemWidth(ctx, 200)
+            _, FX[FxGUID].BgClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff, im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+            if FX[FxGUID].BgClr == im.GetColor(ctx, im.Col_FrameBg) then
+                HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
+            end
+            im.EndGroup(ctx)
+            SL()
+            im.BeginGroup(ctx)
+
+            im.Text(ctx, 'FX Title Color:')
+            im.SetNextItemWidth(ctx, 200)
+            _, FX[FxGUID].TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'), im.ColorEditFlags_NoInputs)
+            FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
+            im.EndGroup(ctx)
+
+
+            im.Text(ctx, 'Custom Title:')
+            im.SameLine(ctx)
+            local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
+                FX[FxGUID].CustomTitle or FX_Name)
+            if im.IsItemDeactivatedAfterEdit(ctx) then
+                FX[FxGUID].CustomTitle = CustomTitle
+            end
+
+            im.PopStyleColor(ctx)
+        end
+    end
+    local function Parameter_Properties()
+        if not LE.Sel_Items[1] then return end 
         local FS  = FX[FxGUID][LE.Sel_Items[1]]
         local ID, TypeID; local FrstSelItm = FX[FxGUID][LE.Sel_Items[1]]; local FItm = LE.Sel_Items[1]
         local R_ofs = 50
@@ -2031,7 +2242,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                     SL(nil,20)
                     if im.Button(ctx, 'No (Esc)') or im.IsKeyPressed(ctx,im.Key_Escape) then  
-             
+            
                         im.CloseCurrentPopup(ctx)
                     end 
                     im.EndPopup(ctx)
@@ -2291,7 +2502,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 SL(nil, 30 )
                 im.SetNextItemWidth(ctx, 70)
                 _, FS.ImgAngleMinOfs = im.DragDouble(ctx, 'angle min offset', FS.ImgAngleMinOfs or 0 , 0.01, 0, 6.28 )
-               
+            
             end
             local rv
             DragDropPics = DragDropPics or {}
@@ -2344,7 +2555,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
                 im.EndDragDropTarget(ctx)
             end
-           
+        
 
             Angle_Settings()
         end
@@ -2859,7 +3070,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     FX[FxGUID][v].Draw[i].AtchImgFileNm = name
                                     FX[FxGUID][v].Draw[i].Image = img
                                 end
-                               --[[  Set_Property ('AtchImgFileNm', name, true)
+                            --[[  Set_Property ('AtchImgFileNm', name, true)
                                 Set_Property ('Image', img, true) ]]
 --[[ 
                                 D.AtchImgFileNm = name
@@ -3343,7 +3554,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
 
-               
+            
                 if BeganChild then
                     im.EndChild(ctx)
                 end
@@ -3535,209 +3746,30 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         im.PopStyleColor(ctx)
 
 
-    end -------------------- End of Repeat for every selected item
-    if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and  Draw.DrawMode~= FxGUID then
-        im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
+    
 
-        im.Text(ctx, 'Edge Round:')
-        im.SameLine(ctx)
-        Edited, FX[FxGUID].Round = im.DragDouble(ctx, '##' .. FxGUID .. 'Round',
-            FX[FxGUID].Round, 0.01, 0, 40, '%.2f')
-
-        im.Text(ctx, 'Grab Round:')
-        im.SameLine(ctx)
-        Edited, FX[FxGUID].GrbRound = im.DragDouble(ctx, '##' .. FxGUID .. 'GrbRound',
-            FX[FxGUID].GrbRound, 0.01, 0, 40, '%.2f')
-        im.BeginGroup(ctx)
-        im.Text(ctx, 'Background Color:')
-        im.SetNextItemWidth(ctx, 200)
-        _, FX[FxGUID].BgClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff, im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-        if FX[FxGUID].BgClr == im.GetColor(ctx, im.Col_FrameBg) then
-            HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-        end
-        im.EndGroup(ctx)
-        SL()
-        im.BeginGroup(ctx)
-
-        im.Text(ctx, 'FX Title Color:')
-        im.SetNextItemWidth(ctx, 200)
-        _, FX[FxGUID].TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'), im.ColorEditFlags_NoInputs)
-        FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
-        im.EndGroup(ctx)
-
-
-        im.Text(ctx, 'Custom Title:')
-        im.SameLine(ctx)
-        local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
-            FX[FxGUID].CustomTitle or FX_Name)
-        if im.IsItemDeactivatedAfterEdit(ctx) then
-            FX[FxGUID].CustomTitle = CustomTitle
-        end
-
-        im.PopStyleColor(ctx)
     end
 
+    local function Shortcut_for_Select_All()
 
-
-
-
-
-
-
-    if im.BeginPopupModal(ctx, 'Save Editing?') then
-        SaveEditingPopupModal = true
-        im.Text(ctx, 'Would you like to save the editings?')
-        if im.Button(ctx, '(n) No') or im.IsKeyPressed(ctx, im.Key_N) then
-            RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-            im.CloseCurrentPopup(ctx)
-            FX.LayEdit = nil
-            LE.SelectedItem = nil
-            CloseLayEdit = true
+        if im.IsKeyPressed(ctx, im.Key_A) and (Mods == Cmd or Mods == Alt) then
+            for Fx_P = 1, #FX[FxGUID] or 0, 1 do table.insert(LE.Sel_Items, Fx_P) end
         end
-        im.SameLine(ctx)
-
-        if im.Button(ctx, '(y) Yes') or im.IsKeyPressed(ctx, im.Key_Y) then
-            SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
-            im.CloseCurrentPopup(ctx)
-            FX.LayEdit = nil
-            LE.SelectedItem = nil
-            CloseLayEdit = true
-        end
-        im.SameLine(ctx)
-
-        if im.Button(ctx, '(c) Cancel') or im.IsKeyPressed(ctx, im.Key_C) or im.IsKeyPressed(ctx, im.Key_Escape) then
-            im.CloseCurrentPopup(ctx)
-        end
-
-        im.EndPopup(ctx)
     end
 
-    local function Color_Palette()
-
-        local PalletteW = Color_Palette_Width
-        local Pad = 8
-        if not CloseLayEdit then
-            w, h = im.GetWindowSize(ctx)
-            im.SetCursorPos(ctx, w - PalletteW - Pad, PalletteW + Pad)
-        end
+    --if not CloseLayEdit   then    ----START CHILD WINDOW------
+    DisableScroll = true
 
 
 
-
-
-
-
-        if not CloseLayEdit and im.BeginChild(ctx, 'Color Palette' , PalletteW, h - PalletteW - Pad * 2,nil, im.WindowFlags_NoScrollbar) then
-            local function CheckClr(TB, Clr)
-                if Clr and not im.IsPopupOpen(ctx, '', im.PopupFlags_AnyPopupId) then
-                    if not tablefind(TB, Clr) and TB then
-                        local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
-                        if A ~= 0 then
-                            table.insert(TB, Clr)
-                        end
-                        
-                    end
-                end
-            end
-           
-
-            local function Get_ALL_Used_Colors()
-                if FX[FxGUID] then 
-                    local Plt = {}
-
-                    for i, v in ipairs(FX[FxGUID]) do
-                        --[[ local Is_Selected
-                        for I, v in ipairs(LE.Sel_Items) do 
-                            if v == i then 
-                                Is_Selected = true 
-                            end
-                        end ]]
-
-                        CheckClr(Plt, v.Lbl_Clr)
-                        CheckClr(Plt, v.V_Clr)
-                        CheckClr(Plt, v.BgClr)
-                        CheckClr(Plt, v.GrbClr)
-                        if v.Draw then 
-                            for i, D in ipairs(v.Draw) do 
-                                CheckClr(Plt, D.Clr)
-                                CheckClr(Plt, D.Clr_VA)
-                                CheckClr(Plt, D.RPT_Clr)
-                            end
-                        end
-
-
-                    end
-                    if FX[FxGUID].Draw then 
-                        for i, v in ipairs(FX[FxGUID].Draw) do 
-                            CheckClr(Plt, v.clr)
-                        end
-                    end
-                    return Plt
-                end
-            end
-
-
-
-            ClrPallet = Get_ALL_Used_Colors()
-            
-
-            
-
-            for i, v in ipairs(ClrPallet) do
-                clrpick, LblColor1 = im.ColorEdit4(ctx, '##ClrPalette' ..i .. FxGUID, v, im.ColorEditFlags_NoInputs| im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
-                if im.IsItemClicked(ctx) and Mods == Alt then
-                    table.remove(ClrPallet, tablefind(v))
-                end
-            end
-
-
-            
-            im.EndChild(ctx)
-        end
-        
-    end
-
-
-
+    Top_Bar()
+    Background_Edit_Properties()
+    FX_Title_Properties()
+    Parameter_Properties()
+    Save_Layout_Edit_Popup()
     Color_Palette()
-    if im.BeginPopupModal(ctx, 'Save Draw Editing?') then
-        im.Text(ctx, 'Would you like to save the Drawings?')
-        if im.Button(ctx, '(n) No') then
-            local FxNameS = FX.Win_Name_S[FX_Idx]
-            local HowManyToDelete
-            for i, Type in pairs(Draw[FxNameS].Type) do
-                HowManyToDelete = i
-            end
-
-            for Del = 1, HowManyToDelete, 1 do
-                local D = Draw[FxNameS]
-                table.remove(D.Type, i)
-                table.remove(D.L, i)
-                table.remove(D.R, i)
-                table.remove(D.T, i)
-                table.remove(D.B, i)
-                if D.Txt[i] then table.remove(D.Txt, i) end
-                if D.clr[i] then table.remove(D.clr, i) end
-            end
-            RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-            im.CloseCurrentPopup(ctx)
-            Draw.DrawMode = nil
-        end
-        im.SameLine(ctx)
-
-        if im.Button(ctx, '(y) Yes') then
-            SaveDrawings(FX_Idx, FxGUID)
-            im.CloseCurrentPopup(ctx)
-            Draw.DrawMode = nil
-        end
-        im.EndPopup(ctx)
-    end
-
-
-
-    if im.IsKeyPressed(ctx, im.Key_A) and (Mods == Cmd or Mods == Alt) then
-        for Fx_P = 1, #FX[FxGUID] or 0, 1 do table.insert(LE.Sel_Items, Fx_P) end
-    end
+    Save_Drawing_Popup()
+    Shortcut_for_Select_All()
 
 
     im.End(ctx)
@@ -3747,22 +3779,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     end
 
 
-
-
-
-
-
     im.SameLine(ctx, nil, 0)
     --im.PushStyleVar( ctx,im.StyleVar_WindowPadding, 0,0)
     --im.PushStyleColor(ctx, im.Col_DragDropTarget, 0x00000000)
-
-
-
-    --if ctrl+A or Command+A is pressed
-
-
     --im.EndTooltip(ctx)
-
     -- im.PopStyleVar(ctx)
     --im.PopStyleColor(ctx,2 )
     PopClr(ctx, 2)
@@ -6547,6 +6567,13 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             D.FtSize = RecallInfo(Ct,'FontSize', 'D' .. i, 'Num')
                             D.Font_Bold = RecallInfo(Ct,'FontBold', 'D' .. i, 'Bool')
                             D.Font_Italic = RecallInfo(Ct,'FontItalic','D' .. i, 'Bool')
+                            D.Fill = RecallInfo(Ct,'Fill', 'D' .. i, 'Bool')
+                            D.Repeat = RecallInfo(Ct,'Repeat', 'D' .. i, 'Num')
+                            D.RepeatClr = RecallInfo(Ct,'RepeatClr', 'D' .. i, 'Num')
+                            D.XGap = RecallInfo(Ct,'XGap', 'D' .. i, 'Num')
+                            D.YGap = RecallInfo(Ct,'YGap', 'D' .. i, 'Num')
+                            D.Gap = RecallInfo(Ct,'Gap', 'D' .. i, 'Num')
+                            D.Thick = RecallInfo(Ct,'Thick', 'D' .. i, 'Num')
                             if D.BgImgFileName then
                                 
                                 local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Backgrounds', D.BgImgFileName)

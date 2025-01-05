@@ -1849,7 +1849,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
 
                     local Clr = BlendColors(Clr1 , Clr2, i / RPT)
 
-                    
                     local Clr1 = (v.Clr2_VA ) and BlendColors(CLR2 or 0xffffffff, v.Clr2_VA,  Val) or CLR2 or 0xffffffff
                     local Clr2 = (v.RPT_Clr2_VA ) and BlendColors(RPTClr2 or 0xffffffff, v.RPT_Clr2_VA ,  Val) or RPTClr2 or  0xffffffff
 
@@ -5350,7 +5349,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     return WinW
 end
 
-function Draw_Background(FxGUID, pos, Draw_Which)
+function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn)
 
     if not FX[FxGUID].Draw or FX[FxGUID].Collapse then return end
     local function Draw_Itm (i  , TB  )
@@ -5361,21 +5360,91 @@ function Draw_Background(FxGUID, pos, Draw_Which)
         local T = pos[2] or (Win_T + D.T)
         local R = pos[3] or (Win_L + (D.R or 0))
         local B = pos[4] or (Win_T + D.B)
+        local Xg, Yg = D.XGap or 0, D.YGap or 0
+        local Gap = D.Gap or 0
+        if IsPreviewBtn then -- if it's used for the preview button in layout editor
+            local Sz = {pos[3]- pos[1] , pos[4] - pos[2]}
+            L = SetMinMax( pos[1] + (D.L / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
+            T = SetMinMax( pos[2] + (D.T / 220) * Sz[2], pos[2], pos[4])
+            R = SetMinMax( pos[1] + (D.R / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
+            B = SetMinMax( pos[2] + (D.B / 220) * Sz[2], pos[2], pos[4])
+            Xg = Xg / FX[FxGUID].Width * Sz[1]
+            Yg = (Yg / 220) * Sz[2]
+        end
         local Round = TB.Df_EdgeRound or 0
         local WDL = WDL or im.GetWindowDrawList(ctx)
+        local function Repeat(rpt, Xgap, Ygap, func, Gap, RPTClr, CLR)
+            if rpt and rpt ~= 0 then
+                local RPT = rpt
+                if va and va ~= 0 then RPT = rpt * Val * va end
+
+                for i = 0, RPT - 1, 1 do
+
+                    --[[ local Clr1 = (v.Clr_VA ) and BlendColors(CLR or 0xffffffff, v.Clr_VA,  Val) or CLR or 0xffffffff
+                    local Clr2 = (v.RPT_Clr_VA ) and BlendColors(RPTClr or 0xffffffff, v.RPT_Clr_VA ,  Val) or RPTClr or  0xffffffff
+
+
+                    local Clr = BlendColors(Clr1 , Clr2, i / RPT)
+
+                    local Clr1 = (v.Clr2_VA ) and BlendColors(CLR2 or 0xffffffff, v.Clr2_VA,  Val) or CLR2 or 0xffffffff
+                    local Clr2 = (v.RPT_Clr2_VA ) and BlendColors(RPTClr2 or 0xffffffff, v.RPT_Clr2_VA ,  Val) or RPTClr2 or  0xffffffff
+
+                    local Clr2 = BlendColors(Clr1 , Clr2, i / RPT) ]]
+                    local Clr , Clr2 =  D.clr, D.RepeatClr or 0xffffffff
+                    local Clr = BlendColors(Clr , Clr2, i / RPT)
+
+                    func(i * (Xgap or 0), i * (Ygap or 0), i * (Gap or 0), Clr)
+                end
+            else
+                func(Xgap)
+            end
+        end
+        local Clr = D.clr or 0xffffffff
         if D.Type == 'line' then
-            im.DrawList_AddLine(WDL, L, T, R, T, D.clr or 0xffffffff)
+
+            local function Addline(Xg, Yg, none, RptClr)
+                im.DrawList_AddLine(WDL, L + (Xg or 0), T + (Yg or 0), R + (Xg or 0), B + (Yg or 0), RptClr or Clr, D.Thick or 1)
+            end
+            
+            --im.DrawList_AddLine(WDL, L, T, R, B, D.clr or 0xffffffff, D.Thick or 1)
+            Repeat(D.Repeat,Xg, Yg, Addline)
         elseif D.Type == 'V-line' then
-            im.DrawList_AddLine(WDL, Win_L + D.L, Win_T + D.T,
-                Win_L + D.L, Win_T + D.B, D.clr or 0xffffffff)
+            im.DrawList_AddLine(WDL, L, T, R, B, Clr)
         elseif D.Type == 'rectangle' then
-            im.DrawList_AddRect(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
+
+            if D.Fill then 
+                local function AddRectFill (Xg, Yg, Gap , RptClr)
+                    local Gap = Gap or 0
+                    im.DrawList_AddRectFilled(WDL, L + (Xg or 0) - Gap, T + (Yg or 0) - Gap, R + (Xg or 0) + Gap, B + (Yg or 0) + Gap, RptClr or Clr , Round,  nil)
+                end
+                Repeat(D.Repeat,Xg, Yg, AddRectFill, Gap)
+            else 
+                
+                local function AddRect (Xg, Yg, Gap, RptClr)
+                    local Gap = Gap or 0
+                    im.DrawList_AddRect(WDL, L + (Xg or 0) - Gap, T + (Yg or 0) - Gap, R + (Xg or 0) + Gap, B + (Yg or 0) + Gap, RptClr or Clr, Round,  nil, D.Thick or 1)
+                end
+                Repeat(D.Repeat,Xg, Yg, AddRect, Gap)
+            end
+
         elseif D.Type == 'rect fill' then
-            im.DrawList_AddRectFilled(WDL, L, T, R, B, D.clr or 0xffffffff, Round)
+            im.DrawList_AddRectFilled(WDL, L, T, R, B, Clr, Round)
         elseif D.Type == 'circle' then
-            im.DrawList_AddCircle(WDL, L, T, D.R, D.clr or 0xffffffff)
+
+            if D.Fill then 
+                local function AddCircleFill (Xg, Yg, Gap, RptClr)
+                    im.DrawList_AddCircleFilled(WDL, L + (Xg or 0), T + (Yg or 0),  D.R + (Gap or 0), RptClr or Clr)
+                end
+                Repeat(D.Repeat,Xg, Yg, AddCircleFill, Gap)
+            else 
+                    
+                local function AddCircle (Xg, Yg, Gap, RptClr)
+                    im.DrawList_AddCircle(WDL, L + (Xg or 0), T + (Yg or 0), D.R+ (Gap or 0), RptClr or Clr)
+                end
+                Repeat(D.Repeat,Xg, Yg, AddCircle, Gap)
+            end
         elseif D.Type == 'circle fill' then
-            im.DrawList_AddCircleFilled(WDL, L, T, D.R, D.clr or 0xffffffff)
+            im.DrawList_AddCircleFilled(WDL, L, T, D.R, Clr)
         elseif D.Type == 'Text' and D.Txt then
             local it = D.Font_Italic and '_Italic' or ''
             local bd = D.Font_Bold and '_Bold' or ''
@@ -5386,7 +5455,7 @@ function Draw_Background(FxGUID, pos, Draw_Which)
                 Attach_New_Font_On_Next_Frame(basefont ,fontsize, D.Font_Italic, D.Font_Bold)
             else
                 local Ft = (_G[str])
-                im.DrawList_AddTextEx(WDL, Ft, fontsize, L, T, D.clr or 0xffffffff, D.Txt)
+                im.DrawList_AddTextEx(WDL, Ft, fontsize, L, T, Clr, D.Txt)
             end
         elseif D.Type == 'Picture' then
             if not D.Image then
@@ -5400,12 +5469,9 @@ function Draw_Background(FxGUID, pos, Draw_Which)
                     local size = R - L
 
 
-                    im.DrawList_AddImage(WDL, D.Image, L, T, L + size,
-                        T + size * H_ratio, 0, 0, 1, 1, D.clr or 0xffffffff)
+                    im.DrawList_AddImage(WDL, D.Image, L, T, L + size, T + size * H_ratio, 0, 0, 1, 1, Clr)
                 else
-                    im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B,
-                        L, B,
-                        _1, _2, _3, _4, _5, _6, _7, _8, D.clr or 0xffffffff)
+                    im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B, L, B, _1, _2, _3, _4, _5, _6, _7, _8, Clr)
                 end
             end
             -- ImageAngle(ctx, Image, 0, R - L, B - T, L, T)
