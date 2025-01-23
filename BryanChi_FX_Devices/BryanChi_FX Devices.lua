@@ -1,11 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.9
+-- @version 1.0beta16.9.1
 -- @changelog
---  - Background Editor : the repeat feature is now available for drawing shapes with specified gaps like in the attached drawings.
---  - Background Editor : Fixed behavior when drawing lines.
---  - Background Editor : improved layout in the properties window.
---  - Improved layout for Snap Heap.
+--  - Fix Crashing when selecting parameters in layout Editor
+--  - Fix unable to delete Attached Drawings preset.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

@@ -2272,6 +2272,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.Separator(ctx)
                             
                         end
+                        Confirm_Delete_Preset(v, FS.Type,i)
                     end   
                 end 
             end
@@ -4792,7 +4793,6 @@ function Add_XY_Pad(ctx, FP, FxGUID,FX_Idx)
     FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
 
     if im.IsItemActive(ctx) then
-        msg('ansjd')
         local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDragDelta(ctx, x, y, 0)
         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, FP.V + Ms_Delta_X)
         r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, V_Y + Ms_Delta_Y)
@@ -7606,6 +7606,7 @@ end
 
 function Create_Undo_Point(str , FxGUID)
     LE.Undo_Points = LE.Undo_Points or {}
+    FX[FxGUID].Draw =  FX[FxGUID].Draw or {}
     FX[FxGUID].Draw.Preview = nil 
     table.insert(LE.Undo_Points, deepCopy(FX[FxGUID]))
     LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name = str
