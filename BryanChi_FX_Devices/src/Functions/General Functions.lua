@@ -41,7 +41,6 @@ function Save_to_Trk(str,v, trk  )
 end
 
 function Load_from_Trk(str, trk, type)
-    local trk = trk or LT_Track
     local _ , v = r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, '', false) 
     if type == 'bool' then
         return v == 'true' and true or false
@@ -1090,6 +1089,7 @@ function GetFocusedWindow()
 end
 
 function HideCursorTillMouseUp(MouseBtn, triggerKey)
+
     if OS == "OSX32" or OS == "OSX64" or OS == "macOS-arm64" then
         Invisi_Cursor = r.JS_Mouse_LoadCursorFromFile(r.GetResourcePath() .. '/Cursors/Empty Cursor.cur')
     end

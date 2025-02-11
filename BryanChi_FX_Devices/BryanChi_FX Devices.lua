@@ -1,9 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta16.9.1
+-- @version 1.0beta17
 -- @changelog
---  - Fix Crashing when selecting parameters in layout Editor
---  - Fix unable to delete Attached Drawings preset.
+--  - Work on modulation.
+--  - LFO modulation rework.
+--  - Fix Multiple Modulation control panel showing up if modulation is assigned to the same Param number of different FXs.
+--  - Fix Crashing when collapsing FX if there's no layout defined. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

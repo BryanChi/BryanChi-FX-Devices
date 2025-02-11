@@ -1,0 +1,1270 @@
+@init
+function SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ()(
+  i = Velo_ModAmt ; 
+  while(i<= Velo_ModAmt +70000 )( 
+    a[i] = file_var(0, a[i]);
+    i+=1;
+  );
+);
+
+function fmod (n, k) (
+    n - k * floor(n/k);
+  );
+
+
+function GetCurveValue(x, p, xmin, xmax, ymin, ymax)(
+    // Handle boundary conditions explicitly
+    x <= xmin ? ymin :
+    x >= xmax ? ymax :
+    
+    (
+        // Normalize x to the range [0, 1]
+        x_norm = (x - xmin) / (xmax - xmin);
+        
+        // Calculate y_norm based on p
+        p > 1 ? (
+            // Exponential curve: y_norm = x_norm^p
+            y_norm = x_norm^p;
+        ) : p < 0 ? (
+            // Logarithmic-like curve: scaled log formula using |p|
+            p_abs = abs(p);
+            y_norm = log(1 + (exp(p_abs) - 1) * x_norm) / log(exp(p_abs));
+            
+        ) :
+
+        
+        (
+            // Linear interpolation: y_norm = x_norm when p = 0
+            y_norm = x_norm;
+        );
+        
+        // Scale y_norm back to the range [ymin, ymax]
+        y = ymin + y_norm * (ymax - ymin);
+        y;
+    );
+  );
+
+function Get_XY_PAD_SLIDERS_FOR_Y(M)(
+  M == 1 ? ( Slider27; ):
+  M == 2 ? ( Slider29; ): 
+  M == 3 ? ( Slider31; ):
+  M == 4 ? ( Slider33; ):
+  M == 5 ? ( Slider35; ):
+  M == 6 ? ( Slider37; ):
+  M == 7 ? ( Slider39; ): 
+  M == 8 ? ( Slider41; )
+  );
+function Get_XY_PAD_SLIDERS_FOR_X(M)(
+  M == 1 ? ( Slider26; ):
+  M == 2 ? ( Slider28; ): 
+  M == 3 ? ( Slider30; ):
+  M == 4 ? ( Slider32; ):
+  M == 5 ? ( Slider34; ):
+  M == 6 ? ( Slider36; ):
+  M == 7 ? ( Slider38; ): 
+  M == 8 ? ( Slider40; )
+  );
+
+
+
+
+
+function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY , ofs, C, XYC_ofs)(
+  LFO_Num !=0 ? ( 
+    ofs = TB_ofs +  LFO_Max_Num_Of_Pts * 3 * (LFO_Num-1); 
+    XYC_ofs = LFO_Max_Num_Of_Pts; // = 50
+  ):( 
+    ofs = TB_ofs + Midi_Mod_Curve_Ofs
+  );  // =  1000 for velocity,  11000  for random
+  out = -999;
+  rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
+
+
+  rpt> 1 ? (  //for every point 
+    i = 1;
+    while( out==-999 && i <= rpt)(  
+      X = Velo_ModAmt[ofs+i];
+      nX = Velo_ModAmt[ofs+i+1];
+
+      Y = Velo_ModAmt[ofs + i + XYC_ofs ]; // Curve_Prop_Ofs = 10
+
+      nY = Velo_ModAmt[ofs + i + 1 + XYC_ofs ];
+      C = Velo_ModAmt[ofs + i + (XYC_ofs*2) ];
+
+      v > X && v < nX? ( // if v is between two points on x axis
+        // out  =  Y + (nY-Y) * (v-Y);
+        out =  Y + (nY-Y) * ( (v-X) * (1/(nX-X)));
+
+
+        
+        C!= 0 ? (
+          out = GetCurveValue(out , -C , min(Y,nY), max(Y,nY),min(Y,nY), max(Y,nY));
+        );
+        
+        //):(v>=nX ? out = nX 
+        //);(v<=X ? out = X 
+      /*): v> X && nX ==0 ? ( // if value is past the right-most point   
+        out = X ; // output equals the right-most point
+      ): v < X && i == 1 ? ( // if value is lower than the left-most point 
+        out = X ; // output equals the left-most point*/
+      );
+
+      i+=1;
+
+
+    );
+    
+    out;
+
+  ):(v;); // if theres no curve 
+  );
+
+
+
+function Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (trkGUID_Num , velocity, R1,R2,R3, KTrk1,KTrk2,KTrk3) (
+    trkGUID_Num == gmem[2] ? ( // if the current track is selected...
+      gmem[8] ==1 ? ( gmem[91] = velocity;// send velocity info back 
+      ):(gmem[8] == 2)? (gmem[91] = R1;  //send Rand1 info back  
+      ):(gmem[8] == 3)? (gmem[91] = R2;
+      ):(gmem[8] == 4)? (gmem[91] = R3;
+      ):(gmem[8] == 5)? (gmem[91] = KTrk1;
+      ):(gmem[8] == 6)? (gmem[91] = KTrk2;
+      ):(gmem[8] == 7)? (gmem[91] = KTrk3;
+      );
+    );
+
+  );
+function Save(v)(
+  v = file_var(0, v)
+  );
+
+function Set_Midi_Mod_Curve(mode )local (pt, id , prm_Ofs) (
+  mode == 23 ? (// if user is tweaking Velocity curve's start or end point
+    pt = gmem[11]; // tells which point is user dragging 
+    gmem[12] == 7 ? (  // if it's LFO...
+      id = Gap*gmem[12] + (LFO_Max_Num_Of_Pts * 3 * (gmem[5]-1));
+      prm_Ofs = 0 
+    ):(
+      id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+      prm_Ofs = Midi_Mod_Curve_Ofs;
+    );
+
+    Velo_ModAmt[prm_Ofs +id + pt ] = gmem[9];    // this is x axis 
+    Velo_ModAmt[prm_Ofs +id + pt+ Curve_Prop_Ofs ] =gmem[10];     // this is y axis  , Curve_Prop_Ofs = 10
+    Velo_ModAmt[prm_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+    Velo_ModAmt[prm_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity  
+
+  );
+);
+function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
+
+  mode == 24 ? (// if user is tweaking Velocity curve's start or end point
+    pt = gmem[11]; // tells which point is user dragging  
+    gmem[12] == 7 ? (  // if it's LFO...
+      AAAAA_ADS = 123123;
+      id = Gap*gmem[12] + (LFO_Max_Num_Of_Pts * 3 * (gmem[5]-1)); // gmem[5] is the Macro  , * 3 because every point has 3 prms : x, y, and curve, so first 150 slots will be all the pts in LFO 1 , 150 ~300 for LFO 2
+      Velo_ModAmt[id + pt+ (LFO_Max_Num_Of_Pts*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+      AAA_GM15 = gmem[15];
+      
+    ):(
+      id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+      prm_Ofs = Midi_Mod_Curve_Ofs;
+      Velo_ModAmt[prm_Ofs +id + pt+ (Curve_Prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
+      AAAAC_GM15 = gmem[15];
+
+    );
+
+  );
+);
+function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id, pt_Limit, prm_Ofs, XY_ofs)(
+  mode== 25? (
+     // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6 , LFO =  7
+    
+    gmem[12] == 7 ? (  // if it's LFO...
+      pt_Limit = 50 ;
+      id = Gap*gmem[12] + (LFO_Max_Num_Of_Pts * 3 * (gmem[5]-1)); // gmem[5] is the Macro  , * 3 because every point has 3 prms : x, y, and curve, so first 150 slots will be all the pts in LFO 1 , 150 ~300 for LFO 2
+      prm_Ofs = 0;
+      XY_ofs = LFO_Max_Num_Of_Pts;
+    ): ( 
+      pt_Limit = 10;
+      id =  Gap * gmem[12] ;
+      prm_Ofs = Midi_Mod_Curve_Ofs;
+      XY_ofs = Curve_Prop_Ofs ; 
+    );
+    //pt = gmem[11]; // tells which point is user dragging 
+    Velo_ModAmt[prm_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity 
+    Velo_ModAmt[prm_Ofs +id] = file_var(0, Velo_ModAmt[prm_Ofs +id]);
+    i=1;
+    loop(pt_Limit, 
+      Velo_ModAmt[prm_Ofs +id + i ] =gmem[20+i] ; // this is x axis 
+      Velo_ModAmt[prm_Ofs +id + i+ XY_ofs ] =gmem[30+i];     // this is y axis  , Curve_Prop_Ofs = 10 , LFO_Max = 50 , so 51 is pt 1's Y 
+
+      Velo_ModAmt[prm_Ofs +id + i ] = file_var(0,gmem[20+i]);
+      Velo_ModAmt[prm_Ofs +id + i+ XY_ofs ] = Save(gmem[30+i]);
+
+      i+=1;
+    );
+    SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ();
+  );
+
+);
+
+
+
+function Set_Modulator_Curve(mode) local (prm, mod) (
+  mode == 26 ? (
+    prm = gmem[6];
+    mod = gmem[5];
+    MOD_CURVE[mod*1000+prm] = gmem[8];
+    MOD_CURVE[mod*1000+prm] = Save(MOD_CURVE[mod*1000+prm]);
+  );
+);
+
+
+
+function setNode(index, attribute, value) (
+   address[index * Node_length + attribute] = value;
+);
+
+function getNode(index, attribute) (
+   address[index * Node_length + attribute];
+);
+
+
+
+
+function SaveAllModulatorInfo()(
+
+    this.type = file_var(0,this.type);
+    this.LFO_Spd = file_var(0, this.LFO_Spd);
+    this.LFO_Len = file_var(0, this.LFO_Len);
+    this.LFO_Gain = file_var(0, this.LFO_Gain);
+
+    this.Legato = file_var(0, this.Legato);
+    this.EnvOrLoop = file_var(0, this.EnvOrLoop);
+    this.LFO_NodeCt = file_var(0, this.LFO_NodeCt);
+    this.Rel_Type = file_var(0, this.Rel_Type);
+    this.Rel_Node = file_var(0, this.Rel_Node);
+    this.LowestNote = file_var(0, this.LowestNote);
+    this.HighestNote = file_var(0, this.HighestNote);
+
+    this.atk =  file_var(0, this.atk);
+    this.Rel = file_var(0, this.Rel);
+
+    this.SEQ_Leng = file_var(0, this.SEQ_Leng);
+    this.SEQ_DNom = file_var(0, this.SEQ_DNom);
+
+    this.FOL_Gain = file_var(0, this.FOL_Gain);
+    this.freq = file_var(0,this.freq);
+    this.lp.c = file_var(0,this.lp.c);
+    this.lp.freq = file_var(0,this.lp.freq);
+
+    this.Rdm_Chance = file_var( 0, this.Rdm_Chance);
+    this.Rdm_Smooth = file_var( 0, this.Rdm_Smooth);
+    this.RDM_Interval = file_var( 0, this.RDM_Interval);
+
+);
+
+
+
+
+
+function DoFollower()(
+  this.type == 'Fol'? (
+    this.FOL_out  = this.follow_do((spl0+spl1));
+  );
+);
+
+
+
+
+
+
+function RDM_Chance(v)( this.RDM_Chance = v );
+function RDM_Smooth(v)(this.RDM_Smooth = v ) ; 
+function RDM_Interval(v)(this.RDM_Interval = v ) ;
+
+function RANDOM_Change_Prop(mode)local(mc)(
+  mc = gmem[5]; 
+  mode == 27.1?(
+    mc == 1 ? (Mc1.RDM_Interval(gmem[8]) );
+    mc == 2 ? (Mc2.RDM_Interval(gmem[8]) );
+    mc == 3 ? (Mc3.RDM_Interval(gmem[8]) );
+    mc == 4 ? (Mc4.RDM_Interval(gmem[8]) );
+    mc == 5 ? (Mc5.RDM_Interval(gmem[8]) );
+    mc == 6 ? (Mc6.RDM_Interval(gmem[8]) );
+    mc == 7 ? (Mc7.RDM_Interval(gmem[8]) ); 
+    mc == 8 ? (Mc8.RDM_Interval(gmem[8]) );
+  );
+  mode == 27.2?(
+    mc == 1 ? ( Mc1.RDM_Smooth(gmem[8]) );
+    mc == 2 ? ( Mc2.RDM_Smooth(gmem[8]) );
+    mc == 3 ? ( Mc3.RDM_Smooth(gmem[8]) );
+    mc == 4 ? ( Mc4.RDM_Smooth(gmem[8]) );
+    mc == 5 ? ( Mc5.RDM_Smooth(gmem[8]) );
+    mc == 6 ? ( Mc6.RDM_Smooth(gmem[8]) );
+    mc == 7 ? ( Mc7.RDM_Smooth(gmem[8]) ); 
+    mc == 8 ? ( Mc8.RDM_Smooth(gmem[8]) );
+  );
+  mode == 27.3?(
+    mc == 1 ? (Mc1.RDM_Chance(gmem[8]) );
+    mc == 2 ? (Mc2.RDM_Chance(gmem[8]) );
+    mc == 3 ? (Mc3.RDM_Chance(gmem[8]) );
+    mc == 4 ? (Mc4.RDM_Chance(gmem[8]) );
+    mc == 5 ? (Mc5.RDM_Chance(gmem[8]) );
+    mc == 6 ? (Mc6.RDM_Chance(gmem[8]) );
+    mc == 7 ? (Mc7.RDM_Chance(gmem[8]) ); 
+    mc == 8 ? (Mc8.RDM_Chance(gmem[8]) );
+  );
+
+  this.Rdm_Chance = save(this.Rdm_Chance);
+  this.Rdm_Smooth = save(this.Rdm_Smooth);
+  this.RDM_Interval = save(this.RDM_Interval);
+);
+
+
+function ChangeRange(V1, V2 , Max)(
+  V1 > V2 ? (
+
+  (V1/Max) * V2 
+  ): V2 > V1 ? (
+    V2 *  V1
+  );
+);
+
+
+
+function SendInfoBackToImGui()
+(
+  this.type =='step'?(
+    (gmem[100 + this.Macro] = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127);
+    gmem[this.LFO_PlayPos] = this.CurrentPos;
+  ):this.type =='env'?(
+    gmem[100 + this.Macro] = this.masr_do(midiamp)
+  ):this.type =='Fol' ? (
+    gmem[100 + this.Macro] =  this.FOL_out*this.FOL_Gain*127
+  ):this.type =='LFO'?(
+   gmem[100 + this.Macro] = this.out * 127;
+   gmem[this.LFO_PlayPos] = this.CurrentPos;
+  ):this.type == 'Rdm'?(
+    gmem[100 + this.Macro] = this.out;
+  );
+
+);
+
+
+function CalculateLFO() local (rpt, out, X, nX, Y, nY , ofs, C) (
+
+  ofs = LFO_Ofs + Midi_Mod_Curve_Ofs;  // =  1000 for velocity,  11000  for random
+  out = 0;
+  rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
+
+  //this.CurrentPos = fmod (beat_position * (this.LFO_Spd ) , this.Lfo_Len  )  ;
+  this.LFO_NodeCt = LFO[1*(this.Macro-1)*10000];
+
+  loop (this.LFO_NodeCt  *11 ,
+    N+=1;  // N means segment actually , there are 11 segments between each nodes
+    X_idx = (this.Macro-1)*1000+N;
+    Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+
+
+    x1 = LFO[X_idx];
+    y1 = LFO[Y_idx];
+    x2 = LFO[X_idx+1];
+    y2 = LFO[Y_idx+1];
+  
+
+    p=this.CurrentPos/4;
+    s = (x2 - x1)  ; // s for segment
+    x1_howMuch  =  (x2-p) / s ;
+    x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+      this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
+
+    ):x1< p && x2==0?(    // if playhead is beyond last node
+      this.out = y1;
+    );
+    N == this.LFO_NodeCt ? (N=0);
+  );
+
+);
+
+function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
+
+  this.bp += beat_per_block * this.LFO_Spd;
+  this.CurrentPos =  min( this.bp ,this.Lfo_Len );
+
+
+  
+  loop (this.LFO_NodeCt  *11 ,
+    N+=1;  // N means segment actually , there are 11 segments between each nodes
+    X_idx = (this.Macro-1)*1000+N;
+    Y_idx = (this.Macro-1)*1000+N+ this.LFO_NodeCt*11;
+
+
+    x1 = LFO[X_idx];
+    y1 = LFO[Y_idx];
+    x2 = LFO[X_idx+1];
+    y2 = LFO[Y_idx+1];
+
+    this.Rel_Type==3 ? ( // if it's no jump
+
+      y1 = ChangeRange(this.Rel_V  , y1 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11] );
+      y2 = ChangeRange(this.Rel_V  , y2 , LFO[(this.Macro-1)*1000+this.Rel_Node*11+ this.LFO_NodeCt*11]);
+    );
+  
+
+    p=this.CurrentPos/4;
+    s = (x2 - x1)  ; // s for segment
+    x1_howMuch  =  (x2-p) / s ;
+    x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
+
+ 
+
+    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+      this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
+
+    ):x1< p && x2==0?(    // if playhead is beyond last node
+      this.out = y1;
+    );
+    N == this.LFO_NodeCt ? (N=0);
+  );
+
+
+
+
+);
+
+
+
+function SAVE_XY_PAD_INFO() local (i)(
+  i = X_or_Y ; 
+  while(i < X_or_Y + 8000) ( 
+
+      a[i] = file_var(0, a[i]);
+      i+=1;
+
+  );
+);
+
+function DoMidiTriggeredActions()(
+  this.EnvOrLoop == 1 ? (
+      this.bp += beat_per_block * this.LFO_Spd;
+      this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
+      this.CalculateLFO();
+  );
+);
+function DoMidi_Release()(
+  this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
+    this.CalculateLFO_Rel();
+  );
+);
+
+
+function SetBpTo0 (midinote) local (highestNote )(
+  this.EnvOrLoop == 1 ? (
+    highestNote = this.HighestNote ? this.HighestNote : 127 ; 
+
+    midinote >= this.LowestNote && midinote <= highestNote  ? ( // if the note is within the set range
+      this.Legato == 0 ? ( 
+        this.bp =  0;
+      ):this.Legato == 1 && TotalNotesHeld == 1 ? ( // if this is the first note played, while not holding any other notes
+        this.bp =  0;
+      );
+    );
+  );
+);
+
+
+
+function SetBpTo0_All(midinote)(
+  Mc1.SetBpTo0(midinote);
+  Mc2.SetBpTo0(midinote);
+  Mc3.SetBpTo0(midinote);
+  Mc4.SetBpTo0(midinote);
+  Mc5.SetBpTo0(midinote);
+  Mc6.SetBpTo0(midinote);
+  Mc7.SetBpTo0(midinote);
+  Mc8.SetBpTo0(midinote);
+);
+
+
+function SetBPToRel_Node()local (Rel_pos, Rel_V) (
+  this.Rel_Type == 2 ||this.Rel_Type==3 ? ( //if it's custom release
+    this.Rel_Type==3 ? (    // if it's no jump 
+      this.Rel_V = this.Out ; // get value when note was released 
+    );
+
+    Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * 4;
+
+    this.CurrentPos< Rel_pos? ( // if 'playhead' hasn't reached the release node 
+      this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
+        this.bp = Rel_pos;  // move playhead to release node 
+      );
+    );
+  );
+
+);
+
+function SetBPToRel_Node_All()(
+  Mc1.SetBPToRel_Node();
+  Mc2.SetBPToRel_Node();
+  Mc3.SetBPToRel_Node();
+  Mc4.SetBPToRel_Node();
+  Mc5.SetBPToRel_Node();
+  Mc6.SetBPToRel_Node();
+  Mc7.SetBPToRel_Node();
+  Mc8.SetBPToRel_Node();
+
+
+);
+
+function LFO_Calc_Play_Pos ()(
+  play_state == 1 ? ( // if playing
+
+    this.bp += beat_per_block * this.LFO_Spd;
+    this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
+
+  ): play_state != 1  ? (   // if not playing
+    this.bp =  beat_position * this.LFO_Spd ;
+    this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+  );
+  
+  this.CurrentPos;
+
+);
+
+
+function SetMacroAttribute( x , y )
+(
+    Macro==1?(Mc1.FOL_Gain = y); 
+    Macro==2?(Mc2.FOL_Gain = y); 
+    Macro==3?(Mc3.FOL_Gain = y);
+    Macro==4?(Mc4.FOL_Gain = y);
+    Macro==5?(Mc5.FOL_Gain = y);
+    Macro==6?(Mc6.FOL_Gain = y);
+    Macro==7?(Mc7.FOL_Gain = y);
+    Macro==8?(Mc8.FOL_Gain = y);
+);
+
+function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
+(
+  BipolarRange = 0;
+  MR = ModRange;
+  
+  ModRange> 100 ? (     // if it's bipolar 
+    BipolarRange = (ModRange- 100) ; 
+    MR = (ModRange- 100) * 2;
+  );
+  
+
+
+  this.type =='step'?(
+    this.CurrentPos = (beat_position * this.SEQ_DNom) % this.SEQ_Leng ;
+    this.out = SEQ[this.CurrentPos+1+64*(this.Macro-1)]  ;
+    
+
+
+  ):this.type =='env'?(
+
+    this.masr_set_risetime(this.atk);
+    this.masr_set_falltime(this.rel);
+    this.out =  this.masr_do(midiamp);
+    //trkGUID_Num === gmem[2]? (gmem[this.EnvToImGui] = this.masr_do(midiamp));
+
+
+
+  ):this.type =='Fol' ? ( // if macro  is Follower 
+  
+    this.out = this.FOL_out*this.FOL_Gain  ;
+
+  ):this.type=='LFO'    ?( // if type is LFO
+    this.LFO_Gain_Auto != 0 ? ( 
+      this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
+    );
+    this.LFO_Spd_Auto!= 0 ? (
+      this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
+    );
+    this.EnvOrLoop == 0 ? (
+      this.CurrentPos = this.LFO_Calc_Play_Pos ();
+      this.Out = Calculate_Midi_Mod(this.CurrentPos/4, Gap*7 , this.Macro  ) ; 
+      //this.CalculateLFO( );
+    );
+  ):this.type =='Rdm' ? ( // if type is random
+    this.Rdm_time = this.Rdm_time + 1 * (samplesblock/64) ; 
+    this.Rdm_time > this.RDM_Interval  ? (
+
+      rand(100) < this.RDM_Chance ? (
+      this.Rdm_Next_Out = rand(1); //create next point 
+      );
+
+
+      this.Rdm_Smooth == 0 ?(
+        this.Rdm_Next_Out!= 0 ? ( this.Out = this.Rdm_Next_Out); //set current output to next point
+      );
+      this.Rdm_time = 0;
+    );
+    this.Rdm_Smooth != 0   ? (// if there's smooth, and next point is created
+      Rdm_Smooth =  10 - this.Rdm_Smooth*0.99 /10;
+      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) *  min ((this.Rdm_time/this.RDM_Interval) * Rdm_Smooth, 1  );
+
+    );
+  ):(   //if type is macro
+    this.Out = (this.Slider )   
+  );
+    
+
+
+
+);
+
+
+function SetTypeTo (T)
+(
+  Macro = gmem[5];
+  Macro==1?(Mc1.type=T); 
+  Macro==2?(Mc2.type=T);
+  Macro==3?(Mc3.Type=T);
+  Macro==4?(Mc4.Type=T);
+  Macro==5?(Mc5.Type=T);
+  Macro==6?(Mc6.Type=T);
+  Macro==7?(Mc7.Type=T);
+  Macro==8?(Mc8.Type=T);
+);
+
+function Check_Macro_Type (Macro)
+(
+  Macro==1?(Mc1.type;):(
+  Macro==2)?(Mc2.type;):(
+  Macro==3)?(Mc3.Type;):(
+  Macro==4)?(Mc4.Type;):(
+  Macro==5)?(Mc5.Type;):(
+  Macro==6)?(Mc6.Type;):(
+  Macro==7)?(Mc7.Type;):(
+  Macro==8)?(Mc8.Type;);
+);
+
+function Check_If_Bipolar(ModAmt)
+(
+  ModAmt[i]> 100 ? (     // if it's bipolar 
+    BipolarRange = (ModRange- 100) ; 
+    MR = (ModRange- 100) * 2;
+    BipolarRange; 
+  );
+
+);
+
+
+function If_User_Set_Type_To_Random() (
+  mode == 27? (
+    SetTypeTo('Rdm')
+  );
+);
+
+function If_User_Set_Type_To_XY() (
+  mode == 28? (
+    SetTypeTo('XY')
+  );
+);
+
+function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID, Curve)  // i is the track param number
+(
+  M = 1;
+  total = 0 ;
+  Bi_ofs= 0;
+
+  loop ( 8, 
+    ID = 1000 * (M-1) + i ;
+    ModAmt[ID] != 0 ? (
+      ModAMT[ID]> 99 ? (     // if it's bipolar 
+        Bi_ofs = (ModAmt[ID]- 100)  ;
+        Amt = (ModAmt[ID]- 100)*2 ;
+      ):(Amt = ModAmt[ID]  );  // if unipolar 
+
+      Curve = MOD_CURVE[M*1000+i];
+      Check_Macro_Type (M) == 'XY' ? (
+        X_or_Y[ID] == 1 ? (
+          out = Get_XY_PAD_SLIDERS_FOR_X(M); 
+        ):(
+          out = Get_XY_PAD_SLIDERS_FOR_Y(M)
+        );
+      ):(
+        out = McOut[M];
+      );
+      Curve!= 0 ? (  // if there's mod curve set 
+        out = GetCurveValue(McOut[M], -Curve, 0, 1, 0 , 1 );
+      );
+      total += out * Amt - Bi_ofs  
+    );
+    M+=1
+  );
+
+  //if there's velocity modulation
+  Velo_ModAmt[i] !=0 ? ( total += NOTE_ON_VELO *  Velo_ModAmt[i] );
+
+  //if there's Random 1 modulation
+  RAND1_ModAmt[i] != 0 ? (total += RAND1_Out * RAND1_ModAmt[i] );
+  RAND2_ModAmt[i] != 0 ? (total += RAND2_Out * RAND2_ModAmt[i] );
+  RAND3_ModAmt[i] != 0 ? (total += RAND3_Out * RAND3_ModAmt[i] );
+
+
+
+  KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
+  KeyTrk2_ModAmt[i] != 0 ? (total+= KeyTrk2_ModAmt[i]* (KTrk2) );
+  KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk2) );
+
+
+
+
+  total *127 ; 
+);
+
+
+
+function BLOCK__PresetMorph() (
+  //▼Send Midi Msg only when slider is moved or automated
+  Sldr9!=Slider9?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 1/*Which Note*/  , Slider9));
+  Sldr9=Slider9;
+
+  Sldr10!=Slider10?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 2/*Which Note*/  , Slider10));
+  Sldr10=Slider10;
+
+  Sldr11!=Slider11?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 3/*Which Note*/  , Slider11));
+  Sldr11=Slider11;
+
+  Sldr12!=Slider12?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 4/*Which Note*/  , Slider12));
+  Sldr12=Slider12;
+
+  Sldr13!=Slider13?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 5/*Which Note*/  , Slider13));
+  Sldr13=Slider13;
+
+  Sldr14!=Slider14?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 6/*Which Note*/  , Slider14));
+  Sldr14=Slider14;
+
+  Sldr15!=Slider15?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 7/*Which Note*/  , Slider15));
+  Sldr15=Slider15;
+
+  Sldr16!=Slider16?( midisend(0, $xAF/*AfterTouch, 16th Chan*/, 8/*Which Note*/  , Slider16));
+  Sldr16=Slider16;
+
+  );
+
+
+function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
+
+  //if user tweaking track that matches trkGUID
+  trkGUID_Num === gmem[2]? (
+    Macro = gmem[5];
+    mode == 1?(   // if User is right-dragging on param in ImGui...
+      P.Inst = gmem[3];    
+      Param = gmem[6];
+      Macro = gmem[5];
+      Check_Macro_Type (Macro) == 'XY' ? (
+        X_or_Y[Param + (Macro - 1) *1000] = gmem[9];
+      );
+
+      Macro < Velo_ModAmt/*500000 */  ? (  //if assigning to mod sources 
+        a[Param+ Macro*1000] = gmem[Param+ Macro*1000]; // get mod amount from script 
+      ):(   // if using Midi Modulations such as velocity , random, or keytrack
+        a[Macro] = gmem[9];  // we use macro here because in lua, we already account for offset (500000 for velocity, 510000 for random etc) and parameter number
+        a[Macro] = save( a[Macro] );
+      );  
+
+    );
+    mode ==2?(   // if User is adjusting atk...  
+      gmem[9] !=0?(Mc1.atk = gmem[9]); 
+      gmem[11]!=0?(Mc2.atk = gmem[11]);  
+      gmem[13]!=0?(Mc3.atk = gmem[13]);
+      gmem[15]!=0?(Mc4.atk = gmem[15]);
+      gmem[17]!=0?(Mc5.atk = gmem[17]);
+      gmem[19]!=0?(Mc6.atk = gmem[19]);
+      gmem[21]!=0?(Mc7.atk = gmem[21]);
+      gmem[23]!=0?(Mc8.atk = gmem[23]);
+      SetTypeTo ('env');                    
+    );
+    mode ==3?(   // if User is adjusting Release...
+        gmem[10]!=0?(Mc1.Rel=gmem[10]);
+        gmem[12]!=0?(Mc2.Rel=gmem[12]);
+        gmem[14]!=0?(Mc3.Rel=gmem[14]);
+        gmem[16]!=0?(Mc4.Rel=gmem[16]);
+        gmem[18]!=0?(Mc5.Rel=gmem[18]);
+        gmem[20]!=0?(Mc6.Rel=gmem[20]);
+        gmem[22]!=0?(Mc7.Rel=gmem[22]);
+        gmem[24]!=0?(Mc8.Rel=gmem[22]);
+        SetTypeTo ('env');            
+        );
+    mode ==4?(   //if user ctrl-r-click and change type to Env...
+      SetTypeTo ('env');
+        );
+    mode ==5? (   
+      SetTypeTo ('Mc');
+      );
+    mode == 6? (  
+      SetTypeTo ('step');
+    );
+    mode == 7 ? (  // if user is tweaking a step's Value
+      SetTypeTo ('step');
+      WhichStep= gmem[113]; 
+      Macro==1?(
+        SEQ[WhichStep]= gmem[112]; //writes seq value from table slot 20001~20048
+      ):Macro==2?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64]= gmem[112];  
+      ):Macro==3?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*2]= gmem[112];  
+      ):Macro==4?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*3]= gmem[112];  
+      ):Macro==5?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*4]= gmem[112];  
+      ):Macro==6?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*5]= gmem[112];  
+      ):Macro==7?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*6]= gmem[112];  
+      ):Macro==8?(    // //writes seq value from table slot 20065~20129
+        SEQ[WhichStep+64*7]= gmem[112];  
+      );
+    
+    );
+
+
+    mode == 8 ? (// if user is changing note length...
+      Macro = gmem[5];
+      Macro==1?( //if user is tweaking macro 1
+        gmem[9] != 0  ? (Mc1.SEQ_Leng = gmem[9];     gmem[9] = 0) ; 
+        gmem[10] != 0 ? (Mc1.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==2?(
+        gmem[9] != 0  ? (Mc2.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc2.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==3?(
+        gmem[9] != 0  ? (Mc3.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc3.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==4?(
+        gmem[9] != 0  ? (Mc4.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc4.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==5?(
+        gmem[9] != 0  ? (Mc5.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc5.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==6?(
+        gmem[9] != 0  ? (Mc6.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc6.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==7?(
+        gmem[9] != 0  ? (Mc7.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc7.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      ):Macro==8?(
+        gmem[9] != 0  ? (Mc8.SEQ_Leng = gmem[9];     gmem[9] = 0); 
+        gmem[10] != 0 ? (Mc8.SEQ_DNom = gmem[10];    gmem[10] = 0);
+      );
+    );
+
+    mode == 9? (
+      SetTypeTo('Fol')
+
+    );
+
+    mode == 10 ? (
+      // sets smoothness
+      Macro = gmem[5];
+      Macro==1?(Mc1.follow_set_freq(gmem[9]));
+      Macro==2?(Mc2.follow_set_freq(gmem[9]));
+      Macro==3?(Mc3.follow_set_freq(gmem[9]));
+      Macro==4?(Mc4.follow_set_freq(gmem[9]));
+      Macro==5?(Mc5.follow_set_freq(gmem[9]));
+      Macro==6?(Mc6.follow_set_freq(gmem[9]));
+      Macro==7?(Mc7.follow_set_freq(gmem[9]));
+      Macro==8?(Mc8.follow_set_freq(gmem[9]));
+
+    );
+    mode == 11 ? (
+      Macro==1?(Mc1.FOL_Gain = gmem[9];); 
+      Macro==2?(Mc2.FOL_Gain = gmem[9];); 
+      Macro==3?(Mc3.FOL_Gain = gmem[9];);
+      Macro==4?(Mc4.FOL_Gain = gmem[9];);
+      Macro==5?(Mc5.FOL_Gain = gmem[9];);
+      Macro==6?(Mc6.FOL_Gain = gmem[9];);
+      Macro==7?(Mc7.FOL_Gain = gmem[9];);
+      Macro==8?(Mc8.FOL_Gain = gmem[9];);
+    );
+    mode == 12?(  // if user is tweaking lfo speed
+      SetTypeTo('LFO');
+      Macro = gmem[5];
+      Macro==1?(Mc1.LFO_Spd = gmem[9];); 
+      Macro==2?(Mc2.LFO_Spd = gmem[9];); 
+      Macro==3?(Mc3.LFO_Spd = gmem[9];);
+      Macro==4?(Mc4.LFO_Spd = gmem[9];);
+      Macro==5?(Mc5.LFO_Spd = gmem[9];);
+      Macro==6?(Mc6.LFO_Spd = gmem[9];);
+      Macro==7?(Mc7.LFO_Spd = gmem[9];);
+      Macro==8?(Mc8.LFO_Spd = gmem[9];);
+    );
+    mode == 13?( //if user is adjusting LFO Length
+      SetTypeTo('LFO');
+      Macro==1?(Mc1.LFO_Len = gmem[9];); 
+      Macro==2?(Mc2.LFO_Len = gmem[9];); 
+      Macro==3?(Mc3.LFO_Len = gmem[9];);
+      Macro==4?(Mc4.LFO_Len = gmem[9];);
+      Macro==5?(Mc5.LFO_Len = gmem[9];);
+      Macro==6?(Mc6.LFO_Len = gmem[9];);
+      Macro==7?(Mc7.LFO_Len = gmem[9];);
+      Macro==8?(Mc8.LFO_Len = gmem[9];);
+    );
+    mode == 14?(   // if user is adjusting LFO Gain
+      SetTypeTo('LFO');
+      Macro==1?(Mc1.LFO_Gain = gmem[9];); 
+      Macro==2?(Mc2.LFO_Gain = gmem[9];); 
+      Macro==3?(Mc3.LFO_Gain = gmem[9];);
+      Macro==4?(Mc4.LFO_Gain = gmem[9];);
+      Macro==5?(Mc5.LFO_Gain = gmem[9];);
+      Macro==6?(Mc6.LFO_Gain = gmem[9];);
+      Macro==7?(Mc7.LFO_Gain = gmem[9];);
+      Macro==8?(Mc8.LFO_Gain = gmem[9];);
+    );
+
+    If_User_Set_Type_To_Random(mode) ;
+    If_User_Set_Type_To_XY(mode);
+
+    mode == 15?(  // if user changing LFO Shape
+      SetTypeTo('LFO');
+      Pts_Count = gmem[6];
+      Macro = gmem[5];
+      LFO[1*(Macro-1)*10000] = Pts_Count;  // 30000 = lfo 1's pt count,  40000 = lfo 2's pt count
+      i=0;
+      loop(Pts_Count,
+        i+=1;
+        X_idx = (Macro-1)*1000+i;   //LFO=30000 + ( LFO 1 = 1~ 1000) or (LFO 2 = 1001 ~ 2000)... etc
+        Y_idx = (Macro-1)*1000+ i + Pts_Count*11 ; // table slot for Y Coordinates, the +i +Pts_Count*11 should ensure slots don't overlap with X
+
+        LFO[X_idx]= gmem[1000+i];
+        LFO[Y_idx]= gmem[2000+i];
+      );
+      
+      i=0;
+      
+    /*  Macro==1?( Mc1.blosc_set_type(gmem[10])); 
+      Macro==2?( Mc2.blosc_set_type(gmem[10])); 
+      Macro==3?( Mc3.blosc_set_type(gmem[10]));
+      Macro==4?( Mc4.blosc_set_type(gmem[10]));
+      Macro==5?( Mc5.blosc_set_type(gmem[10]));
+      Macro==6?( Mc6.blosc_set_type(gmem[10]));
+      Macro==7?( Mc7.blosc_set_type(gmem[10]));
+      Macro==8?( Mc8.blosc_set_type(gmem[10])); */
+    );
+
+    mode ==16?(  // if user set LFO_Gain as automatable parameter...
+      AutomatedPrm_Num = gmem[9];
+      Macro==1?(Mc1.LFO_Gain_Auto = AutomatedPrm_Num;); 
+      Macro==2?(Mc2.LFO_Gain_Auto = AutomatedPrm_Num;); 
+      Macro==3?(Mc3.LFO_Gain_Auto = AutomatedPrm_Num;);
+      Macro==4?(Mc4.LFO_Gain_Auto = AutomatedPrm_Num;);
+      Macro==5?(Mc5.LFO_Gain_Auto = AutomatedPrm_Num;);
+      Macro==6?(Mc6.LFO_Gain_Auto = AutomatedPrm_Num;);
+      Macro==7?(Mc7.LFO_Gain_Auto = AutomatedPrm_Num;);
+      Macro==8?(Mc8.LFO_Gain_Auto = AutomatedPrm_Num;);
+    );
+    mode == 17 ? ( 
+      AutomatedPrm_Num = gmem[9];   // if set LFO speed as automatable paramter
+      Macro==1?(Mc1.LFO_Spd_Auto = AutomatedPrm_Num;); 
+      Macro==2?(Mc2.LFO_Spd_Auto = AutomatedPrm_Num;); 
+      Macro==3?(Mc3.LFO_Spd_Auto = AutomatedPrm_Num;);
+      Macro==4?(Mc4.LFO_Spd_Auto = AutomatedPrm_Num;);
+      Macro==5?(Mc5.LFO_Spd_Auto = AutomatedPrm_Num;);
+      Macro==6?(Mc6.LFO_Spd_Auto = AutomatedPrm_Num;);
+      Macro==7?(Mc7.LFO_Spd_Auto = AutomatedPrm_Num;);
+      Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
+    );
+    mode == 18? ( // if user set LFO's type (loop or envelope)
+      Macro = gmem[5];
+      Macro==1?(Mc1.EnvOrLoop = gmem[9]); 
+      Macro==2?(Mc2.EnvOrLoop = gmem[9]); 
+      Macro==3?(Mc3.EnvOrLoop = gmem[9]);
+      Macro==4?(Mc4.EnvOrLoop = gmem[9]);
+      Macro==5?(Mc5.EnvOrLoop = gmem[9]);
+      Macro==6?(Mc6.EnvOrLoop = gmem[9]);
+      Macro==7?(Mc7.EnvOrLoop = gmem[9]);
+      Macro==8?(Mc8.EnvOrLoop = gmem[9]);
+    );
+    mode == 19 ? ( // if user set LFO Release type 
+      // type 0 = latch , type 1 = simple , type 2 = custom
+      Macro==1?(Mc1.Rel_Type = gmem[9]); 
+      Macro==2?(Mc2.Rel_Type = gmem[9]); 
+      Macro==3?(Mc3.Rel_Type = gmem[9]);
+      Macro==4?(Mc4.Rel_Type = gmem[9]);
+      Macro==5?(Mc5.Rel_Type = gmem[9]);
+      Macro==6?(Mc6.Rel_Type = gmem[9]);
+      Macro==7?(Mc7.Rel_Type = gmem[9]);
+      Macro==8?(Mc8.Rel_Type = gmem[9]);
+    );
+    mode == 20 ? ( // if user set LFO Release Node 
+      Macro==1?(Mc1.Rel_Node = gmem[9]); 
+      Macro==2?(Mc2.Rel_Node = gmem[9]); 
+      Macro==3?(Mc3.Rel_Node = gmem[9]);
+      Macro==4?(Mc4.Rel_Node = gmem[9]);
+      Macro==5?(Mc5.Rel_Node = gmem[9]);
+      Macro==6?(Mc6.Rel_Node = gmem[9]);
+      Macro==7?(Mc7.Rel_Node = gmem[9]);
+      Macro==8?(Mc8.Rel_Node = gmem[9]);
+
+    );
+    mode == 21 ? (// if user set envelope to Legato
+      Macro==1?(Mc1.Legato = gmem[9]); 
+      Macro==2?(Mc2.Legato = gmem[9]); 
+      Macro==3?(Mc3.Legato = gmem[9]);
+      Macro==4?(Mc4.Legato = gmem[9]);
+      Macro==5?(Mc5.Legato = gmem[9]);
+      Macro==6?(Mc6.Legato = gmem[9]);
+      Macro==7?(Mc7.Legato = gmem[9]);
+      Macro==8?(Mc8.Legato = gmem[9]);
+
+    );
+    mode == 22 ? ( // if user is setting note filter 
+      Macro==1?(Mc1.LowestNote = gmem[9]); 
+      Macro==2?(Mc2.LowestNote = gmem[9]); 
+      Macro==3?(Mc3.LowestNote = gmem[9]);
+      Macro==4?(Mc4.LowestNote = gmem[9]);
+      Macro==5?(Mc5.LowestNote = gmem[9]);
+      Macro==6?(Mc6.LowestNote = gmem[9]);
+      Macro==7?(Mc7.LowestNote = gmem[9]);
+      Macro==8?(Mc8.LowestNote = gmem[9]);
+
+      Macro==1?(Mc1.HighestNote = gmem[10]); 
+      Macro==2?(Mc2.HighestNote = gmem[10]); 
+      Macro==3?(Mc3.HighestNote = gmem[10]);
+      Macro==4?(Mc4.HighestNote = gmem[10]);
+      Macro==5?(Mc5.HighestNote = gmem[10]);
+      Macro==6?(Mc6.HighestNote = gmem[10]);
+      Macro==7?(Mc7.HighestNote = gmem[10]);
+      Macro==8?(Mc8.HighestNote = gmem[10]);
+
+    );
+    //Set_Midi_Mod_Curve(mode );
+  AAAA_GM15 = gmem[15];
+
+    Set_Midi_Mod_Curve_All_Pts(mode);
+    Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode);
+    Set_Modulator_Curve(mode);
+    RANDOM_Change_Prop(mode);
+    id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
+    pt = gmem[11]; // tells which point is user dragging 
+
+
+
+
+        
+    gmem[7] != 0?( // if user uses Imgui to tweak param...
+      P_Id = gmem[7];
+      P_OrigV[P_Id]= gmem[P_OrigV+P_Id];
+      what=gmem[8];
+      gmem[8] != 0?( // if paramV + Mod is over 1...
+        a[Param+ Macro*1000] = gmem[Param+ Macro*1000]  // this is mod amount for the modulator on the parameter
+      );
+    );
+
+
+  ); // --------------------- End of if track is selected -----------------------
+
+  );
+
+function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
+
+  while (midirecv(offset, msg1, msg2, msg3)) (
+    // get noteons and noteoffs from all channels
+    noteStatus = msg1 & $xF0;
+    channel =  msg1 & $x0F;
+
+    (noteStatus) == $x90  ?(    // if note on 
+      msg3 != 0 ? (   // and velocity is not 0 
+        // midi_bus = 15;
+        midinote = msg2;
+        NoteOn = 1  ;
+        // msg3 == Velocity
+        midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
+
+        NOTE_ON_VELO = Calculate_Midi_Mod( msg3/127, 0, 0 );
+        RAND1 = (0 + rand(1000 - 0 )) / 1000; 
+        RAND2 = (0 + rand(1000 - 0 )) / 1000; 
+        RAND3 = (0 + rand(1000 - 0 )) / 1000; 
+
+        RAND1_Out =   Calculate_Midi_Mod (RAND1 , Gap  , 0) ; //Gap = 10000
+        RAND2_Out =   Calculate_Midi_Mod (RAND2 , Gap*2, 0 ) ; //Gap = 10000
+        RAND3_Out =   Calculate_Midi_Mod (RAND3 , Gap*3, 0 ) ; //Gap = 10000
+        KTrk1 =   Calculate_Midi_Mod (midinote/127  , Gap*4 , 0) ; //Gap = 10000
+        KTrk2 =   Calculate_Midi_Mod (midinote/127  , Gap*5 , 0) ; //Gap = 10000
+        KTrk3 =   Calculate_Midi_Mod (midinote/127  , Gap*6 , 0) ; //Gap = 10000
+
+
+
+
+        Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (trkGUID_Num , msg3/127, RAND1, RAND2, RAND3, midinote/127, midinote/127, midinote/127);
+
+        TotalNotesHeld+=1;
+        SetBpTo0_All (midinote);
+        midisend(offset,msg1,msg2, NOTE_ON_VELO* 127); 
+      ) ;
+    ):(noteStatus == $x80) ? (    // $x80 is probably note off
+      // noteoff
+      msg2 == midinote ? midiamp = 0;
+      TotalNotesHeld = max(TotalNotesHeld-1, 0);
+      SetBPToRel_Node_All();  
+      NoteOn = 0;
+      midisend(offset,msg1,msg2,msg3);
+      
+    ) : (
+
+        // passthrough other events
+        midisend(offset,msg1,msg2,msg3);
+    );
+  );
+
+
+
+  NoteOn ? (
+
+    Mc1.DoMidiTriggeredActions();
+    Mc2.DoMidiTriggeredActions();
+    Mc3.DoMidiTriggeredActions();
+    Mc4.DoMidiTriggeredActions();
+    Mc5.DoMidiTriggeredActions();
+    Mc6.DoMidiTriggeredActions();
+    Mc7.DoMidiTriggeredActions();
+    Mc8.DoMidiTriggeredActions();
+  ):(
+    Mc1.DoMidi_Release();
+    Mc2.DoMidi_Release();
+    Mc3.DoMidi_Release();
+    Mc4.DoMidi_Release();
+    Mc5.DoMidi_Release();
+    Mc6.DoMidi_Release();
+    Mc7.DoMidi_Release();
+    Mc8.DoMidi_Release();
+
+  );
+);
+
+function BLOCK__Calculate_All_Modulators()(
+
+
+  Mc1.CalculatMacroAmt();
+  Mc2.CalculatMacroAmt();
+  Mc3.CalculatMacroAmt();
+  Mc4.CalculatMacroAmt();
+  Mc5.CalculatMacroAmt();
+  Mc6.CalculatMacroAmt();
+  Mc7.CalculatMacroAmt();
+  Mc8.CalculatMacroAmt();
+  
+
+  McOut[1] = Mc1.Out;
+  McOut[2] = Mc2.Out;
+  McOut[3] = Mc3.Out;
+  McOut[4] = Mc4.Out;
+  McOut[5] = Mc5.Out;
+  McOut[6] = Mc6.Out;
+  McOut[7] = Mc7.Out;
+  McOut[8] = Mc8.Out;
+);
+
+function BLOCK__Send_All_Midi_Info_To_Corresponding_Prms()(
+
+  i=1;    
+
+  while ( i <= P.Inst)(
+    SendAmt = min( P_OrigV[i]*127 + CalculateTotalOut ( i )  , 127) ;
+    midisend(0, $xBf, i, SendAmt);
+    i+=1;
+  );
+);
+
+
+function BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num)(
+  trkGUID_Num === gmem[2]? (
+    Mc1.SendInfoBackToImGui();
+    Mc2.SendInfoBackToImGui();
+    Mc3.SendInfoBackToImGui();
+    Mc4.SendInfoBackToImGui();
+    Mc5.SendInfoBackToImGui();
+    Mc6.SendInfoBackToImGui();
+    Mc7.SendInfoBackToImGui();
+    Mc8.SendInfoBackToImGui();
+  );
+  );
+
+function BLOCK__Calculate_How_Many_Notes_Are_Held()(
+
+  PlayState ==1 ? (
+    (play_state != 1 && play_state != 5)? ( 
+    TotalNotesHeld = 0 );
+  );
+
+  play_state == 1 || play_state == 5? ( 
+    PlayState = 1 ; 
+  ):( PlayState = 0 );
+  );
+
+function SAMPLE__DO_FOLLOWER()(
+
+
+  Mc1.DoFollower();
+  Mc2.DoFollower();
+  Mc3.DoFollower();
+  Mc4.DoFollower();
+  Mc5.DoFollower();
+  Mc6.DoFollower();
+  Mc7.DoFollower();
+  Mc8.DoFollower();
+
+  );
+
+
+function SERIALIZE__Prm_Mod_Range_AND_Orig_Values() local (i) (
+  i=1;    
+/*
+
+  while ( i <= P.Inst)(
+    m = 1 ; 
+    while ( m <= 8)(
+    // file_var(i+m*1000, a[i+m*1000]);
+    
+      a[i+m*1000] = file_var(0 , a[i+m*1000]);
+      m+=1;
+      
+    );
+    P_OrigV[i] = file_var(0, P_OrigV[i]);
+    i+=1;
+  ); 
+  */
+
+  file_mem(0, 1000, 8000 ) ;
+
+
+  );
+
+function SERIALIZE__Save_LFO()(
+  file_mem(0, LFO_Ofs, 1200 ) ;
+
+);
+
+function SERIALIZE__Midi_Mods() local (i)(
+
+
+  i=0;
+
+
+  while(i<=80000)(
+
+    // Velo_ModAmt[i] = file_var(0, Velo_ModAmt[i]);
+    MOD_CURVE[1000+i] != 0 ?(
+      MOD_CURVE[1000+i] = file_var(0, MOD_CURVE[1000+i]); //  recall mod curves, 
+      i+=1;
+    );
+  );
+  );
+
+function SERIALIZE__Mod_Curves() local (i)(
+
+  i = 0;
+  while(i<=32000)(//  recall mod curves for all 32000 slots
+
+    MOD_CURVE[i] = file_var(0, MOD_CURVE[i]); 
+    i+=1;
+  );
+);
+

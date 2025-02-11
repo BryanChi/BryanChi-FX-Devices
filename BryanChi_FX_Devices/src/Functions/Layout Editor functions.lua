@@ -3652,7 +3652,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         if LE.Renaming_XY_Pad == i then 
                             local rv, nm = im.InputText(ctx, '##Rename XY Pad', Lbl, r.ImGui_InputTextFlags_EnterReturnsTrue())
                             if rv then 
-                                msg('rv')
                                 FX[FxGUID].XY_Pad_TB[i].name = nm
                                 LE.Renaming_XY_Pad = nil 
                             end
@@ -4160,7 +4159,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
 
 
-    local function Knob_Interaction()
+    local function Knob_Interaction() -- CURRENTLY NOT USED
             
         if ClickButton == im.ButtonFlags_MouseButtonLeft then                                -- left drag to adjust parameters
             if im.BeginDragDropSource(ctx, im.DragDropFlags_SourceNoPreviewTooltip) then
@@ -4233,6 +4232,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             --r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             MvingP_Idx = F_Tp
             Tweaking = P_Num .. FxGUID
+
             
         end
 
@@ -4633,6 +4633,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 end
                 --- shows modulation range
                 --- 
+                FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
                 local t = (FP.V - v_min) / (v_max - v_min)
                 local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
                 local Range = SetMinMax(angle + (ANGLE_MAX - ANGLE_MIN) * Amt , ANGLE_MIN, ANGLE_MAX)
@@ -4678,7 +4679,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
             end
             for M, v in ipairs(Midi_Mods) do 
 
-                Show_Mod_Range(FP.ModAMT[v] ,  ThemeClr('Accent_Clr'))
+                Show_Mod_Range(Amt[v] ,  ThemeClr('Accent_Clr'))
             end
         end -- of reapeat for every macro
 

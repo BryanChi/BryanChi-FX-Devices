@@ -15,7 +15,7 @@ JSFX.KeyTrack2 = JSFX.Velo_Mod + 50000
 JSFX.KeyTrack3 = JSFX.Velo_Mod + 60000
 
 Midi_Mod_Indicator = { } 
-Midi_Mods = {'Velocity', 'Random', 'Random 2' , 'Random 3', 'KeyTrack', 'KeyTrack 2', 'KeyTrack 3'}
+Midi_Mods = {'Velocity', 'Random', 'Random 2' , 'Random 3', 'KeyTrack', 'KeyTrack 2', 'KeyTrack 3', 'LFO'}
 
 AllAvailableKeys = {
     ['0'] = r.ImGui_Key_0(),

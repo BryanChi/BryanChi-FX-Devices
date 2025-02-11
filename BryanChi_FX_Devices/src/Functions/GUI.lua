@@ -18,17 +18,19 @@ function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
     local x_norm = (x - xmin) / (xmax - xmin)
     
     local y_norm
-    if p > 1 then
-        -- Exponential curve: y_norm = x_norm^p
-        y_norm = x_norm^p
-    elseif p < 0 then
-        -- Logarithmic-like curve: scaled log formula using |p|
-        local p_abs = math.abs(p)
-        y_norm = math.log(1 + (math.exp(p_abs) - 1) * x_norm) / math.log(math.exp(p_abs))
+    if p == 0 then
+        y_norm = x_norm  -- Linear case
     else
-        -- Linear interpolation: y_norm = x_norm when p = 0
-        y_norm = x_norm
+        local p_abs = math.abs(p)
+        local scale = (math.exp(p_abs) - 1)
+
+      if p > 0 then
+        y_norm = x_norm ^ p  -- 
+      else
+        y_norm = 1 - (1 - x_norm) ^ p_abs
+      end
     end
+
     
     -- Scale y_norm back to the range [ymin, ymax]
     local y = ymin + y_norm * (ymax - ymin)
@@ -104,9 +106,9 @@ function RoundBtn (W,H , lbl, clr, fillclr, fillsz)
     if im.IsItemActive(ctx) then  
         --im.DrawList_AddCircleFilled(WDL ,x,y , W/3 , 0x000000ff )
         im.DrawList_AddCircle(WDL ,x,y , W/1.8 , clr, nil,3 )
-
+        local active = true
         local DtX, DtY = im.GetMouseDelta(ctx)
-        return DtX, DtY
+        return DtX, DtY, active
     end
 
 end
@@ -205,6 +207,11 @@ function Draw_Single_Curve(nX, X, nY, Y, curve , thick , lineClr, ofs)
         table.insert(Pts.y, y)
         table.insert(Pts.x, i)
     end
+    local WDL = WDL or im.GetWindowDrawList(ctx)
+    if nX == X then
+
+        im.DrawList_AddLine(WDL, X + ofs, Y + ofs, nX + ofs, nY + ofs, lineClr, thick)
+    end
 
     for i, v in ipairs(Pts.x) do
         if i ~= #Pts.x then
@@ -216,8 +223,37 @@ function Draw_Single_Curve(nX, X, nY, Y, curve , thick , lineClr, ofs)
         end
     end
 end
+function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick)
+    local lineClr = lineClr or 0xffffff99
+    local v = PtsTB[i]
+    if not v or type(v)~= 'table' then return end 
 
-function CurveEditor(W,H, PtsTB, lbl)
+    local X, Y = L+v[1]* W , B - v[2]*H 
+    --[[ im.SetCursorScreenPos(ctx, X, Y ) ]]
+    --[[  local DtX, DtY, Tweaking = RoundBtn(PtSz, PtSz, i, 0xffffffff, 0xffffffff, PtSz/3)
+    if Tweaking then TWEAKING = true end  
+    local lX = i>1 and PtsTB[i-1][1] or 0 
+    local nX = i<#PtsTB and PtsTB[i+1][1] or 1
+    local nY = i<#PtsTB and PtsTB[i+1][2] or v[2]
+    v[1] = DtX and SetMinMax(v[1]+DtX/W , lX , nX)   or v[1]
+    v[2] = DtY and SetMinMax(v[2]-DtY/H , 0, 1)   or v[2] ]]
+    if PtsTB[i+1] then 
+        local n = PtsTB[i+1]
+        local nX , nY = L + n[1] * W ,  B - n[2] * H 
+        local DtX, DtY
+        local ofs = PtSz/2
+        local x1, y1, x2, y2 = X+ofs, Y+ofs , nX+ofs ,  nY+ofs
+        local mX, mY = im.GetMousePos(ctx)
+        if not v[3] then 
+            im.DrawList_AddLine(WDL, x1, y1, x2, y2, lineClr, thick)
+        else
+            Draw_Single_Curve(nX, X, nY, Y, v[3] , thick,lineClr, ofs)
+        end
+    end
+
+end
+function CurveEditor(W,H, PtsTB, lbl , Macro)
+    local IsLFO = lbl:find('LFO') and true or false
     local Pad = 15
     local PtSz = 15
     local x, y = im.GetCursorPos(ctx)
@@ -226,36 +262,37 @@ function CurveEditor(W,H, PtsTB, lbl)
     local thick = 4
     local lineClr = 0xffffff99
     local NoteOnVel = r.gmem_read(91)
-    
-    local function Get_MidiMod_Ofs()
-        local ofs = 0 
-        for i, v in ipairs(Midi_Mods) do 
-            if lbl == v then 
-                ofs = i-1
-            end
-        end
-       
-        return ofs
-    end
 
-    r.gmem_write(8, 1+ Get_MidiMod_Ofs()) -- tells jsfx the curve editor is open ,and so it needs to send back velocity or random 's value'
+    
+    
+
+    r.gmem_write(8, 1+ Get_MidiMod_Ofs(lbl)) -- tells jsfx the curve editor is open ,and so it needs to send back velocity or random 's value'
 
 
     local function DrawGrid()
         local x, y = im.GetCursorScreenPos(ctx)
+        local P = PtSz/2 
+        local L , R = x + P , x + W - P
+        local W = W - P
+
         local  Clr1 , Clr2 = 0xffffff55 , 0xffffff22
-        draw_dotted_line(x + W/2 ,y, x+W/2 , y+H, Clr1, 3, 2)-- center x axis
-        draw_dotted_line(x  ,y + H/2 , x+W , y+H/2, Clr1, 3, 2)-- center y axis
+        draw_dotted_line(L + W/2 ,y, L+W/2 , y+H, Clr1, 3, 2)-- center x axis
+        draw_dotted_line(L  ,y + H/2 , R , y+H/2, Clr1, 3, 2)-- center y axis
 
-        draw_dotted_line(x + W/4 ,y, x+W/4 , y+H, Clr2, 3, 2)-- 4/1 x axis
-        draw_dotted_line(x +W - W/4 ,y, x+W - W/4, y+H, Clr2, 3, 2)-- 4/3 x axis
+        draw_dotted_line(L + W/4 ,y, L+W/4 , y+H, Clr2, 3, 2)-- 4/1 x axis
+        draw_dotted_line(L +W - W/4 ,y, L+W - W/4, y+H, Clr2, 3, 2)-- 4/3 x axis
 
-        draw_dotted_line(x  ,y + H/4 , x+W , y+H/4, Clr2, 3, 2)-- center y axis
-        draw_dotted_line(x  ,y + H - H/4 , x+W , y+H -H/4, Clr2, 3, 2)-- center y axis
+        draw_dotted_line(L  ,y + H/4 , R , y+H/4, Clr2, 3, 2)-- center y axis
+        draw_dotted_line(L  ,y + H - H/4 , R , y+H -H/4, Clr2, 3, 2)-- center y axis
 
 
 
-        --im.DrawList_AddLine(WDL, x + W/2 , y , x+W/2 , y+H , 0xffffffff, 5)
+        im.DrawList_AddLine(WDL, L , y , L , y+H , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL,R, y , R , y+H , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL,L, y , R , y , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL,L, y+H , R , y+H , 0xffffff33, 2)
+
+
     end
 
 
@@ -280,13 +317,13 @@ function CurveEditor(W,H, PtsTB, lbl)
         end
 
         local function ConvertScreenY(y)
-            return B- y * H + PtSz /2 
+            return B- y * (H + PtSz /2 )
         end
         local function ConvertScreenX(x)
-            return  L + x * (W ) + PtSz/2
+            return  L + x * (W  + PtSz/2)
         end
         if NoteOnVel > -1  then 
-            if NoteOnVel > X and NoteOnVel < nX then 
+            if NoteOnVel >= X and NoteOnVel <= nX then 
                 --local W , H = W  , H - PtSz/2
 
                 local x = ConvertScreenX(NoteOnVel)
@@ -301,26 +338,24 @@ function CurveEditor(W,H, PtsTB, lbl)
                 end
                 --GLOWING_CIRCLE({x,y}, 3, 3, 5 , ThemeClr("Accent_Clr") ) 
                 AddPt(x, y )
-            elseif (NoteOnVel <= X and i == 1) or (NoteOnVel > X and i == #PtsTB) then 
-                AddPt(  ConvertScreenX(NoteOnVel) , ConvertScreenY(Y))
+            --[[ elseif (NoteOnVel <= X and i == 1) or (NoteOnVel > X and i == #PtsTB) then 
+                AddPt(  ConvertScreenX(NoteOnVel) , ConvertScreenY(Y)) ]]
             end
         end
 
         for i, v in ipairs(Midi_Mod_Indicator)  do 
 
-            v.Opacity , v.time  , v.Complete = Anim_Update( 0.1 , 20, 1, 0 , v .time)
+            v.Opacity , v.time  , v.Complete = Anim_Update( 0.1 , 4, 1, 0 , v .time)
             local glowSz = 10
 
             local clr = ThemeClr("Accent_Clr")
 
-            local lineClr = Change_Clr_A( clr, -1.2 +  v.Opacity * 0.3)
-            local CircleClr = Change_Clr_A( clr,  v.Opacity-1 )  
-            local GlowOut = 10
-            local GlowOut = 3 + v.Opacity*glowSz
-  
-            --LOWING_CIRCLE({v.x,v.y}, 1, GlowOut, 2 , CircleClr, nil, 0xffffffff) 
+            local lineClr = Change_Clr_A( clr, -1.2 +  v.Opacity * 0.4)
+            local CircleClr =  --[[ lineClr or ]] Change_Clr_A( clr,  v.Opacity-1 )  
 
             local glow_in = 1
+            local GlowOut = glow_in + v.Opacity*glowSz
+
             for i= glow_in, GlowOut, 1 do 
                 local I =  (GlowOut - i)   
                 local range =  GlowOut - glow_in
@@ -349,18 +384,6 @@ function CurveEditor(W,H, PtsTB, lbl)
 
     end
     
-    local function Update_Info_To_Jsfx()
-        r.gmem_attach('ParamValues')
-        r.gmem_write(4, 25) -- tells jsfx to get all points info    
-        r.gmem_write(12, Get_MidiMod_Ofs())  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
-        r.gmem_write(13, #PtsTB) -- tells how many points in total
-
-        for i, v in ipairs(PtsTB) do 
-            r.gmem_write(11, i) -- tells which pt
-            if v[1] then r.gmem_write(20+i, v[1]) end
-            if  v[2] then r.gmem_write(30+i, v[2]) end
-        end
-    end
     
     im.Dummy(ctx,W + Pad,H + Pad)
     im.SetCursorPos(ctx, x + Pad/2 , y + Pad/2 )
@@ -371,7 +394,7 @@ function CurveEditor(W,H, PtsTB, lbl)
     local R, B = im.GetItemRectMax(ctx)
     local R, B = R - PtSz, B - PtSz
 
-    Highlight_Itm(WDL, nil, 0xffffff33)
+    --Highlight_Itm(WDL, nil, 0xffffff33)
     PtsTB=PtsTB or { {0, 0} , {1, 1} }
     if not next(PtsTB) then 
     
@@ -382,27 +405,31 @@ function CurveEditor(W,H, PtsTB, lbl)
     local Hvr_Pt , Hvr_Ctrl_Pt
     local W , H = W - PtSz , H - PtSz
 
-    Update_Info_To_Jsfx()
-
-    
-
+    Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
+    local TWEAKING 
     for i, v in ipairs( PtsTB) do 
         
         local X, Y = L+v[1]* W , B - v[2]*H 
-
         im.SetCursorScreenPos(ctx, X, Y )
-        local DtX, DtY = RoundBtn(PtSz, PtSz, i, 0xffffffff, 0xffffffff, PtSz/3)
+        local DtX, DtY, Tweaking = RoundBtn(PtSz, PtSz, i, 0xffffffff, 0xffffffff, PtSz/3)
+        if Tweaking then TWEAKING = true end  
         local lX = i>1 and PtsTB[i-1][1] or 0 
         local nX = i<#PtsTB and PtsTB[i+1][1] or 1
         local nY = i<#PtsTB and PtsTB[i+1][2] or v[2]
         v[1] = DtX and SetMinMax(v[1]+DtX/W , lX , nX)   or v[1]
         v[2] = DtY and SetMinMax(v[2]-DtY/H , 0, 1)   or v[2]
+        if i == 1 then 
+            v[1] = 0
+        elseif i == #PtsTB then 
+            v[1] = 1
+        end
+
         Hvr_Pt = im.IsItemHovered(ctx) and true  
         
         local function Send_gmem(Pt , mode )
             r.gmem_attach('ParamValues')
             r.gmem_write(4, mode or 23) -- tells jsfx user is changing the curve
-            r.gmem_write(12, Get_MidiMod_Ofs())  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
+            r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
             r.gmem_write(11, Pt) -- tells which pt
             r.gmem_write(13, #PtsTB) -- tells how many points in total
         end
@@ -411,14 +438,24 @@ function CurveEditor(W,H, PtsTB, lbl)
             local mX, mY = im.GetMousePos(ctx)
          
             if mX > X and mX < L+ nX *W then 
+
                 if Wheel_V then 
                     v[3] =  (v[3] or 0 ) 
                     v[3] = v[3]+ Wheel_V /10
+                    if v[3] < 1 and v[3] > -1 then
+                        if Wheel_V > 0 then 
+                            v[3] = 1
+                        else 
+                            v[3] = -1
+                        end
+                    end
                     Send_gmem(i, 24 )
+                    r.gmem_attach('ParamValues')
                     r.gmem_write(15, v[3])
                     Save_to_Trk(lbl..' point '..i..' Curve', v[3])
                     
                 end
+                return true
             end
         
         end
@@ -428,7 +465,7 @@ function CurveEditor(W,H, PtsTB, lbl)
                 --Send_gmem(i )
                 r.gmem_attach('ParamValues')
                 r.gmem_write(4, 23) -- tells jsfx user is changing the curve
-                r.gmem_write(12, Get_MidiMod_Ofs())  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
+                r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
                 r.gmem_write(11, i) -- tells which pt
                 r.gmem_write(13, #PtsTB) -- tells how many points in total
                 if DtX then  
@@ -448,10 +485,12 @@ function CurveEditor(W,H, PtsTB, lbl)
                 Save_to_Trk(lbl..' point '..i..' X', '')
                 Save_to_Trk(lbl..' point '..i..' Curve', '')
                 table.remove(PtsTB, i )
+
                 SaveCurve()
-                --Update_Info_To_Jsfx()
+                Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
             end
         end
+
         local function AddPoint_If_DoubleClick ()
 
             if AddPt   and not Hvr_Pt and not Hvr_Ctrl_Pt  then 
@@ -464,7 +503,7 @@ function CurveEditor(W,H, PtsTB, lbl)
                         PtsTB[i+1][1]=mX 
                         PtsTB[i+1][2]=mY 
                         SaveCurve()
-                       -- Update_Info_To_Jsfx()
+                        Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
                         Save_to_Trk(lbl..' point '.. #PtsTB..' X',mX)
                         Save_to_Trk(lbl..' point '.. #PtsTB..' Y',mY)
                         Save_to_Trk(lbl.. 'Curve number of points',  #PtsTB)
@@ -474,39 +513,30 @@ function CurveEditor(W,H, PtsTB, lbl)
                 end
             end         
         end
-        Wheel_To_Adjust_Curve()
+
+        local function Draw_Playhead_If_LFO()
+            if not IsLFO then return end 
+            local MOD  = math.abs(SetMinMax((r.gmem_read(100 + Macro) or 0) / 127, -1, 1))
+            local PlayPos = L + r.gmem_read(108 + Macro) / 4 * W / ((Mc.LFO_leng or LFO.Def.Len) / 4)
+            im.DrawList_AddLine(WDL, PlayPos, T, PlayPos, T + H, EightColors.LFO[Macro], 1)
+            im.DrawList_AddCircleFilled(WDL, PlayPos, T + H - MOD * H , 3, EightColors.LFO[Macro])
+        end 
+        
+        local HoverOnCurve =   Wheel_To_Adjust_Curve()
+        local thick = HoverOnCurve and 6 or 4
+        Draw_Curve (WDL,PtsTB, i, L, R, B, W, H, PtSz , lineClr , thick)
+        Draw_Playhead_If_LFO()
         Show_Played_Notes_Velocity(v[1] , nX, v[2] , nY,L, B, W, H, v[3], i)
-        --Send_gmem_If_Drag_Node()
+        Send_gmem_If_Drag_Node()
         Delete_Node_If_Alt_Click()
         AddPoint_If_DoubleClick ()
-        if PtsTB[i+1] then 
-            local n = PtsTB[i+1]
-            local nX , nY = L + n[1] * W ,  B - n[2] * H 
-            local DtX, DtY
-            local ofs = PtSz/2
-            local x1, y1, x2, y2 = X+ofs, Y+ofs , nX+ofs ,  nY+ofs
-
-            if not v[3] then 
-                im.DrawList_AddLine(WDL, x1, y1, x2, y2, lineClr, thick)
-            else
-                Draw_Single_Curve(nX, X, nY, Y, v[3] , thick,lineClr, ofs)
-            end
-        end
+        
     end
-    if PtsTB[1] then
-        if  PtsTB[1][1] + L ~= L then 
-            local X, Y = L + PtsTB[1][1] * W   + PtSz / 2 , B - PtsTB[1][2] * H + PtSz / 2 
-            im.DrawList_AddLine(WDL, L, Y, X,  Y, lineClr, thick)
-        end
-        if PtsTB[#PtsTB][1]+ R ~= R then 
-            local X, Y = L + PtsTB[#PtsTB][1] * W  , B - PtsTB[#PtsTB][2] * H + PtSz /2
-            
-            im.DrawList_AddLine(WDL, X, Y, R ,  Y, lineClr, thick)
-        end
-    end
+    
     SaveCurve()
 
-    return PtsTB
+
+    return PtsTB , TWEAKING
     --[[ im.SetCursorScreenPos(ctx, R-PtSz, T)
     RoundBtn(PtSz, PtSz, 'Max', 0xffffffff) ]]
 
@@ -1093,7 +1123,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         if fx.Collapse then  -- if user is collapsing 
 
             fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
-            fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth , COLLAPSED_FX_WIDTH, Anim_Time)
+            fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
 
             if fx.AnimComplete  then 
 
@@ -4263,7 +4293,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             ------ EXECUTION -----
                             ---
                             local pos = Create_Item()
-                            Show_Modulator_Control_Panel(pos, FP)
+                            Show_Modulator_Control_Panel(pos, FP, FxGUID)
 
                             --Prm_Modulation_tooltip_Win(FP)
 

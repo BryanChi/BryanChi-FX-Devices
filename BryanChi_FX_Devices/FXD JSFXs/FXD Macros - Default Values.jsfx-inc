@@ -1,0 +1,172 @@
+desc:FXD Macros - default values
+import cookdsp.jsfx-inc
+
+
+
+
+
+@init
+
+ModAmt = 1000;
+X_or_Y = 40000; //   tells the param is assigned to X or Y of the XY pad , 1 is X , 2 is Y
+PsUsed = 100; 
+P_OrigV = 100000 ;  //Parameter's original values before modulation
+MOD_CURVE = 200000; // New LFO = 270000 ( Mod_Curve + 10000 * 7(gmem[12]))
+SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
+Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
+McOut =  1;
+
+Velo_ModAmt = 500000;
+GAP = 10000;
+RAND1_ModAmt = Velo_ModAmt + GAP;
+RAND2_ModAmt = RAND1_ModAmt + GAP;
+RAND3_ModAmt = RAND2_ModAmt + GAP;
+KeyTrk1_ModAmt = RAND3_ModAmt + GAP; 
+KeyTrk2_ModAmt = KeyTrk1_ModAmt + GAP;
+KeyTrk3_ModAmt = KeyTrk2_ModAmt + GAP; 
+LFO_Ofs =  KeyTrk3_ModAmt + GAP;
+LFO_Max_Num_Of_Pts = 50;
+Midi_Mod_Curve_Ofs = 1000;
+Curve_Prop_Ofs = 10;
+
+
+// utility for offsetting internal jsfx
+  Mc1.Macro = 1;
+  Mc2.Macro = 2;
+  Mc3.Macro = 3;
+  Mc4.Macro = 4;
+  Mc5.Macro = 5;
+  Mc6.Macro = 6;
+  Mc7.Macro = 7;
+  Mc8.Macro = 8;
+
+//  Follower Gain 
+  Mc1.Fol_Gain= 0.7 ; 
+  Mc2.Fol_Gain= 0.7 ; 
+  Mc3.Fol_Gain= 0.7 ; 
+  Mc4.Fol_Gain= 0.7 ; 
+  Mc5.Fol_Gain= 0.7 ; 
+  Mc6.Fol_Gain= 0.7 ; 
+  Mc7.Fol_Gain= 0.7 ; 
+  Mc8.Fol_Gain= 0.7 ; 
+
+//LFO Gain auto 
+  Mc1.LFO_Gain_Auto= 0 ;
+  Mc2.LFO_Gain_Auto= 0 ;
+  Mc3.LFO_Gain_Auto= 0 ;
+  Mc4.LFO_Gain_Auto= 0 ;
+  Mc5.LFO_Gain_Auto= 0 ;
+  Mc6.LFO_Gain_Auto= 0 ;
+  Mc7.LFO_Gain_Auto= 0 ;
+  Mc8.LFO_Gain_Auto= 0 ;
+
+// LFO Spd 
+  Mc1.LFO_Spd = 1;
+  Mc2.LFO_Spd = 1;
+  Mc3.LFO_Spd = 1;
+  Mc4.LFO_Spd = 1;
+  Mc5.LFO_Spd = 1;
+  Mc6.LFO_Spd = 1;
+  Mc7.LFO_Spd = 1;
+  Mc8.LFO_Spd = 1;
+//LFO Spd Auto
+  Mc1.LFO_Spd_Auto= 0 ;
+  Mc2.LFO_Spd_Auto= 0 ;
+  Mc3.LFO_Spd_Auto= 0 ;
+  Mc4.LFO_Spd_Auto= 0 ;
+  Mc5.LFO_Spd_Auto= 0 ;
+  Mc6.LFO_Spd_Auto= 0 ;
+  Mc7.LFO_Spd_Auto= 0 ;
+  Mc8.LFO_Spd_Auto= 0 ;
+//LFO_Len '
+
+  Mc1.LFO_Len = 4;
+  Mc2.LFO_Len = 4;
+  Mc3.LFO_Len = 4;
+  Mc4.LFO_Len = 4;
+  Mc5.LFO_Len = 4;
+  Mc6.LFO_Len = 4;
+  Mc7.LFO_Len = 4;
+  Mc8.LFO_Len = 4;
+// LGO_Gain 
+  Mc1.LFO_Gain = 1;
+  Mc2.LFO_Gain = 1;
+  Mc3.LFO_Gain = 1;
+  Mc4.LFO_Gain = 1;
+  Mc5.LFO_Gain = 1;
+  Mc6.LFO_Gain = 1;
+  Mc7.LFO_Gain = 1;
+  Mc8.LFO_Gain = 1;
+
+// SEQ DNom And Leng
+  Mc1.SEQ_DNom = 1;
+  Mc2.SEQ_DNom = 1;
+  Mc3.SEQ_DNom = 1;
+  Mc4.SEQ_DNom = 1;
+  Mc5.SEQ_DNom = 1;
+  Mc6.SEQ_DNom = 1;
+  Mc7.SEQ_DNom = 1;
+  Mc8.SEQ_DNom = 1;
+
+  Mc1.SEQ_Leng = 8;
+  Mc2.SEQ_Leng = 8;
+  Mc3.SEQ_Leng = 8;
+  Mc4.SEQ_Leng = 8;
+  Mc5.SEQ_Leng = 8;
+  Mc6.SEQ_Leng = 8;
+  Mc7.SEQ_Leng = 8;
+  Mc8.SEQ_Leng = 8;
+
+//  Random Chance
+  Mc1.Rdm_Chance = 100;
+  Mc2.Rdm_Chance = 100;
+  Mc3.Rdm_Chance = 100;
+  Mc4.Rdm_Chance = 100;
+  Mc5.Rdm_Chance = 100;
+  Mc6.Rdm_Chance = 100;
+  Mc6.Rdm_Chance = 100;
+  Mc7.Rdm_Chance = 100;
+  Mc8.Rdm_Chance = 100;
+//  Random Interval
+  Mc1.Rdm_Interval = 200;
+  Mc2.Rdm_Interval = 200;
+  Mc3.Rdm_Interval = 200;
+  Mc4.Rdm_Interval = 200;
+  Mc5.Rdm_Interval = 200;
+  Mc6.Rdm_Interval = 200;
+  Mc6.Rdm_Interval = 200;
+  Mc7.Rdm_Interval = 200;
+  Mc8.Rdm_Interval = 200;
+
+
+
+
+
+
+
+Mc1.EnvToImGui = 101;
+Mc2.EnvToImGui = 102;
+Mc3.EnvToImGui = 103;
+Mc4.EnvToImGui = 104;
+Mc5.EnvToImGui = 105;
+Mc6.EnvToImGui = 106;
+Mc7.EnvToImGui = 107;
+Mc8.EnvToImGui = 108;
+Mc1.LFO_PlayPos = 109;
+Mc2.LFO_PlayPos = 110;
+Mc3.LFO_PlayPos = 111;
+Mc4.LFO_PlayPos = 112;
+Mc5.LFO_PlayPos = 113;
+Mc6.LFO_PlayPos = 114;
+Mc7.LFO_PlayPos = 115;
+Mc8.LFO_PlayPos = 116;
+
+
+Mc1.follow(10);
+Mc2.follow(10);
+Mc3.follow(10);
+Mc4.follow(10);
+Mc5.follow(10);
+Mc6.follow(10);
+Mc7.follow(10);
+Mc8.follow(10);
