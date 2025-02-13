@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.1
+-- @version 1.0beta17.1.1
 -- @changelog
 --  - LFO: Fix various features such as Length adjustment and clipboard.
 --  - LFO: Fix misaligned display of current value.
