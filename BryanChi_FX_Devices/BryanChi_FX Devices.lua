@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17
+-- @version 1.0beta17.1
 -- @changelog
---  - Work on modulation.
---  - LFO modulation rework.
---  - Fix Multiple Modulation control panel showing up if modulation is assigned to the same Param number of different FXs.
---  - Fix Crashing when collapsing FX if there's no layout defined. 
+--  - LFO: Fix various features such as Length adjustment and clipboard.
+--  - LFO: Fix misaligned display of current value.
+--  - Fix knob range not working.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

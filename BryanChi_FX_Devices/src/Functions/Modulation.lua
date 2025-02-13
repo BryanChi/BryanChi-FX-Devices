@@ -18,20 +18,30 @@ function Get_MidiMod_Ofs(lbl)
     return ofs
 end
 
-function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
+function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
     r.gmem_attach('ParamValues')
     r.gmem_write(4, 25) -- tells jsfx to get all points info    
     r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
     if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
-    local limit_Of_Pts = IsLFO and #PtsTB or 10 
+    local limit = IsLFO and #PtsTB or 10 
     r.gmem_write(13, #PtsTB) -- tells how many points in total
-
-    for i = 1 , limit_Of_Pts do 
+    local start = IsLFO and 500 or 20 
+    local prop = IsLFO and 50 or 10
+    for i = 1 , limit do 
         --r.gmem_write(11, i) -- tells which ptAnim_UpdateAnim_UpdateAnim_Update
-        r.gmem_write(20+i, PtsTB[i] and PtsTB[i][1] or 0)
-        r.gmem_write(30+i, PtsTB[i] and PtsTB[i][2] or 0)
+        r.gmem_write(start+i, PtsTB[i] and PtsTB[i][1] or 0)
+        r.gmem_write(start + prop +i, PtsTB[i] and PtsTB[i][2] or 0)
+        r.gmem_write(start + prop *2 +i, PtsTB[i] and PtsTB[i][3] or 0)
     end
-
+--[[ 
+    if Update_All_Curve then
+        r.gmem_write(4, 24) -- tells jsfx to get all curves info    
+        for i = 1 , limit do 
+            r.gmem_write(11, i) -- tells which ptAnim_UpdateAnim_UpdateAnim_Update
+            r.gmem_write(15, PtsTB[i][3] or 0 )
+        end
+    end
+ ]]
    --[[  for i, v in ipairs(PtsTB) do 
         r.gmem_write(11, i) -- tells which pt
         if v[1] then r.gmem_write(20+i, v[1]) end
@@ -1509,6 +1519,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                     end
                 end
             end ]]
+
+
             Draw_Curve (WDL, Node , i , L, L+W, L+H, W, H, 5 , 0xff22ffff, 2)
         end
     end
@@ -1651,9 +1663,13 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 if rv then
                     LFO.Clipboard = {}
                     for i, v in ipairs(Node) do
-                        LFO.Clipboard[i] = LFO.Clipboard[i] or {}
-                        LFO.Clipboard[i].x = v.x
-                        LFO.Clipboard[i].y = v.y
+                        for i, v in ipairs(Mc.Node) do
+                            LFO.Clipboard[i] =  {}
+                            LFO.Clipboard[i][1] = v[1]
+                            LFO.Clipboard[i][2] = v[2]
+                            LFO.Clipboard[i][3] = v[3]
+    
+                        end
                     end
                 end
             end
@@ -1710,8 +1726,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
 
             EXEC_Top_Buttons()
-
-            local node, tweaking = CurveEditor(LFO.Win.w , LFO.Win.h , Mc.Node, 'LFO'..Macro, Macro)
+            local CurveEditor_Win_W = LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4
+            local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc)
             Mc.Node = node 
             LFO.Tweaking = tweaking and Ident or LFO.Tweaking
 
@@ -1767,9 +1783,11 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             if im.IsItemEdited(ctx) then
                 local Change = Mc.LFO_leng - LengthBefore
 
-                --[[ for i, v in ipairs(Node) do
-                    Node[i][1] = Node[i][1] / ((LengthBefore + Change) / LengthBefore)
-                end ]]
+                for i, v in ipairs(Mc.Node) do
+
+                    Mc.Node[i][1] = Mc.Node[i][1] / ((LengthBefore + Change) / LengthBefore)
+
+                end
                 LengthBefore = Mc.LFO_leng
             end
 
@@ -1869,10 +1887,11 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                                 LFO.NewShapeChosen = v
                             end
                             if im.IsItemHovered(ctx) then
-                               -- Mc.Node = v
+                                Mc.Node = v
+                          
                                 AnyShapeHovered = true
                                 LFO.AnyShapeHovered = true
-                                DefaultWidthInfo_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro)
+                                Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)
                             end
                             local L, T = im.GetItemRectMin(ctx)
                             local w, h = im.GetItemRectSize(ctx)
@@ -1922,7 +1941,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                     timer = (timer or 0) + 1
                     if timer == 2 then
                         --Send_All_Coord(All_Coord)
-                        Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro)
+                        Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)
                         NeedSendAllGmemLater = nil
                         timer = nil
                     end
@@ -2437,12 +2456,14 @@ function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 TooltipUI("Copy LFO", im.HoveredFlags_Stationary)
                 if rv then
                     LFO.Clipboard = {}
-                    LFO.Clipboard = deepCopy(Node) 
-                   --[[  for i, v in ipairs(Node) do
-                        LFO.Clipboard[i] = LFO.Clipboard[i] or {}
-                        LFO.Clipboard[i].x = v.x
-                        LFO.Clipboard[i].y = v.y
-                    end ]]
+                    
+                    for i, v in ipairs(Mc.Node) do
+                        LFO.Clipboard[i] =  {}
+                        LFO.Clipboard[i][1] = v[1]
+                        LFO.Clipboard[i][2] = v[2]
+                        LFO.Clipboard[i][3] = v[3]
+
+                    end
                 end
             end
             local function Paste()
@@ -3868,6 +3889,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         local I = i
         Trk[TrkID].Mod[I] = Trk[TrkID].Mod[I] or {}
         local mc = Trk[TrkID].Mod[I]
+        mc.Num = mc.Num or i
         local FxGUID = TrkID
         mc.TweakingKnob = nil
         mc.Type = mc.Type or r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'.. I .. 'Type', '', false) or 'Macro'
