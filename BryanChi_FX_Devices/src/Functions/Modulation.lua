@@ -27,17 +27,18 @@ function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
     r.gmem_write(13, #PtsTB) -- tells how many points in total
     local start = IsLFO and 500 or 20 
     local prop = IsLFO and 50 or 10
-    for i = 1 , limit do 
-        --r.gmem_write(11, i) -- tells which ptAnim_UpdateAnim_UpdateAnim_Update
+    for i = 1 , limit  do 
+        --r.gmem_write(11, i) -- tells which pt
+        
         r.gmem_write(start+i, PtsTB[i] and PtsTB[i][1] or 0)
-        r.gmem_write(start + prop +i, PtsTB[i] and PtsTB[i][2] or 0)
+        r.gmem_write(start + prop +i, PtsTB[i] and PtsTB[i][2] or -999)
         r.gmem_write(start + prop *2 +i, PtsTB[i] and PtsTB[i][3] or 0)
     end
 --[[ 
     if Update_All_Curve then
         r.gmem_write(4, 24) -- tells jsfx to get all curves info    
         for i = 1 , limit do 
-            r.gmem_write(11, i) -- tells which ptAnim_UpdateAnim_UpdateAnim_Update
+            r.gmem_write(11, i) -- tells which pt
             r.gmem_write(15, PtsTB[i][3] or 0 )
         end
     end

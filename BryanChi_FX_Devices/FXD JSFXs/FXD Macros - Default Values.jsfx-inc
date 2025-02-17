@@ -14,6 +14,7 @@ P_OrigV = 100000 ;  //Parameter's original values before modulation
 MOD_CURVE = 200000; // New LFO = 270000 ( Mod_Curve + 10000 * 7(gmem[12]))
 SEQ = 20000; // 20001~20048 = Macro1 Seq 1~64
 Lfo = 30000;    //30000 ~ 30100 =  LFO Node Properties
+LFO_Gmem_Ofs = 500;
 McOut =  1;
 
 Velo_ModAmt = 500000;
@@ -24,7 +25,7 @@ RAND3_ModAmt = RAND2_ModAmt + GAP;
 KeyTrk1_ModAmt = RAND3_ModAmt + GAP; 
 KeyTrk2_ModAmt = KeyTrk1_ModAmt + GAP;
 KeyTrk3_ModAmt = KeyTrk2_ModAmt + GAP; 
-LFO_Ofs =  KeyTrk3_ModAmt + GAP;
+LFO_Ofs =  KeyTrk3_ModAmt + GAP;  // 570000
 LFO_Max_Num_Of_Pts = 50;
 Midi_Mod_Curve_Ofs = 1000;
 Curve_Prop_Ofs = 10;

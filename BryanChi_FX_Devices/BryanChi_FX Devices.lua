@@ -1,10 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.1.1
+-- @version 1.0beta17.2
 -- @changelog
---  - LFO: Fix various features such as Length adjustment and clipboard.
---  - LFO: Fix misaligned display of current value.
---  - Fix knob range not working.
+--  - Fix Macro JSFX unable to save necessary info to project.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

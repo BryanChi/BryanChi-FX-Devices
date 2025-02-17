@@ -108,6 +108,7 @@ gmem[4] == 0.1 ? ( // if user is using ImGui to insert jsfx
 //gmem 111 = SEQ Denominator when user is tweaking
 //gmem 112 = step value of currently tweaking step
 //gmem 121 ~128 = SEQ 1 ~ 8 Current Pos 
+//gmem 500 ~ 650 = All LFO coordinates when window is open. ( 500~550 is x , 550~600 is y, 600 ~ 650 is curve ) 
 //gmem 100000+ = Parameter's original values before modulation
 
 //jsfx table 1 ~ 8 = Mod 1 ~ 8's output value
@@ -164,14 +165,22 @@ trkGUID_Num = slider25;
 
 //trkGUID_Num = save(trkGUID_Num);
 
-
-P.Inst = file_var(0,P.Inst);
+ file_var(0,P.Inst);
 SAVE_XY_PAD_INFO();
+
+
 SERIALIZE__Prm_Mod_Range_AND_Orig_Values(is_saving);
+
+/*
 SERIALIZE__Midi_Mods();
+
 SERIALIZE__Mod_Curves();
-SERIALIZE__Save_LFO();
-file_mem(0, LFO, 80000 ) ; //save all lfo info  
+
+*/
+
+
+//file_mem(0, LFO, 80000 ) ; //save all lfo info  
+
 
 
 
@@ -191,6 +200,7 @@ Mc7.SaveAllModulatorInfo();
 
 Mc8.SaveAllModulatorInfo();
 
+SERIALIZE__Save_LFO();
 
 
 
