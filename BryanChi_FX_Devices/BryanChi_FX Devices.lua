@@ -1,8 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.2
+-- @version 1.0beta17.2.2
 -- @changelog
---  - Fix Macro JSFX unable to save necessary info to project.
+-- - Modulation Control Panel: Allow double click to reset curve 
+-- - Modulation Control Panel: Fix incorrect curve behavior when left dragging.
+-- - Container : fix incorrect rendering position if collapsed.
+-- - Container Modulator: fix crash if choose XY pad as type.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

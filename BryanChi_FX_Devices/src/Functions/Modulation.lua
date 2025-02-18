@@ -19,7 +19,8 @@ function Get_MidiMod_Ofs(lbl)
 end
 
 function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
-    r.gmem_attach('ParamValues')
+
+    r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
     r.gmem_write(4, 25) -- tells jsfx to get all points info    
     r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
     if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
@@ -1728,7 +1729,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
             EXEC_Top_Buttons()
             local CurveEditor_Win_W = LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4
-            local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc)
+
+            local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc, FX[FxGUID].IsContainer)
             Mc.Node = node 
             LFO.Tweaking = tweaking and Ident or LFO.Tweaking
 
@@ -2331,7 +2333,7 @@ function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
     else 
         r.gmem_attach('ParamValues')
     end
-    r.gmem_attach('ParamValues')
+    --r.gmem_attach('ParamValues')
 
     local PlayPos = L + r.gmem_read(108 + i) / 4 * w / ((Mc.LFO_leng or LFO.Def.Len) / 4)
     im.DrawList_AddLine(WDL, PlayPos, T, PlayPos, T + h, EightColors.LFO[Macro], 1)
@@ -3448,11 +3450,13 @@ function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
 end
 
-function XY_BOX(Mc, i, Width, IsContainer)
+function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
     if Mc.Type ~= 'XY' then return end 
     if IsContainer then 
         r.gmem_attach('ContainerMacro')
-    end
+    end 
+    local Macro_FXid = TB =='Track' and 0 or TB[1].addr_fxid
+
     
     --local W = (VP.w - 10) / 12 - 3 -- old W 
     local function PAD()
@@ -3517,8 +3521,9 @@ function XY_BOX(Mc, i, Width, IsContainer)
            Mc.XY_Pad_Y = Mc.XY_Pad_Y or 0
            Mc.XY_Pad_X = SetMinMax(Mc.XY_Pad_X + DtX, 0, 127)
            Mc.XY_Pad_Y = SetMinMax(Mc.XY_Pad_Y - DtY, 0, 127)  
-           r.TrackFX_SetParamNormalized(LT_Track, 0, 25 + (i - 1) * 2, Mc.XY_Pad_X / 127)
-           r.TrackFX_SetParamNormalized(LT_Track, 0, 26 + (i - 1) * 2, Mc.XY_Pad_Y / 127)
+
+           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid ,25 + (i - 1) * 2, Mc.XY_Pad_X / 127)
+           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid ,26 + (i - 1) * 2, Mc.XY_Pad_Y / 127)
 
            if DtX ~= 0 or DtY ~= 0 then 
                 im.ResetMouseDragDelta(ctx)
@@ -4392,6 +4397,7 @@ function Show_Modulator_Control_Panel(pos,FP, FxGUID)
             end
             local function Show_Mod_Curve(rv)
                 if SHOW_MOD_RANGE_NUMBER then return end 
+
                 local pd = 3
                 local X , nY = im.GetItemRectMin(ctx)
                 local nX , Y = im.GetItemRectMax(ctx)
@@ -4402,23 +4408,29 @@ function Show_Modulator_Control_Panel(pos,FP, FxGUID)
                 local Y = Y - H / pd
                 local clr = Clr -- Clr is modulator clr
                 local clr = rv and Clr or 0xffffff99 
-                local Cv = (FP.Mod_Curve[i] or 0) * (Curve_Scale/2)
+                local Cv = (FP.Mod_Curve[i] or 0) * (Curve_Scale/2) 
                 local clr =  (Cv <-0.05 and Cv>0.05)  and Change_Clr_A( Clr, -0.15 ) or clr
                 Draw_Single_Curve(nX, X, nY, Y, Cv , 3 , clr, 0)
             end
             local function Knob_Interaction(rv)
+                local function Send_curve_gmem(norm)
+                    r.gmem_write( 4 , 26) -- set mode = 4, which means user is adjusting mod curve
+                    r.gmem_write( 5, i) -- tells which modulator
+                    r.gmem_write( 6, FP.WhichCC) -- tells which track param
+                    r.gmem_write( 8 , norm *2) -- curve is an offset of 200000
+                end
                 FP.Left_Dragging_Mod_Ctrl = nil 
                 if rv==1  then  -- left drag to change curve of modulation
                     FP.Left_Dragging_Mod_Ctrl = true
                     local _, Dt = im.GetMouseDragDelta(ctx)
                     if Dt > 1 or Dt < -1 then 
                         FP.Mod_Curve[i] = SetMinMax ((FP.Mod_Curve[i] or 0) +  Dt/  (sz/2)    , -Curve_Scale, Curve_Scale )
+                        if FP.Mod_Curve[i] > -0.5 and FP.Mod_Curve[i] < 0.5 then 
+                            if Dt > 1 then FP.Mod_Curve[i] = 0.5 elseif Dt < 1 then FP.Mod_Curve[i] = -0.5 end
+                        end
+                        msg(  FP.Mod_Curve[i])
                         Save_to_Trk('Mod_Curve_for_Mod'..i..'Prm ='..FP.WhichCC ,  FP.Mod_Curve[i], LT_Track)
-                        local norm=  FP.Mod_Curve[i]
-                        r.gmem_write( 4 , 26) -- set mode = 4, which means user is adjusting mod curve
-                        r.gmem_write( 5, i) -- tells which modulator
-                        r.gmem_write( 6, FP.WhichCC) -- tells which track param
-                        r.gmem_write( 8 , norm) -- curve is an offset of 200000
+                        Send_curve_gmem(FP.Mod_Curve[i])
                         im.ResetMouseDragDelta(ctx)
                     end
                     
@@ -4431,6 +4443,12 @@ function Show_Modulator_Control_Panel(pos,FP, FxGUID)
                     SHOW_MOD_RANGE_NUMBER = true
                     r.gmem_write(5, AssigningMacro) --tells jsfx which macro is user tweaking
                     r.gmem_write(6, FP.WhichCC)
+                end
+
+                if  im.IsMouseDoubleClicked(ctx, 0) and im.IsItemClicked(ctx, 0) then 
+                    FP.Mod_Curve[i]  = 0
+                    Send_curve_gmem(FP.Mod_Curve[i])
+                    msg('dobule')
                 end
                 if SHOW_MOD_RANGE_NUMBER and  not IsRBtnHeld then 
                     AssigningMacro = nil 

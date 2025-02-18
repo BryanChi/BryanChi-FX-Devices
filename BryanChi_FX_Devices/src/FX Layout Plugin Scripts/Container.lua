@@ -20,7 +20,7 @@ local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
 DEBUG_W = DEBUG_W or {}
-
+local Add_FX_Btn_Xpos
 
 
 
@@ -1911,10 +1911,12 @@ local function  macroPage(TB)
     local x_before , y_before = im.GetCursorPos(ctx)
     im.Dummy(ctx, 10, 10)
 
+    fx.IsContainer = true 
 
     for i = 0 , fx.ModSlots - 1 , 1 do
         local I = i +1
         local mc = fx.Mc[I]
+        mc.Num = I
         local row = math.ceil ( I /4 )
         mc.TweakingKnob = nil
         if not mc.Type then 
@@ -1939,11 +1941,12 @@ local function  macroPage(TB)
         MacroKnob(mc,i, LFO_Box_Size/2 ,TB, true, FxGUID)
         local Sz = LFO_Box_Size
         recall_LFO_Data(mc,i+1)
-        LFO_BOX(mc, i+1, Sz, Sz, true, LT_Track, {im.GetCursorScreenPos(ctx)} , FxGUID) -- true is IsContainer
+        LFO_BOX_NEW(mc, i+1, Sz, Sz, true, LT_Track, {im.GetCursorScreenPos(ctx)} , FxGUID) -- true is IsContainer
         Follower_Box(mc,i, Sz, FxGUID, 'ContainerMacro', Sz)
         StepSeq_Box(mc,i)
         Random_Modulator_Box(mc, i+1 , Sz, Sz, true, FxGUID)
-        XY_BOX(mc, i, Sz *2.5, true)
+
+        XY_BOX(mc, i+1, Sz *2.5, true, TB )
         if mc.Type ~= 'Macro' then
 
 
@@ -2160,7 +2163,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         local Click = AddWindowBtn (GUID, FX_Id, 170, true , true , true ) 
 
         
-        SL(165)
+        SL()
         DragDropToCollapseView (FX_Id, CollapseXPos_screen, GUID, v )
 
         
@@ -2258,10 +2261,20 @@ else
             local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
             if  fx.Cont_Collapse == 1  then 
-
-
+                
+                SL()
+                if i == 1 then 
+                    Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
+                end
+                im.BeginChild(ctx, 'Collapse'..FxGUID, 130, 220, nil)
+               
                 local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
                 if W then PreviewW = W end 
+                if i == #TB then 
+                    fx.Add_FX_Btn_Ypos = im.GetCursorPosY(ctx)
+                    fx.Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
+                end
+                im.EndChild(ctx)
                 --fx.BgClr = 0xffffff44
 
             else       -- if not collapsed
@@ -2274,8 +2287,9 @@ else
                         SL(nil,0)
                         im.SetCursorPosY(ctx, Top_Spacing )
 
-                        AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
+                        local Wid = AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
                         SL(nil,0)
+                        fx.Width = fx.Width + (Wid or 15)  
 
                     end
 
@@ -2308,7 +2322,7 @@ else
                     LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
                     fx.Width = (fx.Width or 0) + (Win_W or 0) +( LastSpc or 0)
-                    
+
                     if Hover then  DisableScroll = false  end 
                 end
                 local W= Render_Normal()
@@ -2319,10 +2333,11 @@ else
                 Upcoming_Container = nil
             end
         end
+        
     end
 
 
-    local Add_FX_Btn_Ypos
+    local Add_FX_Btn_Ypos  = fx.Add_FX_Btn_Ypos or nil
     if fx.Cont_Collapse == 1   and fx.Sel_Preview then 
         SL()
         Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
@@ -2332,9 +2347,10 @@ else
         if Hv then PreviewW = Hv end 
         if PreviewW then fx.Width = 50 + 150 + PreviewW end
     end
+
     if fx.Cont_Collapse == 1 then
         if Add_FX_Btn_Ypos then im.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
-        im.SetCursorPosX(ctx,tonumber( CollapseXPos)  )
+        im.SetCursorPosX(ctx,Add_FX_Btn_Xpos or 0)
         DragDropToCollapseView (fx.LastSpc, CollapseXPos_screen)
         if im.Button(ctx,'+' , 130) then 
             im.OpenPopup(ctx, 'Btwn FX Windows' .. fx.LastSpc)

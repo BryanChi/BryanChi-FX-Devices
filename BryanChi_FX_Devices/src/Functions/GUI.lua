@@ -141,9 +141,9 @@ function draw_dotted_line(x1, y1, x2, y2, clr, segment_length, gap)
         local end_length = math.min(current_length + segment_length, distance)
         local end_x = x1 + direction_x * end_length
         local end_y = y1 + direction_y * end_length
-        
+
         -- Draw the line segment
-        im.DrawList_AddLine(im.GetWindowDrawList(ctx), start_x, start_y, end_x, end_y, clr or im.ColorConvertFloat4ToU32(1, 1, 1, 1)) -- white line
+        im.DrawList_AddLine(im.GetWindowDrawList(ctx), start_x, start_y, end_x, end_y, clr or im.ColorConvertDouble4ToU32(1, 1, 1, 1)) -- white line
     end
 end
 
@@ -252,9 +252,9 @@ function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick)
     end
 
 end
-function CurveEditor(W,H, PtsTB, lbl , MacroTB)
+function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     local IsLFO = lbl:find('LFO') and true or false
-    
+    local gmem_space = IsContainer and 'ContainerMacro' or 'ParamValues'
     local Macro = MacroTB and MacroTB.Num
     local Mc = MacroTB
     local Pad = 15
@@ -432,7 +432,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB)
         Hvr_Pt = im.IsItemHovered(ctx) and true  
         
         local function Send_gmem(Pt , mode )
-            r.gmem_attach('ParamValues')
+            r.gmem_attach(gmem_space)
             r.gmem_write(4, mode or 23) -- tells jsfx user is changing the curve
             r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
             r.gmem_write(11, Pt) -- tells which pt
@@ -455,7 +455,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB)
                         end
                     end
                     Send_gmem(i, 24 )
-                    r.gmem_attach('ParamValues')
+                    r.gmem_attach(gmem_space)
                     r.gmem_write(15, v[3])
                     Save_to_Trk(lbl..' point '..i..' Curve', v[3])
                     
@@ -468,7 +468,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB)
         local function Send_gmem_If_Drag_Node()
             if DtX or DtY then 
                 --Send_gmem(i )
-                r.gmem_attach('ParamValues')
+                r.gmem_attach(gmem_space)
                 r.gmem_write(4, 23) -- tells jsfx user is changing the curve
                 r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
                 r.gmem_write(11, i) -- tells which pt
@@ -4739,7 +4739,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         Dvdr.Clr[ClrLbl] = Dvdr.Clr[ClrLbl] or Clr.Dvdr.In_Layer
     end
 
-    im.PushStyleColor(ctx, im.Col_FrameBg, Dvdr.Clr[ClrLbl])
+    im.PushStyleColor(ctx, im.Col_ChildBg, 0x000000ff)
 
     local w = 10 + Dvdr.Width[TblIdxForSpace] + (Dvdr.Spc_Hover[TblIdxForSpace] or 0) + (AdditionalWidth or 0)
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
@@ -4791,8 +4791,8 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 local BtnSign = im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx)  and '' or BtnSign
 
                 im.PushFont(ctx, Arial_30)
-                im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
-                local btn  = im.Button(ctx, BtnSign..'##Button between Windows', w, 210)
+                im.PushStyleColor(ctx, im.Col_Button, 0x000000ff)
+                local btn  = im.Button(ctx, BtnSign..'##Button between Windows', w, 220)
                 Draw_Lines_If_Popup_Open()
                 im.PopStyleColor(ctx)
                 im.PopFont(ctx)
@@ -4822,7 +4822,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             
 
             AddFX_Menu(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost)
-            if SpaceIsBeforeRackMixer == 'Normal' then
+
                 if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx) then 
                     ADD_FX_MENU_WIN_SZ_X, ADD_FX_MENU_WIN_SZ_Y = im.GetWindowSize(ctx)
                     local l, t  = im.GetItemRectMin(ctx)
@@ -4835,7 +4835,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     im.DrawList_AddRect(WDL, l , t, l+w, t+h , 0xffffffff)
 
                 end
-            end
+
 
 
 
