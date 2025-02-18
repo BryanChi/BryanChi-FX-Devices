@@ -139,7 +139,6 @@ SERIALIZE__Midi_Mods();
 SERIALIZE__Mod_Curves();
 
 
-Mc1 = file_var(0, Mc1);
 Mc1.SaveAllModulatorInfo();
 Mc2.SaveAllModulatorInfo();
 Mc3.SaveAllModulatorInfo();

@@ -1190,7 +1190,7 @@ function BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num)(
     Mc7.SendInfoBackToImGui();
     Mc8.SendInfoBackToImGui();
   );
-  );
+);
 
 function BLOCK__Calculate_How_Many_Notes_Are_Held()(
 
