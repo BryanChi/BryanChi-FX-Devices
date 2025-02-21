@@ -2,9 +2,9 @@
 -- @author Bryan Chi
 -- @version 1.0beta17.3
 -- @changelog
--- - Fix missing JSFX cookdsp dependency. 
--- - Made LFO envelopes working again.
--- - fix the random modulation value indicator
+--  - Fix missing JSFX cookdsp dependency. 
+--  - Made LFO envelopes working again.
+--  - fix the random modulation value indicator
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
