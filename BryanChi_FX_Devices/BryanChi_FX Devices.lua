@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.2.4
+-- @version 1.0beta17.2.5
 -- @changelog
 -- - Fix missing JSFX cookdsp dependency. 
 -- - Made LFO envelopes working again.
