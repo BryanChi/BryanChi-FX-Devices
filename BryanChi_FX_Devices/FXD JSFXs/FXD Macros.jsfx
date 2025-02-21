@@ -5,7 +5,7 @@ import cookdsp.jsfx-inc
 import FXD Macros - Default Values.jsfx-inc
 import FXD Macros - Functions.jsfx-inc
 
-
+ 
 slider1:0<0,1>Macro 1
 slider2:0<0,1>Macro 2
 slider3:0<0,1>Macro 3

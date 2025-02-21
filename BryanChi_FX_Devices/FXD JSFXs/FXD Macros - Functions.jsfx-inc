@@ -84,15 +84,21 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
   rpt> 1 ? (  //for every point 
     i = 1;
     while( out==-999 && i <= rpt)(  
+
+
       X = Velo_ModAmt[ofs+i];
       nX = Velo_ModAmt[ofs+i+1];
 
       Y = Velo_ModAmt[ofs + i + XYC_ofs ]; // Curve_Prop_Ofs = 10
+      this.Rel_Node == i && this.Rel_Type == 3 && this.Rel_V != -999 ? ( 
+        Y =  this.Rel_V;
+
+      ) ;
 
       nY = Velo_ModAmt[ofs + i + 1 + XYC_ofs ];
       C = Velo_ModAmt[ofs + i + (XYC_ofs*2) ];
 
-      v > X && v < nX? ( // if v is between two points on x axis
+      v > X && v <= nX? ( // if v is between two points on x axis
         // out  =  Y + (nY-Y) * (v-Y);
         out =  Y + (nY-Y) * ( (v-X) * (1/(nX-X)));
 
@@ -243,7 +249,7 @@ function SaveAllModulatorInfo()(
     file_var(0, this.LFO_Gain);
 
     file_var(0, this.Legato);
-    //this.EnvOrLoop = file_var(0, this.EnvOrLoop);
+    file_var(0, this.EnvOrLoop);
     file_var(0, this.LFO_NodeCt);
     file_var(0, this.Rel_Type);
     file_var(0, this.Rel_Node);
@@ -454,12 +460,20 @@ function DoMidiTriggeredActions()(
   this.EnvOrLoop == 1 ? (
       this.bp += beat_per_block * this.LFO_Spd;
       this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
-      this.CalculateLFO();
+      //this.CalculateLFO();
+      this.Rel_Type==3 ? ( this.Rel_V = -999;);
+      this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
+
   );
 );
 function DoMidi_Release()(
   this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
-    this.CalculateLFO_Rel();
+    //this.CalculateLFO_Rel();
+    this.bp += beat_per_block * this.LFO_Spd;
+    this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
+
+    this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
+
   );
 );
 
@@ -492,15 +506,18 @@ function SetBpTo0_All(midinote)(
 );
 
 
-function SetBPToRel_Node()local (Rel_pos, Rel_V) (
+function SetBPToRel_Node()local (Rel_pos, Rel_V, idx) (
   this.Rel_Type == 2 ||this.Rel_Type==3 ? ( //if it's custom release
-    this.Rel_Type==3 ? (    // if it's no jump 
-      this.Rel_V = this.Out ; // get value when note was released 
-    );
+  
 
-    Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * 4;
+    idx = Gap*7 + LFO_Max_Num_Of_Pts * 3 * (this.Macro-1);
+    //Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * 4;
+    Rel_pos = 4 * Velo_ModAmt[idx + this.Rel_Node] ; 
 
     this.CurrentPos< Rel_pos? ( // if 'playhead' hasn't reached the release node 
+      this.Rel_Type==3 ? (    // if it's no jump 
+        this.Rel_V = this.Out ; // get value when note was released 
+      );
       this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
         this.bp = Rel_pos;  // move playhead to release node 
       );
@@ -582,7 +599,6 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
     this.out = this.FOL_out*this.FOL_Gain  ;
 
   ):this.type=='LFO'    ?( // if type is LFO
-    this.EnvOrLoop = 0 ;
     this.LFO_Gain_Auto != 0 ? ( 
       this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
     );
@@ -890,6 +906,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==8?(Mc8.FOL_Gain = gmem[9];);
     );
     mode == 12?(  // if user is tweaking lfo speed
+    ABCSPD = 133113;
       SetTypeTo('LFO');
       Macro = gmem[5];
       Macro==1?(Mc1.LFO_Spd = gmem[9];); 
@@ -976,7 +993,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==7?(Mc7.LFO_Spd_Auto = AutomatedPrm_Num;);
       Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
     );
-    /*mode == 18? ( // if user set LFO's type (loop or envelope)
+    mode == 18? ( // if user set LFO's type (loop or envelope)
       Macro = gmem[5];
       Macro==1?(Mc1.EnvOrLoop = gmem[9]); 
       Macro==2?(Mc2.EnvOrLoop = gmem[9]); 
@@ -986,7 +1003,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==6?(Mc6.EnvOrLoop = gmem[9]);
       Macro==7?(Mc7.EnvOrLoop = gmem[9]);
       Macro==8?(Mc8.EnvOrLoop = gmem[9]);
-    );*/
+    );
     mode == 19 ? ( // if user set LFO Release type 
       // type 0 = latch , type 1 = simple , type 2 = custom
       Macro==1?(Mc1.Rel_Type = gmem[9]); 

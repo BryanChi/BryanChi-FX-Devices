@@ -20,7 +20,7 @@ end
 
 function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
 
-    r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
+    --r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
     r.gmem_write(4, 25) -- tells jsfx to get all points info    
     r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
     if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
@@ -1426,6 +1426,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
         if IsContainer then 
             r.gmem_attach('ContainerMacro')
             r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
+        else 
+            r.gmem_attach( 'ParamValues')
         end
         r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
         r.gmem_write(5, i)    -- Tells jsfx which macro
@@ -1597,6 +1599,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         ChangeLFO(18, 0, nil, 'LFO_Env_or_Loop') -- value is 0 because loop is default
                     end
                     if im.Selectable(ctx, 'Envelope (MIDI)', p_2selected, flagsIn, size_wIn, size_hIn) then
+                        msg('ansjd')
                         Mc.LFO_Env_or_Loop = 'Envelope'
                         ChangeLFO(18, 1, nil, 'LFO_Env_or_Loop') -- 1 for envelope
                     end
@@ -1730,7 +1733,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             EXEC_Top_Buttons()
             local CurveEditor_Win_W = LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4
 
-            local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc, FX[FxGUID].IsContainer)
+            local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc, IsContainer and true )
             Mc.Node = node 
             LFO.Tweaking = tweaking and Ident or LFO.Tweaking
 
@@ -1743,6 +1746,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             local rv, V = im.DragDouble(ctx, '##Speed'..(FxGUID or ''), Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
             if im.IsItemActive(ctx) or im.IsWindowAppearing(ctx) then
                 ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
+
                 LFO.Tweaking = Ident
                 Mc.LFO_spd = V
             end
@@ -3676,15 +3680,15 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
     local boxWidth, boxHeight = Width, Height or Width/3
     local L, T = im.GetCursorScreenPos(ctx)
     local WinW, WinH = 100, 100 
-
-
-    r.gmem_attach('ParamValues')
+    local Gmem_Space = IsContainer and 'ContainerMacro' or 'ParamValues'
+    
+    r.gmem_attach(Gmem_Space)
     local function Draw_Value_Histogram()
         local L, T = im.GetItemRectMin(ctx)
         local W, H = im.GetItemRectSize(ctx)
         
         Mc.Random_Pts = Mc.Random_Pts or  {}
-        r.gmem_attach('ContainerMacro')
+
         local v = r.gmem_read(100+ i)
 
 

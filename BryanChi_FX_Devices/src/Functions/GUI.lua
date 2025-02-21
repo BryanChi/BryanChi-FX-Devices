@@ -409,9 +409,22 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
     local Hvr_Pt , Hvr_Ctrl_Pt
     local W , H = W - PtSz , H - PtSz
-
-    Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
+    if im.IsWindowAppearing (ctx) --[[ or im.IsItemHovered(ctx) ]] then 
+        Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
+    end
     local TWEAKING 
+    local function LFO_Add_Release_Node_If_None()
+        if not  Mc.Rel_Type:find('Custom Release') then return end 
+        local found 
+        for i, v in ipairs( PtsTB) do 
+            if v.Rel then return end 
+        end
+        if not found then 
+            PtsTB [#PtsTB - 1 ].Rel = true 
+        end
+    end
+
+    LFO_Add_Release_Node_If_None()
     for i, v in ipairs( PtsTB) do 
         
         local X, Y = L+v[1]* W , B - v[2]*H 
@@ -444,7 +457,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
          
             if mX > X and mX < L+ nX *W then 
 
-                if Wheel_V then 
+                if Wheel_V and Wheel_V~=0 then 
                     v[3] =  (v[3] or 0 ) 
                     v[3] = v[3]+ Wheel_V /10
                     if v[3] < 1 and v[3] > -1 then
@@ -532,7 +545,42 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             --im.DrawList_AddCircleFilled(WDL, X, Y, 3, EightColors.LFO[Macro])
             GLOWING_CIRCLE({X, Y}, 0, 15, 0, EightColors.LFO[Macro], WDL)
         end 
-        
+
+        local function LFO_Release_Node ()
+            if Mc.Rel_Type:find('Custom Release') then 
+                if v.Rel then
+                    local function If_Choose_Rel(id)
+                        PtsTB[id].Rel = true
+                        v.Rel = nil 
+                        r.gmem_write(4, 20) -- set mode to 20 , which means User is choosing release point
+                        r.gmem_write(9, id) -- tells which point(node) is the release
+                    end
+                    local L =X + PtSz/2
+                    --im.DrawList_AddCircle(WDL, L, T + PtSz / 2, 6, 0xffffffaa)
+                    im.DrawList_AddLine(WDL, L, T, L, B, 0xffffff55, PtSz/2)
+                    --im.DrawList_AddText(WDL, L + PtSz/2, T, 0xffffffaa, 'Release')
+                    local X, Y = im.GetCursorPos(ctx)
+                    im.SetCursorScreenPos(ctx, L , T)
+                    if im.ArrowButton(ctx, 'ReleaseLeft', 0) then 
+                        If_Choose_Rel(math.max(i-1 , 1 ) ) 
+                    end
+                    SL(nil,0 ) 
+                    im.Button(ctx, 'Rel' ) 
+                    if im.IsItemActive(ctx) then  TWEAKING =true   end 
+                    SL(nil, 0)
+                    if im.ArrowButton(ctx, 'ReleaseRight', 1) then 
+                        If_Choose_Rel(math.min(i+1 , #PtsTB))
+
+
+                    end
+                    im.SetCursorScreenPos(ctx, X, Y) 
+
+
+                end
+            end
+        end
+            
+
         local HoverOnCurve =   Wheel_To_Adjust_Curve()
         local thick = HoverOnCurve and 6 or 4
         Draw_Curve (WDL,PtsTB, i, L, R, B, W, H, PtSz , lineClr , thick)
@@ -541,6 +589,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         Send_gmem_If_Drag_Node()
         Delete_Node_If_Alt_Click()
         AddPoint_If_DoubleClick ()
+        LFO_Release_Node ()
         
     end
     
