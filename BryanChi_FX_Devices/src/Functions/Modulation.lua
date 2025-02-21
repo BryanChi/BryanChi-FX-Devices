@@ -1599,7 +1599,6 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         ChangeLFO(18, 0, nil, 'LFO_Env_or_Loop') -- value is 0 because loop is default
                     end
                     if im.Selectable(ctx, 'Envelope (MIDI)', p_2selected, flagsIn, size_wIn, size_hIn) then
-                        msg('ansjd')
                         Mc.LFO_Env_or_Loop = 'Envelope'
                         ChangeLFO(18, 1, nil, 'LFO_Env_or_Loop') -- 1 for envelope
                     end
@@ -4432,7 +4431,6 @@ function Show_Modulator_Control_Panel(pos,FP, FxGUID)
                         if FP.Mod_Curve[i] > -0.5 and FP.Mod_Curve[i] < 0.5 then 
                             if Dt > 1 then FP.Mod_Curve[i] = 0.5 elseif Dt < 1 then FP.Mod_Curve[i] = -0.5 end
                         end
-                        msg(  FP.Mod_Curve[i])
                         Save_to_Trk('Mod_Curve_for_Mod'..i..'Prm ='..FP.WhichCC ,  FP.Mod_Curve[i], LT_Track)
                         Send_curve_gmem(FP.Mod_Curve[i])
                         im.ResetMouseDragDelta(ctx)
@@ -4452,7 +4450,6 @@ function Show_Modulator_Control_Panel(pos,FP, FxGUID)
                 if  im.IsMouseDoubleClicked(ctx, 0) and im.IsItemClicked(ctx, 0) then 
                     FP.Mod_Curve[i]  = 0
                     Send_curve_gmem(FP.Mod_Curve[i])
-                    msg('dobule')
                 end
                 if SHOW_MOD_RANGE_NUMBER and  not IsRBtnHeld then 
                     AssigningMacro = nil 
