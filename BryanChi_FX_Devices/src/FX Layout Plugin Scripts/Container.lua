@@ -25,7 +25,22 @@ local Add_FX_Btn_Xpos
 
 
 
+local function Container_CollapseIfTab(FxGUID, FX_Idx)
+    if FX[FxGUID].Collapse then return end
+    if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
 
+        local _ , name = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx,'original_name')
+        if name == 'Container' and not Tab_Collapse_Win then 
+            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
+                if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
+                elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
+                Tab_Collapse_Win = true 
+                NeedRetrieveLayout = true 
+            end
+        end
+    end
+
+end
 
 local function NotifyHoverState(I,Condition)
     if Condition then 
@@ -2252,7 +2267,7 @@ else
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
     im.SetCursorPosY(ctx, Top_Spacing )
-    if TB then 
+    if TB and not fx.Collapse then 
         for i, v in ipairs(TB) do 
             if i == 1 then 
                 fx.LowestID =  v.addr_fxid
@@ -2260,7 +2275,7 @@ else
             local FX_Id = v.addr_fxid
             local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
-            if  fx.Cont_Collapse == 1  then 
+            if  fx.Cont_Collapse == 1   then 
                 
                 SL()
                 if i == 1 then 
@@ -2279,11 +2294,15 @@ else
 
             else       -- if not collapsed
                 --fx.BgClr = 0xff22ff44
+                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
+
                 local function Render_Normal()
-                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
-                    
-                    local  diff, Cur_X_ofs
-                    if i == 1 then 
+
+
+
+                    local  diff, Cur_X_ofs  
+                    if i == 1  then 
+
                         SL(nil,0)
                         im.SetCursorPosY(ctx, Top_Spacing )
 
@@ -2321,11 +2340,14 @@ else
                     im.SetCursorPosY(ctx, 0 )
                     LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
 
-                    fx.Width = (fx.Width or 0) + (Win_W or 0) +( LastSpc or 0)
-
                     if Hover then  DisableScroll = false  end 
                 end
                 local W= Render_Normal()
+
+
+                if  not FX_Name:find('FXD Containr Macro') then
+                    fx.Width = (fx.Width or 0) + (Win_W or 0) +( LastSpc or 0)
+                end
 
             end
 
@@ -2339,9 +2361,10 @@ else
 
     local Add_FX_Btn_Ypos  = fx.Add_FX_Btn_Ypos or nil
     if fx.Cont_Collapse == 1   and fx.Sel_Preview then 
+        
         SL()
-        Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
-        im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
+        --Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
+        --im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
 
         Hv = createFXWindow(fx.Sel_Preview)
         if Hv then PreviewW = Hv end 
@@ -2349,12 +2372,16 @@ else
     end
 
     if fx.Cont_Collapse == 1 then
+
         if Add_FX_Btn_Ypos then im.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
         im.SetCursorPosX(ctx,Add_FX_Btn_Xpos or 0)
         DragDropToCollapseView (fx.LastSpc, CollapseXPos_screen)
-        if im.Button(ctx,'+' , 130) then 
+        if im.Button(ctx,'+##' ..FxGUID, 130) then 
             im.OpenPopup(ctx, 'Btwn FX Windows' .. fx.LastSpc)
         end 
+
+
+        if im.IsItemActive(ctx) then msg('asd') end
         AddFX_Menu(fx.LastSpc)
     end
 
@@ -2385,3 +2412,4 @@ else
 
 end
 
+Container_CollapseIfTab(FxGUID, FX_Idx)

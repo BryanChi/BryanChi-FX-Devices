@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.1
+-- @version 1.0beta17.3.2
 -- @changelog
---   - Fix LFO crashing.
---   - Fix crashing when uncollapsing FX after using Alt+rightclick to collapse all FX.
+--   - Fixed a number of weird behavior of collapsed containers. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

@@ -63,21 +63,7 @@ function InvisiBtn(ctx, x, y, str, w, h)
     local rv = im.InvisibleButton(ctx, str, w, h or w)
     return rv
 end
-function Container_CollapseIfTab(FxGUID, FX_Idx)
-    if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
 
-        local _ , name = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx,'original_name')
-        if name == 'Container' and not Tab_Collapse_Win then 
-            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab())  then
-                if FX[FxGUID].Cont_Collapse == 0 then FX[FxGUID].Cont_Collapse= 1
-                elseif FX[FxGUID].Cont_Collapse==1 then FX[FxGUID].Cont_Collapse= 0 end 
-                Tab_Collapse_Win = true 
-                NeedRetrieveLayout = true 
-            end
-        end
-    end
-
-end
 function Cross_Out( clr, thick , DL )
     local WDL = DL or WDL 
     local clr = clr or 0xD30000ff
@@ -1183,7 +1169,6 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     if Animate_FX_Width==FxGUID then 
 
         if fx.Collapse then  -- if user is collapsing 
-
             fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
             fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
 
@@ -4299,7 +4284,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                             local function Create_Item()
                                 local pos =  { im.GetCursorScreenPos(ctx) }
-                                local Lbl = '##' .. (FP.Name or Fx_P) .. FX_Name.. FP.Num
+                                local Lbl = '##' .. (FP.Name or Fx_P) .. FX_Name.. (FP.Num or 0)
                                 --- Add Parameter controls ---------
                                 if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
                                     AddSlider(ctx, Lbl, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, FP.Lbl, 8)
@@ -4686,7 +4671,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 im.DrawList_AddRectFilled(WDL, Win_L, Win_T, Win_R, Win_B, 0x00000088)
             end
 
-            Container_CollapseIfTab(FxGUID, FX_Idx)
             
 
             WindowSize = im.GetWindowSize(ctx)
