@@ -414,6 +414,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     end
     local TWEAKING 
     local function LFO_Add_Release_Node_If_None()
+        if not Mc.Rel_Type then return end 
         if not  Mc.Rel_Type:find('Custom Release') then return end 
         local found 
         for i, v in ipairs( PtsTB) do 
@@ -547,6 +548,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         end 
 
         local function LFO_Release_Node ()
+            if not Mc.Rel_Type then return end 
             if Mc.Rel_Type:find('Custom Release') then 
                 if v.Rel then
                     local function If_Choose_Rel(id)

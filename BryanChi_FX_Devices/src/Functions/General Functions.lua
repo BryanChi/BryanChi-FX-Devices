@@ -1377,13 +1377,16 @@ function ToggleCollapseAll(FX_Idx)
     end
     if All_Collapsed == false then
         for i = 0, Sel_Track_FX_Count - 1, 1 do
+            FX[FXGUID[i]].Width_Before_Collapse = FX[FXGUID[i]].Width_Before_Collapse or  FX[FXGUID[i]].Width
             FX[FXGUID[i]].Collapse = true
             FX[FXGUID[i]].Width_Collapse = COLLAPSED_FX_WIDTH
+            
         end
     else -- if all is collapsed
         for i = 0, Sel_Track_FX_Count - 1, 1 do
             FX[FXGUID[i]].Collapse = false
             FX[FXGUID[i]].Width_Collapse = nil
+            FX[FXGUID[i]].Width_Before_Collapse = nil
         end
         BlinkFX = FX_Idx
     end

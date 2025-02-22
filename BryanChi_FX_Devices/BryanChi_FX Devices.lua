@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3
+-- @version 1.0beta17.3.1
 -- @changelog
---  - Fix missing JSFX cookdsp dependency. 
---  - Made LFO envelopes working again.
---  - fix the random modulation value indicator
+--   - Fix LFO crashing.
+--   - Fix crashing when uncollapsing FX after using Alt+rightclick to collapse all FX.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
