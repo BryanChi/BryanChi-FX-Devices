@@ -19,19 +19,18 @@ function Get_MidiMod_Ofs(lbl)
 end
 
 function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
-
     --r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
-    r.gmem_write(4, 25) -- tells jsfx to get all points info    
+    r.gmem_write(499, 1) -- tells jsfx to get all points info    
     r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
     if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
     local limit = IsLFO and #PtsTB or 10 
-    r.gmem_write(13, #PtsTB) -- tells how many points in total
     local start = IsLFO and 500 or 20 
     local prop = IsLFO and 50 or 10
     for i = 1 , limit  do 
         --r.gmem_write(11, i) -- tells which pt
         
         r.gmem_write(start+i, PtsTB[i] and PtsTB[i][1] or 0)
+
         r.gmem_write(start + prop +i, PtsTB[i] and PtsTB[i][2] or -999)
         r.gmem_write(start + prop *2 +i, PtsTB[i] and PtsTB[i][3] or 0)
     end
@@ -1726,18 +1725,36 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             
                 Shape_Preset()
             end
+            
+            local function LFO_Release_Node ()
 
+
+                if not Mc.Rel_Type then return end 
+                if  Mc.LFO_Env_or_Loop ~= 'Envelope'  then return end
+                if Mc.Rel_Type:find('Custom Release') then 
+                        im.Spacing(ctx)
+
+                        im.Spacing(ctx)
+                        im.Spacing(ctx)
+                        im.Spacing(ctx)
+
+                end
+            end
 
 
             EXEC_Top_Buttons()
+            LFO_Release_Node ()
+
             local CurveEditor_Win_W = LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4
+
+
 
             local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc, IsContainer and true )
             Mc.Node = node 
             LFO.Tweaking = tweaking and Ident or LFO.Tweaking
+         
 
-
-            im.SetCursorPos(ctx, 10, LFO.Win.h + 55)
+            --im.SetCursorPos(ctx, 10, LFO.Win.h + 55)
             im.AlignTextToFramePadding(ctx)
             im.Text(ctx, 'Speed:')
             SL()
@@ -1849,6 +1866,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
                 LFO.WinHovered = Ident -- this one doesn't get cleared after unhovering, to inform script which one to stay open
                 LFO.HvringWin = Ident
+                Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)
+
             else
                 LFO.HvringWin = nil
                 LFO.DontOpenNextFrame = true -- it's needed so the open_LFO_Win function doesn't get called twice when user 'unhover' the lfo window
@@ -1894,7 +1913,6 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                             end
                             if im.IsItemHovered(ctx) then
                                 Mc.Node = v
-                          
                                 AnyShapeHovered = true
                                 LFO.AnyShapeHovered = true
                                 Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)

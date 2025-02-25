@@ -215,14 +215,6 @@ function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick)
     if not v or type(v)~= 'table' then return end 
 
     local X, Y = L+v[1]* W , B - v[2]*H 
-    --[[ im.SetCursorScreenPos(ctx, X, Y ) ]]
-    --[[  local DtX, DtY, Tweaking = RoundBtn(PtSz, PtSz, i, 0xffffffff, 0xffffffff, PtSz/3)
-    if Tweaking then TWEAKING = true end  
-    local lX = i>1 and PtsTB[i-1][1] or 0 
-    local nX = i<#PtsTB and PtsTB[i+1][1] or 1
-    local nY = i<#PtsTB and PtsTB[i+1][2] or v[2]
-    v[1] = DtX and SetMinMax(v[1]+DtX/W , lX , nX)   or v[1]
-    v[2] = DtY and SetMinMax(v[2]-DtY/H , 0, 1)   or v[2] ]]
     if PtsTB[i+1] then 
         local n = PtsTB[i+1]
         local nX , nY = L + n[1] * W ,  B - n[2] * H 
@@ -377,6 +369,8 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     
     
     im.Dummy(ctx,W + Pad,H + Pad)
+    local CursorPosEndX, CursorPosEndY = im.GetCursorPos(ctx)
+
     im.SetCursorPos(ctx, x + Pad/2 , y + Pad/2 )
     DrawGrid()
     local ClickOnBG = im.Dummy(ctx, W, H)
@@ -531,21 +525,86 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             im.DrawList_AddLine(WDL, X, T, X, T + H, EightColors.LFO[Macro], 1)
             --im.DrawList_AddCircleFilled(WDL, X, Y, 3, EightColors.LFO[Macro])
             GLOWING_CIRCLE({X, Y}, 0, 15, 0, EightColors.LFO[Macro], WDL)
+            --[[ local function DrawValueTrail()
+                local M = Mc
+                local PlayPos = L + PtSz/2 + r.gmem_read(108 + Macro) / 4 * W / ((Mc.LFO_leng or LFO.Def.Len) / 4)
+                M.Trail = M.Trail or {}
+
+                -- Store previous frame's position
+                local prevPlayPos = M.Trail[#M.Trail] and M.Trail[#M.Trail].x or PlayPos
+                
+                -- Find if we crossed any points
+                local crossedPoints = {}
+                for i = 1, #PtsTB do
+                    local ptX = L + PtsTB[i][1] * W + PtSz/2
+                    -- Check if point lies between previous and current playhead position
+                    if (prevPlayPos < ptX and ptX < PlayPos) then
+                        table.insert(crossedPoints, {
+                            x = ptX,
+                            y = T + H - PtsTB[i][2] * H
+                        })
+                    end
+                end
+                if #crossedPoints > 0 then 
+                    -- Add all points in sequence
+                    for _, pt in ipairs(crossedPoints) do
+                        table.insert(M.Trail, pt)
+                    end
+                else 
+                    -- Add current position
+                    table.insert(M.Trail, { x = PlayPos, y = Y })
+                end
+                if #M.Trail > 40 then table.remove(M.Trail, 1) end
+                
+                -- Draw trail segments
+                for i = 2, #M.Trail do
+                    local v = M.Trail[i]
+                    local ls = M.Trail[i-1]
+                    if v.x >= ls.x then
+                        local FDL = im.GetWindowDrawList(ctx)
+                        local clr =  Change_Clr_A(0xffffff00, (i/#M.Trail) * 0.4 )
+                        im.DrawList_AddLine(FDL, v.x, v.y, ls.x, ls.y, clr, 8 - 8 / i  )
+                    end
+                end
+            end ]]
+            -- DrawValueTrail()
+            function Show_Position_Retroactively()
+                Mc.Trail = Mc.Trail or {}
+                --local prevPlayPos = M.Trail[#M.Trail] and M.Trail[#M.Trail].x or PlayPos
+                table.insert(Mc.Trail, PlayPos)
+                if #Mc.Trail > 40 then table.remove(Mc.Trail, 1) end
+                for i = 2, #Mc.Trail do
+                    local v = Mc.Trail[i]
+                    local ls = Mc.Trail[i-1]
+                    if v >= ls then
+                        local FDL = im.GetWindowDrawList(ctx)
+                        local CLR = Change_Clr_A(EightColors.LFO[Macro], -1)
+                        local clr =  Change_Clr_A(CLR, (i/#Mc.Trail) * 0.02 )
+                        im.DrawList_AddRectFilled(FDL, ls, T-PtSz/2, v, B+PtSz, clr  )
+                    end
+                end
+            end
+            Show_Position_Retroactively()
         end 
 
         local function LFO_Release_Node ()
             if not Mc.Rel_Type then return end 
+            if  Mc.LFO_Env_or_Loop ~= 'Envelope'  then return end
             if Mc.Rel_Type:find('Custom Release') then 
-                if v.Rel then
+                if v.Rel  then
                     local function If_Choose_Rel(id)
                         PtsTB[id].Rel = true
                         v.Rel = nil 
                         r.gmem_write(4, 20) -- set mode to 20 , which means User is choosing release point
                         r.gmem_write(9, id) -- tells which point(node) is the release
+                        LFO_REL_MS_DT = nil
+                        im.ResetMouseDragDelta(ctx)
                     end
                     local L =X + PtSz/2
                     --im.DrawList_AddCircle(WDL, L, T + PtSz / 2, 6, 0xffffffaa)
-                    im.DrawList_AddLine(WDL, L, T, L, B, 0xffffff55, PtSz/2)
+                    local T = T - PtSz-3
+                    local B = B + PtSz
+                    im.DrawList_AddLine(WDL, L, T, L, B, 0xffffff55, PtSz/3)
                     --im.DrawList_AddText(WDL, L + PtSz/2, T, 0xffffffaa, 'Release')
                     local X, Y = im.GetCursorPos(ctx)
                     im.SetCursorScreenPos(ctx, L , T)
@@ -553,8 +612,19 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                         If_Choose_Rel(math.max(i-1 , 1 ) ) 
                     end
                     SL(nil,0 ) 
-                    im.Button(ctx, 'Rel' ) 
-                    if im.IsItemActive(ctx) then  TWEAKING =true   end 
+                    im.Button(ctx, 'R' ) 
+                    if im.IsItemActive(ctx) then  
+                        TWEAKING =true   
+                        local MsX, MsY = im.GetMouseDragDelta(ctx)
+                        LFO_REL_MS_DT =  (LFO_REL_MS_DT or 0 ) + MsX
+                        if LFO_REL_MS_DT > 20 then 
+                            If_Choose_Rel(math.min(i+1 , #PtsTB))
+                        elseif LFO_REL_MS_DT < -20 then 
+                            If_Choose_Rel(math.max(i-1 , 1))
+
+                        end
+                        
+                    end 
                     SL(nil, 0)
                     if im.ArrowButton(ctx, 'ReleaseRight', 1) then 
                         If_Choose_Rel(math.min(i+1 , #PtsTB))
@@ -567,8 +637,10 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                 end
             end
         end
-            
 
+
+        
+        
         local HoverOnCurve =   Wheel_To_Adjust_Curve()
         local thick = HoverOnCurve and 6 or 4
         Draw_Curve (WDL,PtsTB, i, L, R, B, W, H, PtSz , lineClr , thick)
@@ -582,7 +654,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     end
     
     SaveCurve()
-
+    im.SetCursorPos(ctx, CursorPosEndX, CursorPosEndY)
 
     return PtsTB , TWEAKING
     --[[ im.SetCursorScreenPos(ctx, R-PtSz, T)

@@ -1,8 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.2
+-- @version 1.0beta17.3.3
 -- @changelog
---   - Fixed a number of weird behavior of collapsed containers. 
+--   - LFO : added new animation to playhead in the pop up editor.
+--   - LFO : Fixed release node settings still visible even when type is switched back to loop
+--   - LFO : Moved LFO Release Node setting to the top so it doesn't obstruct the graph.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

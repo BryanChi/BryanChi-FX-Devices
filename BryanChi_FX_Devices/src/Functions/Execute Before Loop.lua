@@ -345,7 +345,7 @@ function Colors()
     Btns_DefaultColor = 0x333333ff
     Btns_ClickedColor = 0x358f8fff
     BGColor_FXLayeringWindow = 0x262626ff
-
+    --[[ 
     Macro1Color = 0xff2121ff
     Macro2Color = 0xff5521ff
     Macro3Color = 0xff8921ff
@@ -354,7 +354,7 @@ function Colors()
     Macro6Color = 0xb9ff21ff
     Macro7Color = 0x6fff21ff
     Macro8Color = 0x21ff6bff
-    MacroClrs = { 0xff2121ff, 0xff5521ff, 0xff8921ff, 0xffd321ff,0xf4ff21ff,0xb9ff21ff,0x6fff21ff,0x21ff6bff}
+    MacroClrs = { 0xff2121ff, 0xff5521ff, 0xff8921ff, 0xffd321ff,0xf4ff21ff,0xb9ff21ff,0x6fff21ff,0x21ff6bff} ]]
 
     EightColors = {
         LowMidSat = {},

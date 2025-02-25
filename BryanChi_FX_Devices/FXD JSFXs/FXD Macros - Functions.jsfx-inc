@@ -92,7 +92,6 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
       Y = Velo_ModAmt[ofs + i + XYC_ofs ]; // Curve_Prop_Ofs = 10
       this.Rel_Node == i && this.Rel_Type == 3 && this.Rel_V != -999 ? ( 
         Y =  this.Rel_V;
-
       ) ;
 
       nY = Velo_ModAmt[ofs + i + 1 + XYC_ofs ];
@@ -101,30 +100,26 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
       v > X && v <= nX? ( // if v is between two points on x axis
         // out  =  Y + (nY-Y) * (v-Y);
         out =  Y + (nY-Y) * ( (v-X) * (1/(nX-X)));
-
-
-        
         C!= 0 ? (
           out = GetCurveValue(out , -C , min(Y,nY), max(Y,nY),min(Y,nY), max(Y,nY));
         );
         
         //):(v>=nX ? out = nX 
         //);(v<=X ? out = X 
-      /*): v> X && nX ==0 ? ( // if value is past the right-most point   
-        out = X ; // output equals the right-most point
-      ): v < X && i == 1 ? ( // if value is lower than the left-most point 
-        out = X ; // output equals the left-most point*/
+        /*): v> X && nX ==0 ? ( // if value is past the right-most point   
+          out = X ; // output equals the right-most point
+        ): v < X && i == 1 ? ( // if value is lower than the left-most point 
+          out = X ; // output equals the left-most point*/
       );
 
       i+=1;
 
 
     );
-    
-    out;
+    out!= -999 ? (  out;);
 
   ):(v;); // if theres no curve 
-  );
+);
 
 
 
@@ -163,6 +158,8 @@ function Set_Midi_Mod_Curve(mode )local (pt, id , prm_Ofs, prop_Ofs) (
     Velo_ModAmt[prm_Ofs +id + pt+ (prop_Ofs*2) ] = gmem[15]; // this is Exp or Log setting for the segment
     Velo_ModAmt[prm_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity  
 
+
+
   );
 );
 function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
@@ -183,15 +180,16 @@ function Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode )local (pt, id) (
   );
 );
 function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id, pt_Limit, prm_Ofs, XY_ofs, gmem_start)(
-  mode== 25? (
+  gmem[499]== 1? (
      // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6 , LFO =  7
     
     gmem[12] == 7 ? (  // if it's LFO...
-      pt_Limit = 49 ;
-      id = Gap*gmem[12] + (LFO_Max_Num_Of_Pts * 3 * (gmem[5]-1)); // gmem[5] is the Macro  , * 3 because every point has 3 prms : x, y, and curve, so first 150 slots will be all the pts in LFO 1 , 150 ~300 for LFO 2
+      pt_Limit = 49;
+      id = 70000 + (LFO_Max_Num_Of_Pts * 3 * (gmem[5]-1)); // gmem[5] is the Macro  , * 3 because every point has 3 prms : x, y, and curve, so first 150 slots will be all the pts in LFO 1 , 150 ~300 for LFO 2
       prm_Ofs = 0;
       XY_ofs = LFO_Max_Num_Of_Pts;
       gmem_start = LFO_Gmem_Ofs ; 
+
     ): ( 
       pt_Limit = 10;
       id =  Gap * gmem[12] ;
@@ -201,13 +199,13 @@ function Set_Midi_Mod_Curve_All_Pts(mode )local (pt, id, pt_Limit, prm_Ofs, XY_o
     );
     //pt = gmem[11]; // tells which point is user dragging 
     Velo_ModAmt[prm_Ofs +id] = gmem[13]; // tells how many points there are in the curve,  501000 for velocity 
-    Velo_ModAmt[prm_Ofs +id] = file_var(0, Velo_ModAmt[prm_Ofs +id]);
+    //Velo_ModAmt[prm_Ofs +id] = file_var(0, Velo_ModAmt[prm_Ofs +id]);
     i=1;
+
     loop(pt_Limit, 
       Velo_ModAmt[prm_Ofs +id + i ] =gmem[gmem_start+i] ; // this is x axis 
       Velo_ModAmt[prm_Ofs +id + i+ XY_ofs ] =gmem[gmem_start +XY_ofs +i];     // this is y axis  , Curve_Prop_Ofs = 10 , LFO_Max = 50 , so 51 is pt 1's Y 
       Velo_ModAmt[prm_Ofs +id + i+ XY_ofs*2 ] =gmem[gmem_start +XY_ofs*2 +i];     // this is curve  , Curve_Prop_Ofs = 10 , LFO_Max = 50 , so 51 is pt 1's Y 
-
 
 
       i+=1;
@@ -906,7 +904,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==8?(Mc8.FOL_Gain = gmem[9];);
     );
     mode == 12?(  // if user is tweaking lfo speed
-    ABCSPD = 133113;
+    ABCSPD = 13311;
       SetTypeTo('LFO');
       Macro = gmem[5];
       Macro==1?(Mc1.LFO_Spd = gmem[9];); 
