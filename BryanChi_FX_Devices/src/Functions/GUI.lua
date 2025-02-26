@@ -5512,15 +5512,15 @@ function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn)
         local L = pos[1] or (Win_L + D.L)
         local T = pos[2] or (Win_T + D.T)
         local R = pos[3] or (Win_L + (D.R or 0))
-        local B = pos[4] or (Win_T + D.B)
+        local B = pos[4] or (Win_T + (D.B or 0))
         local Xg, Yg = D.XGap or 0, D.YGap or 0
         local Gap = D.Gap or 0
         if IsPreviewBtn then -- if it's used for the preview button in layout editor
             local Sz = {pos[3]- pos[1] , pos[4] - pos[2]}
             L = SetMinMax( pos[1] + (D.L / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
             T = SetMinMax( pos[2] + (D.T / 220) * Sz[2], pos[2], pos[4])
-            R = SetMinMax( pos[1] + (D.R / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
-            B = SetMinMax( pos[2] + (D.B / 220) * Sz[2], pos[2], pos[4])
+            R = SetMinMax( pos[1] + ((D.R or 0) / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
+            B = SetMinMax( pos[2] + ((D.B or 0) / 220) * Sz[2], pos[2], pos[4])
             Xg = Xg / FX[FxGUID].Width * Sz[1]
             Yg = (Yg / 220) * Sz[2]
         end

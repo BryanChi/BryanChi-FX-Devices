@@ -187,25 +187,26 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
 end
 
 function Sync_Height_Synced_Properties(FP, diff)
-    if FP.Draw  then  
-        local rt = 2    
-        if FP.Type == 'V-Slider' then
-            rt = 1 
+    if not FP.Draw  then  return end 
+    local rt = FP.Type == 'V-Slider' and 1 or  2    
+
+    for I, V in ipairs(FP.Draw) do 
+        if V.Height_SS then 
+            V.Height =  V.Height + diff * rt
         end
-        for I, V in ipairs(FP.Draw) do 
-      
-            if V.Height_SS then 
-                V.Height =  V.Height + diff * rt
-            end
-            if V[1] then 
-                for i, v in ipairs(V) do 
-                    if v.Height_SS then 
-                        v.Height =  v.Height + diff * rt
-                    end
+        if V.Y_Offset_SS then 
+            V.Y_Offset =  V.Y_Offset + diff * rt
+        end
+        if V[1] then 
+            for i, v in ipairs(V) do 
+                if v.Height_SS then 
+                    v.Height =  v.Height + diff * rt
                 end
+                
             end
         end
-    end 
+    end
+
 end
 
 
@@ -564,9 +565,12 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
 
             if not IsLBtnHeld then DragItm = nil end
             local function Set_To_All_Draw_Items(str, v , diff )
+                if not diff then return end 
                 if Draw.SelItms then
                     for i, V in ipairs(Draw.SelItms) do
-                        FX[FxGUID].Draw[V][str] = FX[FxGUID].Draw[V][str] + diff
+                        if FX[FxGUID].Draw[V][str] then 
+                            FX[FxGUID].Draw[V][str] = FX[FxGUID].Draw[V][str] + diff
+                        end
                     end
                 end
             end
@@ -3200,7 +3204,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     SL()
                                     _ , D[Name..'_SS'] = im.Checkbox(ctx, 'Size Sync ##'..Name,  D[Name..'_SS']) 
 
-
                                 end 
 
                                 if Bipolar  then 
@@ -3289,7 +3292,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                             AddVal('X_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
                             SetRowName('Y offset')
-                            AddVal('Y_Offset', 0, LE.GridSize, -220, 220)
+                            AddVal('Y_Offset', 0, LE.GridSize, -220, 220, nil, nil, true)
                             AddVal('Y_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
                             if SetRowName(WidthLBL, BL_Width) then
 
@@ -3866,6 +3869,8 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
         d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
         d.Y_Offset = RC('Y offset', 'Num', true)
+        d.Y_Offset_SS = RC('Y offset Size Sync', 'Bool')
+
         d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
         d.Y_Offset_VA_BP = RC('Y Offset Value Affect BP', 'Num')
 
@@ -6818,6 +6823,8 @@ function Save_Attached_Drawings(FP, file,Fx_P)
 
                 WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
                 WRITE('Y offset', v.Y_Offset)
+                WRITE('Y offset Size Sync', v.Y_Offset_SS)
+
                 WRITE('Y Offset Value Affect', v.Y_Offset_VA)
                 WRITE('Y Offset Value Affect BP', v.Y_Offset_VA_BP)
 

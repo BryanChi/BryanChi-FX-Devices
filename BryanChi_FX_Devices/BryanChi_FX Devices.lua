@@ -1,11 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.3
+-- @version 1.0beta17.3.4
 -- @changelog
---   - LFO : added new animation to playhead in the pop up editor.
---   - LFO : Fixed release node settings still visible even when type is switched back to loop
---   - LFO : Moved LFO Release Node setting to the top so it doesn't obstruct the graph.
--- @provides
+--   - Layout Editor : added size sync option to attached drawing's Y offset.
+--   - Layout Editor : Fixed crashing when adding text to background editor. 
+--   - Added a new FX layout - Acon Digital Multiply.
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/*.jsfx-inc
