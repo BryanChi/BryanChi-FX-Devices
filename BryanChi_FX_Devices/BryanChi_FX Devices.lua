@@ -5,6 +5,7 @@
 --   - Layout Editor : added size sync option to attached drawing's Y offset.
 --   - Layout Editor : Fixed crashing when adding text to background editor. 
 --   - Added a new FX layout - Acon Digital Multiply.
+-- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
 --   [effect] FXD JSFXs/cookdsp/*.jsfx-inc
