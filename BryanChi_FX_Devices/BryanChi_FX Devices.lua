@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.5
+-- @version 1.0beta17.3.6
 -- @changelog
 --   - Layout Editor : added size sync option to many new properties such as offsets and repeat to make the features more complete and consistent.
 --   - Layout Editor : Fixed V-slider width gets messed up after saving attached drawing as a new style.
