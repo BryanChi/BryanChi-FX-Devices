@@ -22,7 +22,12 @@
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/*.png
 --   src/LFO Shapes/*.ini
---   src/Layout Editor Item Styles/*
+--   src/Layout Editor Item Styles/V-Slider/*.ini
+--   src/Layout Editor Item Styles/Switch/*.ini
+--   src/Layout Editor Item Styles/Slider/*.ini
+--   src/Layout Editor Item Styles/Drag/*.ini
+--   src/Layout Editor Item Styles/Knob/*.ini
+--   src/Layout Editor Item Styles/Selection/*.ini
 --   [main] src/FXD - Record Last Touch.lua
 -- @about
 --   Please check the forum post for info:
