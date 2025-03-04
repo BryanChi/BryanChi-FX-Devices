@@ -3509,7 +3509,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     local fx = FX[FxGUID]
 
     local PrmCount = Load_from_Trk('Prm Count' ,  LT_Track, 'num') or 0
-    local DefaultWidth
+
     local Def_Sldr_W = 160
     if FX.Def_Sldr_W[FxGUID] then Def_Sldr_W = FX.Def_Sldr_W[FxGUID] end
 
@@ -5517,11 +5517,12 @@ function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn)
         local Gap = D.Gap or 0
         if IsPreviewBtn then -- if it's used for the preview button in layout editor
             local Sz = {pos[3]- pos[1] , pos[4] - pos[2]}
-            L = SetMinMax( pos[1] + (D.L / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
+            local Wid =   FX[FxGUID].Width or DefaultWidth
+            L = SetMinMax( pos[1] + (D.L / Wid) * Sz[1], pos[1], pos[3])
             T = SetMinMax( pos[2] + (D.T / 220) * Sz[2], pos[2], pos[4])
-            R = SetMinMax( pos[1] + ((D.R or 0) / FX[FxGUID].Width) * Sz[1], pos[1], pos[3])
+            R = SetMinMax( pos[1] + ((D.R or 0) / Wid) * Sz[1], pos[1], pos[3])
             B = SetMinMax( pos[2] + ((D.B or 0) / 220) * Sz[2], pos[2], pos[4])
-            Xg = Xg / FX[FxGUID].Width * Sz[1]
+            Xg = Xg / Wid * Sz[1]
             Yg = (Yg / 220) * Sz[2]
         end
         local Round = TB.Df_EdgeRound or 0
@@ -5611,22 +5612,29 @@ function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn)
                 im.DrawList_AddTextEx(WDL, Ft, fontsize, L, T, Clr, D.Txt)
             end
         elseif D.Type == 'Picture' then
-            if not D.Image then
-                im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
-                im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2, 0xffffffff, 'Add Image path', R - L)
-            else
-                if D.KeepImgRatio then
-                    local w, h = im.Image_GetSize(D.Image)
-
-                    local H_ratio = w / h
-                    local size = R - L
-
-
-                    im.DrawList_AddImage(WDL, D.Image, L, T, L + size, T + size * H_ratio, 0, 0, 1, 1, Clr)
+            local function Draw_Picture(Xg, Yg, none, Clr)
+                local L = L + (Xg or 0)
+                local T = T + (Yg or 0)
+                local R = R + (Xg or 0)
+                local B = B + (Yg or 0)
+                local Clr = RptClr or Clr
+                if not D.Image then
+                    im.DrawList_AddRectFilled(WDL, L, T, R, B, 0xffffff33, Round)
+                    im.DrawList_AddTextEx(WDL, nil, 12, L, T + (B - T) / 2, 0xffffffff, 'Add Image path', R - L)
                 else
-                    im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B, L, B, _1, _2, _3, _4, _5, _6, _7, _8, Clr)
+                    if D.KeepImgRatio then
+                        local w, h = im.Image_GetSize(D.Image)
+                        local H_ratio = w / h
+                        local size = R - L
+
+
+                        im.DrawList_AddImage(WDL, D.Image, L, T, L + size, T + size * H_ratio, 0, 0, 1, 1, Clr)
+                    else
+                        im.DrawList_AddImageQuad(WDL, D.Image, L, T, R, T, R, B, L, B, _1, _2, _3, _4, _5, _6, _7, _8, Clr)
+                    end
                 end
             end
+            Repeat(D.Repeat,Xg, Yg, Draw_Picture)
             -- ImageAngle(ctx, Image, 0, R - L, B - T, L, T)
         end
     end

@@ -1,10 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.4
+-- @version 1.0beta17.3.5
 -- @changelog
---   - Layout Editor : added size sync option to attached drawing's Y offset.
---   - Layout Editor : Fixed crashing when adding text to background editor. 
---   - Added a new FX layout - Acon Digital Multiply.
+--   - Layout Editor : added size sync option to many new properties such as offsets and repeat to make the features more complete and consistent.
+--   - Layout Editor : Fixed V-slider width gets messed up after saving attached drawing as a new style.
+--   - Background Editor : fixed repeat not reacting to images.
+--   - Added new layout for Cymatics Origin.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

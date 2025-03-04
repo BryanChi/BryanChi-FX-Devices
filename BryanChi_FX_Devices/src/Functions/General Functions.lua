@@ -1701,6 +1701,9 @@ function HSV_Change(InClr, H, S, V, A)
 end
 
 function BlendColors(Clr1, Clr2, pos)
+    if type(Clr1) ~= 'number' then return end
+    if type(Clr2) ~= 'number' then return end
+    if not pos then return end
     local R1, G1, B1, A1 = im.ColorConvertU32ToDouble4(Clr1)
 
     local R2, G2, B2, A2 = im.ColorConvertU32ToDouble4(Clr2)

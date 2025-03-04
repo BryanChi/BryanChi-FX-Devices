@@ -1,21 +1,28 @@
 -- @noindex
-Size_Sync_Properties= {'Width_SS', 'Rad_In_SS', 'Rad_Out_SS'}  --- used when user drag node to resize items
+Size_Sync_Properties= {'Y_Offset_SS' , 'Y_Offset_VA_SS', 'X_Offset_SS' , 'X_Offset_VA_SS', 'Width_SS', 'Rad_In_SS', 'Rad_Out_SS', 'Repeat_SS'}  --- used when user drag node to resize items
 
 function Sync_Size_Height_Synced_Properties(FP, diff)
     if not FP.Draw then return end     
 
     local function Main (V)
-        for i, v in ipairs(Size_Sync_Properties) do 
-            if V[v] then 
-                V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff
-            else
-            end
-        end 
+        
         if FP.Type == 'Knob' then 
             
-            if V.Width_SS then 
-                V.Height = (V.Height or Get_Default_Param_Height_By_Type(FP.Type) ) + diff
-            end
+            for i, v in ipairs(Size_Sync_Properties) do 
+                local mult = 1 
+                if V.Type == 'Rect' then mult = 2 end 
+                if V[v] then 
+                    V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff  * mult
+                else
+                end
+            end 
+        else 
+            for i, v in ipairs(Size_Sync_Properties) do 
+                if V[v] then 
+                    V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff
+                else
+                end
+            end 
         end
     end
     
@@ -189,19 +196,31 @@ end
 function Sync_Height_Synced_Properties(FP, diff)
     if not FP.Draw  then  return end 
     local rt = FP.Type == 'V-Slider' and 1 or  2    
+    local function Sync(v)
+
+            if v.Height_SS then 
+                v.Height =  v.Height + diff * rt
+            end
+            if v.Y_Offset_SS then 
+                v.Y_Offset =  v.Y_Offset + diff * rt
+            end
+            if v.Y_Offset_VA_SS then 
+                v.Y_Offset_VA =  v.Y_Offset_VA - diff * rt
+            end
+
+            if v.Repeat_SS then 
+                v.Repeat =  v.Repeat + (diff * rt / v.Height)
+            end
+    end
 
     for I, V in ipairs(FP.Draw) do 
-        if V.Height_SS then 
-            V.Height =  V.Height + diff * rt
-        end
-        if V.Y_Offset_SS then 
-            V.Y_Offset =  V.Y_Offset + diff * rt
-        end
+        Sync(V)
+
+
         if V[1] then 
             for i, v in ipairs(V) do 
-                if v.Height_SS then 
-                    v.Height =  v.Height + diff * rt
-                end
+
+                Sync(v)
                 
             end
         end
@@ -1371,8 +1390,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 if D[It].Type ~= 'Text' then
 
                     Fill()
-                    Add_Val('Start Pos X:' , 'L', D[It].L, 1, -fx.Width, fx.Width*2, '%.0f', true)
-                    Add_Val(EndPosX_LBL,'R', D[It].R, 1, -fx.Width, fx.Width*2, '%.0f', nil)
+                    local Wid = fx.Width or DefaultWidth
+                    Add_Val('Start Pos X:' , 'L', D[It].L, 1, -Wid, Wid*2, '%.0f', true)
+                    Add_Val(EndPosX_LBL,'R', D[It].R, 1, -Wid, Wid*2, '%.0f', nil)
                     Add_Val('Start Pos Y:', 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f', true)
                     Add_Val('End Pos Y:', 'B', D[It].B, 1, -Win_H, Win_H*2, '%.0f', nil)
                     Add_Val('Thickness:', 'Thick', D[It].Thick, 0.1, 0, 40, '%.1f', true)
@@ -2072,14 +2092,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             im.Text(ctx, 'Search : ')SL()
 
-
+            if im.IsWindowAppearing(ctx) then
+                im.SetKeyboardFocusHere(ctx)
+            end
             if im.TextFilter_Draw(filter , ctx, '##StyleWinFilterTxt', 300 ) then
                 filterTxt = im.TextFilter_Get(filter)
                 im.TextFilter_Set(filter, filterTxt)
             end
-            if im.IsWindowAppearing(ctx) then
-                im.SetKeyboardFocusHere(ctx)
-            end
+            
             SL()
             im.InvisibleButton(ctx, 'dummy' , 20,20)
             
@@ -2191,7 +2211,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             local function Add_Plus_Button(i, H, TB, FxGUID,Sel_Itms)
                 local WinSz = im.GetWindowSize(ctx)
                 local CurX = im.GetCursorPosX(ctx)
-                SL(CurX + WinSz - H *2.5)
+
+                SL(  WinSz - H *2.5)
                 im.PushFont(ctx, Font_Andale_Mono_20_B)
                 if im.Button(ctx, '+##'..i, H,H) then 
                     
@@ -2280,7 +2301,50 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end   
                 end 
             end
-            local function Add_Style_Previews(func, width, spacing, BtnSz)
+            local function Add_Style_Previews_For_V_Slider(func, width, spacing, BtnSz)
+                if not LE.DrawingStyles then return end 
+                if not LE.DrawingStyles[FS.Type] then return end 
+                if FS.Type ~= 'V-Slider' then return end
+                local V_Sldr_H = 180
+                local MainBtn_W, MainBtn_H = 300, 30
+                for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
+
+                    if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                        im.BeginGroup(ctx)
+
+                        local pos = {im.GetCursorScreenPos(ctx)}
+                        local x , y = im.GetCursorPos(ctx)
+                        im.BeginDisabled(ctx)
+                       -- func()
+                        im.InvisibleButton(ctx,'Invisible Btn'..i, MainBtn_W , MainBtn_H)
+                        im.EndDisabled(ctx)
+                        im.SetCursorPos(ctx, x, y )
+
+                        im.AlignTextToFramePadding(ctx)
+                        im.Text(ctx, v.Name)
+
+                        im.EndGroup(ctx)
+                        if im.IsItemHovered(ctx)then
+                            im.SetNextWindowPos(ctx, pos[1]-BtnSz, pos[2] - V_Sldr_H /2 )
+                            im.BeginTooltip(ctx)
+                            local pos = {im.GetCursorScreenPos(ctx)}
+                            im.InvisibleButton(ctx, 'V-Slider Test ', Df.V_Sldr_W , V_Sldr_H)
+                            Draw_Attached_Drawings(v,FX_Idx, pos , 0.5, FS.Type, FxGUID)
+                            im.EndTooltip(ctx)
+                        end
+
+                        Set_Style_To_Selected_Itm (LE.Sel_Items,v)
+                        local W,H = im.GetItemRectSize(ctx)
+                        local sz = BtnSz and BtnSz or MainBtn_H
+                        Add_Plus_Button(i, sz, v, FxGUID,LE.Sel_Items)
+                        Add_Trash_Button(i, sz, v, FS.Type)
+                        im.Separator(ctx)
+                        --AddSpacing(spacing or 5)
+                    end
+                    Confirm_Delete_Preset(v,FS.Type,i)
+                end
+            end
+            local function Add_Style_Previews(func, width, spacing, BtnSz, TextWrapPosX)
                 if not LE.DrawingStyles then return end 
                 if not LE.DrawingStyles[FS.Type] then return end 
                 for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
@@ -2296,14 +2360,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
                         SL(nil, (width or 50) )
                         im.AlignTextToFramePadding(ctx)
-
+                        im.PushTextWrapPos(ctx, TextWrapPosX)
                         im.Text(ctx, v.Name)
-
+                        im.PopTextWrapPos(ctx)
                         im.EndGroup(ctx)
 
                         Set_Style_To_Selected_Itm (LE.Sel_Items,v)
                         local W,H = im.GetItemRectSize(ctx)
                         local sz = BtnSz and BtnSz or H
+
                         Add_Plus_Button(i, sz, v, FxGUID,LE.Sel_Items)
                         Add_Trash_Button(i, sz, v, FS.Type)
                         im.Separator(ctx)
@@ -2318,16 +2383,17 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             Add_Default_Knob_Styles()
             if FS.Type == 'Drag' or (not FS.Type and FX[FxGUID].DefType == 'Drag') then 
                 local function Add_Drag()
-                    AddDrag(ctx, '##' , FS.Name, FS.V, 0, 1, FItm, FX_Idx, FS.Num, nil, Df.Sldr_W,0, nil,nil,FS.Lbl_Pos,FS.V_Pos ,nil,nil,Df.Sldr_H)
+                   -- AddDrag(ctx, '##' , FS.Name, FS.V, 0, 1, FItm, FX_Idx, FS.Num, nil, Df.Sldr_W,0, nil,nil,FS.Lbl_Pos,FS.V_Pos ,nil,nil,Df.Sldr_H)
+                   im.InvisibleButton(ctx, 'Drag Test ', 100 , 25)
                 end
 
-                Add_Style_Previews(Add_Drag)
+                Add_Style_Previews(Add_Drag , nil , nil , 30, 250*2)
             elseif  FS.Type == 'V-Slider' or (not FS.Type and FX[FxGUID].DefType == 'V-Slider') then 
-                local function Add_V_Slider()
+                --[[ local function Add_V_Slider()
                     local sliderHeight = FS.Height or Df.V_Sldr_H
-                    im.InvisibleButton(ctx, 'V-Slider Test ', Df.V_Sldr_W , sliderHeight)
-                end
-                Add_Style_Previews(Add_V_Slider,100,nil, 30)
+                    im.InvisibleButton(ctx, 'V-Slider Test ', Df.V_Sldr_W , 15)
+                end ]]
+                Add_Style_Previews_For_V_Slider(Add_V_Slider,100,nil, 30)
             elseif FS.Type == 'Slider' or (not FS.Type and FX[FxGUID].DefType == 'Slider') then 
                 local function Add_Slider()
                     im.InvisibleButton(ctx, 'Slider Test ', Df.Sldr_W , Df.Sldr_H)
@@ -2335,9 +2401,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 Add_Style_Previews(Add_Slider, 0, 2)
             elseif FS.Type =='Switch' then 
                 local function Switch()
-                    AddSwitch(LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil,FItm, nil,nil,FxGUID)
+                    im.InvisibleButton(ctx, 'V-Slider Test ', 25 , 25)
+                    --AddSwitch(LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil,FItm, nil,nil,FxGUID)
                 end
-                Add_Style_Previews(Switch)
+                Add_Style_Previews(Switch, nil, nil, 25*2, 250)
 
             elseif FS.Type =='Selection' then 
                 local function Combo()
@@ -2817,7 +2884,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             local function Save_As_Style_Btn()
                 if im.Button(ctx, 'Save as a '..(FS.Type or ' ').. ' style') then 
-                    im.OpenPopup(ctx, 'Enter name for the style:')
+                    im.OpenPopup(ctx, 'Enter name for the style:', im.WindowFlags_NoDecoration)
+
                     local x , y = im.GetCursorScreenPos(ctx)
                     im.SetNextWindowPos(ctx, x ,y )
                     im.SetNextWindowSize(ctx, 200, 100  )
@@ -2832,16 +2900,25 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 SL()
                 MyText('('..#FS.Draw ..' Drawings )', nil, ThemeClr('Accent_Clr'))
             end
+            local x , y = im.GetCursorScreenPos(ctx)
+            im.SetNextWindowPos(ctx, x ,y )
 
-            if im.BeginPopupModal(ctx, 'Enter name for the style:') then
+            if im.BeginPopupModal(ctx, 'Enter name for the style:', true, im.WindowFlags_NoDecoration) then
+                
+                im.Text(ctx, 'Enter name for the style:')
+                im.SetNextItemWidth(ctx, -1)
+                if im.IsWindowAppearing(ctx) then 
+                    im.SetKeyboardFocusHere(ctx)
+                end
                 EnterNewName, NewName = im.InputText(ctx, '## Style Name', NewName, im.InputTextFlags_EnterReturnsTrue)
-                SL()
-                if  EnterNewName then 
+
+                if  im.Button(ctx, 'Save (Enter)') or EnterNewName or im.IsKeyPressed(ctx,im.Key_Enter) then 
                     Save_Attached_Drawings_As_Style(NewName, FS.Type, FS)
                     im.CloseCurrentPopup(ctx)
                     Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Saved Successfully', 60 , 0
                 end
-                if im.IsKeyPressed(ctx,im.Key_Escape)then 
+                SL()
+                if im.Button(ctx, 'Cancel (Esc)') or  im.IsKeyPressed(ctx,im.Key_Escape)then 
                     im.CloseCurrentPopup(ctx)
                     Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Canceled', 60 , 0
 
@@ -3131,7 +3208,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 local Column = 1
                                 if Name:find('_VA') then Column = 2 end
                                 im.TableSetColumnIndex(ctx, Column)
-                                local itmW = WidthSyncBtn and -WidthSyncBtnSz or Bipolar and BipolarSz or Sz or  -FLT_MIN
+                                local itmW = Sz or (WidthSyncBtn and -WidthSyncBtnSz or Bipolar and BipolarSz or Sz or  -FLT_MIN)
 
                                 im.PushItemWidth(ctx, itmW)
 
@@ -3287,20 +3364,20 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                             SetRowName('X offset')
-                            AddVal('X_Offset', 0, LE.GridSize, -Win_W, Win_W, nil)
+                            AddVal('X_Offset', 0, LE.GridSize, -Win_W, Win_W, '%.1f', nil, true )
                             TableColumn1W = im.GetItemRectSize(ctx)
 
-                            AddVal('X_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
+                            AddVal('X_Offset_VA', nil,nil,nil,nil,'%.1f',nil, true, true, 50)
                             SetRowName('Y offset')
-                            AddVal('Y_Offset', 0, LE.GridSize, -220, 220, nil, nil, true)
-                            AddVal('Y_Offset_VA', nil,nil,nil,nil,nil,nil,nil, true)
+                            AddVal('Y_Offset', 0, LE.GridSize, -220, 220, '%.1f', nil, true)
+                            AddVal('Y_Offset_VA', nil,nil,nil,nil,'%.1f',nil,true, true, 50)
                             if SetRowName(WidthLBL, BL_Width) then
 
                                 local Def_W = Get_Default_Param_Width_By_Type(FS.Type)
                                 if FS.Type == 'Knob' then Def_W =( FS.Sldr_W or Def_W) * 2 
                                 else Def_W = ( FS.Sldr_W or Def_W) 
                                 end
-                                AddVal('Width', Def_W, WidthStepSize, -Win_W, Win_W, nil , nil, true)
+                                AddVal('Width', Def_W, WidthStepSize, -Win_W, Win_W, '%.1f' , nil, true)
                                 AddVal('Width_VA', 0, 0.01, -1, 1 ,'percent')
                             end --[[ local rv, R =  AddRatio('Width' ) if rv then D.Width = R end   ]]
                             if SetRowName('Height', BL_Height) then
@@ -3310,16 +3387,16 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                 end
 
 
-                                AddVal('Height', Def_H, LE.GridSize, -220, 220, nil, nil, true )
+                                AddVal('Height', Def_H, LE.GridSize, -220, 220, '%.1f', nil, true )
                                 AddVal('Height_VA', 0, 0.01, -1, 1,'percent')
                             end
                             if SetRowName('Repeat', BL_Repeat) then
-                                AddVal('Repeat', 0, 1, 0, 300, '%.0f')
+                                AddVal('Repeat', 0, 1, 0, 300, '%.0f', nil, true)
                                 AddVal('Repeat_VA', 0, 0.01, -1, 1,'percent')
                             end
 
                             if SetRowName('Gap', nil, Gap) then
-                                AddVal('Gap', 0, 0.2, 0, 300, '%.1f')
+                                AddVal('Gap', 0, 0.2, 0, 300, '%.1f', nil, true)
                                 AddVal('Gap_VA', 0, 0.01, -1, 1,'percent')
                             end
                             if D.Type ~= 'Gain Reduction Text' then
@@ -3864,12 +3941,16 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
         d.Type = RC('Type')
         d.X_Offset = RC('X Offset', 'Num', true )
+        d.X_Offset_SS = RC('X Offset_SS', 'Bool' )
+
         d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
         d.X_Offset_VA_BP = RC('X Offset Value Affect BP', 'Bool')
 
         d.X_Offset_VA_GR = RC('X Offset Value Affect GR', 'Num')
         d.Y_Offset = RC('Y offset', 'Num', true)
         d.Y_Offset_SS = RC('Y offset Size Sync', 'Bool')
+        d.Y_Offset_VA_SS = RC('Y offset Value Affect Size Sync', 'Bool')
+
 
         d.Y_Offset_VA = RC('Y Offset Value Affect', 'Num')
         d.Y_Offset_VA_BP = RC('Y Offset Value Affect BP', 'Num')
@@ -3901,6 +3982,8 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
         d.Round = RC('Round', 'Num')
         d.Thick = RC('Thick', 'Num')
         d.Repeat = RC('Repeat', 'Num')
+        d.Repeat_SS = RC('Repeat_SS', 'Bool')
+
         d.Repeat_VA = RC('Repeat_VA', 'Num')
         d.Repeat_VA_GR = RC('Repeat_VA GR', 'Num')
         d.Y_Repeat = RC('Y_Repeat', 'Num')
@@ -5666,8 +5749,9 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     local PopClr_Value =   pushClr()
 
     if not FP.Image and not image then
-
+        im.PushStyleColor(ctx, im.Col_Text, Lbl_Clr)
         im.Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Sldr_W or TextW)
+        im.PopStyleColor(ctx)
     else -- if there's an image
         local img = FP.Image or image
 
@@ -6805,7 +6889,7 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                     local val = tostring(val)
                     if val =='nil' then val = nil end 
 
-                    if not val or val ==false or val == 0 or val == '0.0' or val =='false' then return end 
+                    --if not val or val ==false or val == 0 or val == '0.0' or val =='false' then return end 
     
                     if Fx_P then 
                         file:write(Fx_P..'. Draw Item ' .. D .. ': ' .. name ..' = ', val or '' ,'\n')
@@ -6818,12 +6902,16 @@ function Save_Attached_Drawings(FP, file,Fx_P)
 
                 WRITE('Type', v.Type)
                 WRITE('X Offset', v.X_Offset)
+                WRITE('X Offset_SS', v.X_Offset)
+
                 WRITE('X Offset Value Affect', v.X_Offset_VA)
                 WRITE('X Offset Value Affect BP', v.X_Offset_VA_BP) 
 
                 WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
                 WRITE('Y offset', v.Y_Offset)
                 WRITE('Y offset Size Sync', v.Y_Offset_SS)
+                WRITE('Y offset Value Affect Size Sync', v.Y_Offset_VA_SS)
+
 
                 WRITE('Y Offset Value Affect', v.Y_Offset_VA)
                 WRITE('Y Offset Value Affect BP', v.Y_Offset_VA_BP)
@@ -6858,6 +6946,8 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                 WRITE('Round', v.Round)
                 WRITE('Repeat', v.Repeat)
                 WRITE('Repeat_VA', v.Repeat_VA)
+                WRITE('Repeat_SS', v.Repeat_SS)
+
                 WRITE('Repeat_VA GR', v.Repeat_VA_GR)
                 WRITE('Y_Repeat', v.Y_Repeat)
                 WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
@@ -7166,9 +7256,13 @@ function Save_Attached_Drawings_As_Style(Name, Type, FP )
         -- set size back to original size
         FP.Sldr_W = orig_sz
 
-        local DfSz = FP.Type == 'Knob' and DfKnobRD or Df.Sldr_W
+        
+        local DfSz = Df.Sldr_W
+        if FP.Type == 'Knob' then DfSz = DfKnobRD 
+        elseif FP.Type == 'V-Slider' then DfSz = Df.V_Sldr_W
+        end
 
-        Sync_Size_Height_Synced_Properties(FP, orig_sz- DfSz )
+        Sync_Size_Height_Synced_Properties(FP,  orig_sz - DfSz )
     end
 
     if FP.Height then 
