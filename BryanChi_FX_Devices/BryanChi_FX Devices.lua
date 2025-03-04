@@ -22,8 +22,7 @@
 --   src/Images/Attached Drawings/LED light.png
 --   src/Images/Knobs/*.png
 --   src/LFO Shapes/*.ini
---   src/Layout Editor Item Styles/Knob/kilohearts.ini
---   src/Layout Editor Item Styles/Switch/Kilohearts.ini
+--   src/Layout Editor Item Styles/*
 --   [main] src/FXD - Record Last Touch.lua
 -- @about
 --   Please check the forum post for info:
