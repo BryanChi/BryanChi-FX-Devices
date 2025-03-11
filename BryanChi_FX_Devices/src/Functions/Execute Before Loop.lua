@@ -973,7 +973,10 @@ function attachImagesAndFonts()
         MouseL = im.CreateImage(CurrentDirectory .. '/src/Images/MouseL.png'),
         MouseR = im.CreateImage(CurrentDirectory .. '/src/Images/MouseR.png'), 
         ModulationArrow = im.CreateImage(CurrentDirectory .. '/src/Images/ModulationArrow.png'),
-        AddList = im.CreateImage(CurrentDirectory .. '/src/Images/add-list.png')
+        AddList = im.CreateImage(CurrentDirectory .. '/src/Images/add-list.png'),
+        expand = im.CreateImage(CurrentDirectory .. '/src/Images/expand.png'),
+        openInNewWin = im.CreateImage(CurrentDirectory .. '/src/Images/open-in-new-window.png')
+
     }
     for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)

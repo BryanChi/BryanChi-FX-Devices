@@ -277,16 +277,29 @@ end
 
 function Align(Sel_Itms, TB, index, Min_or_Max)
     local tb = {}
+
     for i, v in ipairs(Sel_Itms) do 
-        table.insert(tb, TB[v][index])
+        local indx = type(v)== 'table' and v[index] or TB[v][index]
+
+
+        table.insert(tb, indx)
     end
     local min = math.min(table.unpack(tb))
     local max = math.max(table.unpack(tb))
     for i, v in ipairs(Sel_Itms) do
-        if Min_or_Max == 'Max' then
-            TB[v][index] = max
-        elseif Min_or_Max == 'Min' then
-            TB[v][index] = min
+        local indx = type(v)== 'table' and v[index] or TB[v][index]
+        if type(v)== 'table' then 
+            if Min_or_Max == 'Max' then
+                v[index] = max
+            elseif Min_or_Max == 'Min' then
+                v[index] = min
+            end
+        else 
+            if Min_or_Max == 'Max' then
+                TB[v][index] = max
+            elseif Min_or_Max == 'Min' then
+                TB[v][index] = min
+            end
         end
     end
 end

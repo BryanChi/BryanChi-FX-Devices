@@ -557,6 +557,15 @@ function get_aftr_Equal(str)
     end
 end
 
+function getTableName(tbl)
+    for name, value in pairs(_G) do
+        if value == tbl then
+            return name
+        end
+    end
+    return nil
+end
+
 ---@param Str string
 ---@param Id string
 ---@param Fx_P integer
@@ -572,6 +581,7 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
              ID = Id.. ' = ' 
         else     
              ID = Fx_P .. '%. ' .. Id .. ' = '
+
         end
         local Start, End = Str:find(ID)
 
@@ -589,10 +599,11 @@ function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
                 if string.sub(Str, End + 1, LineChange - 1) == 'true' then Out = true else Out = false end
             else
                 Out = string.sub(Str, End + 1, LineChange - 1)
+
             end
         end
         if Out == '' then Out = nil end
-
+        if Out == 'true' then Out = true end
         
         
 
@@ -1304,6 +1315,29 @@ function GetLT_FX_Num()
     LT_Track = r.GetLastTouchedTrack()
 end
 
+    function mergeUnique(target, source)
+        for key, value in pairs(source) do
+            if type(value) == "table" then
+                -- If the key exists in target and is also a table, recurse
+                if type(target[key]) == "table" then
+                    mergeUnique(target[key], value)
+                else
+                    -- Otherwise, copy the whole table (to avoid reference issues)
+                    target[key] = {}
+                    mergeUnique(target[key], value)
+                end
+            else
+                -- Only copy non-table values if the key is not in target
+                if target[key] == nil then
+                    target[key] = value
+                end
+            end
+        end
+    end
+    
+
+
+
 ---@param FxGUID string
 function GetProjExt_FxNameNum(FxGUID , Trk)
     local PrmCount
@@ -1691,12 +1725,18 @@ end
 
 
 
-function HSV_Change(InClr, H, S, V, A)
+function HSV_Change(InClr, H, S, V, A, Change_S_If_V_Is_Full)
     local R, g, b, a = im.ColorConvertU32ToDouble4(InClr)
-
+    local SS
     local h, s, v = im.ColorConvertRGBtoHSV(R, g, b)
-    local h, s, v, a = (H or 0) + h, s + (S or 0), v + (V or 0), a + (A or 0)
-    local R, g, b = im.ColorConvertHSVtoRGB(h, s, v)
+    if Change_S_If_V_Is_Full then   
+        if v == 1 then
+            SS = math.min(s + (Change_S_If_V_Is_Full), 1)
+        end
+    end
+    local h, s, v, a = math.min((H or 0) + h, 1), math.min(s + (S or 0), 1), math.min(v + (V or 0), 1), math.min(a + (A or 0), 1)
+    
+    local R, g, b = im.ColorConvertHSVtoRGB(h, SS or s, v)
     return im.ColorConvertDouble4ToU32(R, g, b, a)
 end
 

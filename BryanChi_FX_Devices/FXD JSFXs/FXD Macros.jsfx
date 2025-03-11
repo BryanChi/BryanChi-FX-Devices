@@ -165,43 +165,20 @@ trkGUID_Num = slider25;
 
 //trkGUID_Num = save(trkGUID_Num);
 
- file_var(0,P.Inst);
+file_var(0,P.Inst);
 SAVE_XY_PAD_INFO();
 
 
 SERIALIZE__Prm_Mod_Range_AND_Orig_Values(is_saving);
-
-/*
 SERIALIZE__Midi_Mods();
-
 SERIALIZE__Mod_Curves();
-
-*/
 
 
 //file_mem(0, LFO, 80000 ) ; //save all lfo info  
 
 
-
-
-Mc1.SaveAllModulatorInfo();
-
-Mc2.SaveAllModulatorInfo();
-
-Mc3.SaveAllModulatorInfo();
-
-Mc4.SaveAllModulatorInfo();
-
-Mc5.SaveAllModulatorInfo();
-
-Mc6.SaveAllModulatorInfo();
-
-Mc7.SaveAllModulatorInfo();
-
-Mc8.SaveAllModulatorInfo();
-
 SERIALIZE__Save_LFO();
-
+SaveAllModulatorInfo_FOR_ALL_MACROS();
 
 
 @sample 
@@ -213,6 +190,17 @@ SAMPLE__DO_FOLLOWER();
 
 
 @block
+AAA_LFO1_PT_Ct = LFO_Ofs[0];
+AAA_LFO1_PT1_X = LFO_Ofs[1];
+AAA_LFO1_PT2_X = LFO_Ofs[2];
+
+AAA_LFO1_PT1_Y = LFO_Ofs[50];
+AAA_LFO1_PT2_Y = LFO_Ofs[51];
+
+
+
+
+
 
 Automate = 16; // first one will be 17 
 

@@ -37,24 +37,69 @@ function Sync_Size_Height_Synced_Properties(FP, diff)
     end 
 end
 
-function Drag_Drop_Image_Module(ImgFileName, TB, width, SUBFOLDER)
-    if ImgFileName then
+function Drag_Drop_Image_Module(ImgFileName, TB, width, SUBFOLDER, Var, Height)
+    local function Attach_Images()
+
+        local Dir = CurrentDirectory .. 'src/Images/'..SUBFOLDER
+        if im.IsWindowAppearing(ctx) then 
+            _G[SUBFOLDER..'Img'] = {}
+            _G[SUBFOLDER..'ImgName'] = {}
+            _G[SUBFOLDER..'ImgFiles'] = scandir(Dir)
+            if _G[SUBFOLDER..'ImgFiles'] then
+                for i, v in ipairs(_G[SUBFOLDER..'ImgFiles']) do
+                    if v ~= '.DS_Store' then
+                        if not _G[SUBFOLDER..'Img'][i] then 
+                            _G[SUBFOLDER..'Img'][i] = im.CreateImage(Dir .. '/' .. v)
+                            im.Attach(ctx, _G[SUBFOLDER..'Img'][i])
+                            _G[SUBFOLDER..'ImgName'][i] = v
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if _G[SUBFOLDER..'ImgName'] then
         SL() 
         local rv , hvr =  TrashIcon(13, 'Image Delete', nil, TB.TrashImgTint) 
         if rv then 
-            TB.Image, ImgFileName = nil
+            TB[Var], _G[SUBFOLDER..'ImgName'] = nil
+            return nil 
         end
         TB.TrashImgTint = hvr
        
     end
     SL()
-    if im.BeginChild(ctx, '##drop_files', width, im.GetTextLineHeight(ctx)) then
-        if not ImgFileName then
-            im.Text(ctx, 'Drag and drop files here...')
-        else
-            
-            im.Text(ctx, ImgFileName)
 
+
+
+    if im.BeginChild(ctx, '##drop_files', width, Height or im.GetTextLineHeight(ctx)) then
+
+        local Preview_Str = ImgFileName and ImgFileName or 'Drag and drop files here...'
+        im.SetNextItemWidth(ctx, (width or -FLT_MIN) - 13)
+        if im.BeginCombo(ctx, '##drop_files_combo', Preview_Str, im.ComboFlags_HeightLargest) then 
+            Attach_Images()
+            for i , v in ipairs(_G[SUBFOLDER..'Img'] ) do 
+                if v then 
+                    im.BeginGroup(ctx)
+                    local rv =  im.ImageButton(ctx, SUBFOLDER.. i , v , 30, 30 ) 
+                    SL()
+                    im.Text(ctx, _G[SUBFOLDER..'ImgName'][i])
+                    im.EndGroup(ctx)
+                    HighlightHvredItem(0xffffff22, 0xffffff44)
+
+                    if rv or im.IsItemClicked(ctx) then 
+                        TB[Var] = v
+                        im.CloseCurrentPopup(ctx)
+
+                        im.EndCombo(ctx)
+                        im.EndChild(ctx)
+                        return _G[SUBFOLDER..'ImgName'][i]
+                    end
+                    im.Separator(ctx)
+
+                end
+            end
+            im.EndCombo(ctx)
         end
         
    
@@ -75,8 +120,8 @@ function Drag_Drop_Image_Module(ImgFileName, TB, width, SUBFOLDER)
 
                 ImgFileName = filename
 
-                TB.Image = im.CreateImage(filepath)
-                im.Attach(ctx, TB.Image)
+                TB[Var or'Image' ] = im.CreateImage(filepath)
+                im.Attach(ctx, TB[Var or'Image'])
             end
         end
         im.EndDragDropTarget(ctx)
@@ -575,6 +620,7 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
 
                 if IsLBtnClicked and Mods == Alt then
                     table.remove(FX[FxGUID].Draw , i)
+                    Draw.SelItms = nil
                     if im.BeginPopup(ctx, 'Drawlist Add Text Menu') then
                         im.CloseCurrentPopup(ctx)
                         im.EndPopup(ctx)
@@ -842,7 +888,11 @@ end
 
 function ToAllSelItm(idx, Val, FxGUID)
     for i, v in ipairs(LE.Sel_Items) do
-        FX[FxGUID][v][idx] = Val
+        if type(v)=='table' then 
+            v[idx] = val
+        else 
+            FX[FxGUID][v][idx] = Val
+        end
     end
 end
 
@@ -855,8 +905,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         HelperMsg.Shift_R = 'Add Marquee to Selection'
         HelperMsg.Others[1] = OS:find('OSX') and '| Hold Command to hide grid' or '| Hold Ctrl to hide grid'
     end
-    im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
-    im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00)
+     im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
+    im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00) 
 
     local FxGUID = FXGUID[FX_Idx]
 
@@ -1083,13 +1133,55 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         I.Value_Thick = CopyPrm.Value_Thick
                         I.V_Pos_X     = CopyPrm.V_Pos_X
                         I.V_Pos_Y     = CopyPrm.V_Pos_Y
+                       
                         I.ImgFilesName   = CopyPrm.ImgFilesName
+                        I.ImgAngleMinOfs = CopyPrm.ImgAngleMinOfs
+                        I.DontReotateImg = CopyPrm.DontReotateImg
                         I.Height      = CopyPrm.Height
                         I.Invisible = CopyPrm.Invisible
+                        I.V_Clr_At_Full = CopyPrm.V_Clr_At_Full
+                        I.Lbl_Clr_At_Full = CopyPrm.Lbl_Clr_At_Full
+                        I.XY_Pad_Y_PNum = CopyPrm.XY_Pad_Y_PNum
+                        I.V_Round = CopyPrm.V_Round
+
+
+                        --arrows
+                        I.AddArrows = CopyPrm.AddArrows
+                        I.ArrowPic = CopyPrm.ArrowPic
+                        I.ArrowPicFileName= CopyPrm.ArrowPicFileName
+
+
+I.Conditions = deepCopy(CopyPrm.Conditions)
+                        I.Switch_On_Clr = CopyPrm.Switch_On_Clr
+
+                        -- font related
+                        I.Lbl_FONT    = CopyPrm.Lbl_FONT
+                        I.Val_FONT    = CopyPrm.Val_FONT
+                        I.Lbl_Italic  = CopyPrm.Lbl_Italic
+                        I.Val_Italic  = CopyPrm.Val_Italic
+                        I.Lbl_Bold    = CopyPrm.Lbl_Bold
+                        I.Val_Bold    = CopyPrm.Val_Bold
+
+
+                        --  switch
+                        I.SwitchType = CopyPrm.SwitchType
+                        I.SwitchTargV = CopyPrm.SwitchTargV
+                        I.SwitchBaseV = CopyPrm.SwitchBaseV
+
+                        if I.Conditions then 
+                            for i, v in ipairs(I.Conditions) do
+
+                                local i = i==1 and '' or i
+                                local Prm = CopyPrm['ConditionPrm' .. i]
+                                I['ConditionPrm' .. i] = Prm
+                                I['ConditionPrm_V'.. i] = CopyPrm['ConditionPrm_V'.. i]
+                                I['ConditionPrm_V_Norm'.. i] = CopyPrm['ConditionPrm_V_Norm'.. i]
+                            end
+                        end
+
                         if CopyPrm.Draw then
                             -- use this line to pool
                             --I.Draw = CopyPrm.Draw
-
                             I.Draw = I.Draw or {}
                             for i, v in pairs(CopyPrm.Draw) do
                                 I.Draw[i] = {}
@@ -1107,6 +1199,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         if Draw.DrawMode == FxGUID then
             if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode = nil end
         else
+            if im.Button(ctx, 'Add Virtual Button') then 
+                fx.VB = fx.VB or {}
+                table.insert(fx.VB, {})
+            end
+            SL()
             if im.Button(ctx, 'Enter Background Edit') then
                 Draw.DrawMode = FxGUID
                 LE.Sel_Items = {}
@@ -1202,7 +1299,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             if im.BeginCombo(ctx, '## Draw Type', typelbl or Draw.Type or 'line', im.ComboFlags_NoArrowButton) then
                 local function setType(str)
                     if im.Selectable(ctx, str, false) then
-                        if It then D[It].Type = str end
+                        if It and D[It] then D[It].Type = str end
                         Draw.Type = str
                         Set_To_All_Draw_Items('Type', str , D)
                     end
@@ -1219,6 +1316,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         local function TEXT()
             if not Draw.SelItms or not It then return end 
+            if not D[It] then return end 
             if D[It].Type ~= 'Text' then return end
 
             if  im.BeginTable(ctx, "TxtProperties", 2, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then  
@@ -1349,6 +1447,20 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     Set_To_All_Draw_Items('clr', D[It].clr, D)
                 end
             end
+
+
+            local function Drawn_In_ForeGround()
+                -- Add foreground drawing checkbox
+                im.TableNextColumn(ctx)
+                im.Text(ctx, "Draw in Foreground:")
+                im.TableNextColumn(ctx) 
+                local rv, foreground = im.Checkbox(ctx, '##Draw in Foreground', D[It].DrawInForeground)
+                if rv then
+                    Set_To_All_Draw_Items('DrawInForeground', foreground, D)
+                end
+            end
+
+
             local function Repeat_Clr()
                 if D[It].Repeat == 0 then return end
                 im.TableNextColumn(ctx)
@@ -1375,7 +1487,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 im.Text(ctx, "File Name:")
                 im.TableNextColumn(ctx)
                 DragDropPics = DragDropPics or {}
-                D[It].BgImgFileName = Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], -FLT_MIN, 'Backgrounds')
+                D[It].BgImgFileName = Drag_Drop_Image_Module(D[It].BgImgFileName, D[It], -FLT_MIN, 'Backgrounds', 'Image', 30)
                 
                 im.TableNextRow(ctx)
                 im.TableNextColumn(ctx)
@@ -1398,6 +1510,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     Add_Val('Thickness:', 'Thick', D[It].Thick, 0.1, 0, 40, '%.1f', true)
                     Add_Val('Repeat:', 'Repeat', D[It].Repeat, 1, 0, 300, '%.0f', true)
                     Repeat_Clr()
+                    Drawn_In_ForeGround()
                     Add_Val('X Gap:', 'XGap', D[It].XGap, 0.2, 0, 300, '%.1f', true)
                     Add_Val('Y Gap:', 'YGap', D[It].YGap, 0.2, 0, 300, '%.1f', nil)
                     Add_Val('Size Gap:', 'Gap', D[It].Gap, 0.2, 0, 300, '%.1f', true)
@@ -1456,8 +1569,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         end
     end
     local function Parameter_Properties()
-        if not LE.Sel_Items[1] then return end 
-        local FS  = FX[FxGUID][LE.Sel_Items[1]]
+        if not LE.Sel_Items[1] or type(LE.Sel_Items[1])=='table'  then return end 
+        local FS  = type(LE.Sel_Items[1]) == 'table' and LE.Sel_Items[1] or FX[FxGUID][LE.Sel_Items[1]]
         local ID, TypeID; local FrstSelItm = FX[FxGUID][LE.Sel_Items[1]]; local FItm = LE.Sel_Items[1]
         local R_ofs = 50
         local FLT_MIN, FLT_MAX = im.NumericLimits_Float()
@@ -1469,18 +1582,38 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         im.TableFlags_RowBg
         
         if LE.Sel_Items[1] and not LE.Sel_Items[2] then
-            ID       = FxGUID .. LE.Sel_Items[1]
-            WidthID  = FxGUID .. LE.Sel_Items[1]
-            ClrID    = FxGUID .. LE.Sel_Items[1]
-            GrbClrID = FxGUID .. LE.Sel_Items[1]
-            TypeID   = FxGUID .. LE.Sel_Items[1]
+            local itm1 = type(LE.Sel_Items[1]) == 'table' and LE.Sel_Items[1].Name or LE.Sel_Items[1]
+
+            ID       = FxGUID .. itm1
+            WidthID  = FxGUID .. itm1
+            ClrID    = FxGUID .. itm1
+            GrbClrID = FxGUID .. itm1
+            TypeID   = FxGUID .. itm1
         elseif LE.Sel_Items[2] then
             local Diff_Types_Found, Diff_Width_Found, Diff_Clr_Found, Diff_GrbClr_Found
             for i, v in pairs(LE.Sel_Items) do
                 local lastV
                 if i > 1 then
                     local frst = LE.Sel_Items[1]; local other = LE.Sel_Items[i];
-                    if FX[FxGUID][1].Type ~= FX[FxGUID][v].Type then Diff_Types_Found = true end
+                    -- Check if both virtual buttons and parameters are selected
+                    local has_vb = false
+                    local has_param = false
+
+                    for _, item in ipairs(LE.Sel_Items) do
+                        if type(item) == 'table' then
+                            has_vb = true
+                        else
+                            has_param = true
+                        end
+                        
+                        if has_vb and has_param then
+                            -- If both types are found, clear selection and show message
+                            Diff_Types_Found = true 
+                        end
+                    end
+                    if FX[FxGUID][frst] and FX[FxGUID][v] then 
+                        if FX[FxGUID][frst].Type ~= FX[FxGUID][v].Type then Diff_Types_Found = true end
+                    end
                     --if FX[FxGUID][frst].Sldr_W ~= FX[FxGUID][v].Sldr_W then  Diff_Width_Found = true    end
                     --if FX[FxGUID][frst].BgClr  ~= FX[FxGUID][v].BgClr  then Diff_Clr_Found = true       end
                     --if FX[FxGUID][frst].GrbClr ~= FX[FxGUID][v].GrbClr then Diff_GrbClr_Found = true end
@@ -1531,8 +1664,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             FS.Type = FS.Type or FX[FxGUID].DefType
 
-            im.Text(ctx, 'Type : '); im.SameLine(ctx); im.PushStyleColor(ctx,
-                im.Col_FrameBg, 0x444444aa)
+            im.Text(ctx, 'Type : '); im.SameLine(ctx); 
+            --im.PushStyleColor(ctx, im.Col_FrameBg, 0x444444aa)
             im.SetNextItemWidth(ctx, 200)
             if im.BeginCombo(ctx, '##', PrmTypeLbl, im.ComboFlags_NoArrowButton) then
                 local function SetItemType(Type)
@@ -1572,9 +1705,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 local LblEdited, buf = im.InputText(ctx, ' ##Edit Title' .. FxGUID .. LE.Sel_Items[1], FS.CustomLbl or buf)
                 --if im.IsItemActivated(ctx) then EditingPrmLbl = LE.Sel_Items[1] end
                 if im.IsItemDeactivatedAfterEdit(ctx) then ToAllSelItm('CustomLbl', buf)  end
-
-
-
             end
         end
         
@@ -2083,7 +2213,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         function ToAllSelItm(idx, Val)
             for i, v in ipairs(LE.Sel_Items) do
-                FX[FxGUID][v][idx] = Val
+                if type(v )=='table' then 
+                    v[idx] = val
+                else
+                    FX[FxGUID][v][idx] = Val
+                end
             end
         end
 
@@ -2420,6 +2554,23 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             --- Style ------
             --[[ im.Text(ctx, 'Style: '); im.SameLine(ctx)
             w = im.CalcTextSize(ctx, 'Style: ') ]]
+            if FS.Type == 'Selection' then 
+                im.AlignTextToFramePadding(ctx)
+                if im.Checkbox(ctx, 'Add Arrows', FS.AddArrows) then 
+                    ToAllSelItm('AddArrows', toggle(FS.AddArrows))
+                end
+                Highlight_Itm(nil, nil, 0xffffff33)
+                SL()
+                if FS.AddArrows then
+                    im.Text(ctx, '| Image for arrows : ')
+                    im.AlignTextToFramePadding(ctx)
+                    FS.ArrowPicFileName = Drag_Drop_Image_Module(FS.ArrowPicFileName, FS, 300, 'Arrows', 'ArrowPic', 30)
+                end
+                im.Dummy(ctx, 0, 0)
+                return  
+            end
+
+
             local stylename  = FS.Style == 'Pro C'  and    'Minimalistic'  or FS.Style
             local stylename = stylename == '' and 'Default' or stylename
             if not (FS.Type == 'Knob' or FS.Type =='Switch') then im.BeginDisabled(ctx)end 
@@ -2481,7 +2632,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     if StyleWindowImgFiles then
                         for i, v in ipairs(StyleWindowImgFiles) do
                             if v ~= '.DS_Store' then
-                                
                                 if not StyleWinImg[i] then 
                                     StyleWinImg[i] = im.CreateImage(Dir .. '/' .. v)
                                     im.Attach(ctx, StyleWinImg[i])
@@ -2683,54 +2833,105 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
 
-            ---@param ConditionPrm string "ConditionPrm"..number
+            ---@param WhichPrm string "ConditionPrm"..number
             ---@param ConditionPrm_PID string "ConditionPrm_PID"..number
-            ---@param ConditionPrm_V string "ConditionPrm_V"..number
-            ---@param ConditionPrm_V_Norm string "ConditionPrm_V_Norm"..number
+            ---@param ConditionPrm_V string "V"..number
+            ---@param V_Norm string "V_Norm"..number
             ---@param BtnTitle string
             ---@param ShowCondition string "ShowCondition"..number
-            local function Condition(ConditionPrm, ConditionPrm_PID, ConditionPrm_V,
-                                        ConditionPrm_V_Norm, BtnTitle, ShowCondition)
-                if im.Button(ctx, BtnTitle) then
+            local function Condition(TB_ID) 
+                local function To_All_Selected(Var, Var2)
+                    for i, V in pairs(LE.Sel_Items) do
+                        FX[FxGUID][V].Conditions = FX[FxGUID][V].Conditions or {}
+                        FX[FxGUID][V].Conditions[TB_ID] = FX[FxGUID][V].Conditions[TB_ID] or {}
+                        
+                        FX[FxGUID][V].Conditions[TB_ID][Var] = Var2
+                    end
+                end
+                fp.Conditions = fp.Conditions or {}
+                local TB = fp.Conditions    
+                if not TB[1] then TB[1] = {} end 
+
+
+                local WhichPrm = TB_ID == 1 and 'ConditionPrm' or 'ConditionPrm'..TB_ID
+                local PID = TB_ID == 1 and 'ConditionPrm_PID' or 'ConditionPrm_PID'..TB_ID
+                local V = TB_ID == 1 and 'ConditionPrm_V' or 'ConditionPrm_V'..TB_ID
+                local V_Norm = TB_ID ==1 and 'ConditionPrm_V_Norm' or 'ConditionPrm_V_Norm'..TB_ID
+                local BtnTitle = TB_ID == 1 and 'Show only if:' or 'And if:##'..TB_ID
+                local ShowCondition = TB_ID == 1 and 'ShowCondition' or 'ShowCondition'..TB_ID
+
+             
+
+
+                im.Separator(ctx)
+
+                local del, hvr =  TrashIcon(12, 'Delete Condition'..TB_ID, nil, TB[TB_ID].TrashIconTint)
+                if del then 
+                    TB[TB_ID] = nil
+                    for i, v in ipairs(LE.Sel_Items) do
+                        FX[FxGUID][v][WhichPrm]= nil
+                    end
+                    return 
+                end 
+                TB[TB_ID].TrashIconTint = hvr
+                SL()
+
+               --[[  if im.Button(ctx, BtnTitle) then
                     if Mods == 0 then
                         for i, v in pairs(LE.Sel_Items) do
                             if not FX[FxGUID][v][ShowCondition] then FX[FxGUID][v][ShowCondition] = true else FX[FxGUID][v][ShowCondition] = nil end
-                            FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v]
-                                [ConditionPrm_V] or {}
+                            FX[FxGUID][v][V] = FX[FxGUID][v] [V] or {}
                         end
                     elseif Mods == Alt then
-                        for i, v in pairs(FX[FxGUID][P][ConditionPrm_V]) do
-                            FX[FxGUID][P][ConditionPrm_V][i] = nil
+                        for i, v in pairs(FS[V]) do
+                            FX[FxGUID][P][V][i] = nil
                         end
-                        FX[FxGUID][P][ConditionPrm] = nil
+                        FX[FxGUID][P][WhichPrm] = nil
                         FS[ShowCondition] = nil
                         DeleteAllConditionPrmV = nil
                     end
+                    table.insert(fp.Conditions, {})
                 end
 
                 if im.IsItemHovered(ctx) then
                     tooltip( 'Alt-Click to Delete All Conditions')
                 end
+ ]]             im.Text(ctx, BtnTitle)
 
 
-
-                if FS[ShowCondition] or FX[FxGUID][P][ConditionPrm] then
-                    SL()
-                    if not FX[FxGUID][P][ConditionPrm_PID] then
-                        for i, v in ipairs(FX[FxGUID]) do
-                            if FX[FxGUID][i].Num == FS[ConditionPrm] then
-                                FS[ConditionPrm_PID] = i
-                            end
+            
+                SL()
+                if not FS[PID] then
+                    for i, v in ipairs(FX[FxGUID]) do
+                        if FX[FxGUID][i].Num == FS[WhichPrm] then
+                            FS[PID] = i
                         end
                     end
-                    local PID = FX[FxGUID][P][ConditionPrm_PID] or 1
+                end
+                local PID = FX[FxGUID][P][PID] or 1
+                local function Set_TO_LT_Parameter_BTN()
+                    if TB[TB_ID].COND_Prm_Or_VB ~= 'Parameter' then return end 
+                    if type(fp[WhichPrm]) == 'table' then return end
+                    SL()
+                    im.SameLine(ctx)
+                    im.SetNextItemWidth(ctx, 80)
+                    local PrmName, PrmValue
+                    if fp[WhichPrm] then
+                        _, PrmName = r.TrackFX_GetParamName(LT_Track, FX_Idx, fp[WhichPrm])
+                    end
 
-                    if im.Button(ctx, 'Parameter:##' .. ConditionPrm) then
-                        FX[FxGUID][P].ConditionPrm = LT_ParamNum
+                    im.Text(ctx, ' : ') SL()
+                    MyText( PrmName, nil, ThemeClr('Accent_Clr'))
+                    im.AlignTextToFramePadding(ctx)
+                    SL()
+
+                    if im.Button(ctx, 'Set To Last Touched ##' .. WhichPrm) then
+                        --FX[FxGUID][P].ConditionPrm = LT_ParamNum
+                        ToAllSelItm(WhichPrm, LT_ParamNum)
                         local found
                         for i, v in ipairs(FX[FxGUID]) do
                             if FX[FxGUID][i].Num == LT_ParamNum then
-                                FS[ConditionPrm_PID] = i
+                                FS[PID] = i
                                 found = true
 
                                 fp.Sldr_W = nil
@@ -2740,108 +2941,187 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             local P = StoreNewParam(LT_FXGUID, LT_ParamName,
                                 LT_ParamNum,
                                 LT_FXNum, true --[[ , nil, #F+1  ]])
-                            fp[ConditionPrm_PID] = P
+                            fp[PID] = P
 
-                            fp[ConditionPrm] = tonumber(LT_ParamNum)
+                            fp[WhichPrm] = tonumber(LT_ParamNum)
                             fp.Sldr_W = nil
                         end
 
                         --GetParamOptions ('get', FxGUID,FX_Idx, LE.Sel_Items[1],LT_ParamNum)
                     end
-                    if im.IsItemHovered(ctx) then
-                        tooltip('Click to set to last touched parameter')
-                    end
 
+                    return PrmName
 
-                    im.SameLine(ctx)
-                    im.SetNextItemWidth(ctx, 80)
-                    local PrmName, PrmValue
-                    if fp[ConditionPrm] then
-                        _, PrmName = r.TrackFX_GetParamName(LT_Track, FX_Idx,
-                            fp[ConditionPrm])
-                    end
+                    
+                end
 
-                    --[[ local Edit, Cond = im.InputInt(ctx,'##' .. ConditionPrm .. LE.Sel_Items[1] .. FxGUID, FX[FxGUID][P][ConditionPrm] or 0)
+                local function Condition_Values(PrmName)
 
-                    if FX[FxGUID][P][ConditionPrm] then
-                        _, PrmName = r.TrackFX_GetParamName(
-                            LT_Track, FX_Idx, FX[FxGUID][P][ConditionPrm])
-                    end
-
-                    if Edit then
-                        FX[FxGUID][P][ConditionPrm] = Cond
-                        for i, v in ipairs(FX[FxGUID]) do
-                            if FX[FxGUID][i].Num == FS[ConditionPrm] then
-                                FS[ConditionPrm_PID] =i
-                            end
-                        end
-                    end ]]
+                   -- if not fp[WhichPrm]  then return end 
+                    if TB[TB_ID].COND_Prm_Or_VB ~= 'Parameter' then return end 
+                    if type(fp.ConditionPrm)=='table' then return end 
+                    im.Text(ctx, 'is at Value:')
 
                     im.SameLine(ctx)
-                    im.Text(ctx, (PrmName or ''))
-                    im.AlignTextToFramePadding(ctx)
-                    if PrmName then
-                        im.Text(ctx, 'is at Value:')
+                    local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
+                    local CP = FX[FxGUID][P][WhichPrm]
+                    FX[FxGUID][P][V] = FX[FxGUID][P][V] or {}
+                    local Value_Lbl = FX[FxGUID][P][V][1] or 'Unassigned'
+                    --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
+                    Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'ConditionPrm' .. (fp.ConditionPrm or '') .. (PrmName or '') .. '1## CP'..TB_ID, 
+                    FX[FxGUID][P][WhichPrm] or 0, 
+                    FX[FxGUID][PID].ManualValuesFormat or 'Get Options',
+                    -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, Value_Lbl, nil, 'No Lbl', true )
 
-                        im.SameLine(ctx)
-                        local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
-                        local CP = FX[FxGUID][P][ConditionPrm]
-                        --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
-                        Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'ConditionPrm' .. FP.ConditionPrm .. (PrmName or '') .. '1## CP', FX[FxGUID][P][ConditionPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, FX[FxGUID][P][ConditionPrm_V][1] or 'Unassigned', nil, 'No Lbl')
-
-                        if Value_Selected then
-                            for i, v in pairs(LE.Sel_Items) do
-                                FX[FxGUID][v][ConditionPrm_V] = FX[FxGUID][v] [ConditionPrm_V] or {}
-                                FX[FxGUID][v][ConditionPrm_V_Norm] = FX[FxGUID][v] [ConditionPrm_V_Norm] or {}
-                                FX[FxGUID][v][ConditionPrm_V][1] = V_Formatted
-                                FX[FxGUID][v][ConditionPrm_V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[ConditionPrm])
-                            end
+                    if Value_Selected then
+                        for i, v in pairs(LE.Sel_Items) do
+                            FX[FxGUID][v][V] = FX[FxGUID][v] [V] or {}
+                            FX[FxGUID][v][V_Norm] = FX[FxGUID][v] [V_Norm] or {}
+                            FX[FxGUID][v][V][1] = V_Formatted
+                            FX[FxGUID][v][V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[WhichPrm])
                         end
-                        if not FX[FxGUID][P][ConditionPrm_V][1] then
-                            FX[FxGUID][P][ConditionPrm_V][1] = ''
-                        end
+                    end
+                    if not FX[FxGUID][P][V][1] then
+                        FX[FxGUID][P][V][1] = ''
+                    end
 
-                        if FX[FxGUID][P][ConditionPrm_V] then
-                            if FX[FxGUID][P][ConditionPrm_V][2] then
-                                for i, v in pairs(FX[FxGUID][P][ConditionPrm_V]) do
-                                    if i > 1 then
-                                        im.Text(ctx, 'or at value:')
-                                        im.SameLine(ctx)
-                                        local Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. ConditionPrm, FX[FxGUID][P][ConditionPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl')
-                                        if Value_Selected then
-                                            for I, v in pairs(LE.Sel_Items) do
-                                                FX[FxGUID][v][ConditionPrm_V][i] = V_Formatted
-                                                FX[FxGUID][v][ConditionPrm_V_Norm][i] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][P][ConditionPrm])
-                                            end
+                    if FX[FxGUID][P][V] then
+                        if FX[FxGUID][P][V][2] then
+                            for i, v in pairs(FX[FxGUID][P][V]) do
+                                if i > 1 then
+                                    im.Text(ctx, 'or at value:')
+                                    im.SameLine(ctx)
+                                    local Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. WhichPrm, FX[FxGUID][P][WhichPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl', true)
+                                    if Value_Selected then
+                                        for I, v in pairs(LE.Sel_Items) do
+                                            FX[FxGUID][v][V][i] = V_Formatted
+                                            FX[FxGUID][v][V_Norm][i] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][P][WhichPrm])
                                         end
                                     end
                                 end
                             end
                         end
-                        if im.Button(ctx, ' + or at value:##' .. ConditionPrm) then
-                            FX[FxGUID][P][ConditionPrm_V] = FX[FxGUID][P] [ConditionPrm_V] or {}
-                            table.insert(FX[FxGUID][P][ConditionPrm_V], '')
-                        end
-                        im.SameLine(ctx)
-                        im.SetNextItemWidth(ctx, 120)
-                        if im.BeginCombo(ctx, '##- delete value ' .. ConditionPrm, '- delete value', im.ComboFlags_NoArrowButton) then
-                            for i, v in pairs(FX[FxGUID][P][ConditionPrm_V]) do
-                                if im.Selectable(ctx, v or '##', i) then
-                                    table.remove(FX[FxGUID][P][ConditionPrm_V], i)
-                                    if not FX[FxGUID][P][ConditionPrm_V][1] then
-                                        FX[FxGUID][P][ConditionPrm] = nil
-                                    end
+                    end
+                    if im.Button(ctx, ' + or at value:##' .. WhichPrm) then
+                        FX[FxGUID][P][V] = FX[FxGUID][P] [V] or {}
+                        table.insert(FX[FxGUID][P][V], '')
+                    end
+                    im.SameLine(ctx)
+                    im.SetNextItemWidth(ctx, 120)
+                    if im.BeginCombo(ctx, '##- delete value ' .. WhichPrm, '- delete value', im.ComboFlags_NoArrowButton) then
+                        for i, v in pairs(FX[FxGUID][P][V]) do
+                            if im.Selectable(ctx, v or '##', i) then
+                                table.remove(FX[FxGUID][P][V], i)
+                                if not FX[FxGUID][P][V][1] then
+                                    FX[FxGUID][P][WhichPrm] = nil
                                 end
                             end
-                            im.EndCombo(ctx)
                         end
+                        im.EndCombo(ctx)
                     end
+
                 end
+                local function VirtualButton()
+                    if TB[TB_ID].COND_Prm_Or_VB ~= 'Virtual Button' then return end 
+                    local lbl = type (FS[WhichPrm]) == 'table' and   (FS[WhichPrm].CustomLbl or FS[WhichPrm].Name) or ''
+                    SL()
+                    im.SetNextItemWidth(ctx, 150)
+                    if im.BeginCombo(ctx, '##Virtual Button: ', lbl) then 
+                        for i, v in ipairs(fx.VB) do 
+                            if im.Selectable(ctx, v.CustomLbl or v.Name) then  
+                                ToAllSelItm(WhichPrm, v)
+                            end
+                        end 
+                        im.EndCombo(ctx)
+                    end
+                    if FS[WhichPrm] and type(FS[WhichPrm])=='table' then 
+                        im.Text(ctx, 'Is at value :')
+                        im.AlignTextToFramePadding(ctx)
+                        SL()
+                        im.SetNextItemWidth(ctx, 150)
+                        if FS[WhichPrm].Type =='Switch' then 
+                            local lbl  = TB[TB_ID].When_Is_Off and 'Off' or 'On'
+                            
+                            im.BeginGroup(ctx)
+                            im.Button(ctx, lbl ..'## Virtual Button On or Off') 
+                            SL(nil,0)
+                            im.ArrowButton(ctx, '##Arrow'..(PID or 'nil'), im.Dir_Down)
+                            im.EndGroup(ctx)
+
+                            if im.IsItemClicked(ctx) then 
+                                TB[TB_ID].When_Is_Off = toggle (TB[TB_ID].When_Is_Off)
+                            end 
+                        else
+                            if im.BeginCombo(ctx, '##Virtual Button Choices', TB[TB_ID].VB_Val or '') then 
+                                for i, v in ipairs(FS[WhichPrm].Choices) do 
+                                    if im.Selectable(ctx, v.ChoiceName or '') then  
+                                        for i, V in pairs(LE.Sel_Items) do
+                                            FX[FxGUID][V].Conditions[TB_ID].VB_Val = v.ChoiceName
+                                        end
+                                    end
+                                end 
+                                im.EndCombo(ctx)
+                            end
+                        end
+
+                        
+                    end
+
+                end
+
+                local function Param_or_Virtual_Button()
+
+                    TB[TB_ID].COND_Prm_Or_VB = TB[TB_ID].COND_Prm_Or_VB or 'Parameter'
+                    local txtSz = im.CalcTextSize(ctx, 'Virtual Button' )
+                    im.BeginGroup(ctx)
+                    im.Button(ctx, (TB[TB_ID].COND_Prm_Or_VB )..'##'..(PID or 'nil'), txtSz + 10)  
+                    SL(nil,0)
+                    im.ArrowButton(ctx, '##Arrow'..(PID or 'nil'), im.Dir_Down)
+                    im.EndGroup(ctx)
+                    if im.IsItemClicked(ctx) then 
+
+                        if TB[TB_ID].COND_Prm_Or_VB == 'Virtual Button' then
+                            To_All_Selected('COND_Prm_Or_VB', 'Parameter')
+                        else 
+                            To_All_Selected('COND_Prm_Or_VB', 'Virtual Button')
+                        end
+                       --[[  for i, V in pairs(LE.Sel_Items) do
+                            FX[FxGUID][V].Conditions[TB_ID].VB_Val = v.ChoiceName
+
+                            if TB[TB_ID].COND_Prm_Or_VB == 'Virtual Button' then 
+                                fp[WhichPrm] = nil
+                            end
+                            TB[TB_ID].COND_Prm_Or_VB = toggle(TB[TB_ID].COND_Prm_Or_VB, 'Parameter', 'Virtual Button')
+                        end ]]
+
+                    end
+
+                end
+                
+
+                Param_or_Virtual_Button()
+                local PrmName= Set_TO_LT_Parameter_BTN()
+                Condition_Values(PrmName)
+                VirtualButton()
+
+            
+
+
             end
 
 
 
             if im.TreeNode(ctx, 'Conditional Parameter') then
+                FS.Conditions = FS.Conditions or {}
+                if not FS.Conditions[1] then FS.Conditions[1] = {} end 
+                for i , v in ipairs(FS.Conditions) do 
+                    Condition(i, LE.Sel_Items)
+                end
+
+                if im.Button(ctx, 'Add New Conditon') then 
+                    table.insert(fp.Conditions, {})
+                end
+--[[ 
                 Condition('ConditionPrm', 'ConditionPrm_PID', 'ConditionPrm_V', 'ConditionPrm_V_Norm', 'Show only if:', 'ShowCondition')
                 if FS.ConditionPrm then
                     Condition('ConditionPrm2', 'ConditionPrm_PID2', 'ConditionPrm_V2', 'ConditionPrm_V_Norm2', 'And if:', 'ShowCondition2')
@@ -2853,16 +3133,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
                 if FS.ConditionPrm4 then
                     Condition('ConditionPrm5', 'ConditionPrm_PID5', 'ConditionPrm_V5', 'ConditionPrm_V_Norm5', 'And if:', 'ShowCondition5')
-                end
+                end ]]
                 im.TreePop(ctx)
             end
         end
 
 
-        local function Attach_Drawings()
+         function Attach_Drawings(FLOATING)
 
             local function Preset()
-                SL(nil, 40)
                 im.Text(ctx,'Preset: ')SL()
                 im.SetNextItemWidth(ctx, 180)
                 if im.BeginCombo(ctx, '##atttached drawings preset', FS.Chosen_Atch_Draw_Preset or 'Choose Preset', im.ComboFlags_HeightLarge)then 
@@ -2891,9 +3170,22 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     im.SetNextWindowSize(ctx, 200, 100  )
                 end
             end
-
-
-            local openTree = im.TreeNode(ctx, 'Attach Drawing')
+            local flg = im.ChildFlags_AlwaysAutoResize|im.ChildFlags_AutoResizeX|im.ChildFlags_AutoResizeY
+           
+            
+            im.AlignTextToFramePadding(ctx)
+            local openTree
+            --im.BeginChild(ctx, '##attach drawings',nil, nil, flg)
+            if not FLOATING then 
+                openTree = im.TreeNode(ctx, 'Attach Drawing')
+                SL()
+                if im.ImageButton(ctx, 'Float',  Img.expand , 12, 12, nil,nil,nil, nil, nil, 0xffffffff) then 
+                    FLOAT_ATCH_OPEN = toggle(FLOAT_ATCH_OPEN) 
+                    NEED_SET_FLOAT_ATCH_SIZE = true 
+                end 
+                HighlightHvredItem(0xffffff22, 0xffffff44, 0xffffff77)
+                SL(nil, 40)
+            end
 
             Preset()
             if FS.Draw and #FS.Draw >0 then 
@@ -2925,7 +3217,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
                 im.EndPopup(ctx)
             end
-            if  openTree then 
+            if   openTree or FLOATING then 
 
                 Attach_New_Drawing_Btn() SL(nil, 30)
                 Save_As_Style_Btn()
@@ -3645,7 +3937,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
             
             end
-
+        
 
             
         end
@@ -3796,6 +4088,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
         end
 
+
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 6)
 
         im.SeparatorText( ctx, 'Text')
@@ -3819,14 +4112,260 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         Style()       SL()
         Custom_Image()                          --[[ AddSpacing(2) ]]
         Colors_Table()
-        Attach_Drawings()
-        Conditional_Prms()
         im.PopStyleVar(ctx)
+        im.Spacing(ctx)
+        im.Separator(ctx)
+        if not FLOAT_ATCH_OPEN then Attach_Drawings() end
+        im.Separator(ctx)
 
-        im.PopStyleColor(ctx)
+        Conditional_Prms()
+        
+       -- im.PopStyleColor(ctx)
 
 
     
+
+    end
+
+    local function Virtual_Button_Properties()
+        local FS = LE.Sel_Items[1]
+        if type(LE.Sel_Items[1]) ~= 'table' then  return end 
+
+        local function Label()
+            im.SetNextItemWidth(ctx, -FLT_MIN)
+            im.AlignTextToFramePadding(ctx)
+            FS.CustomLbl = FS.CustomLbl or 'VB'..#fx.VB
+            local LblEdited, buf = im.InputText(ctx, ' ##Edit Title' .. FxGUID .. FS.Name , FS.CustomLbl or buf)
+            --if im.IsItemActivated(ctx) then EditingPrmLbl = LE.Sel_Items[1] end
+            if im.IsItemDeactivatedAfterEdit(ctx) then ToAllSelItm('CustomLbl', buf)  FS.CustomLbl = buf  end
+
+        end
+        local function Type_Selection()
+            im.SetNextItemWidth(ctx, -FLT_MIN)
+            im.AlignTextToFramePadding(ctx)
+            FS.Type =  FS.Type or 'Switch'
+            if im.BeginCombo(ctx,'##Type for VB'..FS.Name, FS.Type) then 
+                if im.Selectable(ctx, 'Switch') then 
+                    FS.Type = 'Switch'
+                elseif im.Selectable(ctx, 'Selection') then 
+                    FS.Type = 'Selection'
+                elseif im.Selectable(ctx, 'Selection Buttons') then 
+                    FS.Type = 'Selection Btns'
+                end
+                im.EndCombo(ctx)
+            end 
+        end
+
+        local function Add_Arrow_If_Type_Is_Selection()
+            if FS.Type ~= 'Selection' then return end
+            im.Text(ctx, 'Add Arrow: ')
+            SL()
+            if im.Checkbox(ctx, '##Add Arrow' .. FS.Name, FS.AddArrows or false) then 
+                FS.AddArrows = toggle(FS.AddArrows)
+            end
+            
+        end
+
+
+
+        local function Horizontal_Layout_If_Type_Is_Selection_Btns()
+            if FS.Type ~= 'Selection Btns' then  return end
+            local vert = not FS.H_or_V and true 
+            local Horiz = FS.H_or_V and true or false
+            if  im.RadioButton(ctx, 'Horizontal' , Horiz) then 
+                FS.H_or_V = true
+            end
+            SL()
+            if im.RadioButton(ctx, 'Vertical' , vert) then 
+                FS.H_or_V = nil
+            end
+        end
+
+        local function Selection_Choices()
+            if FS.Type ~= 'Selection' and FS.Type ~='Selection Btns' then return end
+            
+                
+            FS.Choices = FS.Choices or  {}
+            for i, v in ipairs(FS.Choices) do 
+                im.Text(ctx, 'Choice '..i.. ' : ')
+                SL()
+                local rv, buf = im.InputText(ctx, ' ##Choices'..i .. FxGUID .. FS.Name , v.ChoiceName or buf)
+                if rv   then 
+                    v.ChoiceName = buf
+                end
+            end
+            if im.Button(ctx, 'Add Entry') then 
+                table.insert(FS.Choices, {})
+            end
+        end
+        local function Set_Virtual_Button_Color()
+            if FS.Type ~= 'Selection' and FS.Type ~= 'Selection Btns' and FS.Type ~= 'Switch' then return end
+            
+            im.Text(ctx, 'Button Color:')
+            SL()
+            
+            -- Add color picker for normal state
+            local rv, btn_color = im.ColorEdit4(ctx, '##Button Color', FS.Btn_Clr or 0xffffffff, im.ColorEditFlags_NoInputs + im.ColorEditFlags_AlphaPreviewHalf)
+            if rv then
+                FS.Btn_Clr = btn_color
+            end
+            
+        end
+        local function Delete_Virtual_Button()
+            function Show_Delete_VB_Popup(VB_to_delete)
+                if not LE.Delete_VB_Popup_Open then return end
+                
+                local VP = im.GetMainViewport(ctx)
+                local x , y = im.GetWindowPos(ctx)
+                local w, h =  im.GetWindowSize(ctx)
+                local winW, winH = 380, 80
+                local centerX, centerY = x + w/2 - winW/2, y + h /2 - winH/2
+                im.SetNextWindowPos(ctx, centerX, centerY)
+
+                if im.BeginPopupModal(ctx, "Delete Virtual Button?", true, im.WindowFlags_AlwaysAutoResize) then
+                    im.Text(ctx, "Are you sure you want to delete this virtual button?")
+                    im.Separator(ctx)
+                    -- Check if any parameters depend on this VB
+                    local dependencies = {}
+                    for param_idx, param in pairs(FX[FxGUID]) do
+                        if type(param) == 'table' and param.Conditions then
+                            for i, condition in ipairs(param.Conditions) do
+                                local I = i ==1 and '' or i
+                                if param['ConditionPrm'..I] == VB_to_delete then 
+                                    table.insert(dependencies, param.Name or ("Parameter " .. param_idx))
+
+                                end
+                                --[[ if condition.COND_Prm_Or_VB == 'Virtual Button' and 
+                                condition.Custom_Lbl == VB_to_delete.CustomLbl then
+                                    table.insert(dependencies, param.Name or ("Parameter " .. param_idx))
+                                end ]]
+                            end
+                        end
+                    end
+                    
+                    if #dependencies > 0 then
+                        im.TextColored(ctx, 0xFF5555FF, "Warning: This button is used by the following parameters:")
+                        for _, param_name in ipairs(dependencies) do
+                            im.BulletText(ctx, param_name)
+                        end
+                        im.Text(ctx, "Deleting it will break their conditional behavior.")
+                        im.Separator(ctx)
+                    end
+                    
+                    im.SetCursorPosY(ctx, im.GetCursorPosY(ctx) + 5)
+                    
+                    local button_width = im.GetContentRegionAvail(ctx) / 2 - 5
+                    if im.Button(ctx, "Yes, Delete It", button_width, 0) then
+                        -- Find the index of the VB to delete
+                        local vb_index = nil
+                        for i, vb in ipairs(fx.VB or {}) do
+                            if vb == VB_to_delete then
+                                vb_index = i
+                                break
+                            end
+                        end
+                        
+                        -- Remove the VB
+                        if vb_index then
+                            
+                            -- Update any parameter conditions that referenced this VB
+                            for _, param in pairs(FX[FxGUID]) do
+                                if type(param) == 'table' and param.Conditions then
+                                    for i, condition in ipairs(param.Conditions) do
+                                        local I = i ==1 and '' or i
+
+                                        if param['ConditionPrm'..I] == VB_to_delete then 
+                                            param['ConditionPrm'..I]  = nil 
+                                        end
+
+                                        --[[ if condition.COND_Prm_Or_VB == 'Virtual Button' and condition.Custom_Lbl == VB_to_delete.CustomLbl then
+                                            condition.COND_Prm_Or_VB = nil
+                                            msg("REMOVE")
+                                            local I = i ==1 and '' or i
+
+                                        end ]]
+                                    end
+                                end
+                            end
+                            table.remove(fx.VB, vb_index)
+
+                        end
+                        
+                        -- Clear selection if it was the deleted VB
+                        if LE.Sel_Items[1] == VB_to_delete then
+                            LE.Sel_Items = {}
+                        end
+                        
+                        LE.Delete_VB_Popup_Open = false
+                        im.CloseCurrentPopup(ctx)
+
+                    end
+                    
+                    im.SameLine(ctx)
+                    
+                    if im.Button(ctx, "Cancel", button_width, 0) then
+                        im.CloseCurrentPopup(ctx)
+                        LE.Delete_VB_Popup_Open = false
+                    end
+                    
+                    im.EndPopup(ctx)
+                end
+            end
+            if im.Button(ctx, 'Delete Button') then 
+                LE.Delete_VB_Popup_Open = true 
+            end
+            Highlight_Itm( WDL, nil, 0xff000088)
+            if LE.Delete_VB_Popup_Open then 
+                im.OpenPopup(ctx, "Delete Virtual Button?") 
+                Show_Delete_VB_Popup(FS)
+            end
+        end
+
+        ---Label    Show only when there's one item selected-----
+        -- Add spacing between sections
+        im.Spacing(ctx)
+
+        -- Create sections with headers
+        im.SeparatorText(ctx, "Basic Settings")
+
+        if im.BeginTable(ctx, "Basic Settings Table", 3, im.TableFlags_BordersOuter|  im.TableFlags_BordersV | im.TableFlags_Resizable, -50) then
+            im.TableSetupColumn(ctx, 'Type')
+            im.TableSetupColumn(ctx, 'label')
+            im.TableSetupColumn(ctx, 'Delete')
+
+            im.TableHeadersRow(ctx)
+            im.TableNextRow(ctx)
+            im.TableSetColumnIndex(ctx, 0)
+            Type_Selection()
+            im.TableSetColumnIndex(ctx, 1)
+            Label()
+            im.TableSetColumnIndex(ctx, 2)
+            Delete_Virtual_Button()
+
+            im.EndTable(ctx)
+        end
+        im.SeparatorText(ctx, "Display Options")
+        Add_Arrow_If_Type_Is_Selection()
+        Horizontal_Layout_If_Type_Is_Selection_Btns()
+        Set_Virtual_Button_Color()
+
+        im.SeparatorText(ctx, "Selection Choices")
+        Selection_Choices()
+
+
+            --[[ im.Text(ctx, 'Group With: ')
+            SL()
+            if im.BeginCombo(ctx, '##Group Virtual Button: ', lbl) then 
+                for i, v in ipairs(fx.VB) do 
+                    if im.Selectable(ctx, v.CustomLbl or v.Name) then  
+                        ToAllSelItm(WhichPrm, v)
+                    end
+                end 
+                im.EndCombo(ctx)
+            end ]]
+
+        
+
 
     end
 
@@ -3845,6 +4384,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     Top_Bar()
     Background_Edit_Properties()
     FX_Title_Properties()
+    Virtual_Button_Properties()
     Parameter_Properties()
     Save_Layout_Edit_Popup()
     Color_Palette()
@@ -3866,7 +4406,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     -- im.PopStyleVar(ctx)
     --im.PopStyleColor(ctx,2 )
     PopClr(ctx, 2)
-
+    if FLOAT_ATCH_OPEN then 
+        if NEED_SET_FLOAT_ATCH_SIZE then 
+            im.SetNextWindowSize(ctx, 400,500)
+            NEED_SET_FLOAT_ATCH_SIZE = false
+        end
+        FLOAT_ATCH_RV, FLOAT_ATCH_OPEN  = im.Begin(ctx, 'Attach Drawing', FLOAT_ATCH_OPEN, im.WindowFlags_NoCollapse)
+        Attach_Drawings(true)
+         im.End(ctx) 
+    end
 end
 --[[ function Alt_Click_To_Set_To_Nil (var, tb, FxGUID)
     if tb then 
@@ -4184,7 +4732,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
-
+    if not P_Num then return end 
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
 
     local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
@@ -4336,7 +4884,6 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
                 local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
                 local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-                --msg('FX[FxGUID][Fx_P].V = ' .. FX[FxGUID][Fx_P].V)
             end
             FX[FxGUID][Fx_P].V = p_value
         end
@@ -5394,6 +5941,71 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     return value_changed, p_value
 end
 
+function AddArrow_IF_NEEDED(ctx, L_or_R, FP, Label, V, WhichPrm, FX_Idx, Options, IsVB)
+    if FP.AddArrows then 
+        if L_or_R == 'Right' then SL(nil,0) end
+
+        local lbl = '##'..Label .. 'Arrow ' .. L_or_R
+        local Dir = L_or_R == 'Left' and im.Dir_Left or im.Dir_Right
+
+        if Options and not FP.CurrentOps and Options[1] then 
+            FP.CurrentOps = 1 
+            FP.Chosen = Options[1].ChoiceName
+            for i, v in ipairs(Options) do 
+                if v.ChoiceName == V then 
+                    FP.CurrentOps = i
+                end
+            end
+        end
+
+        local Disabled = (L_or_R == 'Left' and FP.CurrentOps == 1) or (L_or_R == 'Right' and FP.CurrentOps == #V) and true or false
+        if Options then 
+            Disabled = (L_or_R == 'Left' and FP.CurrentOps == 1) or (L_or_R == 'Right' and FP.CurrentOps == #Options) and true or false
+        end
+        if Disabled then 
+            im.BeginDisabled(ctx)
+        end
+
+        local RV
+        if FP.ArrowPic then 
+           -- local H = im.GetStyleVar(ctx, im.StyleVar_FramePadding) * 4
+           local H =  im.GetFrameHeight(ctx)            
+            im.PushStyleVar(ctx, im.StyleVar_FramePadding , 0, 0 )
+            if L_or_R == 'Left'then 
+                RV= im.ImageButton(ctx, lbl, FP.ArrowPic, H, H, 1, 1, 0 , 0, FP.BgClr)
+                HighlightHvredItem(0x00000022)
+            else 
+                RV= im.ImageButton(ctx, lbl, FP.ArrowPic, H, H, nil,nil,nil,nil, FP.BgClr)
+                HighlightHvredItem(0x00000022)
+            end
+            im.PopStyleVar(ctx)
+        else 
+            im.PushStyleColor(ctx, im.Col_Button, FP.BgClr or FP.Btn_Clr or 0x444444ff)
+            RV = im.ArrowButton( ctx, lbl, Dir) 
+            im.PopStyleColor(ctx)
+        end
+
+        if RV then 
+            local PrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
+           -- local Value = L_or_R == 'Left' and PrmV - 1/(#OPs-1) or PrmV + 1/(#OPs-1)
+           local Val = L_or_R == 'Left' and V[FP.CurrentOps-1] or V[FP.CurrentOps+1]
+           FP.CurrentOps = FP.CurrentOps + (L_or_R == 'Left' and -1 or 1)
+
+           if not IsVB then 
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, Val)
+                local PrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
+                FP.V = PrmV
+           else
+            FP.Chosen = FP.Choices[FP.CurrentOps].ChoiceName
+           end  
+        end
+
+        if L_or_R == 'Left' then SL(nil,0) end
+
+        if Disabled then im.EndDisabled(ctx) end
+    end
+end
+
 ---@param ctx ImGui_Context
 ---@param LT_Track MediaTrack
 ---@param FX_Idx integer
@@ -5409,11 +6021,11 @@ end
 ---@param CustomLbl? string
 ---@param Lbl_Pos? Position
 function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
-                  LabelOveride, CustomLbl, Lbl_Pos)
+                  LabelOveride, CustomLbl, Lbl_Pos, DONT_MAKE_EDITABLE)
     LabelValue = Label .. 'Value'
     local FP = Fx_P and FX[FxGUID][Fx_P]
     FX[FxGUID or ''][Fx_P or ''] = FX[FxGUID or ''][Fx_P or ''] or {}
-    if not FP then return end 
+    if not FP  then return end 
 
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
 
@@ -5486,9 +6098,11 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         if #OPs == 0 then
             local OrigPrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
             for i = 0, 1.01, 0.01 do
+
+               
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, i)
                 local _, buf = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
-
+                
                 if not Value then
                     Value = buf; OPs[1] = buf
                     V[1] = i
@@ -5496,12 +6110,28 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 if Value ~= buf then
                     table.insert(OPs, buf)
                     table.insert(V, i)
+
                     local L1 = im.CalcTextSize(ctx, buf); local L2 = im.CalcTextSize(ctx, Value)
                     FX[FxGUID][Fx_P].Combo_W = math.max(L1, L2)
                     Value = buf
                 end
+                
+
             end
+
+           
+            
+
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OrigPrmV)
+
+            if not FP.CurrentOps  then 
+                for i, v in ipairs(OPs)do 
+                    local _, Val = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
+                    if Val == v  then 
+                        FP.CurrentOps = i
+                    end
+                end
+            end
         end
     end
 
@@ -5536,18 +6166,47 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     ---@return boolean
     ---@return string
     local function begincombo(ctx)
-        if FP.V_FontSize then im.PushFont(ctx, _G[V_Font]) end
+
+
+
+        if FP.V_FontSize or V_Font then im.PushFont(ctx, _G[V_Font]) end
+       
+        im.PushStyleColor(ctx, im.Col_Text, V_Clr)
+        AddArrow_IF_NEEDED(ctx, 'Left', FP, Label, V, WhichPrm, FX_Idx)
+
         if Width or FX[FxGUID][Fx_P].Combo_W then
             im.SetNextItemWidth(ctx, Width or (FX[FxGUID][Fx_P].Combo_W + (ExtraW or 0)))
         else 
             local sz = im.CalcTextSize(ctx, LabelOveride or _G[LabelValue])
             im.SetNextItemWidth(ctx, sz+ (ExtraW or 0))
         end
-        im.PushStyleColor(ctx, im.Col_Text, V_Clr)
         local rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
-        MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
         
-        if FP.V_FontSize then im.PopFont(ctx) end
+        if not DONT_MAKE_EDITABLE then
+            MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
+        end
+       
+        if LT_ParamNum == FP.Num and focusedFXState == 1 and LT_FXGUID == FxGUID   then
+            FP.V  = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+            if FP.Type =='Selection' and FP.AddArrows then 
+                local ops = FX.Prm.Options[FxGUID][Fx_P]
+                if ops and #ops > 0 then 
+                    for i , v in ipairs(ops.V) do 
+                        if i ~= #ops.V then 
+                            if v <= FP.V and ops.V[i+1] > FP.V then 
+                                FP.CurrentOps = i
+                            end
+                        else 
+                            if FP.V >=v then 
+                                FP.CurrentOps = i
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    
+        if FP.V_FontSize or V_Font then im.PopFont(ctx) end
 
         im.PopStyleColor(ctx)
         if rv  then
@@ -5571,9 +6230,10 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                     if im.Selectable(ctx, Options[i], i) and WhichPrm ~= nil then
                         if OptionValues then
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OptionValues[i])
+                            FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
                         else
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm,
-                                (i - 1) / #Options + ((i - 1) / #Options) * 0.1) -- + options* 0.05 so the value will be slightly higher than threshold,
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm,  (i - 1) / #Options + ((i - 1) / #Options) * 0.1 ) -- + options* 0.05 so the value will be slightly higher than threshold,
+                            FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
                         end
                         if FX[FxGUID][Fx_P].ManualValues then
                             if FX[FxGUID][Fx_P].ManualValues[i] then
@@ -5592,6 +6252,8 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                     if OPs[i] and OPs[i]~='' then 
                         if im.Selectable(ctx, OPs[i], i) and WhichPrm ~= nil then
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, V[i])
+                            FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
+                            FP.CurrentOps = i
                             _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                             EndCOMBO()
                             return true, _G[LabelValue]
@@ -5612,6 +6274,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 ProC.ChoosingStyle = false
             end
         end
+        AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
         -- DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
     end
 
@@ -5801,6 +6464,8 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
 
     if focusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FP.WhichCC then
         FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+        
+
     end
 
     if FP.SwitchType == 'Momentary' then
@@ -6151,11 +6816,14 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
     --if user tweak drag on ImGui
     if Tweaking == P_Num .. FxGUID then
+        FX[FxGUID][Fx_P].V       = p_value
+
         if not FP.WhichCC then
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
             FX[FxGUID][Fx_P].V = p_value
-
         else
+            local _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+
             local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
         end
@@ -6317,17 +6985,62 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
     for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
         local PrmInst, Line, FX_Name
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-        
+        local fx = FX[FxGUID]
         --local file = CallFile('r', FX_Name..'.ini', 'FX Layouts')
 
         local function GetInfo(FxGUID, FX_Idx)
             if not FxGUID then return end
+            local function Virtual_Btns(Ct)
+
+                VBCount = RecallGlobInfo(Ct, 'Virtual Button Instance = ', 'Num')
+                local P = { 'CustomLbl', 'PosY', 'PosX', 'Type', 'Sldr_W', 'AddArrows', 'Btn_Clr'} 
+                if not VBCount or VBCount<1 then return end 
+                fx.VB = fx.VB or {}
+                for i= 1, VBCount , 1 do 
+                    table.insert(fx.VB, {})
+                    for I, V in pairs(P) do 
+                        fx.VB[i][V] = RecallInfo(Ct, 'VB'..i .. '. '..V, nil)
+                        -- Convert string to number if it only contains digits
+                        -- Convert "true"/"false" strings to boolean
+                        local value = fx.VB[i][V]
+                        if type(value) == "string" then
+                            if value == "true" then
+
+                                fx.VB[i][V] = true
+                            elseif value == "false" then
+                                fx.VB[i][V] = false 
+                            elseif value:match("^%d+%.?%d*$") then
+                                fx.VB[i][V] = tonumber(value)
+                            end
+                        end
+                    end
+
+                    local Num_Choices = RecallInfo(Ct, 'VB'..i .. '. Number of Choices', nil, 'Num')
+
+                    if Num_Choices and  Num_Choices > 0 then 
+                        fx.VB[i].Choices = fx.VB[i].Choices or {}
+                        for ii= 1 , Num_Choices, 1 do 
+                            fx.VB[i].Choices[ii] = fx.VB[i].Choices[ii] or {}
+                            fx.VB[i].Choices[ii].ChoiceName = RecallInfo(Ct, 'VB'..i .. '. ChoiceName ' .. ii )
+                        end
+                    end 
+
+                end
+                    
+
+            end
+
+
+
             FX[FxGUID] = FX[FxGUID] or {}
             FX[FxGUID].File = file
             local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
             local FX_Name = ChangeFX_Name(FX_Name)
+            
 
             if LO[FX_Name] then
+
+
                 FX[FxGUID] = FX[FxGUID] or {}
                 local T = LO[FX_Name]
                 FX[FxGUID].MorphHide = T.MorphHide
@@ -6338,6 +7051,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 FX[FxGUID].TitleWidth = T.TitleWidth
                 FX[FxGUID].TitleClr = T.TitleClr
                 FX[FxGUID].CustomTitle = T.CustomTitle
+                
 
                 for i, v in ipairs(T) do
                     FX[FxGUID][i]          = FX[FxGUID][i] or {}
@@ -6385,17 +7099,34 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.V_Clr_At_Full     = v.V_Clr_At_Full
                     FP.Lbl_Clr_At_Full   = v.Lbl_Clr_At_Full
                     FP.XY_Pad_Y_PNum     = v.XY_Pad_Y_PNum
-                    
-                    for i = 2, 5, 1 do
-                        FP['ConditionPrm' .. i]        = v['ConditionPrm' .. i]
-                        FP['ConditionPrm_V' .. i]      = v['ConditionPrm_V' .. i]
-                        FP['ConditionPrm_V_Norm' .. i] = v['ConditionPrm_V_Norm' .. i]
+                    FP.AddArrows        = v.AddArrows
+                    FP.ArrowPic             =v.ArrowPic
+                    FP.ArrowPicFileName     = v.ArrowPicFileName
+                    FP.Number_of_Conditions = v.Number_of_Conditions
+                    for i = 1, FP.Number_of_Conditions or 0 , 1 do 
+                        FP.Conditions = FP.Conditions or {}
+                        FP.Conditions[i] = FP.Conditions[i]  or {}
+                        FP.Conditions[i].COND_Prm_Or_VB = v.Conditions[i].COND_Prm_Or_VB
+                        FP.Conditions[i].VB_Val = v.Conditions[i].VB_Val
+                        FP.Conditions[i].When_Is_Off = v.Conditions[i].When_Is_Off
+
+                        local I = i==1 and '' or i
+                        FP['ConditionPrm' .. I] = v['ConditionPrm' .. I]
+                        if FP.Conditions[i].COND_Prm_Or_VB ~= 'Virtual Button' then 
+                            
+                            if FP['ConditionPrm' .. I]  then
+                                FP['ConditionPrm_V' .. I] =v['ConditionPrm_V' .. I]
+                                FP['ConditionPrm_V_Norm' .. I] = v['ConditionPrm_V_Norm' .. I]
+                            end
+                        end
+
                     end
                     FP.ManualValues = v.ManualValues
                     FP.ManualValuesFormat = v.ManualValuesFormat
                     FP.Draw = v.Draw
                 end
-                FX[FxGUID].Draw = T.Draw
+                FX[FxGUID].Draw = T.Draw 
+
             else
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
                 local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
@@ -6424,12 +7155,14 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
                     T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
                     PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                    Virtual_Btns(Ct)
+
                     FX[FxGUID].FileLine = nil 
                 else
                     Draw[FX_Name] = nil
                 end
 
-
+                
 
 
                 -------------------------------------Parameters -------------------------------------------------
@@ -6450,6 +7183,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 if --[[ r.GetExtState('FX Devices - '..FX_Name, 'Param Instance') ~= ''  ]] PrmInst then
                     local Ct = Content
                     PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
+                    --Virtual_Btns(Ct)
+                
 
                     if PrmCount then
 
@@ -6499,13 +7234,47 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             FP.Lbl_Bold      = RecallInfo(Ct, 'Label Font Bold', Fx_P, 'Bool')
                             FP.Val_Italic      = RecallInfo(Ct, 'Value Font Italic', Fx_P, 'Bool')
                             FP.Val_Bold      = RecallInfo(Ct, 'Value Font Bold', Fx_P, 'Bool')
-
+                            FP.AddArrows      = RecallInfo(Ct, 'Add Arrows', Fx_P, 'Bool')
 
                             FP.Invisible     = RecallInfo(Ct, 'Invisible', Fx_P, 'Bool')
                             FP.DontRotateImg       = RecallInfo(Ct, 'DontRotateImg', Fx_P, 'Bool')
                             FP.ImgAngleMinOfs      = RecallInfo(Ct, 'ImgAngleMinOfs', Fx_P, 'Num')
                             FP.V_Clr_At_Full        = RecallInfo(Ct, 'V_Clr_At_Full', Fx_P, 'Num')
                             FP.Lbl_Clr_At_Full      = RecallInfo(Ct, 'Lbl_Clr_At_Full', Fx_P, 'Num')
+                            FP.Number_of_Conditions = RecallInfo(Ct, 'Number of Conditions', Fx_P, 'Num')
+
+
+                            for i = 1, FP.Number_of_Conditions or 0 , 1 do 
+
+
+
+                                FP.Conditions = FP.Conditions or {}
+                                table.insert(FP.Conditions, {})
+
+                                FP.Conditions[i].COND_Prm_Or_VB = RecallInfo(Ct, 'Condition '.. i..': COND_Prm_Or_VB', Fx_P)
+                                if FP.Conditions[i].COND_Prm_Or_VB == 'Virtual Button' then 
+                                    local CustomLbl = RecallInfo(Ct, 'Condition '.. i..': Custom Lbl', Fx_P)
+                                    local Recall = {'Custom Lbl', 'VB_Val', 'When_Is_Off' }
+                                    for I, v in pairs(Recall ) do   
+                                        FP.Conditions[i][v] = RecallInfo(Ct, 'Condition '.. i..': '.. v, Fx_P)
+                                    end 
+
+                                    for I, v in ipairs(fx.VB) do 
+                                        if CustomLbl == v.CustomLbl then 
+                                            local i = i==1 and '' or i
+                                            FP['ConditionPrm' .. i ] = v
+                                        end
+                                    end
+                                else 
+                                    local i = i==1 and '' or i
+                                    FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
+                                    if FP['ConditionPrm' .. i]  then
+                                        FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P .. '. Condition Param' .. i .. ' = %d+|1=', Fx_P, nil)
+                                        FP['ConditionPrm_V_Norm' .. i] = RecallIntoTable(Ct, Fx_P .. '. Condition Param Norm' .. i .. ' = |1=', Fx_P, 'Num')
+                                    end
+                                end
+                            end
+
 
                             local FileName       = RecallInfo(Ct, 'Custom Image', Fx_P)
 
@@ -6524,30 +7293,25 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                 end
                             end
 
+                            local ArrowPicFileName       = RecallInfo(Ct, 'ArrowPicFileName', Fx_P)
+                            if ArrowPicFileName then 
+                                local FileName = TruncatePath(ArrowPicFileName)
+                                FP.ArrowPicFileName = FileName
+                                local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', 'Arrows', FileName)
+                                FP.ArrowPic = im.CreateImage(dir_path)
+                                im.Attach(ctx, FP.ArrowPic)
 
-                            FP.ConditionPrm = RecallInfo(Ct, 'Condition Param', '\n' .. Fx_P, 'Num', '|')
-                            for i = 2, 5, 1 do
-                                FP['ConditionPrm' .. i] = RecallInfo(Ct, 'Condition Param' .. i, Fx_P, 'Num', '|')
                             end
+
+
+
+
                             FP.V_Round = RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
                             FP.SwitchType = RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
                             FP.SwitchBaseV = RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
                             FP.SwitchTargV = RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
 
 
-
-                            if FP.ConditionPrm then
-                                FP.ConditionPrm_V = RecallIntoTable(Ct, Fx_P .. '. Condition Param = %d+|1=',
-                                    Fx_P, nil)
-                                FP.ConditionPrm_V_Norm = RecallIntoTable(Ct,
-                                    Fx_P .. '. Condition Param Norm = |1=', Fx_P, 'Num')
-                            end
-                            for i = 2, 5, 1 do
-                                FP['ConditionPrm_V' .. i] = RecallIntoTable(Ct, Fx_P ..
-                                    '. Condition Param' .. i .. ' = %d+|1=', Fx_P, nil)
-                                FP['ConditionPrm_V_Norm' .. i] = RecallIntoTable(Ct,
-                                    Fx_P .. '. Condition Param Norm' .. i .. ' = |1=', Fx_P, 'Num')
-                            end
 
                             if Prm.InstAdded[FxGUID] ~= true then
                                 StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState', Fx_P, FX_Idx, TrkID)
@@ -6889,6 +7653,8 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                     local val = tostring(val)
                     if val =='nil' then val = nil end 
 
+                    if not val then return end 
+
                     --if not val or val ==false or val == 0 or val == '0.0' or val =='false' then return end 
     
                     if Fx_P then 
@@ -7003,7 +7769,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     --local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local FX_Name = ChangeFX_Name(FX_Name)
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
-
+    local fx = FX[FxGUID]
 
     r.RecursiveCreateDirectory(dir_path, 0)
 
@@ -7013,21 +7779,71 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             file:write(Name, ' = ', Value or '', '\n')
         end
 
+        local function Save_Virtual_Button_Properties()
+            if not  fx.VB then return end 
+            for i, v in ipairs(fx.VB)do 
+                file:write('\n-----------------Virtual Button', i, '-----------------\n')
+
+                local function Save_All_Child_Table(Tbl)
+                    local Choice = 0
+                    local BL = {'Chosen'}
+                    for I, V in pairs(Tbl) do 
+                        
+                        if not tablefind(BL, I) then
+                            if type(V)=='table' then 
+                                Save_All_Child_Table(V)
+                            else 
+                                if I =='ChoiceName' then 
+                                --[[  Choice = Choice+1 
+                                    write('VB'..i ..'. '..I..Choice, tostring(V)) ]]
+                                else 
+                                    write('VB'..i ..'. '..I, tostring(V))
+                                end
+                                
+                            end
+                        end
+                    end
+                end
+                if v.Choices and  #v.Choices > 0 then 
+                    write('VB'..i ..'. Number of Choices', #v.Choices)
+
+                    for ii , vv in ipairs(v.Choices) do 
+                        write('VB'..i ..'. ChoiceName '..ii, vv.ChoiceName)
+                    end
+                end
+                Save_All_Child_Table(v)
+
+               --[[  for I, V in pairs(v) do 
+                    if type(V)=='boolean' then 
+                        V= tostring(V)
+                    elseif type (V)=='table' then 
+                        for ii, vv in pairs(V) do 
+                            write( 'VB'..i ..'. '..ii, vv)
+                        end
+                    end 
+                    write( 'VB'..i ..'. '..I, V)
+
+                end ]]
+            end
+        end
+
 
         file:write('FX global settings', '\n\n')
-        write('Edge Rounding', FX[FxGUID].Round)   -- 2
-        write('Grb Rounding', FX[FxGUID].GrbRound) -- 3
-        write('BgClr', FX[FxGUID].BgClr)           -- 4
-        write('Window Width', FX[FxGUID].Width)    -- 5
-        write('Title Width', FX[FxGUID].TitleWidth)
-        write('Title Clr', FX[FxGUID].TitleClr)
-        write('Custom Title', FX[FxGUID].CustomTitle)
+        write('Edge Rounding', fx.Round)   -- 2
+        write('Grb Rounding', fx.GrbRound) -- 3
+        write('BgClr', fx.BgClr)           -- 4
+        write('Window Width', fx.Width)    -- 5
+        write('Title Width', fx.TitleWidth)
+        write('Title Clr', fx.TitleClr)
+        write('Custom Title', fx.CustomTitle)
 
-        write('Param Instance', #FX[FxGUID]) -- 6
+        write('Param Instance', #fx) -- 6
+
+        write('Virtual Button Instance', fx.VB and #fx.VB or 0)
 
         file:write('\nParameter Specific Settings \n\n')
 
-        for i, v in ipairs(FX[FxGUID]) do
+        for i, v in ipairs(fx) do
             local Fx_P = i
             local FP = FX[FxGUID][i]
             if type(i) ~= 'number' and i then
@@ -7061,6 +7877,8 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Label Font Bold', FP.Lbl_Bold)
             write('Value Font Italic', FP.Val_Italic)
             write('Value Font Bold', FP.Val_Bold)
+            write('Add Arrows', FP.AddArrows)
+            write('ArrowPicFileName', FP.ArrowPicFileName)
 
             write('Slider Height', FP.Height)
             write('BgClr', FP.BgClr)
@@ -7085,11 +7903,40 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Lbl_Clr_At_Full', FP.Lbl_Clr_At_Full)
             write('XY_Pad_Y_PNum', FP.XY_Pad_Y_PNum)
 
+            if FP.Conditions then 
+                
+                local Num = 0
+                for i =1 , #FP.Conditions , 1   do 
+                    --[[ for I, V in ipairs(v) do 
+                        write(I, V)
+                    end ]]
+                    if FP.ConditionPrm then 
+                        Num =  Num + 1
+                        --write('Condition '.. i .. ': COND_Prm_Or_VB', FP.Conditions[i].COND_Prm_Or_VB)
+                        local I = i == 1 and '' or i
+                        if type (FP['ConditionPrm'..I]) =='table' then 
+                            write('Condition '.. i .. ': Custom Lbl', FP['ConditionPrm'..I].CustomLbl )
+
+                        end
+                    end
+                end
+                local I = 0
+                for i, v in ipairs(FP.Conditions) do 
+                    I = I + 1
+                    for i, v in pairs(v) do 
+                        write('Condition '.. I .. ': '..i, tostring(v))
+                    end
+                end
+                write('Number of Conditions' , Num)
+
+            end 
 
 
 
             if FP.ConditionPrm_V then
-                file:write(i .. '. Condition Param = ', FP.ConditionPrm or '')
+                if type (FP.ConditionPrm) ~='table' then 
+                    file:write(i .. '. Condition Param = ', FP.ConditionPrm or '')
+                end
 
                 for i, v in pairs(FP.ConditionPrm_V) do
                     file:write('|', i, '=', v or '')
@@ -7160,6 +8007,11 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             Save_Attached_Drawings(FP, file, Fx_P)
  
         end
+
+
+        Save_Virtual_Button_Properties()
+
+
         file:close()
     end
 
@@ -7285,9 +8137,11 @@ end
 ---@param PosX number
 ---@param PosY number
 function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
+    local IsVB = type(Fx_P)=='table' and true  
     if FX.LayEdit == FxGUID and Draw.DrawMode~= FxGUID and Mods ~= Cmd  then
         local DeltaX, DeltaY = im.GetMouseDelta(ctx); local MouseX, MouseY = im.GetMousePos(ctx)
-        local FP = FX[FxGUID][Fx_P]
+        local FP = type(Fx_P) == 'table' and Fx_P or FX[FxGUID][Fx_P]
+
         local WinDrawList = im.GetWindowDrawList(ctx)
         local L, T = im.GetItemRectMin(ctx); local w, h = im.GetItemRectSize(ctx); 
         local R = L + w; 
@@ -7363,52 +8217,60 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 end
             end
         end
-        local function Mouse_Interaction()
+        function Mouse_Interaction()
             local S = ResizeNode_sz
             --- if mouse is on an item
             if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-                if MouseX > L and MouseX < R - S and MouseY > T and MouseY < B and  not Hover_On_Resize_Handle() then
-
+                if MouseX > L and MouseX < R - S and MouseY > T and MouseY < B and not Hover_On_Resize_Handle() then
                     if IsLBtnClicked and Mods == 0 then
+                        -- Check if we're dealing with a virtual button
+                        local isVirtualButton = type(Fx_P) == 'table'
+                        
                         if #LE.Sel_Items > 1 then 
+                            -- Keep existing selection
                         else
-                        LE.Sel_Items = {Fx_P}
+                            LE.Sel_Items = {Fx_P}
                         end
-
                     elseif IsLBtnClicked and Mods == Shift then
-                        local ClickOnSelItem, ClickedItmNum
-                        for i, v in pairs(LE.Sel_Items) do
-                            if v == Fx_P then
-                                ClickedItmNum = i
-                            else
-                            end
-                        end
-                        if ClickedItmNum then
-                            table.remove(LE.Sel_Items, ClickedItmNum)
+                        -- Add to selection
+                        if not tablefind(LE.Sel_Items, Fx_P) then
+                            table.insert(LE.Sel_Items, Fx_P)
                         else
-                            table.insert(LE.Sel_Items,Fx_P)
+                            table.remove(LE.Sel_Items, tablefind(LE.Sel_Items, Fx_P))
                         end
                     end
+        
                     if tablefind(LE.Sel_Items, Fx_P) then
-
                         if IsLBtnClicked and not ChangePrmW then
                             ClickOnAnyItem = true
                             FP.PosX = PosX
                             FP.PosY = PosY
-                            local Undo_LBL = #LE.Sel_Items > 1 and 'Change '..#LE.Sel_Items..' Items Position' or 'Change '..FP.Name..' Position'
-                            Create_Undo_Point(Undo_LBL , FxGUID)
-                                if #LE.Sel_Items > 1 then
-                                    LE.ChangePos = LE.Sel_Items
-                                else
-                                    LE.ChangePos = Fx_P
+                            
+                            -- Store the type of the item being dragged
+                            local isVirtualButton = type(Fx_P) == 'table'
+                            LE.DraggingVirtualButton = isVirtualButton
+                            
+                            local Undo_LBL = isVirtualButton and 'Change Virtual Button Position' or 
+                                           (#LE.Sel_Items > 1 and 'Change '..#LE.Sel_Items..' Items Position' or 
+                                           'Change '..FP.Name..' Position')
+                            Create_Undo_Point(Undo_LBL, FxGUID)
+                            
+                            if #LE.Sel_Items > 1 then
+                                -- Filter selection to only include items of the same type
+                                local filteredItems = {}
+                                for _, item in pairs(LE.Sel_Items) do
+                                    if (type(item) == 'table') == isVirtualButton then
+                                        table.insert(filteredItems, item)
+                                    end
                                 end
-
+                                LE.ChangePos = filteredItems
+                            else
+                                LE.ChangePos = Fx_P
+                            end
+        
                             Orig_Item_Pos_X, Orig_Item_Pos_Y = FP.PosX, FP.PosY
-
                         end
                     end
-
-                    
                 end
             end
         end
@@ -7416,38 +8278,38 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         local function Allow_Use_Keyboard_To_Edit()
 
             if LE.Sel_Items and not im.IsAnyItemActive(ctx) then
+                local function Move (HowMuch, Var )
+                    
+
+                    for i, v in ipairs(LE.Sel_Items) do
+                        
+                        if v == Fx_P then 
+                            if type(Fx_P) == 'table' then
+                                Fx_P[Var] = Fx_P[Var] + HowMuch
+                            else
+                                FX[FxGUID][v][Var] = FX[FxGUID][v][Var]  + HowMuch 
+                            end
+                        end
+                    end
+                end
+
+
                 if im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == 0 then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + LE.GridSize end
-                    end
+                    Move(LE.GridSize, 'PosY')
                 elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == 0 then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - LE.GridSize end
-                    end
+                    Move(-LE.GridSize, 'PosY')
                 elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == 0 then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - LE.GridSize end
-                    end
+                    Move(-LE.GridSize, 'PosX')
                 elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == 0 then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + LE.GridSize end
-                    end
+                    Move(LE.GridSize, 'PosX')
                 elseif im.IsKeyPressed(ctx, im.Key_DownArrow) and Mods == Shift then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY + 1 end
-                    end
+                    Move(1, 'PosY')
                 elseif im.IsKeyPressed(ctx, im.Key_UpArrow) and Mods == Shift then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosY = FX[FxGUID][v].PosY - 1 end
-                    end
+                    Move(-1, 'PosY')
                 elseif im.IsKeyPressed(ctx, im.Key_LeftArrow) and Mods == Shift then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX - 1 end
-                    end
+                    Move(-1, 'PosX')
                 elseif im.IsKeyPressed(ctx, im.Key_RightArrow) and Mods == Shift then
-                    for i, v in ipairs(LE.Sel_Items) do
-                        if v == Fx_P then FX[FxGUID][v].PosX = FX[FxGUID][v].PosX + 1 end
-                    end
+                    Move(1, 'PosX')
                 end
             end
         end
@@ -7512,6 +8374,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
 
         function ChangeParamWidth(Fx_P)
+
             im.SetMouseCursor(ctx, im.MouseCursor_ResizeEW)
             im.DrawList_AddCircleFilled(WinDrawList or im.GetWindowDrawList(ctx), R, T + h / 2, 3, 0x444444ff)
             local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy = im.GetMouseDelta( ctx)
@@ -7541,12 +8404,14 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
 
             if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
                 FP.Sldr_W = ItemWidth
+                if IsVB then Fx_P.Sldr_W = ItemWidth end 
             end
             if LBtnRel and ChangePrmW == Fx_P then
                 local w = FP.Sldr_W 
                 FP.Sldr_W = roundUp(FP.Sldr_W, LE .GridSize)
                 local dif = FP.Sldr_W - w
                 Sync_Size_Height_Synced_Properties(FP, dif)
+                if IsVB then Fx_P.Sldr_W = ItemWidth end 
             end
             if LBtnRel then ChangePrmW = nil end
             AdjustPrmWidth = true
@@ -7593,14 +8458,22 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 ChangeParamWidth(Fx_P)
             end
     
-            
+
+             -- Replace the position change logic with this:
             if LE.ChangePos == Fx_P then
-             
-                ChangeItmPos()
+                -- Check if this is the type of item we're dragging
+                local isCurrentVB = type(Fx_P) == 'table'
+                if isCurrentVB == LE.DraggingVirtualButton then
+                    ChangeItmPos()
+                end
             elseif LBtnDrag and type(LE.ChangePos) == 'table' then
                 for i, v in pairs(LE.ChangePos) do
                     if v == Fx_P then
-                        ChangeItmPos()
+                        -- Only move items of the same type
+                        local isCurrentVB = type(Fx_P) == 'table'
+                        if isCurrentVB == LE.DraggingVirtualButton then
+                            ChangeItmPos()
+                        end
                     end
                 end
             end
@@ -7622,7 +8495,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                 end
                 --Quantize()
             end 
-            
+            if Sz then  return Sz end 
         end
 
 
@@ -7644,10 +8517,6 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         --Marquee_Select_Items()
         LE.Sel_Items = Marquee_Selection({ L+ (R-L)/2 , T+ (B-T)/2}, LE.Sel_Items, Fx_P, 0xffffff88)
 
-
-
-        
-        
 
     end
 end
@@ -7713,3 +8582,4 @@ function Create_Undo_Point(str , FxGUID)
     table.insert(LE.Undo_Points, deepCopy(FX[FxGUID]))
     LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name = str
 end
+

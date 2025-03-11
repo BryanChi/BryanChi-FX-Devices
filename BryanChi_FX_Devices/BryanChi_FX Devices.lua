@@ -1,11 +1,11 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.3.6
+-- @version 1.0beta17.4
 -- @changelog
---   - Layout Editor : added size sync option to many new properties such as offsets and repeat to make the features more complete and consistent.
---   - Layout Editor : Fixed V-slider width gets messed up after saving attached drawing as a new style.
---   - Background Editor : fixed repeat not reacting to images.
---   - Added new layout for Cymatics Origin.
+--   - Layout Editor : Added new feature: Virtual buttons: it can be used to hide or show parameters. More features around it will be added in the future.
+--   - Layout Editor : added option to attach arrow buttons to selection type.
+--   - Layout Editor : Allow opening the attached drawings section to a separate window by click on the expand button.
+--   - Fix some JSFX modulator info not able to be saved to project.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

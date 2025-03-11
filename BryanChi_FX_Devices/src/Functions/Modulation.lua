@@ -373,8 +373,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         end
     end
     local function Mouse_Interaction_When_Theres_Mod_Assigned()
-
-
         if RC and FP.ModAMT and AssigningMacro == nil and (Mods == 0 or Mods == Alt) then
             for M, v in ipairs(MacroNums) do
                 if FP.ModAMT[M] then

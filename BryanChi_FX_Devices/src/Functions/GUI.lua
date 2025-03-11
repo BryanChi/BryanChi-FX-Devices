@@ -3558,7 +3558,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     end
     local Width = fx.Width_Collapse or fx.Width or DefaultWidth or 220
     -- local winFlg = im.ChildFlags_NoScrollWithMouse + im.ChildFlags_NoScrollbar
-    --msg(FX_Idx.. '  fx.Width_Collapse = ' .. (fx.Width_Collapse or 'nil')..  ' FX[FxGUID].Width = '.. (FX[FxGUID].Width or 'nil'))
     local dummyH = 220
     local  _, name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
 
@@ -4204,7 +4203,87 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local WinP_X; local WinP_Y;
                 local fx = FX[FxGUID]
                 --im.DrawList_AddText(WDL, 100,200, 0xffffffff, 'asd')
+                local function Create_Virtual_Buttons()
+                    if fx.VB then 
+                        local DefaultPosX = 10
 
+                        for i,v in ipairs(fx.VB) do 
+                            --local Pos_BeforeX, Pos_BeforeY = im.GetCursorPos(ctx)
+                            if v.Btn_Clr then 
+                                local Clr = v.Btn_Clr or 0xffffff44
+                                im.PushStyleColor(ctx, im.Col_Button, Clr)
+                                im.PushStyleColor(ctx, im.Col_FrameBg, Clr)
+                                im.PushStyleColor(ctx, im.Col_FrameBgHovered, HSV_Change(Clr, nil,nil, 0.3, 0.2, 0.2))
+                                im.PushStyleColor(ctx, im.Col_ButtonHovered, HSV_Change(Clr, nil,nil, 0.3, 0.2, 0.2))
+                                im.PushStyleColor(ctx, im.Col_ButtonActive, HSV_Change(Clr, nil,nil, 0.5, 0.2, 0.4))
+                                im.PushStyleColor(ctx, im.Col_FrameBgActive, HSV_Change(Clr, nil,nil, 0.5, 0.2, 0.4))
+                            end
+                            if v.PosX and v.PosY then 
+                                im.SetCursorPos(ctx, v.PosX, v.PosY )
+                            else 
+                                v.PosX , v.PosY = DefaultPosX , 30
+                                im.SetCursorPos(ctx, DefaultPosX , 30 )
+                                DefaultPosX = DefaultPosX + 70
+                            end
+                            im.SetNextItemWidth(ctx, v.Sldr_W or 150) 
+                            v.Name = v.Name or  'Virtual Button '.. i  
+
+
+                            local lbl =  (v.CustomLbl or ( 'VIRT BT '.. i ) )..'##'..i
+                            if not v.Type or v.Type =='Switch' then 
+                                if im.Button(ctx, lbl,  v.Sldr_W or 150 ) then 
+                                    v.Is_On = toggle (v.Is_On)
+                                end
+                                if not v.Is_On then 
+                                    Highlight_Itm(WDL, 0x00000044)
+                                end
+                            elseif  v.Type =='Selection' then 
+
+                                im.BeginGroup(ctx)
+                                AddArrow_IF_NEEDED(ctx, 'Left', v, lbl, v.Chosen or '', i, FX_Idx, v.Choices, true)
+
+                                if v.AddArrows then
+                                    im.SetNextItemWidth(ctx, v.Sldr_W or 150) 
+                                end
+                                if im.BeginCombo(ctx, '##'.. lbl, v.Chosen or '', v.AddArrows and im.ComboFlags_NoArrowButton) then 
+                                    for i , V in ipairs(v.Choices)do 
+                                        if im.Selectable(ctx,(V.ChoiceName or '')..'##' ) then 
+                                            v.Chosen = V.ChoiceName
+                                            v.CurrentOps = i
+                                        end 
+                                    end
+                                    im.EndCombo(ctx)
+                                end
+
+                                AddArrow_IF_NEEDED(ctx, 'Right', v, lbl, v.Chosen or '', i, FX_Idx, v.Choices, true)
+                                im.EndGroup(ctx)
+
+                            elseif v.Type =='Selection Btns' then 
+                                im.BeginGroup(ctx)
+                                for i , V in ipairs(v.Choices)do 
+                                    if im.Button(ctx, (V.ChoiceName or '')..'##', v.Sldr_W, nil) then 
+                                        v.Chosen = V.ChoiceName
+                                        v.CurrentOps = i
+                                    end
+                                    if v.Chosen and v.Chosen ~= V.ChoiceName then 
+                                        Highlight_Itm(WDL, 0x00000044)
+                                    end
+                                    if v.H_or_V then 
+                                        SL(nil,0)
+                                    end
+                                end
+                                im.EndGroup(ctx)
+                            end
+                            if v.Btn_Clr then 
+                                im.PopStyleColor(ctx,6)
+                            end
+                            local X, Y = im.GetCursorPos(ctx)
+                            MakeItemEditable(FxGUID, v, v.Sldr_W, 'Sldr', v.PosX or X, v.PosY or Y)
+                       
+                            im.SetCursorPos(ctx,X,Y)
+                        end
+                    end
+                end
                 if FX[FxGUID].Round then
                     im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX[FxGUID].Round)
                 end
@@ -4299,10 +4378,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     ---@param ConditionPrm_V_Norm "ConditionPrm_V_Norm"
                     ---@param ConditionPrm_V "ConditionPrm_V"
                     ---@return boolean
-                    local function CheckIfCreate(ConditionPrm, ConditionPrm_PID,
-                                                    ConditionPrm_V_Norm, ConditionPrm_V)
-                        local Pass -- TODO should this be initialized to false?
-                        if FP[ConditionPrm] then
+                    local function CheckIfCreate(ConditionPrm, ConditionPrm_PID, ConditionPrm_V_Norm, ConditionPrm_V, ConditionsTB)
+                        local Pass 
+
+
+
+                        local function Evaluate_Condition_tied_to_Other_Prms()
+                            if not FP[ConditionPrm] then Pass = true return end 
+                            if type(FP[ConditionPrm]) ~=  'number' then return end -- if this type is number it means the condition is set to Prms
                             if not FX[FxGUID][Fx_P][ConditionPrm_PID] then
                                 for i, v in ipairs(FX[FxGUID]) do
                                     if v.Num == FX[FxGUID][Fx_P][ConditionPrm] then
@@ -4322,26 +4405,60 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             else
                                 local _, V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, FP[ConditionPrm])
                                 for i, v in ipairs(FP[ConditionPrm_V]) do
+
                                     if V == v then Pass = true end
                                 end
                             end
-                        else
-                            Pass = true
                         end
+                        local function Evaluate_Condition_tied_to_Virtual_Buttons()
+                            if  type(FP[ConditionPrm]) ~=  'table' then return end  -- if this type is table it means the condition is set to virtual buttons
+                            local VB = FP[ConditionPrm]
+                            if VB.Type =='Switch' then 
+                                if ConditionsTB.When_Is_Off then 
+                                    Pass = not FP[ConditionPrm].Is_On
+                                else 
+                                    Pass = FP[ConditionPrm].Is_On
+                                end
+                            else
+                                if ConditionsTB.VB_Val == VB.Chosen then Pass = true end
+
+                            end
+                            
+                            --[[ if FP[ConditionPrm].Is_On then 
+                                Pass = true 
+                            end ]]
+
+                        end
+
+                        Evaluate_Condition_tied_to_Other_Prms()
+                        Evaluate_Condition_tied_to_Virtual_Buttons()
+
                         return Pass
                     end
 
-                    if FP['ConditionPrm'] then
-                        if CheckIfCreate('ConditionPrm', 'ConditionPrm_PID', 'ConditionPrm_V_Norm', 'ConditionPrm_V') then
+                    if FP['ConditionPrm']  then
+                        local DontCretePrm
+                        if FP.Conditions then 
+                            for i, v in ipairs(FP.Conditions) do 
+                                local I = i==1 and '' or i
+                                if CheckIfCreate('ConditionPrm' .. I, 'ConditionPrm_PID' .. I, 'ConditionPrm_V_Norm' .. I, 'ConditionPrm_V' .. I, v) then
+                                else
+                                    DontCretePrm = true
+                                end
+                            end
+                        end
+                        if not DontCretePrm then CreateParam = true end
+                        --[[ if CheckIfCreate('ConditionPrm', 'ConditionPrm_PID', 'ConditionPrm_V_Norm', 'ConditionPrm_V') then
                             local DontCretePrm
                             for i = 2, 5, 1 do
-                                if CheckIfCreate('ConditionPrm' .. i, 'ConditionPrm_PID' .. i, 'ConditionPrm_V_Norm' .. i, 'ConditionPrm_V' .. i) then
+                                local I = i==1 and '' or i
+                                if CheckIfCreate('ConditionPrm' .. I, 'ConditionPrm_PID' .. I, 'ConditionPrm_V_Norm' .. I, 'ConditionPrm_V' .. I) then
                                 else
                                     DontCretePrm = true
                                 end
                             end
                             if not DontCretePrm then CreateParam = true end
-                        end
+                        end ]]
                     end
 
 
@@ -4705,6 +4822,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
+
                 if FX.LayEdit then
                     if LE.DragY > LE.GridSize or LE.DragX > LE.GridSize or LE.DragY < -LE.GridSize or LE.DragX < -LE.GridSize then
                         im.ResetMouseDragDelta(ctx)
@@ -4731,12 +4849,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if FX[FxGUID].GrbRound then im.PopStyleVar(ctx) end
 
 
-
+                Create_Virtual_Buttons()
                 
             end
 
             Disable_If_LayEdit('End')
             Do_PluginScripts()
+            --Draw_Background(FxGUID)
 
 
             if FX.Enable[FX_Idx] == false then
@@ -5502,7 +5621,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     return WinW
 end
 
-function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn)
+function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn, IsForeGround)
 
     if not FX[FxGUID].Draw or FX[FxGUID].Collapse then return end
     local function Draw_Itm (i  , TB  )
