@@ -1,7 +1,7 @@
 -- @noindex
 
 local FX_Idx = PluginScript.FX_Idx
-local FxGUID = FxGUID
+
 local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 local path_table = {}
 
@@ -56,6 +56,9 @@ if not FX[FxGUID].Collapse then
     im.SetNextItemWidth(ctx, 27)
     local Oversampling_Options = { 'Off', '2x', '4x' }
     local OS_V = { 0, 0.5, 1 }
+
+    local OverSample = FX[FxGUID][40]
+    OverSample.Options
     AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,'Pro C 2', FxGUID, Fx_P or 1, OS_V)
     --im.SameLine(ctx)
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or '', Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)
@@ -98,41 +101,28 @@ local lastFXName = select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx-1))
 if not FX[FxGUID].Collapse then
     if Prm.InstAdded[FxGUID] ~= true and FXname:find('Pro%-C 2') then
         --- number in green represents FX Prm Index
-        StoreNewParam(FxGUID, 'Knee', 3, FX_Idx, false, 'AddingFromExtState',
-            1, FX_Idx)                       --1. Knee
-        StoreNewParam(FxGUID, 'Range', 4, FX_Idx, false, 'AddingFromExtState',
-            2, FX_Idx)                       --2. Range
-        StoreNewParam(FxGUID, 'Lookahead', 8, FX_Idx, false,
-            'AddingFromExtState', 3, FX_Idx) --3. Lookahead
-        StoreNewParam(FxGUID, 'Hold', 9, FX_Idx, false, 'AddingFromExtState',
-            4, FX_Idx)                       --4. Hold
+        StoreNewParam(FxGUID, 'Knee', 3, FX_Idx, false, 'AddingFromExtState', 1, FX_Idx)                       --1. Knee
+        StoreNewParam(FxGUID, 'Range', 4, FX_Idx, false, 'AddingFromExtState', 2, FX_Idx)                       --2. Range
+        StoreNewParam(FxGUID, 'Lookahead', 8, FX_Idx, false, 'AddingFromExtState', 3, FX_Idx) --3. Lookahead
+        StoreNewParam(FxGUID, 'Hold', 9, FX_Idx, false, 'AddingFromExtState', 4, FX_Idx)                       --4. Hold
 
-        StoreNewParam(FxGUID, 'Ratio', 2, FX_Idx, false, 'AddingFromExtState',
-            5, FX_Idx)                       --5. Ratio
-        StoreNewParam(FxGUID, 'Attack', 5, FX_Idx, false,
-            'AddingFromExtState', 6, FX_Idx) --6. Attack
-        StoreNewParam(FxGUID, 'Release', 6, FX_Idx, false,
-            'AddingFromExtState', 7, FX_Idx) --7. release
+        StoreNewParam(FxGUID, 'Ratio', 2, FX_Idx, false, 'AddingFromExtState', 5, FX_Idx)                       --5. Ratio
+        StoreNewParam(FxGUID, 'Attack', 5, FX_Idx, false, 'AddingFromExtState', 6, FX_Idx) --6. Attack
+        StoreNewParam(FxGUID, 'Release', 6, FX_Idx, false, 'AddingFromExtState', 7, FX_Idx) --7. release
 
-        StoreNewParam(FxGUID, 'Gain', 10, FX_Idx, false, 'AddingFromExtState',
-            8, FX_Idx)                        --8. Gain
-        StoreNewParam(FxGUID, 'Dry', 12, FX_Idx, false, 'AddingFromExtState',
-            9, FX_Idx)                        --9. Dry Gain
-        StoreNewParam(FxGUID, 'Thresh', 1, FX_Idx, false,
-            'AddingFromExtState', 10, FX_Idx) -- 10. Thresh
+        StoreNewParam(FxGUID, 'Gain', 10, FX_Idx, false, 'AddingFromExtState', 8, FX_Idx)                        --8. Gain
+        StoreNewParam(FxGUID, 'Dry', 12, FX_Idx, false, 'AddingFromExtState', 9, FX_Idx)                        --9. Dry Gain
+        StoreNewParam(FxGUID, 'Thresh', 1, FX_Idx, false, 'AddingFromExtState', 10, FX_Idx) -- 10. Thresh
 
-        StoreNewParam(FxGUID, 'Mix', 34, FX_Idx, false, 'AddingFromExtState',
-            11, FX_Idx)                       -- 11. Mix
-        StoreNewParam(FxGUID, 'Input Gain', 35, FX_Idx, false,
-            'AddingFromExtState', 12, FX_Idx) -- 12. Input Gain
-        StoreNewParam(FxGUID, 'Output Gain', 37, FX_Idx, false,
-            'AddingFromExtState', 13, FX_Idx) -- 13. Output Gain
+        StoreNewParam(FxGUID, 'Mix', 34, FX_Idx, false, 'AddingFromExtState', 11, FX_Idx)                       -- 11. Mix
+        StoreNewParam(FxGUID, 'Input Gain', 35, FX_Idx, false, 'AddingFromExtState', 12, FX_Idx) -- 12. Input Gain
+        StoreNewParam(FxGUID, 'Output Gain', 37, FX_Idx, false, 'AddingFromExtState', 13, FX_Idx) -- 13. Output Gain
+        StoreNewParam(FxGUID, 'OverSample', 40, FX_Idx, false, 'AddingFromExtState', 14, FX_Idx) -- 13. Output Gain
 
 
 
         Prm.InstAdded[FxGUID] = true
-        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added',
-            'true')
+        r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
     end
     function F_Tp(FX_P)
         return FX.Prm.ToTrkPrm[FxGUID .. FX_P]

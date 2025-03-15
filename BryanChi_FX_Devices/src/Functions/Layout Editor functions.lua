@@ -1646,7 +1646,12 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
 
 
-        local function AddOption(Name, TargetVar, TypeCondition)
+        local function AddOption(Name, TargetVar, TypeCondition, BlockType)
+            if BlockType then 
+                if tablefind (BlockType, FS.Type) then 
+                    return 
+                end
+            end
             if FS.Type == TypeCondition or not TypeCondition then
                 if im.Selectable(ctx, Name, false) then
                     for i, v in pairs(LE.Sel_Items) do
@@ -1740,7 +1745,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
                 if im.BeginCombo(ctx, '## V Pos' .. LE.Sel_Items[1], FS.V_Pos or 'Default', im.ComboFlags_NoArrowButton) then
                     AddOption('Free', 'V_Pos')
-                    AddOption('Only When Active', 'V_Pos')
+                    AddOption('Only When Active', 'V_Pos', nil, {'Switch', 'Selection'})
                     if FS.Type ~= 'Selection' then AddOption('None', 'V_Pos') end
                     im.Separator(ctx)
 
@@ -4370,7 +4375,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
     end
 
     local function Shortcut_for_Select_All()
-
+        if im.IsAnyItemActive(ctx) then return end 
         if im.IsKeyPressed(ctx, im.Key_A) and (Mods == Cmd or Mods == Alt) then
             for Fx_P = 1, #FX[FxGUID] or 0, 1 do table.insert(LE.Sel_Items, Fx_P) end
         end
@@ -4724,16 +4729,36 @@ end
 ---@param ImgPath? ImGui_Image
 ---@return boolean
 ---@return number
-function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Radius,
-                 item_inner_spacing, Disabled, LblTextSize, Lbl_Pos, V_Pos, ImgPath)
-    if Style == 'Pro C' then r.gmem_attach('ParamValues') end
-    local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-    if not FxGUID then return end
+function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
+
     FX[FxGUID] = FX[FxGUID] or {}
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
-    if not P_Num then return end 
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
+
+
+    local label = '##' .. (FP.Name or Fx_P) .. (FP.Num or 0)..FxGUID
+    local p_value = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+    local v_min =  0
+    local v_max =  1
+    local P_Num = FP.Num
+
+    local labeltoShow = FP.CustomLbl  or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
+    local Style = FP.Style or 'Default'
+    local Vertical = FP.Type == 'V-Slider' and 'Vert' or nil
+    local Radius = FP.Sldr_W or Df.KnobRadius
+    local item_inner_spacing = -1
+    local Lbl_Pos = FP.Lbl_Pos or 'Bottom'
+    local V_Pos = FP.V_Pos 
+
+
+    if Style == 'Pro C' then r.gmem_attach('ParamValues') end
+
+
+    if not P_Num then return end 
+    if not FxGUID then return end
+
+
 
     local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
     local radius_outer = Radius or Df.KnobRadius;
@@ -5399,7 +5424,7 @@ function AddKnob(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
 
 
 
-    local AlreadyAddPrm = false
+
 
     
 
@@ -5467,29 +5492,23 @@ function GetFonts (FP)
     return Font, V_Font
 end
 
----@param ctx ImGui_Context
----@param label string
----@param labeltoShow string
----@param p_value number
----@param v_min number
----@param v_max number
----@param Fx_P integer
----@param FX_Idx integer
----@param P_Num number
----@param SliderStyle string
----@param Sldr_Width number
----@param item_inner_spacing number
----@param Disable string | nil
----@param Vertical string
----@param GrabSize number
----@param BtmLbl string
----@param SpacingBelow number
----@param Height? number
----@return boolean value_changed
----@return number p_value
-function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, SliderStyle, Sldr_Width,
-                   item_inner_spacing, Disable, Vertical, GrabSize, BtmLbl, SpacingBelow, Height)
 
+function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
+    FX[FxGUID] = FX[FxGUID] or {}
+    FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
+
+    local FP = FX[FxGUID][Fx_P]
+
+    local label = '##' .. (FP.Num or 0)..FxGUID
+    local P_Num = FP.Num
+
+    local p_value = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+    local v_min =  0
+    local v_max =  1
+    local Sldr_Width = FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or 160
+    local labeltoShow = FP.CustomLbl  or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
+
+    local Vertical = FP.Type == 'V-Slider' and 'Vert' or nil
     local PosL, PosR, PosT, PosB
     local ClrPop = 0
     local pos = { im.GetCursorScreenPos(ctx) }
@@ -5508,23 +5527,19 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 
 
     local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P] or 0
-    FX[FxGUID] = FX[FxGUID] or {}
-    FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
-    local FP = FX[FxGUID][Fx_P]
 
     local Font, V_Font = GetFonts (FP)
     
     local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
 
-    labeltoShow = labeltoShow or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
 
     
 
 
 
 
-    if not FP.Name then return end 
+
     local CC = FP.WhichCC or -1
 
 
@@ -5665,7 +5680,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
     Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
     im.BeginGroup(ctx)
-
     MakeSlider()
 
     
@@ -5784,7 +5798,7 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
         im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, EightColors.bgWhenAsgnMod[AssigningMacro])
     end
 
-    local AlreadyAddPrm = false
+
 
     Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB,FP,FxGUID)
     
@@ -5925,11 +5939,6 @@ function AddSlider(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx,
 --[[ 
     if item_inner_spacing then im.PopStyleVar(ctx) end ]]
 
-    if SpacingBelow then
-        for i = 1, SpacingBelow, 1 do im.Spacing(ctx) end
-    else
-        im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx); im.Spacing(ctx)
-    end
 
     
 
@@ -6020,9 +6029,11 @@ end
 ---@param LabelOveride? string|nil
 ---@param CustomLbl? string
 ---@param Lbl_Pos? Position
-function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
-                  LabelOveride, CustomLbl, Lbl_Pos, DONT_MAKE_EDITABLE)
-    LabelValue = Label .. 'Value'
+function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
+
+    --FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
+    --LabelOveride, CustomLbl, Lbl_Pos, DONT_MAKE_EDITABLE
+
     local FP = Fx_P and FX[FxGUID][Fx_P]
     FX[FxGUID or ''][Fx_P or ''] = FX[FxGUID or ''][Fx_P or ''] or {}
     if not FP  then return end 
@@ -6033,11 +6044,19 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
     --local V_Font = 'Font_Andale_Mono_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     --local Font = 'Font_Andale_Mono_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local Font, V_Font = GetFonts(FP)
+    local WhichPrm = FP.Num
 
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, V_Norm) or FP.Lbl_Clr or getClr(im.Col_Text)
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, V_Norm)    or FP.V_Clr or getClr(im.Col_Text)
+    local Label = FP.Name .. FxGUID .. '## actual'
+    local Options = FP.ManualValuesFormat or 'Get Options'
+    local Width =  FP.Sldr_W
+    local Style = FP.Style
+    local OptionValues = FP.ManualValues
+    local LabelValue = Label .. 'Value'
+     
 
 
     local pos = {im.GetCursorScreenPos(ctx)}
@@ -6185,6 +6204,7 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
         if not DONT_MAKE_EDITABLE then
             MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
         end
+        AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
        
         if LT_ParamNum == FP.Num and focusedFXState == 1 and LT_FXGUID == FxGUID   then
             FP.V  = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
@@ -6274,7 +6294,6 @@ function AddCombo(ctx, LT_Track, FX_Idx, Label, WhichPrm, Options, Width, Style,
                 ProC.ChoosingStyle = false
             end
         end
-        AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
         -- DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
     end
 
@@ -6310,12 +6329,21 @@ end
 ---@param FontSize number
 ---@param FxGUID string
 ---@return integer
-function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, FontSize, FxGUID, image)
+function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
     local clr, TextW, Font
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
+    local image = FP.Image
+    local FontSize = FP.FontSize
+    local Lbl_Type = FP.CustomLbl or 'Use Prm Name as Lbl'
+    local BgClr = FP.BgClr
+    local P_Num = FP.Num
+    local Value = FP.V or 0 
+
+
     local pos = {im.GetCursorScreenPos(ctx)}
+    
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
     --local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1)
@@ -6328,6 +6356,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         Font = 'Arial_' .. roundUp(FontSize, 1); im.PushFont(ctx, _G[Font])
     end ]]
     local popClr
+    local popFont 
 
     local function Write_Lable()
         local txt = FP.CustomLbl or FP.Name
@@ -6354,6 +6383,7 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         elseif FP.V_Pos == 'Within' then
     
             im.PushFont(ctx, _G[V_Font])
+            popFont = (popFont or 0) + 1
             _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
             TextW = im.CalcTextSize(ctx, lbl)
         elseif Lbl_Type == 'Use Prm Name as Lbl' then
@@ -6366,9 +6396,10 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
         else --Use Value As Label
             _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         end
-        if FP.Lbl_Pos == 'Within' then 
+        if FP.Lbl_Pos == 'Within' or (not FP.Lbl_Pos and FP.V_Pos~= 'Within')  then 
             lbl = FP.CustomLbl or FP.Name 
             im.PushFont(ctx,  _G[Font])
+            popFont = (popFont or 0) + 1
         end
 
         return lbl, TextW
@@ -6491,11 +6522,12 @@ function AddSwitch(LT_Track, FX_Idx, Value, P_Num, BgClr, Lbl_Type, Fx_P, F_Tp, 
     if FP.V_Pos == 'Free' then
         local Cx, Cy = im.GetCursorScreenPos(ctx)
         local _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-        im.DrawList_AddTextEx(DL, _G[Font], FontSize or 11, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0),
-            FP.V_Clr or getClr(im.Col_Text), lbl)
+        im.DrawList_AddTextEx(DL, _G[Font], FontSize or 11, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0), FP.V_Clr or getClr(im.Col_Text), lbl)
     end
-    if FP.V_Pos == 'Within' then im.PopFont(ctx) end
-    if FP.Lbl_Pos == 'Within' then im.PopFont(ctx) end
+    if popFont  then
+            im.PopFont(ctx)
+
+    end
 
     im.EndGroup(ctx)
 
@@ -6534,14 +6566,34 @@ end
 ---@param V_Pos Position
 ---@param DragDir "Left"|"Right"|"Left-Right"
 ---@param AllowInput? "NoInput"
-function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P_Num, Style, Sldr_Width,
-                 item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput, Height)
+function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     if not FxGUID then return end
+    if not FX[FxGUID] then return end
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
 
     --local FxGUID = FXGUID[FX_Idx]
     local FP = FX[FxGUID][Fx_P]
+    local label = '##' .. (FP.Num or 0)..FxGUID
+    local P_Num = FP.Num
+
+    local p_value = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+    local v_min =  0
+    local v_max =  1
+    local Sldr_Width = FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W
+    local labeltoShow = FP.CustomLbl  or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
+    local DragDir = FP.DragDir
+    local Style = FP.Style or 'Default'
+    local Lbl_Pos = FP.Lbl_Pos
+    local V_Pos = FP.V_Pos
+    local Height = FP.Height or Df.Sldr_H
+
+
+
+
+
+
+
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, Height or FP.Height or Df.Sldr_H)
     
 
@@ -6836,7 +6888,7 @@ function AddDrag(ctx, label, labeltoShow, p_value, v_min, v_max, Fx_P, FX_Idx, P
     end
 
 
-    local AlreadyAddPrm = false
+
 
     Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB, FP,FxGUID)
     --[[ if Tweaking == P_Num..FxGUID and IsLBtnHeld == false then

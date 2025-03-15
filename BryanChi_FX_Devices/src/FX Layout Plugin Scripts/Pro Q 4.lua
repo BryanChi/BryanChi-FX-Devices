@@ -234,12 +234,10 @@ if not FX[FxGUID].Collapse then
     im.PushStyleColor(ctx, im.Col_FrameBg, 0x090909ff)
 
     ProQ3.H = 200
-    local L , T = im.GetCursorScreenPos(ctx)
-
-    im.SetNextWindowPos(ctx, L, T)
+    im.SetCursorPos(ctx, 0 , 20)
 
 
-    if im.BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then
+    if im.BeginChild(ctx, '##EQ Spectrum' .. FxGUID, ProQ3.Width, ProQ3.H, nil) then
         if fx.Scale == nil then fx.Scale = 2.5 end
         if fx.Scale == 10 then
             fx.DragGainScale = 100
@@ -839,326 +837,329 @@ if not FX[FxGUID].Collapse then
         NodeHasbeenHovered = nil
         MousePosX, MousePosY = im.GetMousePos(ctx)
 
+        local function Do_Each_Band()
+            for Band = 1, 24, 1 do
+                local gain_P_num =  ((Band - 1) * 23) + 3
+                local freq_P_num =  ((Band - 1) * 23) + 2
+                local paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape = Get_Prms(Band)
 
-        for Band = 1, 24, 1 do
-            local gain_P_num =  ((Band - 1) * 23) + 3
-            local freq_P_num =  ((Band - 1) * 23) + 2
-            local paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape = Get_Prms(Band)
-
-            
-            --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
-            local FP_gain = FX[FxGUID][Band]
-            FX[FxGUID][Band] = FX[FxGUID][Band] or {}
-
-            
-            --FX[FxGUID][Band].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
-            if ProQ3.Band_UseState[Band] == 1 then
-                NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID] = x_to_freq(Freq[Band] * ProQ3.Width)
-
-                XposNode[Band] = freq_to_scx(NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID])
-
-                _, fx['Band Shape '..Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_num_Shape)
-
-
-                ----- Draw Modulation indicator 
-                if FP_gain.WhichCC then 
-                    for M, v in ipairs(MacroNums) do
-
-                        if FP_gain.ModAMT[M] and  FP_gain.ModAMT[M] ~= 0 then 
-                            local X = ProQ_Xpos_L + XposNode[Band] 
-
-                            local gain = -30 + FP_gain.V * 60
-                            local Y = Y_Mid - (gain * 3.2) * fx.Scale;
-                            local MOD = Trk[TrkID].Mod[M].Val
-                            if Trk[TrkID].Mod[M].Type~='Macro' then
-                                r.gmem_attach('ParamValues')
-                                MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
-                            end
-                            --ttp(FP_gain.ModAMT[M])
-
-                            im.DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
-                            im.DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
-                            im.DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])
-
-                        end
-                    end
-                end
-
-
-
-
-
-                determineBandColor(Band)
-                if fx['Band Shape '..Band] == 'Bell' then
-                    NodeY_Pos[Band] = Y_Mid - (Gain[Band] * 3.2) * fx.Scale;
-                elseif fx['Band Shape '..Band] == 'Low Cut' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (Q_Node[Band]) * fx.Scale
-                elseif fx['Band Shape '..Band] == 'High Cut' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (Q_Node[Band]) * fx.Scale
-                elseif fx['Band Shape '..Band] == 'Low Shelf' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (ShelfGain_Node) * fx.Scale
-                elseif fx['Band Shape '..Band] == 'High Shelf' then
-                    NodeY_Pos[Band] = Y_Mid -
-                        (ShelfGain_Node) * fx.Scale
-                elseif fx['Band Shape '..Band] == 'Band Pass' then
-                    NodeY_Pos[Band] = Y_Mid
-                elseif fx['Band Shape '..Band] == 'Notch' then
-                    NodeY_Pos[Band] = Y_Mid
-                elseif fx['Band Shape '..Band] == 'Tilt Shelf' then
-                    NodeY_Pos[Band] = Y_Mid - (Gain[Band] * 1.4) * fx.Scale
-                elseif fx['Band Shape '..Band] == 'Flat Tilt' then
-                    NodeY_Pos[Band] = Y_Mid -(0.08 * 1.4) * fx.Scale
-                end
-
-
-                if Band_Enabled[Band .. FxGUID] == 1 then
-                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band] or 0, 6, Clr_FullAlpha)
-                else
-                    im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + (XposNode[Band] or 0), (NodeY_Pos[Band] or 0), 6, Clr_HalfAlpha)
-                end
-                if ProQ_Xpos_L and XposNode[Band] and NodeY_Pos[Band] then
-                    if Band <= 9 then
-                        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L + XposNode[Band] - 2.5, NodeY_Pos[Band] - 4.5, 0x000000ff, Band)
-                    end
-                    if Band > 9 then
-                        im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 10, ProQ_Xpos_L + XposNode[Band] - 5, NodeY_Pos[Band] - 4, 0x000000ff, Band)
-                    end
-                end
-
-                local NodeHoverArea = 10
-                if MousePosX > ProQ_Xpos_L + XposNode[Band] - NodeHoverArea and MousePosX < ProQ_Xpos_L + XposNode[Band] + NodeHoverArea and MousePosY > NodeY_Pos[Band] - NodeHoverArea and MousePosY < NodeY_Pos[Band] + NodeHoverArea then
-                    ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = true
-                    HvringNode = Band
-                else
-                    ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = false
-                end
-
-                if ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] == true then
-                    NodeHasbeenHovered = true
-                    FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
-                    im.DrawList_AddCircle(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, 0xf0f0f0ff)
-                    if IsLBtnHeld then
-                        im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, Clr_HalfAlpha)
-                        if IsLBtnClicked then ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = true end
-                    end
-
-                    local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                        ((Band - 1) * 23) + 7)
-                    if Wheel_V ~= 0 then --if wheel is moved
-                        HoverOnScrollItem = true
-                        MousePosX_AdjustingQ, Y = r.GetMousePosition()
-                        ProQ3['AdjustingQ' .. FxGUID] = true
-                        BandforQadjusting = Band
-                    end
-                    if IsLBtnClicked and Mods == Alt then -- delete node
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23),0)
-                        ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = false
-                        HvringNode = nil
-                    end
-
-                    if LBtnClickCount == 2 then
-                        local OnOff = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((Band - 1) * 23) + 1)
-
-                        if OnOff == 1 then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 0)
-                        else
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 1)
-                        end
-                    end
-                    if IsRBtnClicked == true and Mods == Ctrl then
-                        im.OpenPopup(ctx, 'Pro-Q R Click')
-                    end
-                    FX[FxGUID][gain_P_num] = FX[FxGUID][gain_P_num] or {}
-                    AssignMod(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][gain_P_num].V, Sldr_Width, 'Pro-Q', 'No Item Trigger')
                 
+                --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
+                if not  FX[FxGUID] then return end 
+                local FP_gain = FX[FxGUID][Band]
+                FX[FxGUID][Band] = FX[FxGUID][Band] or {}
+
                 
-                
-                else
-                    FX_DeviceWindow_NoScroll = 0
-                end
+                --FX[FxGUID][Band].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num)
+                if ProQ3.Band_UseState[Band] == 1 then
+                    NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID] = x_to_freq(Freq[Band] * ProQ3.Width)
+
+                    XposNode[Band] = freq_to_scx(NodeFreq['B-' .. Band .. 'GUID-' .. FxGUID])
+
+                    _, fx['Band Shape '..Band] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_num_Shape)
 
 
+                    ----- Draw Modulation indicator 
+                    if FP_gain.WhichCC then 
+                        for M, v in ipairs(MacroNums) do
 
+                            if FP_gain.ModAMT[M] and  FP_gain.ModAMT[M] ~= 0 then 
+                                local X = ProQ_Xpos_L + XposNode[Band] 
 
-                if ProQ3['AdjustingQ' .. FxGUID] then
-                    local MousePosX_AdjustingQ_CheckXpos, Y = reaper
-                        .GetMousePosition()
-                    if Mods == Shift then
-                        WheelQFineAdj = 20
-                    else
-                        WheelQFineAdj = 1
-                    end
-                    if MousePosX_AdjustingQ_CheckXpos < MousePosX_AdjustingQ + 7 and MousePosX_AdjustingQ_CheckXpos > MousePosX_AdjustingQ - 7 then
-                        local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4)
-
-                        Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,1)
-
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4, Q_Output)
-                    else
-                        ProQ3['AdjustingQ' .. FxGUID] = false
-                    end
-                end
-
-
-                if ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] == true then
-                    MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
-                    local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,P_num_Freq)
-                    local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Gain)
-                    local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
-
-                    fx.LT_Band = Band
-
-                    if IsLBtnHeld == false then
-                        ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = false
-                    end
-                    -- finetune if shift is held
-                    if Mods == Shift then
-                        HorizDragScale = 1000
-                    else
-                        HorizDragScale = 400
-                    end
-                    if Mods == Shift then
-                        QDragScale = 400
-                    else
-                        QDragScale = 120
-                    end
-
-                    if fx['Band Shape '..Band] == 'Low Cut' or fx['Band Shape '..Band] == 'High Cut' then
-                        Q_Output = Q + (-MouseDeltaY / QDragScale) * (fx.Scale / fx.DragGainScale)
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 7, Q_Output)
-
-                        if Freq > 1 and MouseDeltaX > 0 then
-                            FreqOutput = 1
-                        elseif Freq < 0 and MouseDeltaX < 0 then
-                            FreqOutput = 0
-                        else
-                            FreqOutput = Freq + MouseDeltaX / HorizDragScale
-                        end
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 2, FreqOutput)
-                    else
-                        if Gain > 1 and MouseDeltaY < 0 then
-                            GainOutput = 1
-                        elseif Gain < 0 and MouseDeltaY > 0 then
-                            GainOutput = 0
-                        else
-                            GainOutput = Gain +(-MouseDeltaY / 270) *(fx.Scale / fx.DragGainScale)
-                        end
-
-                        if not FP_gain.WhichCC then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num,GainOutput)
-                        elseif FP_gain.WhichCC then 
-                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
-                            FP_gain.V = GainOutput
-                            for M, v in ipairs(MacroNums) do
+                                local gain = -30 + FP_gain.V * 60
+                                local Y = Y_Mid - (gain * 3.2) * fx.Scale;
                                 local MOD = Trk[TrkID].Mod[M].Val
                                 if Trk[TrkID].Mod[M].Type~='Macro' then
                                     r.gmem_attach('ParamValues')
                                     MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
-                                    
                                 end
-                                if MOD~=0 and MOD then 
-                                    FP_gain.V = GainOutput - FP_gain.ModAMT[M] *MOD
-                                end
-                            end
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
-                            Tweaking = gain_P_num .. FxGUID
-                        end
+                                --ttp(FP_gain.ModAMT[M])
 
-                        if Freq > 1 and MouseDeltaX > 0 then
-                            FreqOutput = 1
-                        elseif Freq < 0 and MouseDeltaX < 0 then
-                            FreqOutput = 0
-                        else
-                            FreqOutput = Freq + MouseDeltaX / HorizDragScale
-                        end
+                                im.DrawList_AddLine(Foreground, X, Y , X, Y - FP_gain.ModAMT[M] * 500    , EightColors.Bright_HighSat[M] )
+                                im.DrawList_AddCircleFilled(Foreground,X+0.5, Y - FP_gain.ModAMT[M] * 500   , 4, EightColors.Bright_HighSat[M])
+                                im.DrawList_AddCircleFilled(Foreground,X+0.5, Y , 4, EightColors.Bright_HighSat[M])
 
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_num_Freq, FreqOutput)
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, GainOutput)
-                    end
-                end
-
-                -- if i == iPos10k then im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
-                if LT_ParamNum ~= nil then
-                    local m = m;
-                    _, tracknumber, fxnumber, paramnumber = r.GetLastTouchedFX()
-                    proQ_LT_GUID = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
-
-
-                    for i = 1, RepeatTimeForWindows, 1 do
-                        if proQ_LT_GUID == FxGUID and proQ_LT_GUID ~= nil then
-                            for i = 1, 24, 1 do
-                                if LT_ParamNum > 23 * (i - 1) and LT_ParamNum < 23 * i then
-                                    fx.LT_Band = i
-                                end
                             end
                         end
                     end
 
-                    if fx.GainDragging == true then
-                        MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
-                        local gain_P_num = ((fx.LT_Band - 1) * 23) + 3
-                        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num) 
 
-                        if Gain > 1 and MouseDeltaY < 0 then
-                            GainOutput = 1
-                        elseif Gain < 0 and MouseDeltaY > 0 then
-                            GainOutput = 0
-                        else
-                            GainOutput = Gain +
-                                (-MouseDeltaY / 270) *
-                                (fx.Scale / fx.DragGainScale)
+
+
+
+                    determineBandColor(Band)
+                    if fx['Band Shape '..Band] == 'Bell' then
+                        NodeY_Pos[Band] = Y_Mid - (Gain[Band] * 3.2) * fx.Scale;
+                    elseif fx['Band Shape '..Band] == 'Low Cut' then
+                        NodeY_Pos[Band] = Y_Mid -
+                            (Q_Node[Band]) * fx.Scale
+                    elseif fx['Band Shape '..Band] == 'High Cut' then
+                        NodeY_Pos[Band] = Y_Mid -
+                            (Q_Node[Band]) * fx.Scale
+                    elseif fx['Band Shape '..Band] == 'Low Shelf' then
+                        NodeY_Pos[Band] = Y_Mid -
+                            (ShelfGain_Node) * fx.Scale
+                    elseif fx['Band Shape '..Band] == 'High Shelf' then
+                        NodeY_Pos[Band] = Y_Mid -
+                            (ShelfGain_Node) * fx.Scale
+                    elseif fx['Band Shape '..Band] == 'Band Pass' then
+                        NodeY_Pos[Band] = Y_Mid
+                    elseif fx['Band Shape '..Band] == 'Notch' then
+                        NodeY_Pos[Band] = Y_Mid
+                    elseif fx['Band Shape '..Band] == 'Tilt Shelf' then
+                        NodeY_Pos[Band] = Y_Mid - (Gain[Band] * 1.4) * fx.Scale
+                    elseif fx['Band Shape '..Band] == 'Flat Tilt' then
+                        NodeY_Pos[Band] = Y_Mid -(0.08 * 1.4) * fx.Scale
+                    end
+
+
+                    if Band_Enabled[Band .. FxGUID] == 1 then
+                        im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band] or 0, 6, Clr_FullAlpha)
+                    else
+                        im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + (XposNode[Band] or 0), (NodeY_Pos[Band] or 0), 6, Clr_HalfAlpha)
+                    end
+                    if ProQ_Xpos_L and XposNode[Band] and NodeY_Pos[Band] then
+                        if Band <= 9 then
+                            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L + XposNode[Band] - 2.5, NodeY_Pos[Band] - 4.5, 0x000000ff, Band)
                         end
-                        
-                        if not FP_gain.WhichCC then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((fx.LT_Band - 1) * 23) + 3,GainOutput)
-                        elseif FP_gain.WhichCC then 
-                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
-                            FP_gain.V = GainOutput
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
-                            Tweaking = gain_P_num .. FxGUID
+                        if Band > 9 then
+                            im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 10, ProQ_Xpos_L + XposNode[Band] - 5, NodeY_Pos[Band] - 4, 0x000000ff, Band)
                         end
                     end
-                    if ProQ3.FreqDragging == true then
 
-                        MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
+                    local NodeHoverArea = 10
+                    if MousePosX > ProQ_Xpos_L + XposNode[Band] - NodeHoverArea and MousePosX < ProQ_Xpos_L + XposNode[Band] + NodeHoverArea and MousePosY > NodeY_Pos[Band] - NodeHoverArea and MousePosY < NodeY_Pos[Band] + NodeHoverArea then
+                        ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = true
+                        HvringNode = Band
+                    else
+                        ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = false
+                    end
+
+                    if ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] == true then
+                        NodeHasbeenHovered = true
+                        FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
+                        im.DrawList_AddCircle(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, 0xf0f0f0ff)
+                        if IsLBtnHeld then
+                            im.DrawList_AddCircleFilled(Foreground, ProQ_Xpos_L + XposNode[Band], NodeY_Pos[Band], 7.7, Clr_HalfAlpha)
+                            if IsLBtnClicked then ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = true end
+                        end
+
+                        local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                            ((Band - 1) * 23) + 7)
+                        if Wheel_V ~= 0 then --if wheel is moved
+                            HoverOnScrollItem = true
+                            MousePosX_AdjustingQ, Y = r.GetMousePosition()
+                            ProQ3['AdjustingQ' .. FxGUID] = true
+                            BandforQadjusting = Band
+                        end
+                        if IsLBtnClicked and Mods == Alt then -- delete node
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23),0)
+                            ProQ3['NodeHvr' .. Band .. 'FXID-' .. FxGUID] = false
+                            HvringNode = nil
+                        end
+
+                        if LBtnClickCount == 2 then
+                            local OnOff = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                ((Band - 1) * 23) + 1)
+
+                            if OnOff == 1 then
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 0)
+                            else
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 1, 1)
+                            end
+                        end
+                        if IsRBtnClicked == true and Mods == Ctrl then
+                            im.OpenPopup(ctx, 'Pro-Q R Click')
+                        end
+                        FX[FxGUID][gain_P_num] = FX[FxGUID][gain_P_num] or {}
+                        AssignMod(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][gain_P_num].V, Sldr_Width, 'Pro-Q', 'No Item Trigger')
+                    
+                    
+                    
+                    else
+                        FX_DeviceWindow_NoScroll = 0
+                    end
+
+
+
+
+                    if ProQ3['AdjustingQ' .. FxGUID] then
+                        local MousePosX_AdjustingQ_CheckXpos, Y = reaper
+                            .GetMousePosition()
                         if Mods == Shift then
-                            HorizDragScale = 2300
+                            WheelQFineAdj = 20
+                        else
+                            WheelQFineAdj = 1
+                        end
+                        if MousePosX_AdjustingQ_CheckXpos < MousePosX_AdjustingQ + 7 and MousePosX_AdjustingQ_CheckXpos > MousePosX_AdjustingQ - 7 then
+                            local QQ = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4)
+
+                            Q_Output = SetMinMax(QQ - ((Wheel_V / 50) / WheelQFineAdj), 0,1)
+
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((BandforQadjusting - 1) * 23) + 4, Q_Output)
+                        else
+                            ProQ3['AdjustingQ' .. FxGUID] = false
+                        end
+                    end
+
+
+                    if ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] == true then
+                        MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
+                        local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,P_num_Freq)
+                        local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Gain)
+                        local Q = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_Q)
+
+                        fx.LT_Band = Band
+
+                        if IsLBtnHeld == false then
+                            ProQ3['NodeDrag' .. Band .. ' ID-' .. FxGUID] = false
+                        end
+                        -- finetune if shift is held
+                        if Mods == Shift then
+                            HorizDragScale = 1000
                         else
                             HorizDragScale = 400
                         end
-                        local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
-                            ((fx.LT_Band - 1) * 23) + 2)
-
-                        if Freq > 1 and MouseDeltaX > 0 then
-                            FreqOutput = 1
-                        elseif Freq < 0 and MouseDeltaX < 0 then
-                            FreqOutput = 0
+                        if Mods == Shift then
+                            QDragScale = 400
                         else
-                            FreqOutput = Freq + MouseDeltaX / HorizDragScale
+                            QDragScale = 120
                         end
-                        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
-                            ((fx.LT_Band - 1) * 23) + 2,FreqOutput)
+
+                        if fx['Band Shape '..Band] == 'Low Cut' or fx['Band Shape '..Band] == 'High Cut' then
+                            Q_Output = Q + (-MouseDeltaY / QDragScale) * (fx.Scale / fx.DragGainScale)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 7, Q_Output)
+
+                            if Freq > 1 and MouseDeltaX > 0 then
+                                FreqOutput = 1
+                            elseif Freq < 0 and MouseDeltaX < 0 then
+                                FreqOutput = 0
+                            else
+                                FreqOutput = Freq + MouseDeltaX / HorizDragScale
+                            end
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((Band - 1) * 23) + 2, FreqOutput)
+                        else
+                            if Gain > 1 and MouseDeltaY < 0 then
+                                GainOutput = 1
+                            elseif Gain < 0 and MouseDeltaY > 0 then
+                                GainOutput = 0
+                            else
+                                GainOutput = Gain +(-MouseDeltaY / 270) *(fx.Scale / fx.DragGainScale)
+                            end
+
+                            if not FP_gain.WhichCC then
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num,GainOutput)
+                            elseif FP_gain.WhichCC then 
+                                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
+                                FP_gain.V = GainOutput
+                                for M, v in ipairs(MacroNums) do
+                                    local MOD = Trk[TrkID].Mod[M].Val
+                                    if Trk[TrkID].Mod[M].Type~='Macro' then
+                                        r.gmem_attach('ParamValues')
+                                        MOD = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
+                                        
+                                    end
+                                    if MOD~=0 and MOD then 
+                                        FP_gain.V = GainOutput - FP_gain.ModAMT[M] *MOD
+                                    end
+                                end
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
+                                Tweaking = gain_P_num .. FxGUID
+                            end
+
+                            if Freq > 1 and MouseDeltaX > 0 then
+                                FreqOutput = 1
+                            elseif Freq < 0 and MouseDeltaX < 0 then
+                                FreqOutput = 0
+                            else
+                                FreqOutput = Freq + MouseDeltaX / HorizDragScale
+                            end
+
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_num_Freq, FreqOutput)
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, GainOutput)
+                        end
                     end
-                end
+
+                    -- if i == iPos10k then im.DrawList_AddTextEx(Foreground, Font_Andale_Mono, 12, ProQ_Xpos_L+XposNode[Band],  Y_Mid- (Gain[B]*3.2)  , 0x78787899, '10K') end
+                    if LT_ParamNum ~= nil then
+                        local m = m;
+                        _, tracknumber, fxnumber, paramnumber = r.GetLastTouchedFX()
+                        proQ_LT_GUID = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
+
+
+                        for i = 1, RepeatTimeForWindows, 1 do
+                            if proQ_LT_GUID == FxGUID and proQ_LT_GUID ~= nil then
+                                for i = 1, 24, 1 do
+                                    if LT_ParamNum > 23 * (i - 1) and LT_ParamNum < 23 * i then
+                                        fx.LT_Band = i
+                                    end
+                                end
+                            end
+                        end
+
+                        if fx.GainDragging == true then
+                            MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
+                            local gain_P_num = ((fx.LT_Band - 1) * 23) + 3
+                            local Gain = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, gain_P_num) 
+
+                            if Gain > 1 and MouseDeltaY < 0 then
+                                GainOutput = 1
+                            elseif Gain < 0 and MouseDeltaY > 0 then
+                                GainOutput = 0
+                            else
+                                GainOutput = Gain +
+                                    (-MouseDeltaY / 270) *
+                                    (fx.Scale / fx.DragGainScale)
+                            end
+                            
+                            if not FP_gain.WhichCC then
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, ((fx.LT_Band - 1) * 23) + 3,GainOutput)
+                            elseif FP_gain.WhichCC then 
+                                local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param."..gain_P_num..".plink.active", 0)   -- 1 active, 0 inactive
+                                FP_gain.V = GainOutput
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, gain_P_num, FP_gain.V)
+                                Tweaking = gain_P_num .. FxGUID
+                            end
+                        end
+                        if ProQ3.FreqDragging == true then
+
+                            MouseDeltaX, MouseDeltaY = im.GetMouseDelta(ctx)
+                            if Mods == Shift then
+                                HorizDragScale = 2300
+                            else
+                                HorizDragScale = 400
+                            end
+                            local Freq = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx,
+                                ((fx.LT_Band - 1) * 23) + 2)
+
+                            if Freq > 1 and MouseDeltaX > 0 then
+                                FreqOutput = 1
+                            elseif Freq < 0 and MouseDeltaX < 0 then
+                                FreqOutput = 0
+                            else
+                                FreqOutput = Freq + MouseDeltaX / HorizDragScale
+                            end
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,
+                                ((fx.LT_Band - 1) * 23) + 2,FreqOutput)
+                        end
+                    end
 
 
 
 
-                
-                TweakingNodeGain = MakeModulationPossible(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][Band].V, 10, 'Pro-Q', 'No Item Trigger')
+                    
+                    TweakingNodeGain = MakeModulationPossible(FxGUID, Band, FX_Idx, gain_P_num, FX[FxGUID][Band].V, 10, 'Pro-Q', 'No Item Trigger')
 
-            end --end for repeat every active  band
-
-
+                end --end for repeat every active  band
 
 
 
 
-        end     --end for repeat every band
+
+
+            end     --end for repeat every band
+        end
+        Do_Each_Band()
         if NodeHasbeenHovered then HoverOnScrollItem = true end
 
 

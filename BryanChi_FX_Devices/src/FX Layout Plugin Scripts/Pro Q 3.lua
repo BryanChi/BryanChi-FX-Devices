@@ -214,9 +214,7 @@ if not FX[FxGUID].Collapse then
     im.PushStyleColor(ctx, im.Col_FrameBg, 0x090909ff)
 
     ProQ3.H = 200
-    local L , T = im.GetCursorScreenPos(ctx)
-
-    im.SetNextWindowPos(ctx, L, T)
+    im.SetCursorPos(ctx, 0 , 20)
 
 
     if im.BeginChild(ctx, '##EQ Spectrum' .. FX_Idx, ProQ3.Width, ProQ3.H, nil) then

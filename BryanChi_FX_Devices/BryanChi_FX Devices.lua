@@ -1,11 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.4
+-- @version 1.0beta17.4.1
 -- @changelog
---   - Layout Editor : Added new feature: Virtual buttons: it can be used to hide or show parameters. More features around it will be added in the future.
---   - Layout Editor : added option to attach arrow buttons to selection type.
---   - Layout Editor : Allow opening the attached drawings section to a separate window by click on the expand button.
---   - Fix some JSFX modulator info not able to be saved to project.
+--   - Layout Editor : Prevent Selecting all parameters by clicking Command+A if user is editing text.
+--   - Layout Editor : Fix Selection buttons note symmetrical in size.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

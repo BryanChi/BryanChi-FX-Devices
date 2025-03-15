@@ -4476,18 +4476,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local Lbl = '##' .. (FP.Name or Fx_P) .. FX_Name.. (FP.Num or 0)
                                 --- Add Parameter controls ---------
                                 if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
-                                    AddSlider(ctx, Lbl, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID], 0, Disable, Vertical, GrabSize, FP.Lbl, 8)
+                                    AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
-                                    AddKnob(ctx, Lbl, FP.CustomLbl, FP.V, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or Df.KnobRadius, 0, Disabled, FP.FontSize, FP.Lbl_Pos or 'Bottom', FP.V_Pos)
-                                    --MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Knob', curX, CurY)
+
+                                    AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
+
                                 elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
-                                    AddSlider(ctx, Lbl, FP.CustomLbl, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, Style, FP.Sldr_W or 15, 0, Disable, 'Vert', GrabSize, FP.Lbl, nil, FP.Sldr_H or 160)
+                                    AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Switch' then
-                                    AddSwitch(LT_Track, FX_Idx, FP.V or 0, FP.Num, FP.BgClr, FP.CustomLbl or 'Use Prm Name as Lbl', Fx_P, F_Tp, FP.FontSize, FxGUID)
+                                    AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
-                                    AddDrag(ctx, Lbl, FP.CustomLbl or FP.Name, FP.V or 0, 0, 1, Fx_P, FX_Idx, FP.Num, FP.Style, FP.Sldr_W or FX.Def_Sldr_W[FxGUID] or Df.Sldr_W, -1, Disable, Lbl_Clickable, FP.Lbl_Pos, FP.V_Pos, FP.DragDir)
+
+                                    AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Selection' then
-                                    AddCombo(ctx, LT_Track, FX_Idx, FP.Name .. FxGUID .. '## actual', FP.Num, FP.ManualValuesFormat or 'Get Options', FP.Sldr_W, FP.Style, FxGUID, Fx_P, FP.ManualValues)
+                                    AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'XY Pad - X' then
                                     Add_XY_Pad(ctx, FP, FxGUID, FX_Idx)
                                 end
@@ -4843,8 +4845,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 end
 
 
-
-
                 if FX[FxGUID].Round then im.PopStyleVar(ctx) end
                 if FX[FxGUID].GrbRound then im.PopStyleVar(ctx) end
 
@@ -4871,19 +4871,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 
             Highlight_selected_FX(FX_Idx)
         end
-
+        return WindowSize
     end
     
 
     
-    Make_Window()
+    local WindowSize = Make_Window()
 
     im.PopStyleVar(ctx) -- styleVar ScrollBar
 
 
     --------------------FX Devices--------------------
     CurPos_Aftr_Create_FX_Win = {im.GetCursorPos(ctx)}
-    
 
     im.PopStyleColor(ctx, poptimes) -- -- PopColor #1 FX Window
     im.SameLine(ctx, nil, 0)
@@ -4898,6 +4897,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     SL(nil,0)
     im.Dummy(ctx, 0, 0)
     if BlinkFX == FX_Idx then BlinkFX = BlinkItem(0.2, 2, BlinkFX) end
+
+
+    --im.SetCursorPos(ctx, CurPos_Aftr_Create_FX_Win_SL[1], CurPos_Aftr_Create_FX_Win_SL[2])
+    im.PushStyleColor(ctx, im.Col_ChildBg, 0xFF000022)
+    --[[ if im.BeginChild(ctx, 'TestChildWin'..FX_Idx,  30, 220 ) then 
+        im.Text(ctx, 'TestChildWin'..FX_Idx)
+        im.EndChild(ctx)    
+
+    end ]]
+    im.PopStyleColor(ctx)
+
 
     if Parallel and Parallel == 'Mixer Layout - Show'  then 
         return Parallel
