@@ -186,12 +186,12 @@ function BuildFXTree(tr)
     -- table with referencing ID tree
     local tr = tr or LT_Track 
     if tr then 
-        tree = {}
+        TREE = {}
         local cnt = reaper.TrackFX_GetCount(tr)
         for i = 1, cnt do
-            tree[i] = BuildFXTree_item(tr, 0x2000000+i, cnt+1, cnt+1)
+            TREE[i] = BuildFXTree_item(tr, 0x2000000+i, cnt+1, cnt+1)
         end
-        return tree
+        return TREE
     end
 end
 

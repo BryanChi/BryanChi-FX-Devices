@@ -58,7 +58,7 @@ if not FX[FxGUID].Collapse then
     local OS_V = { 0, 0.5, 1 }
 
     local OverSample = FX[FxGUID][40]
-    OverSample.Options
+    
     AddCombo(ctx, LT_Track, FX_Idx, 'OverSample##', 40, Oversampling_Options, 18,'Pro C 2', FxGUID, Fx_P or 1, OS_V)
     --im.SameLine(ctx)
     --AddDrag(ctx,'##'..12,  Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or '', Trk.Prm.V[F_Tp(12,FxGUID)..TrkID] or 0, 0, 1, 12,FX_Idx, 34, 'style', 10)

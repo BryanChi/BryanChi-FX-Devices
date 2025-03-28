@@ -115,7 +115,7 @@ local function Scale ()
         im.SetNextWindowPos(ctx, L, T + H)
         im.SetNextWindowSize(ctx, W, H)
     end
-    if focusedFXState == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
+    if FOCUSED_FX_STATE == 1 and FX_Index_FocusFX == FX_Idx and LT_ParamNum == 331 then
         _, fx.DspRange = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
         fx.DspRange = fx.DspRange:gsub('dB', '')
         fx.DspRange = tonumber(fx.DspRange)

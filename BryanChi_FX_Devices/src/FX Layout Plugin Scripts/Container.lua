@@ -25,6 +25,7 @@ local Add_FX_Btn_Xpos
 
 
 
+
 local function Container_CollapseIfTab(FxGUID, FX_Idx)
     if FX[FxGUID].Collapse then return end
     if r.ImGui_IsWindowHovered(ctx, r.ImGui_HoveredFlags_ChildWindows()) then 
@@ -222,33 +223,36 @@ local function Modulation_Icon(LT_Track, slot)
     im.PopStyleColor(ctx)
 end
 
-
-
-
 local function titleBar()
-
-
-    if not fx.Collapse then
-
+    --if not fx.Collapse then
         local W = 33
         SyncWetValues(FX_Idx)
         local x, y = im.GetCursorPos(ctx)
+        
+        -- Get the window draw list instead of foreground draw list
+        local WDL = im.GetWindowDrawList(ctx)
+        
+        -- Draw background FIRST
+        im.DrawList_AddRectFilled(WDL, x, y, x+W, y + 220, ThemeClr('Accent_Clr'), 5)
+        
 
-
-        im.SetCursorPos(ctx, 6, 135)
+        -- Position other elements AFTER drawing the icon
+       -- im.SetCursorPos(ctx, 6, 135)
+       im.SetCursorPosX(ctx, 8)
         SyncWetValues(FX_Idx)
         Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
+       im.SetCursorPosX(ctx, 9)
         
-        im.SetCursorPos(ctx, 7, 165)
-
+        --im.SetCursorPos(ctx, 7, 165)
         Modulation_Icon(LT_Track, fx.LowestID)
-        im.Dummy(ctx, W , 10)
-        im.SetCursorPos(ctx,W,0) 
-        --[[ im.EndGroup(ctx)
-        ]]
-        im.DrawList_AddRectFilled(WDL, x, y , x+W,  y + 220, ThemeClr('Accent_Clr'), 5)
-    end
+        
+        im.Dummy(ctx, W, 10)
+        im.SetCursorPos(ctx, W, 0)
+   -- end
 end
+
+
+
 function Cont_DrawShape(Node, L, W, H, T, Clr, thick, SaveAllCoord )
     if Node then
         local All_Coord = { X = {}; Y = {}}
@@ -789,81 +793,64 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
     end 
 end
 
-local function DndAddFXtoContainer_TARGET()
-    im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
+local function DndFXtoContainer_TARGET(action_type)
+    -- Only push style color for ADD action
+    if action_type == 'ADD' then
+        im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
+    end
+    
     if im.BeginDragDropTarget(ctx) then
-        local dropped, payload = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
+        -- Accept different payload types based on action
+        local payload_type = action_type == 'ADD' and 'DND ADD FX' or 'FX_Drag'
+        local dropped, payload = im.AcceptDragDropPayload(ctx, payload_type)
         im.EndDragDropTarget(ctx)
-        if dropped and Mods == 0  then
+        
+        -- Highlight only for MOVE action
+        if action_type == 'MOVE' then
+            Highlight_Itm(WDL, 0xffffff33)
+
+        end
+        
+        if dropped and Mods == 0 then
             local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
 
             if FxGUID ~= Root_FxGuid then 
-                --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
                 local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
                 
-                local function Get_Fx_Ct (TB, base_FX_Ct )
-                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
+                local function Get_Fx_Ct(TB, base_FX_Ct)
+                    local C = Check_If_Has_Children_Prioritize_Empty_Container(TB)
 
                     if not C then -- if container has no children
                         Final_FX_Ct = base_FX_Ct
-                        
                     else
                         local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
-                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
+                        Get_Fx_Ct(C, Nxt_Lyr_FX_Ct)
                     end
 
                     return Final_FX_Ct
                 end
 
-                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
-
-                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
-                
-                FX_Id =   Empty_Cont_Fx_Id
+                local FX_Ct = Get_Fx_Ct(TREE, Rt_FX_Ct)
+                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1)
+                FX_Id = Empty_Cont_Fx_Id
             end
-            r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Id)
+            
+            -- Perform different actions based on type
+            if action_type == 'ADD' then
+                r.TrackFX_AddByName(LT_Track, payload, false, -1000 - FX_Id)
+            else -- MOVE
+                r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, FX_Id, true)
+            end
         end
     end
-    im.PopStyleColor(ctx)
+    
+    -- Pop style color for ADD action
+    if action_type == 'ADD' then
+        im.PopStyleColor(ctx)
+    end
 end
 
-local function DndMoveFXtoContainer_TARGET()
-    if im.BeginDragDropTarget(ctx) then
-        local rv, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
-        im.EndDragDropTarget(ctx)
-        Highlight_Itm(WDL, 0xffffff33)
-        if rv and Mods == 0 then 
-            local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
 
-            if FxGUID ~= Root_FxGuid then 
-                --FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) + 1*(0+1) + (Upcoming_ContainerID+1) 
-                local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
-                
-                local function Get_Fx_Ct (TB, base_FX_Ct )
-                    local C =  Check_If_Has_Children_Prioritize_Empty_Container(TB)
-
-                    if not C then -- if container has no children
-                        Final_FX_Ct = base_FX_Ct
-                        
-                    else
-                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
-                        Get_Fx_Ct (C , Nxt_Lyr_FX_Ct )
-                    end
-
-                    return Final_FX_Ct
-                end
-
-                local FX_Ct =  Get_Fx_Ct (TREE, Rt_FX_Ct )
-
-                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1) 
-                
-                FX_Id =   Empty_Cont_Fx_Id
-
-            end
-            r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, FX_Id, true )
-        end
-    end    
-end
 
 local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUID,TB)
     local Hv
@@ -876,7 +863,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     local GUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
     if fx.MacroPageActive then fx.Width = fx.Width+ 70
-    else fx.Width = 50 + 150
+    else fx.Width = 50 + 160
     end
     if GUID then 
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing,1 , -3)
@@ -909,6 +896,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
 
         im.PopStyleVar(ctx)
         if Hover then 
+            local FX_Count = r.TrackFX_GetCount(LT_Track)
             if tonumber(FX_Count) > 9  then 
                 --FX_DeviceWindow_NoScroll = im.WindowFlags_NoScrollWithMouse
                 DisableScroll = true 
@@ -936,7 +924,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     
 end
 
-AddTitleBgClr ()
+--AddTitleBgClr ()
 
 titleBar()
 fx.BgClr = nil
@@ -946,7 +934,7 @@ fx.BgClr = nil
 ---------Body--------------------------------
 ---------------------------------------------
 
-rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
+local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
 local WinW = 0 
 local AllW = 0
 
@@ -967,14 +955,18 @@ if tonumber( FX_Count) == 0 then
 
     --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
-    DndMoveFXtoContainer_TARGET()
-    DndAddFXtoContainer_TARGET()
+
+    DndFXtoContainer_TARGET('ADD')
+    DndFXtoContainer_TARGET('MOVE')
 else
     local CollapseXPos, CollapseYPos  = im.GetCursorPos(ctx)
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
     im.SetCursorPosY(ctx, Top_Spacing )
-    if TB and not fx.Collapse then 
+    if TB  then 
+        fx.processed_containers = fx.processed_containers or {}
+        fx.Added_Parallel_Mixer_Width = nil
+
         for i, v in ipairs(TB) do 
             if i == 1 then 
                 fx.LowestID =  v.addr_fxid
@@ -982,88 +974,130 @@ else
             local FX_Id = v.addr_fxid
             local GUID = r.TrackFX_GetFXGUID(LT_Track, FX_Id)
 
-            if  fx.Cont_Collapse == 1   then 
-                
-                SL()
-                if i == 1 then 
-                    Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
-                end
-                im.BeginChild(ctx, 'Collapse'..FxGUID, 130, 220, nil)
-               
-                local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
-                if W then PreviewW = W end 
-                if i == #TB then 
-                    fx.Add_FX_Btn_Ypos = im.GetCursorPosY(ctx)
-                    fx.Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
-                end
-                im.EndChild(ctx)
-                --fx.BgClr = 0xffffff44
-
-            else       -- if not collapsed
-                --fx.BgClr = 0xff22ff44
-                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
-
-                local function Render_Normal()
+            if GUID and not fx.processed_containers[GUID] then
+                fx.processed_containers[GUID] = true
+                local SpaceClr = Calculate_Color_Based_On_Nesting_Level(fx.nestingLevel)
+                local SpaceClr = HSV_Change(SpaceClr, nil, nil, -0.8)
 
 
-
-                    local  diff, Cur_X_ofs  
-                    if i == 1  then 
-
-                        SL(nil,0)
-                        im.SetCursorPosY(ctx, Top_Spacing )
-
-                        local Wid = AddSpaceBtwnFXs(FX_Id  , SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth)
-                        SL(nil,0)
-                        fx.Width = fx.Width + (Wid or 15)  
-
+                if  fx.Cont_Collapse == 1   then 
+                    
+                    SL()
+                    if i == 1 then 
+                        Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
                     end
-
-                    
-
-                    If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
-                    im.SetCursorPosY(ctx,Top_Spacing)
+                    im.BeginChild(ctx, 'Collapse'..FxGUID, 180, 220, nil)
                 
-                    if v.children then 
-                        Upcoming_Container = v.children
-                        Upcoming_Container_Parent = v 
+                    local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
+                    if W then PreviewW = W end 
+                    if i == #TB then 
+                        fx.Add_FX_Btn_Ypos = im.GetCursorPosY(ctx)
+                        fx.Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
                     end
+                    im.EndChild(ctx)
+                    --fx.BgClr = 0xffffff44
+
+                else       -- if not collapsed
+                    --fx.BgClr = 0xff22ff44
+
+                    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Id)
+
+                    local function Render_Normal()
+                        if fx.Collapse then return end 
+                    
+                        local diff, Cur_X_ofs  
+                        if i == 1 then 
+                            SL(nil,0)
+                            im.SetCursorPosY(ctx, Top_Spacing)
+                    
+                            local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
+                            SL(nil,0)
+                            fx.Width = fx.Width + (Wid or 15)  
+                        end
+                    
+                        If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
+                        im.SetCursorPosY(ctx, Top_Spacing)
+                    
+                        -- Store the current container state before rendering child
+                        local previous_container = Upcoming_Container
+                        local previous_parent = Upcoming_Container_Parent
+
+                        -- Only set upcoming container if we're not already processing it
+                        -- This prevents infinite recursion
+                        if v.children and not fx.processing_container then
+                            Upcoming_Container = v.children
+                            Upcoming_Container_Parent = v
+                            -- Set the parent reference to track nesting
+                            v.parent = previous_parent
+                            -- Mark that we're processing this container to prevent recursion
+                            fx.processing_container = true
+                        end
+                    
+                        local Parallel = createFXWindow(FX_Id)
+                        
+                        -- Reset the processing flag after rendering
+                        fx.processing_container = false
+                        
+                        if v.scale and GUID then 
+                            FX[GUID] = FX[GUID] or {}   
+                            FX[GUID].parent = v.addr_fxid - v.scale * i   
+                        end 
+                    
+
+                        local TB = Upcoming_Container or TREE[Root_ID+1].children
+                        local FX_Id_next = FX_Id + (v.scale or 0)
+                        SL(nil,0)
+                        if im.IsItemHovered(ctx) then Hover = true end 
+                        im.SetCursorPosY(ctx, 0)
+                        if not Parallel or i == #TB then 
+                            LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                        end    
+                        if Hover then DisableScroll = false end
+                        
+                        -- Restore the previous container state
+                        Upcoming_Container = previous_container
+                        Upcoming_Container_Parent = previous_parent
+                        return Parallel
+                    end
+                    local function Add_Width(Parallel)
+                        if  FX_Name:find('FXD Containr Macro') then return end 
+                        -- Add the width for parallel Mixer if haven't done so 
+                        --[[ if not fx.Added_Parallel_Mixer_Width then
+                            msg(FX_Idx.. ' add mixer ')
+                            fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
+                            fx.Added_Parallel_Mixer_Width = true
+                        end ]]
+                        for I,V in ipairs(PAR_FXs) do
+                            for ii, vv in ipairs(V) do 
+
+                                if ii== 1 and  vv.addr_fxid == FX_Id then 
+                                    fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
+                                    fx.Added_Parallel_Mixer_Width = true
+                                end 
+                            end
+                        end 
+                        if Parallel then 
+                            if Parallel ~= 'Mixer Layout - Show' then return end 
+                        end
+                        local W = FX[GUID].Width_Collapse or FX[GUID].Width or 170
+                        
+
+
+                        fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
+                    end
+                    local Parallel = Render_Normal()
 
                     
-                    local Win_W = createFXWindow(FX_Id)
+                    Add_Width(Parallel)
 
-                    
-                    if v.scale and GUID  then 
-                        FX[GUID] = FX[GUID] or {}   
-                        FX[GUID].parent =  v.addr_fxid - v.scale * i   
-                    end 
-                
-                    local w = im.GetItemRectSize(ctx)
-
-                    local TB = Upcoming_Container or TREE[Root_ID+1].children
-                    local FX_Id_next = FX_Id + (v.scale or 0)
-                    SL(nil,0)
-                    if im.IsItemHovered(ctx) then Hover = true end 
-                    im.SetCursorPosY(ctx, 0 )
-                    LastSpc = AddSpaceBtwnFXs(FX_Id_next , nil, nil, nil, nil, nil, nil, FX_Id)
-
-                    if Hover then  DisableScroll = false  end 
-                    return Win_W
-                end
-                local W= Render_Normal()
-
-
-                if  not FX_Name:find('FXD Containr Macro') then
-                    fx.Width = (fx.Width or 0) + (W or 0) +( LastSpc or 0)
                 end
 
-            end
-
-            if Upcoming_Container and tonumber(i) == (#Upcoming_Container or #TREE[Root_ID+1].children) then 
-                Upcoming_Container = nil
+                if Upcoming_Container and tonumber(i) == (#Upcoming_Container or #TREE[Root_ID+1].children) then 
+                    Upcoming_Container = nil
+                end
             end
         end
-        
+        fx.processed_containers= {}
     end
 
 
@@ -1089,7 +1123,7 @@ else
         end 
 
 
-        if im.IsItemActive(ctx) then msg('asd') end
+
         AddFX_Menu(fx.LastSpc)
     end
 
@@ -1101,19 +1135,60 @@ else
     else 
     
     end
-                            
+    
    --[[  if NeedRetrieveLayout then 
         RetrieveFXsSavedLayout(Sel_Track_FX_Count) 
         NeedRetrieveLayout = nil 
     end  ]]
 
-
-    
-    if not fx.Collapse then 
+    local function Enclose_With_Brackets()
         local WDL = im.GetWindowDrawList(ctx)
-        --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
-        HighlightSelectedItem(nil, ThemeClr('Accent_Clr_Dark'), 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+220, h, w, 1, 0.2, 'no', Foreground, 4, 4)
-    end 
+        -- Draw main container bracket
+        local Thick = 4
+        -- Calculate nesting level based on container hierarchy
+        local nestingLevel = 0
+        if Upcoming_Container_Parent then
+            -- If we have a parent, we're at least one level deep
+            nestingLevel = 1
+            
+            -- Check if parent has a parent (deeper nesting)
+            local parent = Upcoming_Container_Parent
+            while parent and parent.parent do
+                nestingLevel = nestingLevel + 1
+                parent = parent.parent
+            end
+        end
+        fx.nestingLevel = nestingLevel
+        local bracketColor = Calculate_Color_Based_On_Nesting_Level(nestingLevel)
+        local l = X - 33
+
+        if not fx.Collapse then 
+            --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
+            local r = X+ (fx.Width or 190)  -35
+        -- HighlightSelectedItem(nil, ThemeClr('Accent_Clr_Dark'), 2, l, Y, r , Y+220, h, w, 0.1, 2, 'no', Foreground, 4, 4)
+            local WDL = im.GetWindowDrawList(ctx)
+            --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
+        -- HighlightSelectedItem(nil, ThemeClr('Accent_Clr_Dark'), 2, X - 33, Y, X+ (fx.Width or 190)  -35 , Y+220, h, w, 1, 0.2, 'no', Foreground, 4, 4)
+            
+            
+            
+            -- Shift hue based on container nesting level
+            -- Left bracket
+            im.DrawList_AddLine(WDL, l, Y, l, Y + 220, bracketColor, Thick) -- Vertical line
+            im.DrawList_AddLine(WDL, l, Y, X - 21, Y, bracketColor, Thick) -- Top horizontal
+            im.DrawList_AddLine(WDL, l, Y + 220, X - 21, Y + 220, bracketColor, Thick) -- Bottom horizontal
+            
+            -- Right bracket
+            local rightX = X + (fx.Width or 190) - 35
+            im.DrawList_AddLine(WDL, rightX, Y, rightX, Y + 220, bracketColor, Thick) -- Vertical line
+            im.DrawList_AddLine(WDL, rightX, Y, rightX - 12, Y, bracketColor, Thick) -- Top horizontal
+            im.DrawList_AddLine(WDL, rightX, Y + 220, rightX - 12, Y + 220, bracketColor, Thick) -- Bottom horizontal
+        else 
+           -- Highlight_Itm( WDL, nil, bracketColor)
+           im.DrawList_AddRect(WDL, l, Y, l+ 27, Y + 220, bracketColor)
+        end 
+    end
+    Enclose_With_Brackets()
 
 
     --im.DrawList_AddRectFilled(WDL, 0, 0 , 0 + 15 , 165, 0xfffffff)

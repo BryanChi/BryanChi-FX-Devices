@@ -326,7 +326,7 @@ function Show_Value_Tooltip(trigger, x, y , V )
 end
 
 function Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB, FP,FxGUID)
-    if LT_ParamNum == FP.Num and focusedFXState == 1 and LT_FXGUID == FxGUID  then
+    if LT_ParamNum == FP.Num and FOCUSED_FX_STATE == 1 and LT_FXGUID == FxGUID  then
         if not FP.WhichCC then 
             local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
             FP.V = LT_ParamValue
@@ -1221,6 +1221,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
         end
 
         local typelbl; 
+        FX[FxGUID] = FX[FxGUID] or {}
         FX[FxGUID].Draw = FX[FxGUID].Draw or {}
         local D = FX[FxGUID].Draw
         local FullWidth = -50
@@ -5383,7 +5384,7 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 
 
     local function Highlight_Prm_If_User_Use_Actual_UI_To_Tweak()
-        if LT_ParamNum == P_Num and focusedFXState == 1 and LT_FXGUID == FxGUID   then
+        if LT_ParamNum == P_Num and FOCUSED_FX_STATE == 1 and LT_FXGUID == FxGUID   then
             if not FP.WhichCC then 
                 local LT_ParamValue = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
                 p_value = LT_ParamValue
@@ -6206,7 +6207,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
         end
         AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
        
-        if LT_ParamNum == FP.Num and focusedFXState == 1 and LT_FXGUID == FxGUID   then
+        if LT_ParamNum == FP.Num and FOCUSED_FX_STATE == 1 and LT_FXGUID == FxGUID   then
             FP.V  = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
             if FP.Type =='Selection' and FP.AddArrows then 
                 local ops = FX.Prm.Options[FxGUID][Fx_P]
@@ -6493,7 +6494,7 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
 
     --Sync Value if user tweak plugin's actual GUI.
 
-    if focusedFXState == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FP.WhichCC then
+    if FOCUSED_FX_STATE == 1 and LT_FXGUID == FxGUID and LT_ParamNum == P_Num and not FP.WhichCC then
         FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
         
 
@@ -6548,24 +6549,7 @@ end
 ---    | "Invisible"
 ---    | "FX Layering"
 ---    | 'up-down arrow'
----@param ctx ImGui_Context
----@param label string
----@param labeltoShow string
----@param p_value number
----@param v_min number
----@param v_max number
----@param Fx_P any
----@param FX_Idx integer
----@param P_Num number
----@param Style "FX Layering"|"Pro C"|"Pro C Lookahead"|string
----@param Sldr_Width number
----@param item_inner_spacing number
----@param Disable? "Disabled"
----@param Lbl_Clickable? "Lbl_Clickable"
----@param Lbl_Pos Position
----@param V_Pos Position
----@param DragDir "Left"|"Right"|"Left-Right"
----@param AllowInput? "NoInput"
+
 function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     if not FxGUID then return end

@@ -4,6 +4,7 @@ COLLAPSED_FX_WIDTH = 27
 FX_Title_Round = 6
 Default_WindowBtnWidth = 180
 PAR_FX_MIXER_WIN_W = 170
+SPACE_BETWEEN_FXS_W = 10
 Tooltip= {}
 JSFX={P_ORIG_V=100000 ; Velo_Mod=500000 ; CURVE = 200000 }
 JSFX.Random1 = JSFX.Velo_Mod + 10000

@@ -975,7 +975,9 @@ function attachImagesAndFonts()
         ModulationArrow = im.CreateImage(CurrentDirectory .. '/src/Images/ModulationArrow.png'),
         AddList = im.CreateImage(CurrentDirectory .. '/src/Images/add-list.png'),
         expand = im.CreateImage(CurrentDirectory .. '/src/Images/expand.png'),
-        openInNewWin = im.CreateImage(CurrentDirectory .. '/src/Images/open-in-new-window.png')
+        openInNewWin = im.CreateImage(CurrentDirectory .. '/src/Images/open-in-new-window.png'),
+        Folder = im.CreateImage(CurrentDirectory .. '/src/Images/folder.png'),
+        Folder_Open = im.CreateImage(CurrentDirectory .. '/src/Images/folder_open.png'),
 
     }
     for i = 6, 30, 1 do

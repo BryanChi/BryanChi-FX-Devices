@@ -322,57 +322,90 @@ function BuildFXTree(tr)
     -- table with referencing ID tree
     local tr = tr or LT_Track
     if tr then
-        tree = {}
+        TREE = {}
         local cnt = reaper.TrackFX_GetCount(tr)
         for i = 1, cnt do
-            tree[i] = BuildFXTree_item(tr, 0x2000000 + i, cnt + 1, cnt + 1)
+            local is_container = reaper.TrackFX_GetNamedConfigParm(tr, i-1, 'container_count')
+            local idx = is_container and 0x2000000 + i or i-1
+            TREE[i] = BuildFXTree_item(tr, idx, cnt + 1, cnt + 1)
         end
 
-
-
-
-        local last_parallel_fx
-
-        local NeedCheckNext 
-
-        local function find_parallel_sequences(tree)
+        local function find_parallel_sequences(tree_items, parent_path, container_id)
             local sequences = {}
-            local start_index = nil
-            local count = 0
-        
-            for i = 1, #tree do
-                if tree[i].parallel then
-                    if start_index == nil then
-                        start_index = i -1   -- Start of a new sequence
+            local current_sequence = nil
+            parent_path = parent_path or ""
+            
+            for i = 1, #tree_items do
+                -- Check if this FX is parallel or the next FX is parallel
+                local is_parallel = tree_items[i].parallel
+                local next_is_parallel = tree_items[i+1] and tree_items[i+1].parallel
+                
+                if is_parallel or next_is_parallel then
+                    -- If this is the first FX in a sequence we're detecting
+                    if not current_sequence then
+                        current_sequence = {
+                            path = parent_path,
+                            container_id = container_id,
+                        }
+                        
+                        -- If the next FX is parallel but current isn't, we need to add current FX first
+                        if not is_parallel and next_is_parallel then
+                            table.insert(current_sequence, {
+                                index = i,
+                                addr_fxid = tree_items[i].addr_fxid,
+                                name = tree_items[i].fxname,
+                                guid = tree_items[i].GUID
+                            })
+                        end
                     end
-                    count = count + 1
+                    
+                    -- Add the current FX to the sequence if it's parallel
+                    if is_parallel then
+                        table.insert(current_sequence, {
+                            index = i,
+                            addr_fxid = tree_items[i].addr_fxid,
+                            name = tree_items[i].fxname,
+                            guid = tree_items[i].GUID
+                        })
+                    end
                 else
-                    if count >= 1 then
-                        table.insert(sequences, {start_index, i - 1})
+                    -- If we were building a sequence and hit a non-parallel FX, finalize the sequence
+                    if current_sequence and #current_sequence > 0 then
+                        table.insert(sequences, current_sequence)
+                        current_sequence = nil
                     end
-                    start_index = nil
-                    count = 0
+                end
+                
+                -- Recursively process children if this is a container
+                if tree_items[i].children and #tree_items[i].children > 0 then
+                    local child_path = parent_path .. "." .. i
+                    -- Pass the container's FX ID to the recursive call
+                    local child_sequences = find_parallel_sequences(
+                        tree_items[i].children, 
+                        child_path, 
+                        tree_items[i].addr_fxid
+                    )
+                    
+                    -- Add all child sequences to our results
+                    for _, seq in ipairs(child_sequences) do
+                        table.insert(sequences, seq)
+                    end
                 end
             end
-        
-            -- Check if the loop ended while still in a sequence
-            if count >=1 then
-                table.insert(sequences, {start_index, #tree})
+            
+            -- Check if we ended the loop while still building a sequence
+            if current_sequence and #current_sequence > 0 then
+                table.insert(sequences, current_sequence)
             end
-        
+            
             return sequences
         end
 
+        PAR_FXs = find_parallel_sequences(TREE)
 
-
-        PAR_FXs = find_parallel_sequences(tree)
-
-
-
-        return tree
+        return TREE
     end
 end
-
 function Check_If_Has_Children_Prioritize_Empty_Container(TB)
     local Candidate
     for i, v in ipairs(TB) do
@@ -1446,7 +1479,7 @@ end
 function Check_If_Its_Root_of_Parallel(FX_Idx_to_Check) -- if it is, set the next fx to no be parallel with previous fx
     for i, v in ipairs(PAR_FXs)do 
 
-        if FX_Idx_to_Check == v[1]-1 and FX_Idx_to_Check > 0 then 
+        if FX_Idx_to_Check == v[1].addr_fxid and FX_Idx_to_Check > 0 then 
             return true 
         end
 
@@ -1723,6 +1756,12 @@ function Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
     end
 end
 
+function GetFormatPrmV(V, OrigV, i)
+    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i, V)
+    local _, RV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, i)
+    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i, OrigV)
+    return RV
+end
 
 
 function HSV_Change(InClr, H, S, V, A, Change_S_If_V_Is_Full)
@@ -1839,7 +1878,7 @@ function Put_FXs_Into_New_Container(FX_Idx, cont, i ) -- i = pos in container
     local to 
     local id = FX_Idx 
 
-    local scale = tree[id].scale
+    local scale = TREE[id].scale
 
     --local cont = cont +1
     local  ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_count')))
@@ -1867,15 +1906,16 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     local MAX_FX_SIZE = 250
     local FxGUID = FXGUID[FX_Idx_For_AddFX or FX_Idx]
     im.SetNextItemWidth(ctx, 180)
-    _, ADDFX_FILTER = im.InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER,
-        im.InputTextFlags_AutoSelectAll)
+    _, ADDFX_FILTER = im.InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER, im.InputTextFlags_AutoSelectAll)
 
     if im.IsWindowAppearing(ctx) then
         local tb = FX_LIST
         im.SetKeyboardFocusHere(ctx, -1)
+        ADDFX_FILTER = ''
     end
 
     local filtered_fx = Filter_actions(ADDFX_FILTER)
+    if #filtered_fx == 0 then return end 
     --im.SetNextWindowPos(ctx, im.GetItemRectMin(ctx), ({ im.GetItemRectMax(ctx) })[2])
     local filter_h = #filtered_fx == 0 and 2 or (#filtered_fx > 40 and 20 * 17 or (17 * #filtered_fx))
     local function InsertFX(Name)
@@ -1920,7 +1960,9 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
         if Name =='Container' then 
             r.TrackFX_Show(LT_Track, FX_Idx , 2)
         end
+        local FXCount = r.TrackFX_GetCount(LT_Track)
 
+        RetrieveFXsSavedLayout(FXCount)
         ADDFX_FILTER = nil
     end
     if ADDFX_FILTER ~= '' and ADDFX_FILTER then
@@ -1936,6 +1978,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
         if im.BeginPopup(ctx, "##popupp", im.WindowFlags_NoFocusOnAppearing --[[ MAX_FX_SIZE, filter_h ]]) then
             ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
             for i = 1, #filtered_fx do
+
                 local ShownName
                 if filtered_fx[i]:find('VST:') then
                     local fx = filtered_fx[i]
@@ -3011,6 +3054,7 @@ function At_End_Of_Loop()
         Long_Or_Short_Click_Time_Start = nil 
         Create_Insert_FX_Preview = nil
         DragFX_ID = nil
+        DRAW_PAR_ENCLOSURE =nil
     end
     if RBtnRel then 
         MARQUEE_SELECTING_FX = nil
