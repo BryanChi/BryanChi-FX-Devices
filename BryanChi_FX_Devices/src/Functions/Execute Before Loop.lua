@@ -326,11 +326,11 @@ function Colors()
             outline = 0x444444ff
         };
 
-        PAR_FX = { };
+        PAR_FX = { 0x999933ff ; 0x993399ff ; 0x339999ff ; 0x3E7EB8ff; 0x6CB83Eff ; 0xB88E3Eff ; 0x473EB8ff};
 
     }
 
-    Clr.PAR_FX[1]= 0x999933ff
+    --Clr.PAR_FX[1]= 0x999933ff
 
 
 

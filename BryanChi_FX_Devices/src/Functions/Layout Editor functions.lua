@@ -4286,7 +4286,6 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
                                         --[[ if condition.COND_Prm_Or_VB == 'Virtual Button' and condition.Custom_Lbl == VB_to_delete.CustomLbl then
                                             condition.COND_Prm_Or_VB = nil
-                                            msg("REMOVE")
                                             local I = i ==1 and '' or i
 
                                         end ]]

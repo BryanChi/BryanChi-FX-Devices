@@ -108,6 +108,7 @@ end
 ---@param fxidx integer 0 based or something like 33554455 in container
 ---@return table<Index,fxslot> table
 function get_container_path_from_fx_id(tr, fxidx) -- returns a list of 1-based FXIDs as a table from a fx-address, e.g. 1, 2, 4
+    if type(fxidx)=='string' then return end 
     if fxidx & 0x2000000 then
       local ret = { }
       local n = r.TrackFX_GetCount(tr)
@@ -354,7 +355,9 @@ function BuildFXTree(tr)
                                 index = i,
                                 addr_fxid = tree_items[i].addr_fxid,
                                 name = tree_items[i].fxname,
-                                guid = tree_items[i].GUID
+                                guid = tree_items[i].GUID,
+                                scale = tree_items[i].scale
+
                             })
                         end
                     end
@@ -365,7 +368,8 @@ function BuildFXTree(tr)
                             index = i,
                             addr_fxid = tree_items[i].addr_fxid,
                             name = tree_items[i].fxname,
-                            guid = tree_items[i].GUID
+                            guid = tree_items[i].GUID,
+                            scale = tree_items[i].scale
                         })
                     end
                 else
@@ -1476,7 +1480,7 @@ function DeleteAllParamOfFX(FXGUID, TrkID)
         end
     end
 end
-function Check_If_Its_Root_of_Parallel(FX_Idx_to_Check) -- if it is, set the next fx to no be parallel with previous fx
+function FX_Is_Root_Of_Parallel_Chain(FX_Idx_to_Check) -- if it is, set the next fx to no be parallel with previous fx
     for i, v in ipairs(PAR_FXs)do 
 
         if FX_Idx_to_Check == v[1].addr_fxid and FX_Idx_to_Check > 0 then 
@@ -2729,17 +2733,17 @@ function At_Begining_of_Loop()
         for i, v in ipairs(MovFX.FromPos) do -- move FX
 
             
-
+            
             r.TrackFX_CopyToTrack(LT_Track, v, LT_Track, MovFX.ToPos[i], true)
             if MovFX.Parallel then 
 
                 if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
                     -- Set the FX Being Dragged into not parallel
                     r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
-                    r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel +1), 'parallel', '1' )
-
+                    --r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel + (MovFX.scale or 1)), 'parallel', '1' )
                 else
-                    r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i], 'parallel', '1' )
+
+                    --r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i] - (MovFX.scale or 1), 'parallel', '1' )
                 end
             
             end

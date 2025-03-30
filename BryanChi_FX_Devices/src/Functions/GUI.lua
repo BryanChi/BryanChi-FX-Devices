@@ -2735,14 +2735,20 @@ function Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID, Parallel, PosX_before_F
         local B = t +225
 
         DRAW_PAR_ENCLOSURE = DRAW_PAR_ENCLOSURE or {}
+        --DRAW_PAR_ENCLOSURE[FxGUID] =  {l =l ; t =t ; R =R ; B =B }
+        DRAW_PAR_ENCLOSURE[FxGUID] = DRAW_PAR_ENCLOSURE[FxGUID] or {}
+        DRAW_PAR_ENCLOSURE[FxGUID].l = l
+        DRAW_PAR_ENCLOSURE[FxGUID].R= R
+        DRAW_PAR_ENCLOSURE[FxGUID].t = t
+        DRAW_PAR_ENCLOSURE[FxGUID].B = B
 
-        DRAW_PAR_ENCLOSURE[FxGUID] =  {l =l ; t =t ; R =R ; B =B }
+
         for k, v in pairs(DRAW_PAR_ENCLOSURE) do
+            if not v.t then return end
             local l = v.l
             local t = v.t - 10
             local R = v.R
             local B = v.B
-           -- msg('l = '..l ..' t = '..t ..' R = '..R ..' B = '..B)
 
 
         end
@@ -2754,7 +2760,7 @@ function Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID, Parallel, PosX_before_F
         im.DrawList_AddLine(DL, R , t, R, t + H, Clr.PAR_FX[1], thick) ]]
         im.SameLine(ctx, nil, 0)   
 
-        AddSpaceBtwnFXs(FX_Idx, 'End of Parallel')
+        AddSpaceBtwnFXs(FX_Idx, FxGUID)
 
 
     elseif rv and ret == '1' and not FX[FxGUID].ShowParallel and Parallel ~= 'Complex' and Parallel ~= 'Mixer Layout - Hide' then
@@ -2773,17 +2779,22 @@ function Draw_Parallel_FX_Enclosure()
     local DL = Glob.WDL
     local thick = 5
     local H = 10
+
     for k, v in pairs(DRAW_PAR_ENCLOSURE) do
+
+        local ID = v.ID or 1
+        if not v.t then return end 
         local l = v.l
         local t = v.t -5
         local R = v.R
         local B = v.B
 
-        im.DrawList_AddLine(DL, l , t, R, t, Clr.PAR_FX[1], thick) -- horizontal line
+        im.DrawList_AddLine(DL, l , t, R, t, Clr.PAR_FX[ID], thick) -- horizontal line
         --local t = t - thick/2
-        im.DrawList_AddLine(DL, l , t , l, t + H, Clr.PAR_FX[1], thick) -- vertical line
-        im.DrawList_AddLine(DL, R , t , R, t + H, Clr.PAR_FX[1], thick) -- vertical line
+        im.DrawList_AddLine(DL, l , t , l, t + H, Clr.PAR_FX[ID], thick) -- vertical line
+        im.DrawList_AddLine(DL, R , t , R, t + H, Clr.PAR_FX[ID], thick) -- vertical line
     end
+
 
 end
 
@@ -3198,12 +3209,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
         --- if Mixer Layout 
         for i , v in ipairs(PAR_FXs) do 
+
             if v[1] and FX_Idx == v[1].addr_fxid then          -- if it's the FX before the first parallel FX
                 ROOT_FXGUID = FxGUID
                 im.PushStyleColor(ctx, im.Col_ChildBg, 0x202020ff)
                 im.PushStyleVar(ctx, im.StyleVar_ScrollbarSize, 10)
                 POS_X_BEFORE_MIXER = im.GetCursorScreenPos(ctx)
-                if im.BeginChild(ctx, '##Parallel FX' .. FX_Idx , Win_W + 5 , 220, im.WindowFlags_NoScrollWithMouse) then
+                if im.BeginChild(ctx, '##Parallel FX' .. FX_Idx , Win_W + 5 , 220,nil, im.WindowFlags_NoScrollWithMouse|im.WindowFlags_NoScrollbar) then
                     --[[ local l, t = im.GetCursorScreenPos(ctx)
                     im.DrawList_AddRect(WDL, l , t , l + Win_W +5 ,t + 220, 0xff22ffff) ]]
                     local pad = 2   
@@ -3217,38 +3229,43 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         im.EndDragDropSource(ctx)
                     end
 
-                    if im.BeginChild(ctx, '##Parallel FX Mixer' .. FX_Idx , Win_W  , 190, nil--[[ im.WindowFlags_NoScrollbar ]]) then
+                    if im.BeginChild(ctx, '##Parallel FX Mixer' .. FX_Idx , Win_W  , 190,nil, im.WindowFlags_NoScrollbar) then
 
                         for I, V in ipairs(v) do
-
+                            if DRAW_PAR_ENCLOSURE then 
+                                if FX[v[1].guid].ChosenFX ==V.guid  then 
+                                    DRAW_PAR_ENCLOSURE[V.guid ] = {}
+                                    DRAW_PAR_ENCLOSURE[V.guid ].ID = I
+                                end
+                            end 
                             --local FX_Idx = i -1 
                             local Label =  '##DryWet' .. FX_Idx
-                            local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet') 
+                            local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, V.addr_fxid, ':wet') 
                             --local FxGUID = r.TrackFX_GetFXGUID(LT_Track, v)
                             local FxGUID = V.guid
                             FX[FxGUID] = FX[FxGUID] or {}
                             local FX_Name = FX[FxGUID].CustomTitle or  ChangeFX_Name(V.name)
                             FX[FxGUID][0] = FX[FxGUID][0] or {}
 
-
+                            
                             
                             local function Solo()
+                                --local FxGUID = V.guid   
+
                                 local Solo_ClrPop = Button_Color_Change(FX[FxGUID].Solo , Layer_Solo )
                                 im.PushStyleColor(ctx, im.Col_Button, Change_Clr_A (im.GetStyleColor(ctx, im.Col_Button), 1))
                                 im.PushStyleColor(ctx, im.Col_ButtonHovered, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonHovered ), 1))
                                 im.PushStyleColor(ctx, im.Col_ButtonActive, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonActive ), 1))
 
-                                if im.Button(ctx, 'S##Solo'..FX_Idx, height, height*2) then 
+                                if im.Button(ctx, 'S##Solo'..FxGUID, height, height*2) then 
                                     FX[FxGUID].Solo = toggle(FX[FxGUID].Solo)
-
 
                                     Save_to_Trk('Parallel Solo ' .. FxGUID, FX[FxGUID].Solo )
 
-                                    local Solo_Count = 0 
-                                    for i= v[1], rpt, 1 do  
-                                        local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, i-1, ':wet') 
-                                        local FxGUID = TREE[i].GUID
-
+                                    local Solo_Count = 0    
+                                    for i= v[1].addr_fxid, v[1].addr_fxid +  #v + #v * V.scale - V.scale, V.scale do  
+                                        local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, i, ':wet') 
+                                        local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, i)
                                         if FX[FxGUID].Solo then   
                                             Solo_Count = Solo_Count + 1 
                                         end 
@@ -3256,10 +3273,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                     end
 
-                                    
-                                    for i= v[1], rpt, 1 do  
-                                        local FxGUID = TREE[i].GUID
-                                        local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, i-1, ':wet') 
+
+                                    for i= v[1].addr_fxid, v[1].addr_fxid +  #v + #v * V.scale - V.scale, V.scale do  
+                                        local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, i)
+                                        local wet_p_num =  r.TrackFX_GetParamFromIdent(LT_Track, i, ':wet') 
+                                        local rv, NM = r.TrackFX_GetFXName(LT_Track, i)
 
                                         if Solo_Count > 0 then 
 
@@ -3270,19 +3288,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                                                 end
 
-                                                ChangeWetVal (FxGUID, i-1  ,wet_p_num , 0)
+                                                r.TrackFX_SetParamNormalized(LT_Track, i  ,wet_p_num , 0)
                                             else    -- if soloed 
-                                                local V = FX[FxGUID].Wet_V_before_solo or FX[FxGUID][0].V or r.TrackFX_GetParamNormalized(LT_Track, i-1, wet_p_num)
+                                                local V = FX[FxGUID].Wet_V_before_solo or FX[FxGUID][0].V or r.TrackFX_GetParamNormalized(LT_Track, i, wet_p_num)
 
-                                                
-                                                ChangeWetVal (FxGUID, i-1  ,wet_p_num , V)
+                                                r.TrackFX_SetParamNormalized(LT_Track, i, wet_p_num, V)
                                                 Save_to_Trk('Wet_V_before_solo ' .. FxGUID,'' )
-
 
                                             end
                                         else    
 
-                                            ChangeWetVal (FxGUID, i-1  ,wet_p_num , FX[FxGUID].Wet_V_before_solo or FX[FxGUID][0].V or 0.3)
+                                            --ChangeWetVal (FxGUID, i  ,wet_p_num , FX[FxGUID].Wet_V_before_solo or FX[FxGUID][0].V or 0.3)
+                                            r.TrackFX_SetParamNormalized(LT_Track, i, wet_p_num, FX[FxGUID].Wet_V_before_solo or FX[FxGUID][0].V or 0.3)
+                                            
+
                                             Save_to_Trk('Wet_V_before_solo ' .. FxGUID, '')
 
                                         end
@@ -3300,39 +3319,54 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 im.PushStyleColor(ctx, im.Col_ButtonHovered, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonHovered ), 1))
                                 im.PushStyleColor(ctx, im.Col_ButtonActive, Change_Clr_A (im.GetStyleColor(ctx, im.Col_ButtonActive ), 1))
 
-
                                 local LyrMuteClrPop = Button_Color_Change(FX[FxGUID].Mute , Layer_Mute )
 
-                                if im.Button(ctx, 'M##Mute'..FX_Idx, height, height*2) then 
+                                if im.Button(ctx, 'M##Mute'..FxGUID, height, height*2) then 
                                     FX[FxGUID].Mute = toggle(FX[FxGUID].Mute)
                                     Save_to_Trk('Parallel Mute ' .. FxGUID, FX[FxGUID].Mute )
 
-                                    if not FX[FxGUID].Mute  then --if muted 
-                                        --ChangeWetVal(FxGUID, i-1  ,wet_p_num, FX[FxGUID].Wet_V_before_mute or FX[FxGUID][0].V or 0)
+                                    if FX[FxGUID].Mute then
+                                        -- Store current wet value before muting
+                                        FX[FxGUID].Wet_V_before_mute = FX[FxGUID][0].V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, wet_p_num)
+                                        Save_to_Trk('Wet_V_before_mute ' .. FxGUID, FX[FxGUID].Wet_V_before_mute)
+                                        
+                                        -- Loop through all FX in the parallel chain
+                                        for i = v[1].addr_fxid, v[1].addr_fxid + #v + #v * V.scale - V.scale, V.scale do
+                                            local current_FxGUID = r.TrackFX_GetFXGUID(LT_Track, i)
+                                            local current_wet_p_num = r.TrackFX_GetParamFromIdent(LT_Track, i, ':wet')
+                                            
+                                            -- Set this FX's wet value to 0 (mute it)
+                                            r.TrackFX_SetParamNormalized(LT_Track, i, current_wet_p_num, 0)
+                                        end
+                                    else
+                                        -- Loop through all FX in the parallel chain
+                                        for i = v[1].addr_fxid, v[1].addr_fxid + #v + #v * V.scale - V.scale, V.scale do
+                                            local current_FxGUID = r.TrackFX_GetFXGUID(LT_Track, i)
+                                            local current_wet_p_num = r.TrackFX_GetParamFromIdent(LT_Track, i, ':wet')
+                                            
 
-                                        --r.TrackFX_SetParamNormalized(LT_Track,FX_Idx, wet_p_num, FX[FxGUID].Wet_V_before_mute or FX[FxGUID][0].V or 0)
-                                        --
+                                                -- Restore previous wet value
+                                                r.TrackFX_SetParamNormalized(LT_Track, i, current_wet_p_num, 
+                                                    FX[FxGUID].Wet_V_before_mute or FX[FxGUID][0].V or 0.3)
+                                                Save_to_Trk('Wet_V_before_mute ' .. FxGUID, '')
 
-                                        ChangeWetVal(FxGUID, i-1  ,wet_p_num, FX[FxGUID].Wet_V_before_mute or FX[FxGUID][0].V or 0)
-                                        Save_to_Trk('Wet_V_before_mute ' .. FxGUID, '' )
-                                    else    
-
-                                        FX[FxGUID].Wet_V_before_mute = FX[FxGUID][0].V or r.TrackFX_GetParamNormalized(LT_Track,FX_Idx, wet_p_num)
-                                        Save_to_Trk('Wet_V_before_mute ' .. FxGUID, FX[FxGUID].Wet_V_before_mute )
-                                        ChangeWetVal(FxGUID, i-1  ,wet_p_num, 0)
-                                    end 
-                                    FX[FxGUID].V = r.TrackFX_GetParamNormalized(LT_Track,FX_Idx, wet_p_num)
+                                        end
+                                    end
+                                    
+                                    -- Update the current value
+                                    FX[FxGUID][0].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, wet_p_num)
                                 end
+                                
                                 if LyrMuteClrPop then 
                                     im.PopStyleColor(ctx, LyrMuteClrPop)
                                 end 
 
                                 im.PopStyleColor(ctx, 3 )
-
                             end
+                            
                             local function Input_Text_label()
                                 local x , y = im.GetCursorPos(ctx)
-                                local rv,  buf = im.InputText( ctx, '##Dry wet'..FX_Idx,  buf or FX_Name , im.InputTextFlags_EnterReturnsTrue)
+                                local rv,  buf = im.InputText( ctx, '##Custom Title'..FX_Idx,  buf or FX_Name , im.InputTextFlags_EnterReturnsTrue)
                                 --[[ local l, t =  im.GetItemRectMin(ctx)
                                 local w, h =  im.GetItemRectSize(ctx)
                                 im.SetCursorPos(ctx, l, t)
@@ -3374,7 +3408,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         if im.IsMouseReleased(ctx,0) then 
                                             if x < 8 and y < 8 then 
                                                 if FX[ROOT_FXGUID].ChosenFX == FxGUID then FX[ROOT_FXGUID].ChosenFX = nil 
-                                                else FX[ROOT_FXGUID].ChosenFX = FxGUID 
+                                                else 
+                                                    FX[ROOT_FXGUID].ChosenFX = FxGUID 
                                                 end
 
                                             end
@@ -3390,10 +3425,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             
                             local function Allow_FX_Drag_On_Item()
                                 if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect| im.DragDropFlags_AcceptNoPreviewTooltip) then
-                                    im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
-                                    DragFX_ID = FX_Idx
+                                    im.SetDragDropPayload(ctx, 'FX_Drag', V.addr_fxid)
+                                    DragFX_ID = V.addr_fxid
                                     DragFxGuid = FxGUID
-                                    Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
+                                    Show_Drag_FX_Preview_Tooltip(FxGUID, V.addr_fxid)
 
                                     im.EndDragDropSource(ctx)
                                     return true 
@@ -3403,17 +3438,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local function ColorBox()
                                 if im.InvisibleButton(ctx, '##color Rect'..FX_Idx, 5, height * 2) then 
                                 end
-                                local l,t,R,b, w,h = HighlightSelectedItem(Clr.PAR_FX[1]) 
+                                local l,t,R,b, w,h = HighlightSelectedItem(Clr.PAR_FX[I]) 
                             end
                             
-                            local function MoveFX(payload, ofs)
-                                table.insert(MovFX.FromPos, tonumber(payload))
-                                table.insert(MovFX.ToPos, tonumber(FX_Idx) + (ofs or 0))
+                            local function LOCAL_MoveFX(Dest ,Src, ofs)
+                                table.insert(MovFX.FromPos, tonumber(Src))
+                                table.insert(MovFX.ToPos, tonumber(Dest) + (ofs or 0))
 
                                 -- if Moving to the first fx (root) of parallel fx
-                                if v[1] -1 ==tonumber(FX_Idx) + (ofs or 0) then 
-                                    MovFX.Parallel = v[1]-1
+                                if v[1].addr_fxid ==tonumber(Dest) + (ofs or 0) then 
+                                    MovFX.Parallel =v[1].addr_fxid
                                 else
+                                    MovFX.scale = V.scale
                                     MovFX.Parallel = true 
                                 end
                             end
@@ -3429,21 +3465,33 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         local w, h = im.GetItemRectSize(ctx)
                                         im.DrawList_AddRectFilled(WDL, l, t, l+w, t + 5, 0xffff44ff) ]]
 
-                                        if DragFX_ID < tonumber(FX_Idx) then 
-                                            Create_Insert_FX_Preview =  FX_Idx+1
+                                        if DragFX_ID < tonumber(V.addr_fxid) then 
+                                            Create_Insert_FX_Preview =  V.addr_fxid+(V.scale or 1)
                                         else
-                                            Create_Insert_FX_Preview =  FX_Idx
+                                            Create_Insert_FX_Preview =  V.addr_fxid
                                         end 
                                         if dropped then 
-                                            if Check_If_Its_Root_of_Parallel(tonumber(payload)) then 
-                                                local nextFX, PrevFX = GetNextAndPreviousFXID(payload)
-                                                r.TrackFX_SetNamedConfigParm( LT_Track, nextFX, 'parallel', '0' )
+                                            local local_ofs = 0 
+                                            if FX_Is_Root_Of_Parallel_Chain(V.addr_fxid) then 
+                                                if V.addr_fxid < DragFX_ID then 
+                                                    r.TrackFX_SetNamedConfigParm( LT_Track, V.addr_fxid --[[ + (V.scale or 1) ]], 'parallel', '1' )
+                                                elseif V.addr_fxid == DragFX_ID + (V.scale or 1 ) then 
+                                                    r.TrackFX_SetNamedConfigParm( LT_Track, V.addr_fxid --[[ + (V.scale or 1) ]], 'parallel', '1' )
+                                                    goto END_OF_MOVING_FX  -- skip the reordering part because FXS are already in the right place
+                                                else 
+                                                    r.TrackFX_SetNamedConfigParm( LT_Track, v[1].addr_fxid , 'parallel', '1' )
+                                                    local_ofs =  - (V.scale or 1)
+
+                                                end
+                                            else 
+                                                r.TrackFX_SetNamedConfigParm( LT_Track, DragFX_ID, 'parallel', '1' )
                                             end
-                                            MoveFX(payload, ofs)
+
+                                            LOCAL_MoveFX(V.addr_fxid + local_ofs, tonumber(payload), ofs or 0)
                                             if Mods == Alt then 
                                             elseif Mods == Alt + Shift then 
                                             end
-                                            
+                                            ::END_OF_MOVING_FX::
                                         end
                                     end
                                     im.EndDragDropTarget(ctx)
@@ -3452,7 +3500,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
 
                             local function Add_FX_Btn ()
-                                if i == rpt then 
+                                if I == #v then 
                                     AddSpacing(1)
                                     im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
 
@@ -3461,7 +3509,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local clickBtn = im.Button(ctx, '+'..'##Add FX Button'..FxGUID, Width + height*2.5, height*0.9)
                                     im.PopFont(ctx)
                                     im.PopStyleColor(ctx)
-                                    local rv = Allow_FX_Drop_On_Item(1)
+                                    local rv = Allow_FX_Drop_On_Item(V.scale or 0)
                                     local FillClr= rv and 0xffffff33
                                     local L, T, R, B, w, h = HighlightSelectedItem(FillClr, 0xffffff77, 0, nil,nil,nil,nil, nil, nil , 1,1, 'GetItemRect', nil, nil, 2) 
 
@@ -3499,8 +3547,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                             local function Show_Preview_FXBtn_For_DragDrop(trigger)
 
-
-
                                 local Hover_Insert_FX_Preview
 
                                 if   trigger then 
@@ -3520,7 +3566,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                                 if not MovFX.ToPos[1] then 
                                                     table.insert(MovFX.FromPos, DragFX_ID)
                                                     table.insert(MovFX.ToPos, tonumber(FX_Idx))
-                                                    MoveFX(payload, ofs)
+                                                    LOCAL_MoveFX(V.addr_fxid, tonumber(payload), ofs or 0)
                                                 end
                                             end
                                         end
@@ -3529,7 +3575,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 return Hover_Insert_FX_Preview
                             end
 
-                            local Hover_Insert_FX_Preview = Show_Preview_FXBtn_For_DragDrop(Create_Insert_FX_Preview==FX_Idx)
+                            local Hover_Insert_FX_Preview = Show_Preview_FXBtn_For_DragDrop(Create_Insert_FX_Preview==V.addr_fxid)
 
                             im.BeginGroup(ctx)
 
@@ -3555,7 +3601,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             fp.V = fp.V  or r.TrackFX_GetParamNormalized( LT_Track, FX_Idx, wet_p_num)
                             fp.Sldr_W = 120
                             fp.CustomLbl = ''
-                            AddDrag(ctx, FxGUID, 0, FX_Idx)
+                            FX[FxGUID][0].Num = wet_p_num
+                            AddDrag(ctx, FxGUID, 0, V.addr_fxid)
 
 
                             im.EndGroup(ctx)
@@ -3569,7 +3616,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 Create_Insert_FX_Preview = rv 
                             elseif Create_Insert_FX_Preview==FX_Idx and not Hover_Insert_FX_Preview then 
                                 Create_Insert_FX_Preview = nil 
-                            elseif i == rpt and Create_Insert_FX_Preview==FX_Idx + 1 and not Hover_Insert_FX_Preview then 
+                            elseif i == #v and Create_Insert_FX_Preview==FX_Idx + V.scale and not Hover_Insert_FX_Preview then 
                                 Create_Insert_FX_Preview = nil 
                             end
 
@@ -3581,9 +3628,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             SL(nil,1)
                             Mute()
 
-                            im.EndGroup(ctx)
+                            im.EndGroup(ctx)    
 
-                            Show_Preview_FXBtn_For_DragDrop(i == rpt and  (Create_Insert_FX_Preview==FX_Idx+1))
+
+                            Show_Preview_FXBtn_For_DragDrop(i == #v and  (Create_Insert_FX_Preview==FX_Idx+V.scale))
 
                             if drag then 
                                 HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL --[[rounding]])
@@ -3604,6 +3652,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     im.EndChild(ctx)
                     SL(nil,0)
                     START_OF_PARALLEL_FX_MIXER = id
+
+
                 end
                 im.PopStyleVar(ctx) --- for scrollbarsize
                 im.PopStyleColor(ctx)
@@ -5047,8 +5097,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Highlight_selected_FX(FX_Idx)
         end
 
-      -- Draw_Parallel_FX_Enclosure(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, im.GetWindowDrawList(ctx))
-      Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID , Parallel, POS_X_BEFORE_MIXER + PAR_FX_MIXER_WIN_W , im.GetWindowDrawList(ctx))
+        -- Draw_Parallel_FX_Enclosure(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, im.GetWindowDrawList(ctx))
+        Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID , Parallel, (POS_X_BEFORE_MIXER or 0) + PAR_FX_MIXER_WIN_W , im.GetWindowDrawList(ctx))
 
     end
     
@@ -5675,21 +5725,19 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
 
                             local function If_FX_Is_Parallel()
-
+                                --if not V then return end 
                                 local FX_Idx = tonumber(payload)
-                                local rv , ret = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'parallel') 
-                                local parallel = ret == '1' and true 
+                                local rv , parallel = r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'parallel') 
 
-                                
-                                if parallel then 
-                                        r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx , 'parallel', '0')
+                                if parallel == '1' then 
+                                    r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx , 'parallel', '0')
                                 end
 
-                                if Check_If_Its_Root_of_Parallel(FX_Idx) then -- if the fx we're moving is the root of a parallel chain
-                                    local nextFX, PrevFX = GetNextAndPreviousFXID(FX_Idx)
-                                    r.TrackFX_SetNamedConfigParm( LT_Track, nextFX, 'parallel', '0' )
+                              --[[   if Check_If_Its_Root_of_Parallel(FX_Idx) then -- if the fx we're moving is the root of a parallel chain
+                                    --local nextFX, PrevFX = GetNextAndPreviousFXID(V.addr_fxid)
+                                    r.TrackFX_SetNamedConfigParm( LT_Track, V.addr_fxid + (V.scale or 1), 'parallel', '0' )
                                     -- set next fx to not parallel with previous fx (Make the next fx the root of the parallel chain)
-                                end
+                                end ]]
                             end
 
                             If_FX_Is_Parallel()

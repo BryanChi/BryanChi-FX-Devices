@@ -1063,7 +1063,6 @@ else
                         if  FX_Name:find('FXD Containr Macro') then return end 
                         -- Add the width for parallel Mixer if haven't done so 
                         --[[ if not fx.Added_Parallel_Mixer_Width then
-                            msg(FX_Idx.. ' add mixer ')
                             fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
                             fx.Added_Parallel_Mixer_Width = true
                         end ]]
