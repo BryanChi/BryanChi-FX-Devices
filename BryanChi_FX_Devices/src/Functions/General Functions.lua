@@ -340,30 +340,39 @@ function BuildFXTree(tr)
                 -- Check if this FX is parallel or the next FX is parallel
                 local is_parallel = tree_items[i].parallel
                 local next_is_parallel = tree_items[i+1] and tree_items[i+1].parallel
-                
-                if is_parallel or next_is_parallel then
+                local Is_Root
+                local function Check_If_FX_Is_Root__If_So_Add_To_Table()
+                    
                     -- If this is the first FX in a sequence we're detecting
                     if not current_sequence then
-                        current_sequence = {
-                            path = parent_path,
-                            container_id = container_id,
-                        }
-                        
-                        -- If the next FX is parallel but current isn't, we need to add current FX first
-                        if not is_parallel and next_is_parallel then
-                            table.insert(current_sequence, {
-                                index = i,
-                                addr_fxid = tree_items[i].addr_fxid,
-                                name = tree_items[i].fxname,
-                                guid = tree_items[i].GUID,
-                                scale = tree_items[i].scale
+                        if is_parallel or next_is_parallel then
 
-                            })
+                            current_sequence = {
+                                path = parent_path,
+                                container_id = container_id,
+                            }
+                            
+                            -- If the next FX is parallel but current isn't, we need to add current FX first
+                            if not is_parallel and next_is_parallel then
+                                table.insert(current_sequence, {
+                                    index = i,
+                                    addr_fxid = tree_items[i].addr_fxid,
+                                    name = tree_items[i].fxname,
+                                    guid = tree_items[i].GUID,
+                                    scale = tree_items[i].scale
+
+                                })
+                                Is_Root = true
+                            end
                         end
                     end
-                    
+                end
+                Check_If_FX_Is_Root__If_So_Add_To_Table()
+
+                
                     -- Add the current FX to the sequence if it's parallel
-                    if is_parallel then
+                if not Is_Root then 
+                    if is_parallel  then
                         table.insert(current_sequence, {
                             index = i,
                             addr_fxid = tree_items[i].addr_fxid,
@@ -371,15 +380,20 @@ function BuildFXTree(tr)
                             guid = tree_items[i].GUID,
                             scale = tree_items[i].scale
                         })
-                    end
-                else
-                    -- If we were building a sequence and hit a non-parallel FX, finalize the sequence
-                    if current_sequence and #current_sequence > 0 then
-                        table.insert(sequences, current_sequence)
-                        current_sequence = nil
+
+                    else
+                        -- If we were building a sequence and hit a non-parallel FX, finalize the sequence
+                        if current_sequence and #current_sequence > 1 then
+                            table.insert(sequences, current_sequence)
+                            current_sequence = nil
+                            Check_If_FX_Is_Root__If_So_Add_To_Table()
+                        elseif current_sequence and #current_sequence == 1 then -- if there's a FX set to parallel but there's no FX before it 
+                            r.TrackFX_SetNamedConfigParm( tr, current_sequence[1].addr_fxid , 'parallel', '0' ) -- set to not parallel 
+
+                        end
                     end
                 end
-                
+                    
                 -- Recursively process children if this is a container
                 if tree_items[i].children and #tree_items[i].children > 0 then
                     local child_path = parent_path .. "." .. i
@@ -398,8 +412,11 @@ function BuildFXTree(tr)
             end
             
             -- Check if we ended the loop while still building a sequence
-            if current_sequence and #current_sequence > 0 then
+
+            if current_sequence and #current_sequence > 1 then
                 table.insert(sequences, current_sequence)
+            elseif current_sequence and #current_sequence == 1 then -- if there's a FX set to parallel but there's no FX before it 
+                r.TrackFX_SetNamedConfigParm( LT_Track, current_sequence[1].addr_fxid , 'parallel', '0' ) -- set to not parallel 
             end
             
             return sequences
@@ -514,7 +531,7 @@ function Find_FxID_By_GUID (GUID)
 
     local function children(tb)
         if tb.children then 
-
+            local out
             for i, v in ipairs(tb.children)do 
 
                 if v.GUID == GUID then 
@@ -525,7 +542,10 @@ function Find_FxID_By_GUID (GUID)
             end
             for i, v in ipairs(tb.children)do 
                 if v.children then 
-                    children(v.children)
+                    out = children(v.children)
+                    if out then 
+                        return out 
+                    end
                 end
             end
         end
@@ -534,7 +554,7 @@ function Find_FxID_By_GUID (GUID)
     for i , v in pairs(TREE) do 
 
         if v.GUID == GUID then 
-            return i-1 
+            return v.addr_fxid 
         end
         local out = children(v)
         if out then return out end 
@@ -1338,17 +1358,21 @@ end
 
 function GetLTParam()
     LT_Track = r.GetLastTouchedTrack()
-    retval, LT_Prm_TrackNum, LT_FXNum, LT_ParamNum = r.GetLastTouchedFX()
+    retval, LT_Prm_TrackNum, LT_FXNum--[[ , LT_ParamNum ]] = r.GetLastTouchedFX()
     --GetTrack_LT_Track = r.GetTrack(0,LT_TrackNum)
 
     if LT_Track ~= nil then
         retval, LT_FXName = r.TrackFX_GetFXName(LT_Track, LT_FXNum)
-        retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
+        
     end
 end
 
 function GetLT_FX_Num()
-    retval, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
+    --_, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
+    _,  LT_Prm_TrackNum,  itemidx,  takeidx,  LT_FX_Number,  LT_ParamNum = r.GetTouchedOrFocusedFX(0) -- 0 means to query last touched parameter, 1 to query currently focused FX.
+    _,  LT_Prm_TrackNum,  itemidx,  takeidx,  FOCUSED_LT_FX_Number,  FOCUSED_LT_ParamNum = r.GetTouchedOrFocusedFX(1) -- 0 means to query last touched parameter, 1 to query currently focused FX.
+     --msg(FOCUSED_LT_FX_Number)
+     retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     LT_Track = r.GetLastTouchedTrack()
 end
 
@@ -1422,11 +1446,11 @@ function ToggleBypassFX(LT_Track, FX_Idx)
 end
 
 
----TODO I think Position is meant to be used as «instantiate» variable, is this the intent?
+
 ---@param track MediaTrack
 ---@param fx_name string
 ---@param Position integer
-function AddFX_HideWindow(track, fx_name, Position)
+function AddFX_HideWindow(track, fx_name, Position, parallel)
     local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
     if val & 4 == 0 then
         return r.TrackFX_AddByName(track, fx_name, 0, Position)   -- add fx
@@ -1875,24 +1899,26 @@ function Filter_actions(filter_text)
     return t
 end
 
-function Put_FXs_Into_New_Container(FX_Idx, cont, i ) -- i = pos in container
+function Put_FXs_Into_New_Container(FX_Idx, cont, i , scale) -- i = pos in container
 
     --local to =  TrackFX_GetInsertPositionInContainer(cont, i  )
 
     local to 
     local id = FX_Idx 
 
-    local scale = TREE[id].scale
-
+    local scale = scale or  TREE[id] and TREE[id].scale or 1
+    msg('cont = '..(cont or 'nil'))
     --local cont = cont +1
     local  ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_count')))
+    local rv , nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    local rv , cont_Name = r.TrackFX_GetFXName(LT_Track, cont)
+    msg(nm .. '   ' ..cont_Name)
 
-
-    if ct > 0  then 
+    if ct and ct > 0  then 
         to = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_item.'..(ct-1 )))) + scale
-        
     else    -- if container is empty 
-        to =  0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + FX_Idx
+    msg('cont is empty')
+        to =  0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (cont+1)
     end
     r.TrackFX_CopyToTrack(LT_Track, FX_Idx, LT_Track, to , true)
 
@@ -2164,7 +2190,6 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
     if im.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
         FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
-
         im.SeparatorText(ctx, "PLUGINS")
         for i = 1, #CAT do
 

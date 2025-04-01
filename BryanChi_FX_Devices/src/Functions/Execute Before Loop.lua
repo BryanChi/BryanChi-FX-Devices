@@ -961,6 +961,7 @@ function attachImagesAndFonts()
     icon1_middle        = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
     icon1_small         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
     Img = {
+        
         Trash  = im.CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
         Pin    = im.CreateImage(CurrentDirectory .. '/src/Images/pin.png'),
         Pinned = im.CreateImage(CurrentDirectory .. '/src/Images/pinned.png'),
@@ -978,7 +979,7 @@ function attachImagesAndFonts()
         openInNewWin = im.CreateImage(CurrentDirectory .. '/src/Images/open-in-new-window.png'),
         Folder = im.CreateImage(CurrentDirectory .. '/src/Images/folder.png'),
         Folder_Open = im.CreateImage(CurrentDirectory .. '/src/Images/folder_open.png'),
-
+        folder_add = im.CreateImage(CurrentDirectory .. '/src/Images/folder_add.png'),
     }
     for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)

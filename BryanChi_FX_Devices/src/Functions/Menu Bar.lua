@@ -16,32 +16,34 @@ end
 function If_Theres_Selected_FX()
     local Sel_FX = TrkID and Trk[TrkID] and  Trk[TrkID].Sel_FX
     if Sel_FX and Sel_FX[1] then  
-        Sel_FxGUID = {}
+
         table.sort(Sel_FX)
         local function Put_FXs_Into_Container()
         
             if im.Button(ctx, 'Put FXs into Container') then 
-                for i, v in ipairs(Sel_FX) do 
-                    local v = Find_FxID_By_GUID (v)
-                    local _, Name = r.TrackFX_GetFXName(LT_Track, v )
-                    local FxGUID = r.TrackFX_GetFXGUID(LT_Track, v)
-                    table.insert(Sel_FxGUID, FxGUID)
-                end
-                local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
 
-                local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - firstSlot)
-                local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
+                --[[ local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
+                msg('firstSlot = '..(firstSlot or 'nill')) ]]
+                local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - Sel_FX_Idx[1])
+               -- local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
                 TREE = BuildFXTree(LT_Track)
 
-                for i, v in ipairs(Sel_FX) do 
-                    local cont = Find_FxID_By_GUID (ContFxGUID)
-                    local id = Find_FxID_By_GUID (v)
+                for i, v in ipairs(Sel_FX_Idx) do 
+                    --local cont = Find_FxID_By_GUID (ContFxGUID)
 
-                    --[[ if cont <= v then v = v + 1 end ]]
-                    Put_FXs_Into_New_Container(id, cont, i )
+                    --[[ local id = Find_FxID_By_GUID (v)
+                    local Tree_Idx 
+                    for I, V in ipairs(TREE) do
+                        if id == V.addr_fxid then
+                            msg(I)
+                            Tree_Idx = I 
+                            break
+                        end
+                    end ]]
+                    Put_FXs_Into_New_Container(v, cont, i --[[ , Tree_Idx and TREE[Tree_Idx].scale ]] )
                 end
                 Sel_FX = nil 
-                Sel_FxGUID= nil
+
             end 
         end
 

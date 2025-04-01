@@ -22,6 +22,42 @@ if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end
 DEBUG_W = DEBUG_W or {}
 local Add_FX_Btn_Xpos
 
+local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
+local WinW = 0 
+local AllW = 0
+
+local TREE_ID
+for i, v in ipairs(TREE) do 
+    if v.GUID == FxGUID then 
+        TREE_ID = v.addr_fxid
+    end
+end
+
+local function Add_Width(Parallel)
+    if  FX_Name:find('FXD Containr Macro') then return end 
+    -- Add the width for parallel Mixer if haven't done so 
+    --[[ if not fx.Added_Parallel_Mixer_Width then
+        fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
+        fx.Added_Parallel_Mixer_Width = true
+    end ]]
+    for I,V in ipairs(PAR_FXs) do
+        for ii, vv in ipairs(V) do 
+
+            if ii== 1 and  vv.addr_fxid == FX_Id then 
+                fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
+                fx.Added_Parallel_Mixer_Width = true
+            end 
+        end
+    end 
+    if Parallel then 
+        if Parallel ~= 'Mixer Layout - Show' then return end 
+    end
+    local W = FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170
+    
+
+
+    fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
+end
 
 
 
@@ -924,46 +960,44 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
     
 end
 
---AddTitleBgClr ()
+local function Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
+    if fx.Cont_Collapse == 1   and fx.Sel_Preview then 
+            
+        SL()
+        --Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
+        --im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
 
-titleBar()
-fx.BgClr = nil
+        Hv = createFXWindow(fx.Sel_Preview)
+        if Hv then PreviewW = Hv end 
+        if PreviewW then fx.Width = 50 + 150 + PreviewW end
+    end
+end
 
+local function If_Container_Is_Empty()
+    if tonumber( FX_Count) == 0 then 
 
----------------------------------------------
----------Body--------------------------------
----------------------------------------------
+        im.SetCursorScreenPos(ctx, X-50 , Y)
+        im.InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
+    
+        --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
+    
+    
+        DndFXtoContainer_TARGET('ADD')
+        DndFXtoContainer_TARGET('MOVE')
+    end
+end
 
-local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
-local WinW = 0 
-local AllW = 0
-
-local X , Y = im.GetCursorScreenPos(ctx)
-local TB = Upcoming_Container 
-if not Upcoming_Container and TREE[Root_ID+1]  then 
-    TB = TREE[Root_ID+1].children
-end 
-
-macroPage(TB)
-im.Dummy(ctx, 5,10)
-
-
-if tonumber( FX_Count) == 0 then 
-
-    im.SetCursorScreenPos(ctx, X-50 , Y)
-    im.InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
-
-    --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
-
-
-    DndFXtoContainer_TARGET('ADD')
-    DndFXtoContainer_TARGET('MOVE')
-else
+local function Main(TB, X, Y)
+    if FX_Count == 0 then return end
     local CollapseXPos, CollapseYPos  = im.GetCursorPos(ctx)
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
     im.SetCursorPosY(ctx, Top_Spacing )
-    if TB  then 
+    msg('TREE_ID = '.. (TREE_ID or 'nil'))
+    local Parallel = If_Parallel_FX(TREE_ID)
+    Add_Width(Parallel)
+
+    if TB and not Parallel   then -- if there's an upcoming container
         fx.processed_containers = fx.processed_containers or {}
         fx.Added_Parallel_Mixer_Width = nil
 
@@ -978,8 +1012,7 @@ else
                 fx.processed_containers[GUID] = true
                 local SpaceClr = Calculate_Color_Based_On_Nesting_Level(fx.nestingLevel)
                 local SpaceClr = HSV_Change(SpaceClr, nil, nil, -0.8)
-
-
+                
                 if  fx.Cont_Collapse == 1   then 
                     
                     SL()
@@ -987,7 +1020,7 @@ else
                         Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
                     end
                     im.BeginChild(ctx, 'Collapse'..FxGUID, 180, 220, nil)
-                
+                    
                     local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
                     if W then PreviewW = W end 
                     if i == #TB then 
@@ -1032,7 +1065,7 @@ else
                             -- Mark that we're processing this container to prevent recursion
                             fx.processing_container = true
                         end
-                    
+                        
                         local Parallel = createFXWindow(FX_Id)
                         
                         -- Reset the processing flag after rendering
@@ -1042,8 +1075,7 @@ else
                             FX[GUID] = FX[GUID] or {}   
                             FX[GUID].parent = v.addr_fxid - v.scale * i   
                         end 
-                    
-
+                        
                         local TB = Upcoming_Container or TREE[Root_ID+1].children
                         local FX_Id_next = FX_Id + (v.scale or 0)
                         SL(nil,0)
@@ -1058,31 +1090,6 @@ else
                         Upcoming_Container = previous_container
                         Upcoming_Container_Parent = previous_parent
                         return Parallel
-                    end
-                    local function Add_Width(Parallel)
-                        if  FX_Name:find('FXD Containr Macro') then return end 
-                        -- Add the width for parallel Mixer if haven't done so 
-                        --[[ if not fx.Added_Parallel_Mixer_Width then
-                            fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
-                            fx.Added_Parallel_Mixer_Width = true
-                        end ]]
-                        for I,V in ipairs(PAR_FXs) do
-                            for ii, vv in ipairs(V) do 
-
-                                if ii== 1 and  vv.addr_fxid == FX_Id then 
-                                    fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
-                                    fx.Added_Parallel_Mixer_Width = true
-                                end 
-                            end
-                        end 
-                        if Parallel then 
-                            if Parallel ~= 'Mixer Layout - Show' then return end 
-                        end
-                        local W = FX[GUID].Width_Collapse or FX[GUID].Width or 170
-                        
-
-
-                        fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
                     end
                     local Parallel = Render_Normal()
 
@@ -1101,30 +1108,8 @@ else
 
 
     local Add_FX_Btn_Ypos  = fx.Add_FX_Btn_Ypos or nil
-    if fx.Cont_Collapse == 1   and fx.Sel_Preview then 
-        
-        SL()
-        --Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
-        --im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
+    Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
 
-        Hv = createFXWindow(fx.Sel_Preview)
-        if Hv then PreviewW = Hv end 
-        if PreviewW then fx.Width = 50 + 150 + PreviewW end
-    end
-
-    if fx.Cont_Collapse == 1 then
-
-        if Add_FX_Btn_Ypos then im.SetCursorPosY(ctx,tonumber( Add_FX_Btn_Ypos)  ) end 
-        im.SetCursorPosX(ctx,Add_FX_Btn_Xpos or 0)
-        DragDropToCollapseView (fx.LastSpc, CollapseXPos_screen)
-        if im.Button(ctx,'+##' ..FxGUID, 130) then 
-            im.OpenPopup(ctx, 'Btwn FX Windows' .. fx.LastSpc)
-        end 
-
-
-
-        AddFX_Menu(fx.LastSpc)
-    end
 
     if Upcoming_Container  then 
         if not Upcoming_Container[1] then 
@@ -1194,4 +1179,29 @@ else
 
 end
 
+--AddTitleBgClr ()
+
+titleBar()
+fx.BgClr = nil
+
+
+---------------------------------------------
+---------Body--------------------------------
+---------------------------------------------
+
+
+local X , Y = im.GetCursorScreenPos(ctx)
+local TB = Upcoming_Container 
+if not Upcoming_Container and TREE[Root_ID+1]  then 
+    TB = TREE[Root_ID+1].children
+end 
+
+macroPage(TB)
+im.Dummy(ctx, 5,10)
+
+
+If_Container_Is_Empty()
+
+
+Main(TB , X, Y)
 Container_CollapseIfTab(FxGUID, FX_Idx)

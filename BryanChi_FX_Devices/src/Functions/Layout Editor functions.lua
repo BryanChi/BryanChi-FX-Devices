@@ -5562,14 +5562,14 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
             ClrPop = 5
         else 
             if SliderStyle == 'Pro C Thresh' then
-                im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999900); im.PushStyleColor(ctx,
-                    im.Col_FrameBgActive, 0x99999922)
+                im.PushStyleColor(ctx, im.Col_FrameBg, 0x99999900); 
+                im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x99999922)
                 im.PushStyleColor(ctx, im.Col_FrameBgHovered, 0x99999922)
                 ClrPop = 3;
             elseif FX[FxGUID][Fx_P].BgClr and SliderStyle == nil then
                 im.PushStyleColor(ctx, im.Col_FrameBg, FX[FxGUID][Fx_P].BgClr)
-                im.PushStyleColor(ctx, im.Col_FrameBgHovered, FX[FxGUID][Fx_P].BgClrHvr)
-                im.PushStyleColor(ctx, im.Col_FrameBgActive, FX[FxGUID][Fx_P].BgClrAct)
+                im.PushStyleColor(ctx, im.Col_FrameBgHovered, FX[FxGUID][Fx_P].BgClrHvr or 0x99999922)
+                im.PushStyleColor(ctx, im.Col_FrameBgActive, FX[FxGUID][Fx_P].BgClrAct or 0x99999922)
                 ClrPop = 3
             else
                 ClrPop = 0 --im.PushStyleColor(ctx, im.Col_FrameBg, 0x474747ff) ClrPop =1

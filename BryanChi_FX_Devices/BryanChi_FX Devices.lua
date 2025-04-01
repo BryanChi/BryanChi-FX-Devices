@@ -393,7 +393,7 @@ function loop()
         if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 260, nil, MainWin_Flg) then
             local X , Y = im.GetCursorScreenPos(ctx)
             --im.DrawList_AddRectFilled(Glob.WDL, X, Y, X + 3000 ,  Y + 20, 0xFF00FFFF)
-            Draw_Parallel_FX_Enclosure()
+            Draw_Parallel_FX_Enclosure(FxGUID)
 
             ------------------------------------------------------
             ----- Loop for every FX on the track -----------------
