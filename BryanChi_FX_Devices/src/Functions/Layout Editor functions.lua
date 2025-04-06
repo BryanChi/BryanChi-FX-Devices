@@ -5787,12 +5787,7 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
             im.Text(ctx, P_Value)
             im.EndTooltip(ctx)
         end  ]]
-        if Trk.Prm.WhichMcros[CC .. TrkID] == nil then
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, p_value)
-        elseif Trk.Prm.WhichMcros[CC .. TrkID] ~= nil then
-            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, LT_FXNum, "param." .. P_Num .. ".plink.active", 0) -- 1 active, 0 inactive
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FX[FxGUID][Fx_P].V)
-        end
+
     end
 
 
@@ -7283,10 +7278,10 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
 
-                            if Prm.InstAdded[FxGUID] ~= true then
+
                                 StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState', Fx_P, FX_Idx, TrkID)
                                 r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
-                            end
+                            
 
                             FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
                             FP.ManualValuesFormat = RecallIntoTable(Ct, Fx_P .. '. Manual Val format:1=', Fx_P)
@@ -7295,7 +7290,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
                         end
                         GetProjExt_FxNameNum(FxGUID, LT_Track)
-                        Prm.InstAdded[FxGUID] = true
+
                     end
                 else ---- if no editings has been saved to extstate
                     if FX[FxGUID] then
@@ -7467,8 +7462,6 @@ end
 function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExtState, Fx_P, FX_Idx, TrkID)
     TrkID = TrkID or r.GetTrackGUID(r.GetLastTouchedTrack())
     if not FxGUID then  Tooltip={ Txt = 'No FX Present'; Dur = 100 ;time=0 ;clr = 0xD30000ff   } return end 
-    --Trk.Prm.Inst[TrkID] = (Trk.Prm.Inst[TrkID] or 0 )+1
-    --r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Trk Prm Count',Trk.Prm.Inst[TrkID], true )
     if FX[FxGUID][P] and FX[FxGUID][P].Num then return end 
 
     local P

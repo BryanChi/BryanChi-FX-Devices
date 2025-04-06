@@ -4700,7 +4700,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     local ID = FxGUID .. Fx_P
                     Rounding = 0.5
 
-                    ParamX_Value = 'Param' .. tostring(FP.Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
 
                     ----Default Layouts
                     if not FP.PosX and not FP.PosY then
@@ -4898,16 +4897,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if ToDef.ID and ToDef.V then
                                     r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
                                     if FP.WhichCC then
-                                        if Trk.Prm.WhichMcros[FP.WhichCC .. TrkID] then
-                                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID,
-                                                "param." .. ToDef.P .. ".plink.active", 0) -- 1 active, 0 inactive
-                                            r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
-                                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. ToDef.P .. 'Value before modulation', ToDef.V, true)
-                                            r.gmem_write(7, FP.WhichCC) --tells jsfx to retrieve P value
-                                            PM.TimeNow = r.time_precise()
-                                            r.gmem_write(JSFX.P_ORIG_V + FP.WhichCC, ToDef.V)
-                                            ParameterMIDILink(ToDef.ID, ToDef.P, 1, false, 15, 16, 176, FP.WhichCC, false)
-                                        end
+
+                                        local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, ToDef.ID, "param." .. ToDef.P .. ".plink.active", 0) -- 1 active, 0 inactive
+                                        r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
+                                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. ToDef.P .. 'Value before modulation', ToDef.V, true)
+                                        r.gmem_write(7, FP.WhichCC) --tells jsfx to retrieve P value
+                                        PM.TimeNow = r.time_precise()
+                                        r.gmem_write(JSFX.P_ORIG_V + FP.WhichCC, ToDef.V)
+                                        ParameterMIDILink(ToDef.ID, ToDef.P, 1, false, 15, 16, 176, FP.WhichCC, false)
+
                                     end
                                     FP.V = ToDef.V
 

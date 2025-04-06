@@ -1562,7 +1562,6 @@ end
 function DeleteAllParamOfFX(FXGUID, TrkID)
     for p, v in pairs(Trk.Prm.FXGUID) do
         if Trk.Prm.FXGUID[p] == FXGUID and FXGUID ~= nil then
-            Trk.Prm.Inst[TrkID] = Trk.Prm.Inst[TrkID] - 1
             Prm.Num[p] = nil
             PM.HasMod[p] = nil
 
@@ -1709,10 +1708,6 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     end
 
     table.remove(FX[FxGUID], Fx_P)
-    if Trk.Prm.Inst[TrkID] then
-        Trk.Prm.Inst[TrkID] = Trk.Prm.Inst[TrkID] - 1
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Trk Prm Count', Trk.Prm.Inst[TrkID], true)
-    end
 
 
     for i, v in ipairs(FX[FxGUID]) do
@@ -2950,7 +2945,7 @@ function When_User_Switch_Track()
             reaper .gmem_write(0,NumOfTotalTracks )]]
         end
         
-        for P = 0, Trk.Prm.Inst[TrkID] or 0, 1 do
+        for P = 0, Trk[TrkID].ModPrmInst or 0, 1 do
             for m = 1, 8, 1 do
                 r.gmem_write(1000 * m + P, 0)
             end

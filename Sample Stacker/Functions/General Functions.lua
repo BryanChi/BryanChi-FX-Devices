@@ -1812,10 +1812,7 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     end
 
     table.remove(FX[FxGUID], Fx_P)
-    if Trk.Prm.Inst[TrkID] then
-        Trk.Prm.Inst[TrkID] = Trk.Prm.Inst[TrkID] - 1
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Trk Prm Count', Trk.Prm.Inst[TrkID], true)
-    end
+
 
 
     for i, v in ipairs(FX[FxGUID]) do

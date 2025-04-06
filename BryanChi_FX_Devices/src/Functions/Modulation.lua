@@ -282,11 +282,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
         local CC = FP.WhichCC
 
 
-        if not Trk.Prm.WhichMcros[CC .. TrkID] then
-            Trk.Prm.WhichMcros[CC .. TrkID] = tostring(AssigningMacro)
-        elseif Trk.Prm.WhichMcros[CC .. TrkID] and not string.find(Trk.Prm.WhichMcros[CC .. TrkID], tostring(AssigningMacro)) then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
-            Trk.Prm.WhichMcros[CC .. TrkID] = Trk.Prm.WhichMcros[CC .. TrkID] .. tostring(AssigningMacro)
-        end
+
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods',FP.WhichMODs, true)
 
 

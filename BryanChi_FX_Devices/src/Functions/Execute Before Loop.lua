@@ -217,7 +217,6 @@ function Create_Empty_Tables()
         Val = {},
         NameS = {},
         FXGUID = {},
-        InstAdded = {},
         Init_Val = {},
         Num = {},
         TrkID = {},
@@ -448,70 +447,76 @@ function Retrieve_User_Settings()
 end 
 
 function Retrieve_All_Saved_Data_Of_Project()
-
+    -- Get total number of tracks in the project
     NumOfTotalTracks = r.CountTracks(0)
-        -- Repeat for every track, at the beginning of script
+    
+    -- Process each track in the project
     for Track_Idx = 0, NumOfTotalTracks - 1, 1 do
         local Track = r.GetTrack(0, Track_Idx)
         local TrkID = r.GetTrackGUID(Track)
         local TREE = BuildFXTree(Track)
-
-
+        -- Initialize track data structure
         Trk[TrkID] = Trk[TrkID] or {}
-        Trk[TrkID].Container_Id = {}
-
-        Trk[TrkID].Mod = {}
-        Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
-        Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
-        local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
-        Trk[TrkID].AutoPrms = Trk[TrkID].AutoPrms or {}
-        for i = 1, (AutoPrmCount or 0) + 1, 1 do
-            Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
-        end
-        -- Trk[TrkID].Container_Id    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )
-
-
+        local TRK = Trk[TrkID]
+        TRK.Container_Id = {}
+        TRK.Mod = {}
+        TRK.SEQL = TRK.SEQL or {}
+        TRK.SEQ_Dnom = TRK.SEQ_Dnom or {}
+        
+        -- Helper function to retrieve track data with type conversion
         local function RC(str, type)
             if type == 'str' then
-                local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
-                if i =='' then return nil else return i end 
-            elseif type =='bool' then   
-                local i= select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
-                if i == 'true' then return true else return end 
+                local i = select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
+                if i == '' then return nil else return i end 
+            elseif type == 'bool' then   
+                local i = select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false))
+                if i == 'true' then return true else return false end 
             else
                 return tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ' .. str, '', false)))
             end
         end
-
-
-        Trk[TrkID].ShowMOD = RC('Show Modulations' , 'bool')
-
-
+        
+        -- ===== TRACK MODULATION SETTINGS =====
+        TRK.ShowMOD = RC('Show Modulations', 'bool')
+        
+        -- Get automated parameters for modulators
+        local AutoPrmCount = RC('How Many Automated Prm in Modulators')
+        TRK.AutoPrms = TRK.AutoPrms or {}
+        for i = 1, (AutoPrmCount or 0) + 1, 1 do
+            TRK.AutoPrms[i] = RC('Auto Mod' .. i, 'str')
+        end
+        
+        -- ===== MODULATOR SETTINGS =====
         for i = 1, 8, 1 do -- for every modulator
-            Trk[TrkID].Mod[i] = {}
-            local m = Trk[TrkID].Mod[i]
-
+            TRK.Mod[i] = {}
+            local m = TRK.Mod[i]
+            
+            -- Basic modulator settings
             m.ATK = RC('Macro ' .. i .. ' Atk')
             m.REL = RC('Macro ' .. i .. ' Rel')
-            Trk[TrkID].SEQL[i] = RC('Macro ' .. i .. ' SEQ Length')
-            Trk[TrkID].SEQ_Dnom[i] = RC('Macro ' .. i .. ' SEQ Denominator')
+            TRK.SEQL[i] = RC('Macro ' .. i .. ' SEQ Length')
+            TRK.SEQ_Dnom[i] = RC('Macro ' .. i .. ' SEQ Denominator')
             m.Smooth = RC('Macro ' .. i .. ' Follower Speed')
             m.Gain = RC('Macro ' .. i .. ' Follower Gain')
-
-            --m.LFO_NodeCt = RC('Mod ' .. i .. 'Total Number of Nodes')
+            
+            -- LFO settings
             m.LFO_NodeCt = RC('LFO' .. i .. 'Curve number of points')
             m.LFO_spd = RC('Mod ' .. i .. 'LFO Speed')
             m.LFO_leng = RC('Mod ' .. i .. 'LFO Length')
             m.LFO_Legato = RC('Mod ' .. i .. 'LFO_Legato')
             m.LFO_Env_or_Loop = RC('Mod ' .. i .. 'LFO_Env_or_Loop')
             m.Rel_Type = RC('Mod ' .. i .. 'LFO_Release_Type')
-            m.LowNoteFilter = RC('Mod ' .. i ..'Note Filter Low')
-            m.HighNoteFilter = RC('Mod ' .. i ..'Note Filter High')
-            m.Random_Int = RC('Random Interval for mod'.. i)
-            m.Random_Smooth = RC('Random Smooth for mod'.. i)
-            m.Random_Chance = RC('Random Chance for mod'.. i)
-
-
+            
+            -- Filter settings
+            m.LowNoteFilter = RC('Mod ' .. i .. 'Note Filter Low')
+            m.HighNoteFilter = RC('Mod ' .. i .. 'Note Filter High')
+            
+            -- Random modulation settings
+            m.Random_Int = RC('Random Interval for mod' .. i)
+            m.Random_Smooth = RC('Random Smooth for mod' .. i)
+            m.Random_Chance = RC('Random Chance for mod' .. i)
+            
+            -- Convert numeric values to descriptive strings
             if m.Rel_Type == 0 then
                 m.Rel_Type = 'Latch'
             elseif m.Rel_Type == 1 then
@@ -521,387 +526,347 @@ function Retrieve_All_Saved_Data_Of_Project()
             elseif m.Rel_Type == 3 then
                 m.Rel_Type = 'Custom Release - No Jump'
             end
-
-            if m.LFO_Env_or_Loop == 1 then m.LFO_Env_or_Loop = 'Envelope' else m.LFO_Env_or_Loop = nil end
-
-
-
+            
+            if m.LFO_Env_or_Loop == 1 then 
+                m.LFO_Env_or_Loop = 'Envelope' 
+            else 
+                m.LFO_Env_or_Loop = nil 
+            end
+            
+            -- ===== LFO NODE DATA =====
             for N = 1, (m.LFO_NodeCt or 0), 1 do
-                --[[ m.Node = m.Node or {}
-                m.Node[N] = m.Node[N] or {}
-                m.Node[N].x = RC('Mod ' .. i .. 'Node ' .. N .. ' X')
-
-
-                m.Node[N].y       = RC('Mod ' .. i .. 'Node ' .. N .. ' Y')
-                m.Node[N].ctrlX   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl X')
-
-                m.Node[N].ctrlY   = RC('Mod ' .. i .. 'Node' .. N .. 'Ctrl Y')
-                m.NodeNeedConvert = true ]]
                 m.Node = m.Node or {}
                 m.Node[N] = m.Node[N] or {}
-                m.Node[N][1] = RC('LFO' .. i ..' curve pt'..N..'x')
-                m.Node[N][2] = RC('LFO' .. i ..' curve pt'..N..'y')
-                m.Node[N][3] = RC('LFO'..i..' point '..N.. ' Curve')
+                m.Node[N][1] = RC('LFO' .. i .. ' curve pt' .. N .. 'x')
+                m.Node[N][2] = RC('LFO' .. i .. ' curve pt' .. N .. 'y')
+                m.Node[N][3] = RC('LFO' .. i .. ' point ' .. N .. ' Curve')
+                
+                -- Set default values for first and last points
+                if i == 1 then
+                    if not TRK[v .. 'Curve'][i][1] then TRK[v .. 'Curve'][i][1] = 0 end
+                    if not TRK[v .. 'Curve'][i][2] then TRK[v .. 'Curve'][i][2] = 0 end
+                end
+                if i == CurvePts then
+                    if not TRK[v .. 'Curve'][i][1] then TRK[v .. 'Curve'][i][1] = 1 end
+                    if not TRK[v .. 'Curve'][i][2] then TRK[v .. 'Curve'][i][2] = 1 end
+                end
             end
+            
+            -- Check for release node
             if RC('Mod ' .. i .. 'LFO_Rel_Node') then
                 local ID = RC('Mod ' .. i .. 'LFO_Rel_Node')
                 m.Node[ID] = m.Node[ID] or {}
                 m.Node[ID].Rel = true
             end
-
-
-
-            Trk[TrkID].Mod[i].SEQ = Trk[TrkID].Mod[i].SEQ or {}
-            --Get Seq Steps
-            if Trk[TrkID].SEQL[i] then
-                for St = 1, Trk[TrkID].SEQL[i], 1 do
-                    Trk[TrkID].Mod[i].SEQ[St] = tonumber(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', '', false)))
+            
+            -- ===== SEQUENCER DATA =====
+            TRK.Mod[i].SEQ = TRK.Mod[i].SEQ or {}
+            if TRK.SEQL[i] then
+                for St = 1, TRK.SEQL[i], 1 do
+                    TRK.Mod[i].SEQ[St] = RC('Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val')
                 end
             end
-
         end
-
+        
+        -- ===== TRACK PARAMETERS =====
         local FXCount = r.TrackFX_GetCount(Track)
-        Trk[TrkID] = Trk[TrkID] or {}
-        Trk[TrkID].PreFX = Trk[TrkID].PreFX or {}
-        Trk[TrkID].PostFX = Trk[TrkID].PostFX or {}
-
+        TRK.PreFX = TRK.PreFX or {}
+        TRK.PostFX = TRK.PostFX or {}
+        
         RetrieveFXsSavedLayout(FXCount)
-
-        Trk[TrkID].ModPrmInst = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ModPrmInst', '', false)))
-        for CC = 1, Trk[TrkID].ModPrmInst or 0, 1 do
-            _, Trk.Prm.WhichMcros[CC .. TrkID] = r.GetSetMediaTrackInfo_String(Track,
-                'P_EXT: CC Linked to which Modulation' .. CC, '', false)
+        
+        -- Get modulation parameter instances
+        TRK.ModPrmInst = RC('ModPrmInst')
+        for CC = 1, TRK.ModPrmInst or 0, 1 do
+            Trk.Prm.WhichMcros[CC .. TrkID] = RC('CC Linked to which Modulation' .. CC, 'str')
         end
-
-        PM.DIY_TrkID[TrkID] = RC('Track GUID Number for jsfx' )
-
-
-        _, Trk.Prm.Inst[TrkID] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Trk Prm Count', '', false)
-        Trk.Prm.Inst[TrkID] = tonumber(Trk.Prm.Inst[TrkID])
-
+        
+        -- Get JSFX track GUID
+        PM.DIY_TrkID[TrkID] = RC('Track GUID Number for jsfx')
+        
+        -- Get track parameter count
+        Trk.Prm.Inst[TrkID] = RC('Trk Prm Count')
+        
+        -- ===== PRE/POST FX MAPPINGS =====
+        -- Retrieve Pre-FX mappings
         i = 1
-        ---retrieve Pre-FX mappings?
-        ---store in CurTrk.PreFX
         while i do
-            local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PreFX ' .. i, '', false)
-            if rv then
-                Trk[TrkID].PreFX[i] = str; i = i + 1
+            local str = RC('PreFX ' .. i, 'str')
+            if str then
+                TRK.PreFX[i] = str
+                i = i + 1
             else
                 i = nil
             end
         end
-
+        
+        -- Retrieve Post-FX mappings
         i = 1
-        ---retrieve Post-FX mappings?
-        ---store in CurTrk.PostFX
         while i do
-            local rv, str = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: PostFX ' .. i, '', false)
-            if rv then
-                Trk[TrkID].PostFX[i] = str; i = i + 1
+            local str = RC('PostFX ' .. i, 'str')
+            if str then
+                TRK.PostFX[i] = str
+                i = i + 1
             else
                 i = nil
             end
         end
+        
+        -- Clean up empty tables
+        if TRK.PreFX == {} then TRK.PreFX = nil end
+        
 
-
-
-        if Trk[TrkID].PreFX == {} then Trk[TrkID].PreFX = nil end
-        for P = 1, Trk.Prm.Inst[TrkID] or 0, 1 do
-            _, Trk.Prm.Num[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'Track' .. TrkID .. ' P =' .. P)
-            _, Trk.Prm.WhichMcros[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'Prm' .. P .. 'Has Which Macro Assigned, TrkID =' .. TrkID)
-            if Trk.Prm.WhichMcros[P .. TrkID] == '' then Trk.Prm.WhichMcros[P .. TrkID] = nil end
-            
-            Trk.Prm.Num[P .. TrkID] = tonumber(Trk.Prm.Num[P .. TrkID])
-            for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-                local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-                _, Trk.Prm.FXGUID[P .. TrkID] = r.GetProjExtState(0, 'FX Devices', 'P_Trk :' .. P .. 'Trk-' .. TrkID)
-            end
-        end 
-
-
-
-        function Get_FX_Data (TB)
-            for i, v in ipairs(TB) do 
-                
-                local FX_Idx = v.addr_fxid or  i - 1
+        
+        -- ===== FX DATA PROCESSING =====
+        function Get_FX_Data(TB)
+            for i, v in ipairs(TB) do
+                local FX_Idx = v.addr_fxid or i - 1
                 local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
                 local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-
-                --local _, FX[FxGUID].   r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , '' , false )
-                Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
-                if not FxGUID then return end 
+                
+                TRK.Container_Id = TRK.Container_Id or {}
+                if not FxGUID then return end
                 FX[FxGUID] = FX[FxGUID] or {}
+                local fx = FX[FxGUID]
                 
-                if v.children then  -- if it's a container
-                    
-                    Get_FX_Data (v.children)
-                    local id =  RC('Container ID of '..FxGUID)
-
-                end 
-
-                local function Parallel_FX_Solo_and_Mute()
-                    FX[FxGUID] = FX[FxGUID] or {}
-
-                    --FX[FxGUID].Solo = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Parallel Solo ' .. FxGUID, '', false) 
-                    FX[FxGUID].Solo = RC('Parallel Solo ' .. FxGUID, 'bool')
-                    FX[FxGUID].Wet_V_before_solo = RC('Wet_V_before_solo ' .. FxGUID)
-                    FX[FxGUID].Mute = RC('Parallel Mute ' .. FxGUID, 'bool')
-                    FX[FxGUID].Wet_V_before_mute = RC('Wet_V_before_mute ' .. FxGUID)
-                    --local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
-                
-                    FX[FxGUID][0] = FX[FxGUID][0] or {}
-                    if FX[FxGUID].Wet_V_before_solo then 
-                        FX[FxGUID][0].V = FX[FxGUID].Wet_V_before_solo 
-                    elseif FX[FxGUID].Wet_V_before_mute then 
-                        FX[FxGUID][0].V =  FX[FxGUID].Wet_V_before_mute
-                    end 
-                
+                -- Process container FX
+                if v.children then
+                    Get_FX_Data(v.children)
+                    local id = RC('Container ID of ' .. FxGUID)
                 end
-
+                
+                -- ===== PARALLEL FX SOLO AND MUTE =====
+                local function Parallel_FX_Solo_and_Mute()
+                    fx.Solo = RC('Parallel Solo ' .. FxGUID, 'bool')
+                    fx.Wet_V_before_solo = RC('Wet_V_before_solo ' .. FxGUID)
+                    fx.Mute = RC('Parallel Mute ' .. FxGUID, 'bool')
+                    fx.Wet_V_before_mute = RC('Wet_V_before_mute ' .. FxGUID)
+                
+                    fx[0] = fx[0] or {}
+                    if fx.Wet_V_before_solo then
+                        fx[0].V = fx.Wet_V_before_solo
+                    elseif fx.Wet_V_before_mute then
+                        fx[0].V = fx.Wet_V_before_mute
+                    end
+                end
+                
+                -- ===== PRESET MORPHING =====
                 local function Preset_Morph()
-                    if r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. '1' .. FxGUID, '', false) then
-                        FX[FxGUID].MorphA = FX[FxGUID].MorphA or {}
-                        FX[FxGUID].MorphB = FX[FxGUID].MorphB or {}
-                        FX[FxGUID].PrmList = {}
+                    if RC('FX Morph A' .. '1' .. FxGUID, 'str') then
+                        fx.MorphA = fx.MorphA or {}
+                        fx.MorphB = fx.MorphB or {}
+                        fx.PrmList = {}
                         local PrmCount = r.TrackFX_GetNumParams(Track, FX_Idx)
     
                         RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
     
                         for i = 0, PrmCount - 4, 1 do
-                            _, FX[FxGUID].MorphA[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. i .. FxGUID, '',
-                                false)
-                            FX[FxGUID].MorphA[i] = tonumber(FX[FxGUID].MorphA[i])
-                            _, FX[FxGUID].MorphB[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. i .. FxGUID, '',
-                                false)
-                            FX[FxGUID].MorphB[i] = tonumber(FX[FxGUID].MorphB[i])
+                            fx.MorphA[i] = RC('FX Morph A' .. i .. FxGUID)
+                            fx.MorphB[i] = RC('FX Morph B' .. i .. FxGUID)
                         end
     
-                        _, FX[FxGUID].MorphA_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', '', false)
-                        if FX[FxGUID].MorphA_Name == '' then FX[FxGUID].MorphA_Name = nil end
-                        _, FX[FxGUID].MorphB_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', '', false)
-                        if FX[FxGUID].MorphB_Name == '' then FX[FxGUID].MorphB_Name = nil end
-                    end
-
-                    if FX.InLyr[FxGUID] == "" then FX.InLyr[FxGUID] = nil end
-                    FX[FxGUID].Morph_ID = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID, '', false)))
-                    _, FX[FxGUID].Unlink = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', '', false)
-                    if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
-
-                    if FX[FxGUID].Morph_ID then
-                        Trk[TrkID].Morph_ID = Trk[TrkID].Morph_ID or {}
-                        Trk[TrkID].Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
+                        fx.MorphA_Name = RC('FX Morph A' .. FxGUID .. 'Preset Name', 'str')
+                        if fx.MorphA_Name == '' then fx.MorphA_Name = nil end
+                        fx.MorphB_Name = RC('FX Morph B' .. FxGUID .. 'Preset Name', 'str')
+                        if fx.MorphB_Name == '' then fx.MorphB_Name = nil end
                     end
                 end
-
-                local function Midi_Mods()
-                    for Fx_P in ipairs(FX[FxGUID]) do
-
-                        for i, v in ipairs(Midi_Mods) do 
-                            
-                            FP.ModAMT[v] =  RC ('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. v  )
-                            if FP.ModAMT[v] then HasModAmt = true end 
-                            local CurvePts = RC( v.. 'Curve number of points')
-
-                            Trk[TrkID][v..'Curve']= Trk[TrkID][v..'Curve'] or {}
-                            for i=1, CurvePts or 0, 1 do -- Recall curve points x ([1]) y([2]) and log or exp curve ([3])
-
-                                Trk[TrkID][v..'Curve'][i] = Trk[TrkID][v..'Curve'][i] or {}
-                                Trk[TrkID][v..'Curve'][i][1] = RC(v..' curve pt'..i..'x') 
-
-
-                                Trk[TrkID][v..'Curve'][i][2] = RC(v..' curve pt'..i..'y') 
-                                Trk[TrkID][v..'Curve'][i][3] = RC(v..' point '..i..' Curve')
-                                if i == 1 then  -- first point 
-                                    if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 0 end 
-                                    if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 0 end  
-                                end
-                                if i == CurvePts then 
-                                    if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 1 end 
-                                    if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 1 end  
-                                end
-                            end
-                        end
-                    end
-                end
-
-
-                local function Layering()
-                    _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FxGUID .. 'in layer')
-                    _, FX.LyrNum[FxGUID]         = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
-                    _, FX[FxGUID].inWhichLyr     = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
-                    _, FX[FxGUID].ContainerTitle = r.GetProjExtState(0, 'FX Devices - ', 'FX' .. FxGUID .. 'FX Layer Container Title ')
-                    if FX[FxGUID].ContainerTitle == '' then FX[FxGUID].ContainerTitle = nil end
-    
-                    FX[FxGUID].inWhichLyr = tonumber(FX[FxGUID].inWhichLyr)
-                    FX.LyrNum[FxGUID] = tonumber(FX.LyrNum[FxGUID])
-    
-                end
-
+                
+                -- Apply FX settings
                 Parallel_FX_Solo_and_Mute()
                 Preset_Morph()
-
-                Layering()
-                FX[FxGUID].ModSlots = Load_from_Trk('Container Active Mod Slots '..FxGUID, Track , 'num')
-                FX[FxGUID].MacroPageActive = Load_from_Trk('Container ID of '..FxGUID..'Macro Active', Track , 'bool')
-
-                FX[FxGUID].Def_Sldr_W = Load_from_Trk('Default Slider Width for FX:' .. FxGUID, Track )
-                FX[FxGUID].DefType = Load_from_Trk('Default Param type for FX:' .. FxGUID, Track )
-
+                
+                -- ===== FX LAYER AND CONTAINER SETTINGS =====
+                fx.ModSlots = RC('Container Active Mod Slots ' .. FxGUID)
+                fx.MacroPageActive = RC('Container ID of ' .. FxGUID .. 'Macro Active', 'bool')
+                fx.Def_Sldr_W = RC('Default Slider Width for FX:' .. FxGUID)
+                fx.DefType = RC('Default Param type for FX:' .. FxGUID, 'str')
+                
                 GetProjExt_FxNameNum(FxGUID, Track)
-
+                
+                -- ===== FX LAYER INFORMATION =====
+                _, FX.InLyr[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FxGUID .. 'in layer')
+                _, FX.LyrNum[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
+                _, fx.inWhichLyr = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
+                _, fx.ContainerTitle = r.GetProjExtState(0, 'FX Devices - ', 'FX' .. FxGUID .. 'FX Layer Container Title ')
+                
+                if fx.ContainerTitle == '' then fx.ContainerTitle = nil end
+                
+                fx.inWhichLyr = tonumber(fx.inWhichLyr)
+                FX.LyrNum[FxGUID] = tonumber(FX.LyrNum[FxGUID])
                 _, Lyr.SplitrAttachTo[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'SplitrAttachTo' .. FxGUID)
-                _, Prm.InstAdded[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added')
-                if Prm.InstAdded[FxGUID] == 'true' then Prm.InstAdded[FxGUID] = true end
-
-
-                local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
-                if rv then FX[FxGUID].ProC_ID = tonumber(ProC_ID) end
-
-                Midi_Mods()
-                --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
-                for Fx_P in ipairs(FX[FxGUID]) do
-                    local FP = FX[FxGUID][Fx_P]
-                    local rv, V_before = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
-                    if rv then FP.V = tonumber(V_before) end
-
-                    local ParamX_Value = 'Param' .. tostring(FX[FxGUID][Fx_P].Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
-                    ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
-                    _G[ParamX_Value] = ParamValue_At_Script_Start
-
-
-                    _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
-                    FP.WhichCC = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..(FP.Num or 0), '', false)))
-
-                    _, FP.WhichMODs = r.GetSetMediaTrackInfo_String(Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods', '', false)
-                    if FP.WhichMODs == '' then FP.WhichMODs = nil end
-                    FP.ModAMT = {}
+                
+                if FX.InLyr[FxGUID] == "" then FX.InLyr[FxGUID] = nil end
+                
+                -- ===== FX MORPHING AND LINKING =====
+                fx.Morph_ID = RC('FXs Morph_ID' .. FxGUID)
+                fx.Unlink = RC('FXs Morph_ID' .. FxGUID .. 'Unlink', 'bool')
+                
+                if fx.Morph_ID then
+                    TRK.Morph_ID = TRK.Morph_ID or {}
+                    TRK.Morph_ID[fx.Morph_ID] = FxGUID
+                end
+                
+                fx.ProC_ID = RC('ProC_ID ' .. FxGUID)
+                
+                if fx.Unlink == 'Unlink' then 
+                    fx.Unlink = true 
+                elseif fx.Unlink == '' then 
+                    fx.Unlink = nil 
+                end
+                
+                -- ===== FX PARAMETER SETTINGS =====
+                for Fx_P in ipairs(fx) do
+                    local FP = fx[Fx_P]
                     
-                    FP.Cont_Which_CC = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P ..' Container Mod CC' , '' , false)))
+                    -- Basic parameter values
+                    FP.V = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')
+                    FP.WhichCC = RC('FX' .. FxGUID .. 'WhichCC' .. (FP.Num or 0))
+                    FP.WhichMODs = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods')
+                    FP.Cont_Which_CC = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. ' Container Mod CC')
+                    
+                    -- Initialize modulation arrays
+                    FP.ModAMT = {}
                     FP.Cont_ModAMT = {}
+                    
+                    -- ===== CONTAINER MODULATION =====
                     if FP.Cont_Which_CC then
-                        local rv , parent = r.TrackFX_GetNamedConfigParm(Track, FX_Idx, 'parent_container')
-                        if parent ~= '' then 
-                            local parent_FxGUID =  r.TrackFX_GetFXGUID(Track, parent)
+                        local rv, parent = r.TrackFX_GetNamedConfigParm(Track, FX_Idx, 'parent_container')
+                        if parent ~= '' then
+                            local parent_FxGUID = r.TrackFX_GetFXGUID(Track, parent)
                             FX[parent_FxGUID] = FX[parent_FxGUID] or {}
                             local Ct = FX[parent_FxGUID]
                             Ct.ModPrm = Ct.ModPrm or {}
-                            table.insert(Ct.ModPrm,  FxGUID.. ' , prm : '.. FP.Num)
+                            table.insert(Ct.ModPrm, FxGUID .. ' , prm : ' .. FP.Num)
                         end
                     end
-                    local HasModAmt, HasContModAmt
-
                     
-                    local CC = FX[FxGUID][Fx_P].WhichCC
-
+                    local HasModAmt, HasContModAmt
+                    
+                    -- ===== MIDI MODULATION =====
+                    for i, v in ipairs(Midi_Mods) do
+                        FP.ModAMT[v] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. ' Mod Amt for ' .. v)
+                        if FP.ModAMT[v] then HasModAmt = true end
+                        
+                        local CurvePts = RC(v .. 'Curve number of points')
+                        
+                        TRK[v .. 'Curve'] = TRK[v .. 'Curve'] or {}
+                        for i = 1, CurvePts or 0, 1 do
+                            TRK[v .. 'Curve'][i] = TRK[v .. 'Curve'][i] or {}
+                            TRK[v .. 'Curve'][i][1] = RC(v .. ' curve pt' .. i .. 'x')
+                            TRK[v .. 'Curve'][i][2] = RC(v .. ' curve pt' .. i .. 'y')
+                            TRK[v .. 'Curve'][i][3] = RC(v .. ' point ' .. i .. ' Curve')
+                            
+                            -- Set default values for first and last points
+                            if i == 1 then
+                                if not TRK[v .. 'Curve'][i][1] then TRK[v .. 'Curve'][i][1] = 0 end
+                                if not TRK[v .. 'Curve'][i][2] then TRK[v .. 'Curve'][i][2] = 0 end
+                            end
+                            if i == CurvePts then
+                                if not TRK[v .. 'Curve'][i][1] then TRK[v .. 'Curve'][i][1] = 1 end
+                                if not TRK[v .. 'Curve'][i][2] then TRK[v .. 'Curve'][i][2] = 1 end
+                            end
+                        end
+                    end
+                    
+                    -- ===== MACRO MODULATION =====
+                    local CC = fx[Fx_P].WhichCC
+                    
                     for m, v in ipairs(MacroNums) do
-
                         FP.ModAMT[m] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Amt')
                         if FP.ModAMT[m] then HasModAmt = true end
-
-
-
-                        local Curve = RC('Mod_Curve_for_Mod'..m..'Prm ='..( CC or '') )
-
-                        if Curve then 
+                        
+                        local Curve = RC('Mod_Curve_for_Mod' .. m .. 'Prm =' .. (CC or ''))
+                        
+                        if Curve then
                             FP.Mod_Curve = FP.Mod_Curve or {}
                             FP.Mod_Curve[m] = Curve
                         end
-            
-
-                        Trk[TrkID].Mod = Trk[TrkID].Mod or {}
-                        Trk[TrkID].Mod[m] = Trk[TrkID].Mod[m] or {}
-                        Trk[TrkID].Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
-
-                        FP.ModBypass = RemoveEmptyStr(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '', false)))
-
+                        
+                        TRK.Mod = TRK.Mod or {}
+                        TRK.Mod[m] = TRK.Mod[m] or {}
+                        TRK.Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
+                        
+                        FP.ModBypass = RemoveEmptyStr(RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', 'str'))
+                        
                         FP.ModBipolar = FP.ModBipolar or {}
-                        FP.ModBipolar[m] = StringToBool[select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
-
-                        FP.Cont_ModAMT[m] = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Container Mod Amt', '', false)))
-                       
+                        FP.ModBipolar[m] = StringToBool[RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', 'str')]
+                        
+                        FP.Cont_ModAMT[m] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Container Mod Amt')
+                        
                         if FP.Cont_ModAMT[m] then
-                            msg('MOD AMT '.. m .. ' ' .. (FP.Cont_ModAMT[m] or 'nil'))
-                            
-                            HasContModAmt = true end 
-                    
-                    
+                            HasContModAmt = true
+                        end
                     end
-
-
+                    
+                    -- Clean up empty tables
                     if not HasModAmt then FP.ModAMT = nil end
-                    if not HasContModAmt then FP.Cont_ModAMT = nil end 
+                    if not HasContModAmt then FP.Cont_ModAMT = nil end
                 end
-
-                FX[FxGUID] = FX[FxGUID] or {}
-
-
-
-                _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-                if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
-                    local FXGUIDofRackMixer = r.TrackFX_GetFXGUID(Track, FX_Idx)
-                    FX[FXGUIDofRackMixer].LyrID = FX[FXGUIDofRackMixer].LyrID or {}
-                    FX[FXGUIDofRackMixer].LyrTitle = FX[FXGUIDofRackMixer].LyrTitle or {}
-                    FX[FXGUIDofRackMixer].ActiveLyrCount = 0
-
-                    for i = 1, 8, 1 do
-                        _, FX[FXGUIDofRackMixer].LyrID[i] = r.GetProjExtState(0, 'FX Devices',
-                            'FX' .. FXGUIDofRackMixer .. 'Layer ID ' .. i)
-                        _, FX[FXGUIDofRackMixer].LyrTitle[i] = r.GetProjExtState(0, 'FX Devices - ',
-                            'FX' .. FXGUIDofRackMixer .. 'Layer Title ' .. i)
-                        if FX[FXGUIDofRackMixer].LyrTitle[i] == '' then FX[FXGUIDofRackMixer].LyrTitle[i] = nil end
-                        FX[FXGUIDofRackMixer].LyrID[i] = tonumber(FX[FXGUIDofRackMixer].LyrID[i])
-                        if FX[FXGUIDofRackMixer].LyrID[i] ~= -1 and FX[FXGUIDofRackMixer].LyrID[i] then
-                            FX[FXGUIDofRackMixer].ActiveLyrCount =
-                                FX[FXGUIDofRackMixer].ActiveLyrCount + 1
+                
+                -- ===== SPECIAL FX PROCESSING =====
+                -- Process RackMixer FX
+                local function processRackMixerFX()
+                    if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
+                        local FXGUIDofRackMixer = r.TrackFX_GetFXGUID(Track, FX_Idx)
+                        FX[FXGUIDofRackMixer].LyrID = FX[FXGUIDofRackMixer].LyrID or {}
+                        FX[FXGUIDofRackMixer].LyrTitle = FX[FXGUIDofRackMixer].LyrTitle or {}
+                        FX[FXGUIDofRackMixer].ActiveLyrCount = 0
+                        
+                        for i = 1, 8, 1 do
+                            _, FX[FXGUIDofRackMixer].LyrID[i] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FXGUIDofRackMixer .. 'Layer ID ' .. i)
+                            _, FX[FXGUIDofRackMixer].LyrTitle[i] = r.GetProjExtState(0, 'FX Devices - ', 'FX' .. FXGUIDofRackMixer .. 'Layer Title ' .. i)
+                            if FX[FXGUIDofRackMixer].LyrTitle[i] == '' then FX[FXGUIDofRackMixer].LyrTitle[i] = nil end
+                            FX[FXGUIDofRackMixer].LyrID[i] = tonumber(FX[FXGUIDofRackMixer].LyrID[i])
+                            if FX[FXGUIDofRackMixer].LyrID[i] ~= -1 and FX[FXGUIDofRackMixer].LyrID[i] then
+                                FX[FXGUIDofRackMixer].ActiveLyrCount = FX[FXGUIDofRackMixer].ActiveLyrCount + 1
+                            end
                         end
+                        
+                        _, Lyr.FX_Ins[FXGUIDofRackMixer] = r.GetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FxGUID)
+                        if Lyr.FX_Ins[FXGUIDofRackMixer] == "" then Lyr.FX_Ins[FXGUIDofRackMixer] = nil end
+                        Lyr.FX_Ins[FXGUIDofRackMixer] = tonumber(Lyr.FX_Ins[FXGUIDofRackMixer])
                     end
-
-
-                    _, Lyr.FX_Ins[FXGUIDofRackMixer] = r.GetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FxGUID)
-                    if Lyr.FX_Ins[FXGUIDofRackMixer] == "" then Lyr.FX_Ins[FXGUIDofRackMixer] = nil end
-                    Lyr.FX_Ins[FXGUIDofRackMixer] = tonumber(Lyr.FX_Ins[FXGUIDofRackMixer])
-                elseif FX_Name:find('FXD Saike BandSplitter') then
-                    FX[FxGUID].BandSplitID = tonumber(select(2,
-                        r.GetSetMediaTrackInfo_String(Track, 'P_EXT: BandSplitterID' .. FxGUID, '', false)))
-                    _, FX[FxGUID].AttachToJoiner = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Splitter\'s Joiner FxID ' ..
-                        FxGUID, '', false)
-
-                    for FX_Idx = 0, FXCount - 1, 1 do --repeat as many times as fx instances
-                        --Restore Band Split
+                end
+                
+                processRackMixerFX()
+                
+                -- Process BandSplitter FX
+                if FX_Name:find('FXD Saike BandSplitter') then
+                    fx.BandSplitID = RC('BandSplitterID' .. FxGUID)
+                    fx.AttachToJoiner = RC('Splitter\'s Joiner FxID ' .. FxGUID, 'str')
+                    
+                    for FX_Idx = 0, FXCount - 1, 1 do
                         local FxID = r.TrackFX_GetFXGUID(Track, FX_Idx)
-                        if select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which BS' .. FxID, '', false)) == FxGUID then
-                            --local _, Guid_FX_In_BS = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX is in which BS'..FxID, '', false  )
+                        if RC('FX is in which BS' .. FxID, 'str') == FxGUID then
                             FX[FxID] = FX[FxID] or {}
-                            FX[FxID].InWhichBand = tonumber(select(2,
-                                r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX is in which Band' .. FxID, '', false)))
-
-                            FX[FxGUID].FXsInBS = FX[FxGUID].FXsInBS or {}
-                            table.insert(FX[FxGUID].FXsInBS, FxID)
+                            FX[FxID].InWhichBand = RC('FX is in which Band' .. FxID)
+                            
+                            fx.FXsInBS = fx.FXsInBS or {}
+                            table.insert(fx.FXsInBS, FxID)
                         end
                     end
                 end
-
-
-
+                
+                -- Process Pro-Q 3 FX
                 if Track == LT_Track and string.find(FX_Name, 'Pro%-Q 3') ~= nil then
                     _, ProQ3.DspRange[FX_Idx] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
                     ProQ3['scaleLabel' .. ' ID' .. FxGUID] = ProQ3.DspRange[FX_Idx]
                     ProQ3['scale' .. ' ID' .. FxGUID] = syncProQ_DispRange(ProQ3.DspRange[FX_Idx])
                 end
-
             end
-        end 
-
-        for m = 1, 8, 1 do
-
-            Trk[TrkID].Mod[m].Type = RC('Mod' .. m .. 'Type', 'str')
         end
         
-        Get_FX_Data (TREE)
-        if not Trk[TrkID].Container_Id [1] then Trk[TrkID].Container_Id = nil end 
-
+        -- Get modulator types
+        for m = 1, 8, 1 do
+            TRK.Mod[m].Type = RC('Mod' .. m .. 'Type', 'str')
+        end
+        
+        -- Process FX data
+        Get_FX_Data(TREE)
+        
+        -- Clean up empty container IDs
+        if not TRK.Container_Id[1] then TRK.Container_Id = nil end
     end
 end
 
