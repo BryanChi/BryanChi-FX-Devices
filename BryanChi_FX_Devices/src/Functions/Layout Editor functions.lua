@@ -1388,7 +1388,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
         local function  Drawing_Properties()
             if not It or not D or not D[It] then  return end 
-            if not im.BeginTable(ctx, "DrawProperties", 4, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then return end 
+            if not im.BeginTable(ctx, "DrawProperties", 4, im.TableFlags_BordersOuter | im.TableFlags_BordersInner, -Color_Palette_Width-5) then return end
 
 
             local function Add_Val(str, index, v, step, min, max, fmt , NextRow, Width, WhiteList, BlackList)
@@ -1569,6 +1569,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
             im.PopStyleColor(ctx)
         end
     end
+    
     local function Parameter_Properties()
         if not LE.Sel_Items[1] or type(LE.Sel_Items[1])=='table'  then return end 
         local FS  = type(LE.Sel_Items[1]) == 'table' and LE.Sel_Items[1] or FX[FxGUID][LE.Sel_Items[1]]
@@ -1921,7 +1922,6 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                     end
                     im.EndCombo(ctx)
                 end
-
             end
 
             local function Italic_or_Bold(Var, Font, which)
@@ -2973,7 +2973,6 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                             fp.Sldr_W = nil
                         end
 
-                        --GetParamOptions ('get', FxGUID,FX_Idx, LE.Sel_Items[1],LT_ParamNum)
                     end
 
                     return PrmName
@@ -3005,16 +3004,20 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                     local CP = FX[FxGUID][Cond_prm_Fx_P]
                     local orig_props = {Name = CP.Name; Sldr_W = CP.Sldr_W }
                     FX[FxGUID][Cond_prm_Fx_P].Name = 'Cond_Prm'..Cond_prm_Fx_P..'Cond'..0
+                    local lbl = '##Cond_Prm'..Cond_prm_Fx_P..'Cond'..0
+
                     CP.Sldr_W = 40
 
-                    im.SetNextItemWidth(ctx, 500)
-                    Value_Selected, V_Formatted = AddCombo(ctx, FxGUID, Cond_prm_Fx_P, FX_Idx, true)
+
+                    if not CP.Options then GetParamOptions(FxGUID, FX_Idx, Cond_prm_Fx_P, CP.Num) end 
+                    local Value_Selected = SimpleCombo(ctx, lbl , FS[V][1] , CP.Options )
                     if Value_Selected then
                         for i, v in pairs(LE.Sel_Items) do
-                            FX[FxGUID][v][V] = FX[FxGUID][v][V] or {}
-                            FX[FxGUID][v][V_Norm] = FX[FxGUID][v] [V_Norm] or {}
-                            FX[FxGUID][v][V][1] = V_Formatted
-                            FX[FxGUID][v][V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[WhichPrm])
+                            local fp = FX[FxGUID][v]
+                            fp[V] = fp[V] or {}
+                            fp[V_Norm] = fp[V_Norm] or {}
+                            fp[V][1] = Value_Selected
+                            fp[V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[WhichPrm])
                         end
                     end
                     FX[FxGUID][P][V][1] = FX[FxGUID][P][V][1] or ''
@@ -3025,13 +3028,11 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                                 if i > 1 then
                                     im.Text(ctx, 'or at value:')
                                     im.SameLine(ctx)
-                                    FX[FxGUID][Cond_prm_Fx_P].Name = 'Cond_Prm'..Cond_prm_Fx_P..'Cond'..i
-                                    im.SetNextItemWidth(ctx, 500)
-
-                                    local Value_Selected, V_Formatted =  AddCombo(ctx, FxGUID, Cond_prm_Fx_P, FX_Idx, true)--   AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. WhichPrm, FX[FxGUID][P][WhichPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl', true)
+                                    local lbl = '##Cond_Prm'..Cond_prm_Fx_P..'Cond'..i
+                                    local Value_Selected =  SimpleCombo(ctx, lbl , FS[V][i] , CP.Options )--   AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. WhichPrm, FX[FxGUID][P][WhichPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl', true)
                                     if Value_Selected then
                                         for I, v in pairs(LE.Sel_Items) do
-                                            FX[FxGUID][v][V][i] = V_Formatted
+                                            FX[FxGUID][v][V][i] = Value_Selected
                                             FX[FxGUID][v][V_Norm][i] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][P][WhichPrm])
                                         end
                                     end
@@ -4620,6 +4621,69 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
 
 end
 
+function GetParamOptions( FxGUID, FX_Idx, Fx_P, P_Num)
+    -- Initialize the Options structure if it doesn't exist
+    if not FX[FxGUID][Fx_P].Options then
+        FX[FxGUID][Fx_P].Options = {}
+    end
+    
+    
+    -- Get current parameter value to restore later
+    local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
+    
+    -- Only populate options if the array is empty
+    if #FX[FxGUID][Fx_P].Options == 0 then
+        local Value
+        -- Scan through all possible parameter values
+        for i = 0, 1.01, 0.01 do
+            -- Set parameter to test value
+            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, i)
+            -- Get formatted value
+            local _, buf = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            
+            -- Check if this value is already in options
+            local found = false
+            for _, opt in ipairs(FX[FxGUID][Fx_P].Options) do
+                if opt.V_Form == buf then
+                    found = true
+                    break
+                end
+            end
+            
+            -- If value is new, add it to options
+            if not found then
+                table.insert(FX[FxGUID][Fx_P].Options, {
+                    V_Norm = i,
+                    V_Form = buf
+                })
+                
+                -- Calculate combo width based on text size
+                if Value then
+                    local L1 = im.CalcTextSize(ctx, buf)
+                    local L2 = im.CalcTextSize(ctx, Value)
+                    FX[FxGUID][Fx_P].Combo_W = math.max(L1, L2)
+                else
+                    Value = buf
+                end
+            end
+        end
+        
+        -- Restore original parameter value
+        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, OrigV)
+        
+        -- Set CurrentOps to match current value if not already set
+        if not FX[FxGUID][Fx_P].CurrentOps then
+            local current_value = r.r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            for i, opt in ipairs(FX[FxGUID][Fx_P].Options) do
+                if current_value == opt.V_Form then 
+                    FX[FxGUID][Fx_P].CurrentOps = i
+                end
+            end
+        end
+    end
+    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, OrigV)
+end
+
 function Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
 
@@ -5974,18 +6038,32 @@ function AddArrow_IF_NEEDED(ctx, L_or_R, FP, Label, V, WhichPrm, FX_Idx, Options
         local Dir = L_or_R == 'Left' and im.Dir_Left or im.Dir_Right
 
         if Options and not FP.CurrentOps and Options[1] then 
-            FP.CurrentOps = 1 
-            FP.Chosen = Options[1].ChoiceName
-            for i, v in ipairs(Options) do 
-                if v.ChoiceName == V then 
-                    FP.CurrentOps = i
+            if IsVB then 
+                FP.CurrentOps = 1
+                FP.Chosen = Options[1].ChoiceName
+                for i, v in ipairs(Options) do 
+                    if v.ChoiceName == V then 
+                        FP.CurrentOps = i
+                    end
+                    
+                end
+            else 
+                local _, form = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, FP.Num)
+                for i, v in ipairs(Options) do 
+                    if v.V_Form == form then 
+                        FP.CurrentOps = i
+                    end
                 end
             end
-        end
 
-        local Disabled = (L_or_R == 'Left' and FP.CurrentOps == 1) or (L_or_R == 'Right' and FP.CurrentOps == #V) and true or false
+        end
+        local V = type(V)==('table') and V or Options
+
+        local Disabled 
         if Options then 
             Disabled = (L_or_R == 'Left' and FP.CurrentOps == 1) or (L_or_R == 'Right' and FP.CurrentOps == #Options) and true or false
+        else 
+            Disabled = (L_or_R == 'Left' and FP.CurrentOps == 1) or (L_or_R == 'Right' and FP.CurrentOps == #V) and true or false
         end
         if Disabled then 
             im.BeginDisabled(ctx)
@@ -6012,11 +6090,11 @@ function AddArrow_IF_NEEDED(ctx, L_or_R, FP, Label, V, WhichPrm, FX_Idx, Options
 
         if RV then 
             local PrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
-           -- local Value = L_or_R == 'Left' and PrmV - 1/(#OPs-1) or PrmV + 1/(#OPs-1)
            local Val = L_or_R == 'Left' and V[FP.CurrentOps-1] or V[FP.CurrentOps+1]
            FP.CurrentOps = FP.CurrentOps + (L_or_R == 'Left' and -1 or 1)
 
            if not IsVB then 
+                if type(V) =='table' then Val =  Val.V_Norm end 
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, Val)
                 local PrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
                 FP.V = PrmV
@@ -6121,30 +6199,32 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
     im.PushStyleColor(ctx, im.Col_FrameBg, FX[FxGUID][Fx_P].BgClr or 0x444444ff)
     im.PushStyleColor(ctx, im.Col_Text, V_Clr)
     local PopClr = 2
-
-    local OP =  [FxGUID][Fx_P].Options; local OPs, V
+    FX[FxGUID][Fx_P].Options = FX[FxGUID][Fx_P].Options  or {}
 
     if Options == 'Get Options' then
-        if not OP[FxGUID] then OP[FxGUID] = {} end
-        if not OP[FxGUID][Fx_P] then
-            OP[FxGUID][Fx_P] = {V = {} };
-        end
-        OPs = OP[FxGUID][Fx_P]
-        V = OP[FxGUID][Fx_P].V
 
-
-        if #OPs == 0 then
+        if #FX[FxGUID][Fx_P].Options == 0 then
+            local Ops = FX[FxGUID][Fx_P].Options
             local OrigPrmV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
             for i = 0, 1.01, 0.01 do
 
-               
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, i)
                 local _, buf = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
-                
-                if not Value then
-                    Value = buf; OPs[1] = buf
-                    V[1] = i
+                local found 
+
+                if #Ops > 0 then 
+                    for i, v in ipairs(Ops) do 
+
+                        if v.V_Form == buf then 
+                            found = true
+                        end
+                    end
                 end
+                if not found then
+                    table.insert(Ops, {V_Norm = tonumber(i); V_Form = buf})
+                end
+
+                --[[ 
                 if Value ~= buf then
                     table.insert(OPs, buf)
                     table.insert(V, i)
@@ -6152,7 +6232,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                     local L1 = im.CalcTextSize(ctx, buf); local L2 = im.CalcTextSize(ctx, Value)
                     FX[FxGUID][Fx_P].Combo_W = math.max(L1, L2)
                     Value = buf
-                end
+                end ]]
                 
 
             end
@@ -6163,7 +6243,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OrigPrmV)
 
             if not FP.CurrentOps  then 
-                for i, v in ipairs(OPs)do 
+                for i, v in ipairs(Ops)do 
                     local _, Val = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                     if Val == v  then 
                         FP.CurrentOps = i
@@ -6193,9 +6273,9 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
         Cx, Cy = im.GetCursorPos(ctx)
         im.SetCursorPos(ctx, Cx + (FP.V_Pos_X or 0), Cy + (FP.V_Pos_Y or 0))
     end
-    local function EndCOMBO()
+    local function EndCOMBO(popFont)
         im.PopStyleColor(ctx, 3)
-
+        if popFont then im.PopFont(ctx) end
         im.EndCombo(ctx)
 
     end
@@ -6206,11 +6286,11 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
     local function begincombo(ctx)
 
 
-
-        if FP.V_FontSize or V_Font then im.PushFont(ctx, _G[V_Font]) end
+        local popFont 
+        if FP.V_FontSize or V_Font then im.PushFont(ctx, _G[V_Font]) popFont = true end
        
         im.PushStyleColor(ctx, im.Col_Text, V_Clr)
-        AddArrow_IF_NEEDED(ctx, 'Left', FP, Label, V, WhichPrm, FX_Idx)
+        AddArrow_IF_NEEDED(ctx, 'Left', FP, Label, V, WhichPrm, FX_Idx, FP.Options)
 
         if Width or FX[FxGUID][Fx_P].Combo_W then
             im.SetNextItemWidth(ctx, Width or (FX[FxGUID][Fx_P].Combo_W + (ExtraW or 0)))
@@ -6223,30 +6303,28 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
         if not FP.DONT_MAKE_EDITABLE and not USED_IN_Layout_Editor then
             MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
         end
-        AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
        
         if LT_ParamNum == FP.Num and FOCUSED_FX_STATE == 1 and LT_FXGUID == FxGUID   then
             FP.V  = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
-            if FP.Type =='Selection' and FP.AddArrows then 
-                local ops = FX.Prm.Options[FxGUID][Fx_P]
-                if ops and #ops > 0 then 
-                    for i , v in ipairs(ops.V) do 
-                        if i ~= #ops.V then 
-                            if v <= FP.V and ops.V[i+1] > FP.V then 
-                                FP.CurrentOps = i
-                            end
-                        else 
-                            if FP.V >=v then 
-                                FP.CurrentOps = i
-                            end
+            local ops = FP.Options
+            if FP.AddArrows and ops and #ops > 0 then 
+                
+                for i , v in ipairs(ops.V) do 
+                    if i ~= #ops.V then 
+                        if v <= FP.V and ops.V[i+1] > FP.V then 
+                            FP.CurrentOps = i
+                        end
+                    else 
+                        if FP.V >=v then 
+                            FP.CurrentOps = i
                         end
                     end
                 end
+
             end
         end
         
     
-        if FP.V_FontSize or V_Font then im.PopFont(ctx) end
 
         im.PopStyleColor(ctx)
         if rv  then
@@ -6282,25 +6360,26 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                         else
                             _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                         end
-                        EndCOMBO()
+                        EndCOMBO(popFont)
                         return true, _G[LabelValue]
                     end
                 end
-                EndCOMBO()
+                EndCOMBO(popFont)
             else
-                for i = 1, #OPs, 1 do
+                local OPs = FP.Options
+                for i , v in ipairs(OPs) do 
                     if OPs[i] and OPs[i]~='' then 
-                        if im.Selectable(ctx, OPs[i], i) and WhichPrm ~= nil then
-                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, V[i])
+                        if im.Selectable(ctx, v.V_Form , i) and WhichPrm ~= nil then
+                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, v.V_Norm)
                             FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
                             FP.CurrentOps = i
                             _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
-                            EndCOMBO()
+                            EndCOMBO(popFont)
                             return true, _G[LabelValue]
                         end
                     end
                 end
-                EndCOMBO()
+                EndCOMBO(popFont)
             end
 
             local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
@@ -6310,10 +6389,15 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
             im.DrawList_AddRectFilled(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888844, Rounding)
             im.DrawList_AddRect(drawlist, L, T + lineheight / 8, R, B - lineheight / 8, 0x88888877, Rounding)
         else
+
             if Style == 'Pro C 2' and LBtnRel then
                 ProC.ChoosingStyle = false
             end
         end
+        AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx, FP.Options)
+        if not rv and  popFont then im.PopFont(ctx) end
+
+
         -- DnD_PLink_TARGET(FxGUID, Fx_P, FX_Idx, P_Num)
     end
 
@@ -6986,6 +7070,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
             if not FxGUID then return end
             local function Virtual_Btns(Ct)
 
+                local fx = FX[FxGUID]
+
                 VBCount = RecallGlobInfo(Ct, 'Virtual Button Instance = ', 'Num')
                 local P = { 'CustomLbl', 'PosY', 'PosX', 'Type', 'Sldr_W', 'AddArrows', 'Btn_Clr'} 
                 if not VBCount or VBCount<1 then return end 
@@ -7253,7 +7339,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                         FP.Conditions[i][v] = RecallInfo(Ct, 'Condition '.. i..': '.. v, Fx_P)
                                     end 
 
-                                    for I, v in ipairs(fx.VB) do 
+                                    for I, v in ipairs(FX[FxGUID].VB) do 
                                         if CustomLbl == v.CustomLbl then 
                                             local i = i==1 and '' or i
                                             FP['ConditionPrm' .. i ] = v
@@ -7534,50 +7620,7 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
     return P
 end
 
----TODO I think this is unused
----@param get? "get"
----@param FxGUID string
----@param FX_Idx integer
----@param Fx_P number
----@param WhichPrm integer
-function GetParamOptions(get, FxGUID, FX_Idx, Fx_P, WhichPrm)
-   
-    local OP = FX[FxGUID][Fx_P].Options; local OPs, V
 
-    if get == 'get' then OP[FxGUID] = nil end
-
-    if not OP then OP[FxGUID] = {} end
-    if not OP[FxGUID][Fx_P] then
-        OP[FxGUID][Fx_P] = {};
-
-        OP[FxGUID][Fx_P] = { V = {} }
-    end
-    OPs = OP[FxGUID][Fx_P]
-    V = OP[FxGUID][Fx_P].V
-
-
-    local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
-
-
-
-    if #OPs == 0 then
-        for i = 0, 1, 0.01 do
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, i)
-            local _, buf = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
-            if not Value then
-                Value = buf; OPs[1] = buf
-                V[1] = i
-            end
-            if Value ~= buf then
-                OPs[#OPs + 1]            = buf; V[#V + 1] = i;
-                local L1                 = im.CalcTextSize(ctx, buf); local L2 = im.CalcTextSize(ctx, Value)
-                FX[FxGUID][Fx_P].Combo_W = math.max(L1, L2)
-                Value                    = buf
-            end
-        end
-    end
-    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OrigV)
-end
 
 
 --im.SetNextWindowDockID(ctx, -1)   ---Dock the script
@@ -8573,4 +8616,27 @@ function Create_Undo_Point(str , FxGUID)
     table.insert(LE.Undo_Points, deepCopy(FX[FxGUID]))
     LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name = str
 end
+
+
+
+
+
+function SimpleCombo(ctx, label, current_value, options, width)
+    local selected_value = current_value
+    --local selected_value
+    local combo_width = width or -1
+    
+    if im.BeginCombo(ctx, label,selected_value or '##') then
+        for i, option in ipairs(options) do
+           
+            if im.Selectable(ctx, option.V_Form) then
+                selected_value = option.V_Form
+            end
+        end
+        im.EndCombo(ctx)
+    end
+    
+    return selected_value
+end
+
 

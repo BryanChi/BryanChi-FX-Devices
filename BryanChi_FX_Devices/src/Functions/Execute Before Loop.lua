@@ -749,21 +749,22 @@ function Retrieve_All_Saved_Data_Of_Project()
                 end
             end
             
-            -- Get the number of parameters for this FX
-            local numParams = r.TrackFX_GetNumParams(Track, FX_Idx)
-            
+
             -- Iterate through each parameter
-            for Fx_P = 1, numParams do
+
+            for Fx_P, v in ipairs (FX[FxGUID]) do
+                
+                msg(Fx_P)
                 local FP = fx[Fx_P] or {}
                 fx[Fx_P] = FP
+                FP.ModAMT = FP.ModAMT or {}
+                FP.Cont_ModAMT = FP.Cont_ModAMT or {}
                 
                 FP.V = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation')
                 FP.WhichCC = RC('FX' .. FxGUID .. 'WhichCC' .. (FP.Num or 0))
                 FP.WhichMODs = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods')
                 FP.Cont_Which_CC = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. ' Container Mod CC')
                 
-                FP.ModAMT = {}
-                FP.Cont_ModAMT = {}
                 
                 RET_ContainerModulation(FP, FxGUID, Track, FX_Idx)
                 RET_MIDIModulation(FP, FxGUID, Fx_P, TRK)

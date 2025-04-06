@@ -3266,3 +3266,23 @@ function Set_Prm_To_Default(FX_Idx, FP)
         end
     end
 end
+
+function SimpleCombo(ctx, label, current_value, options, width)
+    local selected_value = current_value
+    local combo_width = width or -1
+    
+    if im.BeginCombo(ctx, label, combo_width) then
+        for i, option in ipairs(options) do
+            local is_selected = (current_value == option)
+            if im.Selectable(ctx, option, is_selected) then
+                selected_value = option
+            end
+            if is_selected then
+                im.SetItemDefaultFocus(ctx)
+            end
+        end
+        im.EndCombo(ctx)
+    end
+    
+    return selected_value
+end

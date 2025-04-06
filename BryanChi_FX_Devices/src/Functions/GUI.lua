@@ -4878,20 +4878,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             local function Item_Interaction()
                                 if im.IsItemClicked(ctx) and LBtnDC then    
-                                    if Mods == 0 then
+                                    if Mods == 0 and FP.Type ~= 'Selection' then
                                         Set_Prm_To_Default(FX_Idx, FP)
-
                                     elseif Mods == Alt then
                                         if FP.Deletable then
                                             DeletePrm(FxGUID, Fx_P, FX_Idx)
                                         end
-
                                     end
-
-
                                 end
                             end
                             local function Double_Click_To_Reset_Value()
+
                                 if ToDef.ID and ToDef.V then
                                     r.TrackFX_SetParamNormalized(LT_Track, ToDef.ID, ToDef.P, ToDef.V)
                                     if FP.WhichCC then
