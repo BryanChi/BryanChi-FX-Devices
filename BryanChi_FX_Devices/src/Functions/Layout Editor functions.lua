@@ -6122,7 +6122,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
     im.PushStyleColor(ctx, im.Col_Text, V_Clr)
     local PopClr = 2
 
-    local OP = FX.Prm.Options; local OPs, V
+    local OP =  [FxGUID][Fx_P].Options; local OPs, V
 
     if Options == 'Get Options' then
         if not OP[FxGUID] then OP[FxGUID] = {} end
@@ -7542,11 +7542,11 @@ end
 ---@param WhichPrm integer
 function GetParamOptions(get, FxGUID, FX_Idx, Fx_P, WhichPrm)
    
-    local OP = FX.Prm.Options; local OPs, V
+    local OP = FX[FxGUID][Fx_P].Options; local OPs, V
 
     if get == 'get' then OP[FxGUID] = nil end
 
-    if not OP[FxGUID] then OP[FxGUID] = {} end
+    if not OP then OP[FxGUID] = {} end
     if not OP[FxGUID][Fx_P] then
         OP[FxGUID][Fx_P] = {};
 
