@@ -6309,13 +6309,13 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
             local ops = FP.Options
             if FP.AddArrows and ops and #ops > 0 then 
                 
-                for i , v in ipairs(ops.V) do 
-                    if i ~= #ops.V then 
-                        if v <= FP.V and ops.V[i+1] > FP.V then 
+                for i , v in ipairs(ops) do 
+                    if i ~= #ops then 
+                        if v.V_Norm <= FP.V and ops[i+1].V_Norm > FP.V then 
                             FP.CurrentOps = i
                         end
                     else 
-                        if FP.V >=v then 
+                        if FP.V >=v.V_Norm then 
                             FP.CurrentOps = i
                         end
                     end
