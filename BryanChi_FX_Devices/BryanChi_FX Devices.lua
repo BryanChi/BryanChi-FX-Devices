@@ -1,10 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta17.4.1
+-- @version 1.0beta18
 -- @changelog
---   - Fix incorrect behavior of nested containers and parallel FX within containers.
---   - Layout Editor : Prevent Selecting all parameters by clicking Command+A if user is editing text.
---   - Layout Editor : Fix Selection buttons note symmetrical in size.
+--   - New layouts contributed by Arthen (todoublez)
+--   - Big Feature improvements on Containers and parallel FXs
+--   - Cleaned up old code
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
