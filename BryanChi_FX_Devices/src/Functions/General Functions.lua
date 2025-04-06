@@ -321,7 +321,7 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
         fxname = buf,
         isopen = reaper.TrackFX_GetOpen(tr, fxid),
         GUID = reaper.TrackFX_GetFXGUID(tr, fxid),
-        addr_fxid = fxid,
+        addr_fxid = tonumber(fxid),
         scale = oldscale,
         parallel = parallel
     }
@@ -331,7 +331,7 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
 
     if not fxGUID then return end
     FX[fxGUID] = FX[fxGUID] or {}
-    FX[fxGUID].addr_fxid =  fxid
+    FX[fxGUID].addr_fxid = tonumber(fxid)
 
 
     if ccok then -- if fx in container is a container
@@ -355,7 +355,7 @@ local function Build_FX_TREE_ITEM(tr, id, scale, oldscale)
         fxname = select(2, r.TrackFX_GetFXName(tr, id)),
         isopen = reaper.TrackFX_GetOpen(tr, id),
         GUID = reaper.TrackFX_GetFXGUID(tr, id),
-        addr_fxid = id,
+        addr_fxid = tonumber(id),
         scale = oldscale,
         parallel = select(2,  r.TrackFX_GetNamedConfigParm(tr, id, 'parallel') ) == '1' and true
     }
@@ -1723,9 +1723,9 @@ end
 
 function SyncTrkPrmVtoActualValue()
     for FX_Idx = 0, Sel_Track_FX_Count, 1 do                 ---for every selected FX in cur track
-        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx) ---get FX’s GUID
+        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx) ---get FX's GUID
         if FxGUID then
-            FX[FxGUID] = FX[FxGUID] or {}                    ---create new params table for FX if it doesn’t exist
+            FX[FxGUID] = FX[FxGUID] or {}                    ---create new params table for FX if it doesn't exist
             for Fx_P = 1, #FX[FxGUID] or 0, 1 do             ---for each param
                 if TrkID then
                     if not FX[FxGUID][Fx_P].WhichMODs then
@@ -1930,7 +1930,7 @@ function DrawChildMenu(tbl, path, FX_Idx)
            end
        end
        if type(tbl[i]) ~= "table" then
-           if im.Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let’s pass the third argument as false instead of nil
+           if im.Selectable(ctx, tbl[i], false) then -- TODO for all calls to ImGui_Selectable, let's pass the third argument as false instead of nil
                if TRACK then
                    r.TrackFX_AddByName(TRACK, table.concat({ path, os_separator, tbl[i] }), false,
                        -1000 - FX_Idx)
@@ -2077,8 +2077,8 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
                     ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
                     local clr = FX_Adder_VST or
                         CustomColorsDefault
-                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn’t there anymore. Should we bring it back ?
-                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan’s module
+                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn't there anymore. Should we bring it back ?
+                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan's module
                     MyText('VST', nil, clr)
                     SL()
                     HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')

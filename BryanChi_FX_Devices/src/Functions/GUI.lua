@@ -4855,14 +4855,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                             local function Create_Item()
                                 local pos =  { im.GetCursorScreenPos(ctx) }
-                                local Lbl = '##' .. (FP.Name or Fx_P) .. FX_Name.. (FP.Num or 0)
+
                                 --- Add Parameter controls ---------
                                 if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
                                     AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
-
                                     AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
-
                                 elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
                                     AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Switch' then

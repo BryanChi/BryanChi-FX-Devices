@@ -2334,7 +2334,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
             local function Add_Default_Selection_Styles()
                 if FS.Type == 'Selection' then
                     local function SetStyle(Name, Style, Width, CustomLbl)
-                        AddCombo(ctx, LT_Track, FX_Idx, Name .. '##' .. FS.Name, FS.Num, Options, Width, Style, FxGUID, 0, OptionValues, 'Options', CustomLbl)
+                        AddCombo(ctx, FxGUID, -1, FX_Idx)
                         if HighlightHvredItem() then
                             setItmStyle(Style)
                             im.CloseCurrentPopup(ctx)
@@ -2422,18 +2422,27 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                     
                     for i, v in ipairs(LE.DrawingStyles[FS.Type])do 
                         if im.TextFilter_PassFilter(StyleWinFilter, v.Name) then
+                            local W = 300
+                            im.Spacing(ctx)
                             im.BeginGroup(ctx)
                             local pos = {im.GetCursorScreenPos(ctx)}
-                            AddKnob(ctx, '##' .. FS.Name, '', FS.V, 0, 1, 0, FX_Idx, FS.Num, 'Invisible', 15, 0, Disabled, 12, Lbl_Pos, V_Pos, Img)
+                            --AddKnob(ctx,FxGUID, FS.Num, FX_Idx)
+                            InvisiBtn(ctx, pos[1],pos[2],'##'..i, W, 40) 
+
+                            InvisiBtn(ctx, pos[1],pos[2],'##'..i, 30, 30)
                             local w, h = im.GetItemRectSize(ctx)
                             Draw_Attached_Drawings(v,FX_Idx, pos , FS.V, FS.Type, FxGUID)
-                            SL(nil, 50)
+                            SL(nil,30)
 
-                            im.Text(ctx, v.Name)
+
+                            MyText(v.Name)
                             im.EndGroup(ctx)
+
                             Set_Style_To_Selected_Itm (LE.Sel_Items,v)
                             Add_Plus_Button(i, h, v, FxGUID,LE.Sel_Items)
                             Add_Trash_Button(i, h, v, FS.Type)
+                            im.Spacing(ctx)
+
                             im.Separator(ctx)
                             
                         end
@@ -2548,7 +2557,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
             elseif FS.Type =='Selection' then 
                 local function Combo()
-                    AddCombo(ctx, LT_Track, FX_Idx, FS.Name, FS.Num, nil, nil, nil, FxGUID, 0)
+                    AddCombo(ctx, FxGUID, -1 , FX_Idx)
                 end
                 Add_Style_Previews(Combo)
 
@@ -2974,33 +2983,41 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
 
                 local function Condition_Values(PrmName)
 
-                   -- if not fp[WhichPrm]  then return end 
+                    if not fp[WhichPrm]  then return end 
                     if TB[TB_ID].COND_Prm_Or_VB ~= 'Parameter' then return end 
                     if type(fp.ConditionPrm)=='table' then return end 
                     im.Text(ctx, 'is at Value:')
-
                     im.SameLine(ctx)
                     local FP = FX[FxGUID][LE.Sel_Items[1]] ---@class FX_P
                     local CP = FX[FxGUID][P][WhichPrm]
                     FX[FxGUID][P][V] = FX[FxGUID][P][V] or {}
                     local Value_Lbl = FX[FxGUID][P][V][1] or 'Unassigned'
-                    --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
-                    Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'ConditionPrm' .. (fp.ConditionPrm or '') .. (PrmName or '') .. '1## CP'..TB_ID, 
-                    FX[FxGUID][P][WhichPrm] or 0, 
-                    FX[FxGUID][PID].ManualValuesFormat or 'Get Options',
-                    -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, Value_Lbl, nil, 'No Lbl', true )
+                    local function Find_Fx_P_By_PNum()
+                        for i , v in ipairs(FX[FxGUID]) do 
+                            if v.Num == fp[WhichPrm] then 
+                                return i
+                            end
+                        end
+                    end 
+                    local Cond_prm_Fx_P = Find_Fx_P_By_PNum()
 
+                    --!!!!!! LE.Sel_Items[1] = Fx_P -1 !!!!!! --
+                    local CP = FX[FxGUID][Cond_prm_Fx_P]
+                    local orig_props = {Name = CP.Name; Sldr_W = CP.Sldr_W }
+                    FX[FxGUID][Cond_prm_Fx_P].Name = 'Cond_Prm'..Cond_prm_Fx_P..'Cond'..0
+                    CP.Sldr_W = 40
+
+                    im.SetNextItemWidth(ctx, 500)
+                    Value_Selected, V_Formatted = AddCombo(ctx, FxGUID, Cond_prm_Fx_P, FX_Idx, true)
                     if Value_Selected then
                         for i, v in pairs(LE.Sel_Items) do
-                            FX[FxGUID][v][V] = FX[FxGUID][v] [V] or {}
+                            FX[FxGUID][v][V] = FX[FxGUID][v][V] or {}
                             FX[FxGUID][v][V_Norm] = FX[FxGUID][v] [V_Norm] or {}
                             FX[FxGUID][v][V][1] = V_Formatted
                             FX[FxGUID][v][V_Norm][1] = r .TrackFX_GetParamNormalized(LT_Track, FX_Idx, fp[WhichPrm])
                         end
                     end
-                    if not FX[FxGUID][P][V][1] then
-                        FX[FxGUID][P][V][1] = ''
-                    end
+                    FX[FxGUID][P][V][1] = FX[FxGUID][P][V][1] or ''
 
                     if FX[FxGUID][P][V] then
                         if FX[FxGUID][P][V][2] then
@@ -3008,7 +3025,10 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                                 if i > 1 then
                                     im.Text(ctx, 'or at value:')
                                     im.SameLine(ctx)
-                                    local Value_Selected, V_Formatted = AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. WhichPrm, FX[FxGUID][P][WhichPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl', true)
+                                    FX[FxGUID][Cond_prm_Fx_P].Name = 'Cond_Prm'..Cond_prm_Fx_P..'Cond'..i
+                                    im.SetNextItemWidth(ctx, 500)
+
+                                    local Value_Selected, V_Formatted =  AddCombo(ctx, FxGUID, Cond_prm_Fx_P, FX_Idx, true)--   AddCombo(ctx, LT_Track, FX_Idx, 'CondPrmV' .. (PrmName or '') .. v .. WhichPrm, FX[FxGUID][P][WhichPrm] or 0, FX[FxGUID][PID].ManualValuesFormat or 'Get Options', -R_ofs, Style, FxGUID, PID, FX[FxGUID][PID].ManualValues, v, nil, 'No Lbl', true)
                                     if Value_Selected then
                                         for I, v in pairs(LE.Sel_Items) do
                                             FX[FxGUID][v][V][i] = V_Formatted
@@ -3036,6 +3056,8 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                         end
                         im.EndCombo(ctx)
                     end
+                    FX[FxGUID][Cond_prm_Fx_P].Name = orig_props.Name
+                    FX[FxGUID][Cond_prm_Fx_P].Sldr_W = orig_props.Sldr_W
 
                 end
                 local function VirtualButton()
@@ -3161,6 +3183,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
             local function Preset()
                 im.Text(ctx,'Preset: ')SL()
                 im.SetNextItemWidth(ctx, 180)
+                im.SetNextWindowSize(ctx, 400, 500)
                 if im.BeginCombo(ctx, '##atttached drawings preset', FS.Chosen_Atch_Draw_Preset or 'Choose Preset', im.ComboFlags_HeightLarge)then 
                     if not im.ValidatePtr(AtchDraw_Preset_Filter, "ImGui_TextFilter*") then
                         AtchDraw_Preset_Filter = im.CreateTextFilter(AtchDraw_Preset_FilterTxt)
@@ -4744,13 +4767,13 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
     FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
     local FP = FX[FxGUID][Fx_P]
     if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then im.BeginDisabled(ctx) end
+    if not FP.Num then return end 
 
     local label = '##' .. (FP.Name or Fx_P) .. (FP.Num or 0)..FxGUID
     local p_value = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
     local v_min =  0
     local v_max =  1
     local P_Num = FP.Num
-
     local labeltoShow = FP.CustomLbl  or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
     local Style = FP.Style or 'Default'
     local Vertical = FP.Type == 'V-Slider' and 'Vert' or nil
@@ -6022,7 +6045,7 @@ end
 ---@param LabelOveride? string|nil
 ---@param CustomLbl? string
 ---@param Lbl_Pos? Position
-function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
+function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
 
     --FX_Idx, Label, WhichPrm, Options, Width, Style, FxGUID, Fx_P, OptionValues,
     --LabelOveride, CustomLbl, Lbl_Pos, DONT_MAKE_EDITABLE
@@ -6042,6 +6065,8 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
     local Font, V_Font = GetFonts(FP)
     local WhichPrm = FP.Num
 
+
+    if type(FX_Idx)== 'string' then FX_Idx = tonumber(FX_Idx)end
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, V_Norm) or FP.Lbl_Clr or getClr(im.Col_Text)
     local V_Norm = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
@@ -6102,9 +6127,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
     if Options == 'Get Options' then
         if not OP[FxGUID] then OP[FxGUID] = {} end
         if not OP[FxGUID][Fx_P] then
-            OP[FxGUID][Fx_P] = {};
-
-            OP[FxGUID][Fx_P] = { V = {} }
+            OP[FxGUID][Fx_P] = {V = {} };
         end
         OPs = OP[FxGUID][Fx_P]
         V = OP[FxGUID][Fx_P].V
@@ -6197,7 +6220,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
         end
         local rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
         
-        if not FP.DONT_MAKE_EDITABLE then
+        if not FP.DONT_MAKE_EDITABLE and not USED_IN_Layout_Editor then
             MakeItemEditable(FxGUID, Fx_P, FP.Sldr_W, 'Selection', curX, CurY)
         end
         AddArrow_IF_NEEDED(ctx, 'Right', FP, Label, V, WhichPrm, FX_Idx)
@@ -6221,6 +6244,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
                 end
             end
         end
+        
     
         if FP.V_FontSize or V_Font then im.PopFont(ctx) end
 
@@ -6294,7 +6318,12 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
     end
 
     local rv, v_format = begincombo(ctx)
-
+    if USED_IN_Layout_Editor then  
+        im.EndGroup(ctx)
+        im.PopStyleVar(ctx)
+        im.PopStyleColor(ctx, PopClr or 0)
+        return rv, v_format 
+    end
     local ExtraW = Draw_Native_Styles()
 
     Draw_Attached_Drawings(FP,FX_Idx, pos,FP.V,nil, FxGUID)
@@ -7512,6 +7541,7 @@ end
 ---@param Fx_P number
 ---@param WhichPrm integer
 function GetParamOptions(get, FxGUID, FX_Idx, Fx_P, WhichPrm)
+   
     local OP = FX.Prm.Options; local OPs, V
 
     if get == 'get' then OP[FxGUID] = nil end
