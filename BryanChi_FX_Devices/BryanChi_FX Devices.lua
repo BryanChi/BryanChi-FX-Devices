@@ -74,7 +74,7 @@ r.SetToggleCommandState(0, CommanID, 1)
  
 
 
-function loop()
+function Main_Loop()
     If_New_Font()
     local validctx = r.ImGui_ValidatePtr(ctx,'ImGui_Context*')
     
@@ -125,7 +125,7 @@ function loop()
 
 
     if visible and LT_Track and OpenMainWIN then
-        
+
     
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
         Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
@@ -393,6 +393,7 @@ function loop()
         if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 260, nil, MainWin_Flg) then
             local X , Y = im.GetCursorScreenPos(ctx)
             --im.DrawList_AddRectFilled(Glob.WDL, X, Y, X + 3000 ,  Y + 20, 0xFF00FFFF)
+
             Draw_Parallel_FX_Enclosure(FxGUID)
 
             ------------------------------------------------------
@@ -482,7 +483,8 @@ function loop()
                                     FX[FxGUID].DeleteFXLayer = true
                                 elseif im.IsItemClicked(ctx, 1) then
                                     FX[FxGUID].Collapse = true
-                                    FX[FxGUID].CollapseWidth = 27
+
+
                                 elseif im.IsItemClicked(ctx) and Mods == Shift then
                                     local Spltr, FX_Inst
                                     if FX[FxGUID].LyrDisable == nil then FX[FxGUID].LyrDisable = false end
@@ -1299,14 +1301,11 @@ function loop()
                                 local P_Num = 1 + (5 * (i - 1))
                                 local Fx_P = i * 2 - 1
                                 local P_Name = 'Chan ' .. i .. ' Vol'
-                                StoreNewParam(FxGUID_Rack, P_Name, P_Num, FX_Idx, IsDeletable, 'AddingFromExtState',
-                                    Fx_P,
-                                    FX_Idx) -- Vol
+                                StoreNewParam(FxGUID_Rack, P_Name, P_Num, FX_Idx, IsDeletable, 'AddingFromExtState', Fx_P, FX_Idx) -- Vol
                                 local P_Num = 1 + (5 * (i - 1) + 1)
                                 local Fx_P_Pan = i * 2
                                 local P_Name = 'Chan ' .. i .. ' Pan'
-                                StoreNewParam(FxGUID_Rack, P_Name, P_Num, FX_Idx, IsDeletable, 'AddingFromExtState',
-                                    Fx_P_Pan, FX_Idx) -- Pan
+                                StoreNewParam(FxGUID_Rack, P_Name, P_Num, FX_Idx, IsDeletable, 'AddingFromExtState', Fx_P_Pan, FX_Idx) -- Pan
                             end
                             Spltr[FxGUID].New = false
                         end
@@ -2554,7 +2553,7 @@ function loop()
     end
 
     if OpenMainWIN  then
-        PDefer(loop)
+        PDefer(Main_Loop)
 
 
     else --on script close
@@ -2575,4 +2574,4 @@ function loop()
     Track_Fetch_At_End = r.GetLastTouchedTrack()
 end --end for loop
 
-PDefer(loop)
+PDefer(Main_Loop)

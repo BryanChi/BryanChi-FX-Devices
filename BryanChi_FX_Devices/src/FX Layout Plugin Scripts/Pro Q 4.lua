@@ -847,6 +847,7 @@ if not FX[FxGUID].Collapse then
                 --FX[FxGUID][Gain] = FX[FxGUID][gain_P_num] or {}
                 if not  FX[FxGUID] then return end 
                 local FP_gain = FX[FxGUID][Band]
+                if not FP_gain then return end  
                 FX[FxGUID][Band] = FX[FxGUID][Band] or {}
 
                 
@@ -1230,11 +1231,11 @@ if not FX[FxGUID].Collapse then
                 local GainToAddNode = ((((Y_Mid - MouseY_AddNode) - 100) / 100 + 1) / fx.Scale + 1) / 2
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 3, GainToAddNode)
                 if FreqToAddNode > 0.9 then
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.5)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 5, 0.45) -- high pass
                 elseif FreqToAddNode < 0.1 then
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.25)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 5, 0.25) -- Low pass
                 else
-                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 8, 0.02)
+                    r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, 23 * (BandNotInUse - 1) + 5, 0.02) -- normal bell
                 end
             end
         end

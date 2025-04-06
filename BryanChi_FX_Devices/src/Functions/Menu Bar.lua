@@ -35,7 +35,7 @@ function If_Theres_Selected_FX()
                     local Tree_Idx 
                     for I, V in ipairs(TREE) do
                         if id == V.addr_fxid then
-                            msg(I)
+
                             Tree_Idx = I 
                             break
                         end

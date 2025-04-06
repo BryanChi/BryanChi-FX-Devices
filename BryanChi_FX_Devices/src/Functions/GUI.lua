@@ -1211,18 +1211,20 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         if isContainer then
             local W = isContainer and fx.Collapse and 20 or 25
             local clr = Cont_Clr
-
-            local img = (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
-            im.SetCursorPosX(ctx, 6)
+            local pad_L = fx.Collapse and 3 or 6
+            local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
+            im.SetCursorPosX(ctx, pad_L)
             im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x00000000)
             im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
             im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
 
-            im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr)
+            if im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr) then 
+                fx.Cont_Collapse = toggle(fx.Cont_Collapse, 1, 0 )
+            end
             im.PopStyleColor(ctx,3)
-            im.SetCursorPosX(ctx, 6)
+            im.SetCursorPosX(ctx, pad_L)
 
-            WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
+            WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, W, fx.V_Win_Btn_Height)
 
         else
             WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
@@ -1268,6 +1270,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
     local RC =  Determine_Long_Or_Short_Click(R_ClickOnWindowBtn, IsRBtnHeld, 0.5) 
+    if not fx.Collapse then fx.Width_Collapse= nil end
 
     if Long_Or_Short_FX_Idx == FX_Idx then 
         if RC == 'Short'  then 
@@ -1552,7 +1555,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
         local function HandleParallelFX(FX_Idx)
-            if FX_Idx > 1 then
+            if FX_Idx > 0 then
                 if im.Button(ctx, 'Parallel With Previous FX', -FLT_MIN) then 
                     r.TrackFX_SetNamedConfigParm(LT_Track,FX_Idx, 'parallel', '1')
                     im.CloseCurrentPopup(ctx)
@@ -1743,9 +1746,10 @@ function Change_Clr_A(CLR, HowMuch, SetDirect)
 
     return im.ColorConvertDouble4ToU32(R, G, B, A)
 end
-
 ---@param Clr number
-function Generate_Active_And_Hvr_CLRs(Clr)
+---@param Scale number 
+function Generate_Active_And_Hvr_CLRs(Clr, Scale)
+    local sc = Scale or 1
     local ActV, HvrV
     local R, G, B, A = im.ColorConvertU32ToDouble4(Clr)
     local H, S, V = im.ColorConvertRGBtoHSV(R, G, B)
@@ -1753,9 +1757,9 @@ function Generate_Active_And_Hvr_CLRs(Clr)
         ActV = V - 0.2
         HvrV = V - 0.1
     end
-    local R, G, B = im.ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.2, 0, 1))
+    local R, G, B = im.ColorConvertHSVtoRGB(H, S, SetMinMax(ActV or V + 0.1* sc, 0, 1))
     local ActClr = im.ColorConvertDouble4ToU32(R, G, B, A)
-    local R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.1)
+    local R, G, B = im.ColorConvertHSVtoRGB(H, S, HvrV or V + 0.05* sc)
     local HvrClr = im.ColorConvertDouble4ToU32(R, G, B, A)
     return ActClr, HvrClr
 end
@@ -2147,7 +2151,8 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 y2 = y + (h or 10) * Val * (v.Height_VA)
             end
             if v.Height_VA_GR and v.Height_VA_GR ~= 0 then
-                y2 = y + (h or 10) * GR * (v.Height_VA_GR)
+                local xMax, yMax = im.GetItemRectMax(ctx)
+                y2 = math.min( y + (h or 10) * GR * (v.Height_VA_GR), yMax)
             end
 
 
@@ -2717,25 +2722,12 @@ function Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
     im.EndTooltip(ctx)
 end
 
-function Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, DL)
+function Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, DL, Clr)
 
     if Parallel == 'Mixer Layout - Show'  and not FX[FxGUID].Collapse then   
 
         local DL = DL or Glob.WDL
-        local RootFX 
-        local RootFxGUID
-        local SpaceClr
-        for i , v in ipairs(PAR_FXs) do  
-            if FX_Idx == v[1].addr_fxid then 
-                RootFX=true 
-            end
-            if FX[v[1].guid].parent then 
-                local Parent_guid = r.TrackFX_GetFXGUID(LT_Track, FX[v[1].guid].parent)
 
-                SpaceClr = Calculate_Color_Based_On_Nesting_Level(FX[Parent_guid].nestingLevel )
-                SpaceClr = HSV_Change(SpaceClr, nil, nil, -0.8) 
-            end
-        end
 
 
         local l, t  =  im.GetItemRectMin(ctx)
@@ -2777,21 +2769,24 @@ function Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID, Parallel, PosX_before_F
 
         im.DrawList_AddLine(DL, R , t, R, t + H, Clr.PAR_FX[1], thick) ]]
         im.SameLine(ctx, nil, 0)   
-       
-        AddSpaceBtwnFXs(FX_Idx, FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
-
+       --[[ if FX_Idx > 0x2000000 then
+            AddSpaceBtwnFXs(FX_Idx, FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, Additional_W ,nil,nil, Clr)
+       end ]]
     elseif rv and ret == '1' and not FX[FxGUID].ShowParallel and Parallel ~= 'Complex' and Parallel ~= 'Mixer Layout - Hide' then
         im.SetCursorPos(ctx, CurPos_Aftr_Create_FX_Win_SL[1], CurPos_Aftr_Create_FX_Win_SL[2]) 
 
     else  
         im.SameLine(ctx, nil, 0)   
+        --[[ if FX_Idx > 0x2000000 then
+            AddSpaceBtwnFXs(FX_Idx, FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, Additional_W ,nil,nil, Clr)
+        end ]]
         --AddSpaceBtwnFXs(FX_Idx, FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
 
     end
 
 end
 
-function Draw_Parallel_FX_Enclosure(FxGUID)
+function Draw_Parallel_FX_Enclosure()
 
     if not DRAW_PAR_ENCLOSURE then return end
 
@@ -2811,7 +2806,7 @@ function Draw_Parallel_FX_Enclosure(FxGUID)
         local R = v.R
         local B = v.B
 
-        im.DrawList_AddLine(DL, l , t, R, t, Clr.PAR_FX[ID], thick) -- horizontal line
+        im.DrawList_AddLine(DL, l  - thick /2 , t, R + thick / 2, t, Clr.PAR_FX[ID], thick) -- horizontal line
         --local t = t - thick/2
         im.DrawList_AddLine(DL, l , t , l, t + H, Clr.PAR_FX[ID], thick) -- vertical line
         im.DrawList_AddLine(DL, R , t , R, t + H, Clr.PAR_FX[ID], thick) -- vertical line
@@ -3229,35 +3224,49 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         --- if Mixer Layout 
         for i , v in ipairs(PAR_FXs) do 
             local ROOT_FXGUID = v[1].guid
-            local function Add_Space_If_No_Chosen_FX()
-                if not FX[FxGUID].ChosenFX then 
-                    local Scale = v[1].addr_fxid> 0x2000000 and v[1].scale or 1 
-                    AddSpaceBtwnFXs(v[#v].addr_fxid + v[1].scale , FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
-                end
-            end
+           
 
 
 
             if v[1] and FX_Idx == v[1].addr_fxid then          -- if it's the root of parallel FX , create mixer 
+                local SpaceClr
+                for i , v in ipairs(PAR_FXs) do  
+                    if FX[v[1].guid].parent then -- if the root FX is in a container
+                        local Parent_guid = r.TrackFX_GetFXGUID(LT_Track, FX[v[1].guid].parent)
+        
+                        SpaceClr = Calculate_Color_Based_On_Nesting_Level(FX[Parent_guid].nestingLevel )
+                        SpaceClr = HSV_Change(SpaceClr, nil, nil, -0.8) 
+                    end
+                end
+        
                 --ROOT_FXGUID = FxGUID
+                local function Add_Space_If_No_Chosen_FX()
+                    if not FX[FxGUID].ChosenFX then 
+                        local Scale = v[1].addr_fxid> 0x2000000 and v[1].scale or 1 
+                        if FX_Idx > 0x2000000 then
+                            AddSpaceBtwnFXs(v[#v].addr_fxid + v[1].scale , FxGUID, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
+                        end
+                       -- 
+                    end
+                end
 
                 im.PushStyleColor(ctx, im.Col_ChildBg, 0x202020ff)
                 im.PushStyleVar(ctx, im.StyleVar_ScrollbarSize, 10)
                 POS_X_BEFORE_MIXER = im.GetCursorScreenPos(ctx)
-                if im.BeginChild(ctx, '##Parallel FX' .. FX_Idx , Win_W + 5 , 220,nil, im.WindowFlags_NoScrollWithMouse|im.WindowFlags_NoScrollbar) then
+                if im.BeginChild(ctx, '##Parallel FX' .. FX_Idx , Win_W , 220,nil, im.WindowFlags_NoScrollWithMouse|im.WindowFlags_NoScrollbar) then
                     --[[ local l, t = im.GetCursorScreenPos(ctx)
                     im.DrawList_AddRect(WDL, l , t , l + Win_W +5 ,t + 220, 0xff22ffff) ]]
                     local pad = 2   
                     local Width = 110
                     local height = 17
+                    im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 1, 1)
 
-                    AddSpacing(pad/2)
-                    im.Button(ctx, 'Parallel FXs', Width+height*3)  
+                    --[[ im.Button(ctx, 'Parallel FXs', Width+height*3)  
 
                     if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect) then
                         im.SetDragDropPayload(ctx, 'Parallel_FX_Drag', FX_Idx)
                         im.EndDragDropSource(ctx)
-                    end
+                    end ]]
 
                     if im.BeginChild(ctx, '##Parallel FX Mixer' .. FX_Idx , Win_W  , 190,nil, im.WindowFlags_NoScrollbar) then
 
@@ -3446,6 +3455,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     if ret =='0' then -- if it's the root fx , which means it's not parallel with previous fx
                                         --r.TrackFX_SetNamedConfigParm(LT_Track,  V.addr_fxid, 'parallel', '1')
                                     end
+
                                     local nxt , prev = GetNextAndPreviousFXID(V.addr_fxid)
                                     local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - nxt ) 
 
@@ -3621,6 +3631,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
 
                             local function Add_FX_Btn ()
+
                                 if I == #v then 
                                     local function Draw_Line_To_Menu(FX_Idx)
                                         if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx) then 
@@ -3639,7 +3650,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
                                     im.PushFont(ctx, Arial_14)
 
-                                    local clickBtn = im.Button(ctx, '+'..'##Add FX Button'..V.addr_fxid.. V.guid, Width + height*2.5, height*0.9)
+                                    local clickBtn = im.Button(ctx, '+'..'##Add FX Button'..V.addr_fxid.. V.guid, 120 + height*2, height)
+
                                     im.PopFont(ctx)
                                     im.PopStyleColor(ctx)
                                     local rv = Allow_FX_Drop_On_Item(V.scale or 0)
@@ -3722,7 +3734,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             im.BeginGroup(ctx)
                             --im.Text(ctx, FX_Name)
-                            im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 0, 1)
+                            local Spacing = (#v < 4 and 1) or ((#v >= 4 and #v <= 5) and 0) or -1
+
+                            im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 0, Spacing)
                             ColorBox()
                             local drag = Allow_FX_Drag_On_Item()
                             
@@ -3730,9 +3744,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             im.SetNextItemWidth(ctx,Width)
 
                             Label()
+                            local drag = Allow_FX_Drag_On_Item()
+
                             Add_Container_Btn()
                             
-                            local drag = Allow_FX_Drag_On_Item()
                             --local  y= im.GetCursorPosY(ctx)
                             --im.SetCursorPosY(ctx,  y + 15)
                             --im.SetCursorPos(ctx,x + 5 + pad * 2  , y - h + height )
@@ -3751,7 +3766,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             im.EndGroup(ctx)
                             Delete_If_Alt_Click()
-                            im.PopStyleVar(ctx)
                             
 
 
@@ -3781,6 +3795,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 HighlightSelectedItem(0xffffff22, 0xffffff77, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect', WDL --[[rounding]])
                             end
 
+                            im.PopStyleVar(ctx)
                             
 
                             Add_FX_Btn ()
@@ -3792,8 +3807,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     im.EndChild(ctx)
 
                     end
-
+                    im.PopStyleVar(ctx)
                     im.EndChild(ctx)
+
+
                     SL(nil,0)
                     START_OF_PARALLEL_FX_MIXER = id
 
@@ -3805,15 +3822,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 Add_Space_If_No_Chosen_FX()
 
             end
-            if v[1] and v[2]  then 
-                msg( 'v[1].addr_fxid = '..v[1].addr_fxid..   'v[#v].addr_fxid = '.. v[#v].addr_fxid)
-                if FX_Idx >= v[1].addr_fxid and FX_Idx <= v[#v].addr_fxid then --if FX is within the Mixer 
-                    if not FX[ROOT_FXGUID] then return msg("HIDDDDE")  'Mixer Layout - Hide' end 
+            if v[1] and v[2]and FX_Idx  then 
+                if FX_Idx >= v[1].addr_fxid and FX_Idx <= v[#v].addr_fxid  then --if FX is within the Mixer 
+                    if not FX[ROOT_FXGUID] then return 'Mixer Layout - Hide' end 
                     if FX[ROOT_FXGUID].ChosenFX == FxGUID then 
-                        msg("SHOW")
+
                         return 'Mixer Layout - Show'
                     else 
-                        msg('HIDE')
+
                         return 'Mixer Layout - Hide'
                     end
                 end
@@ -4422,6 +4438,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                 local id = FX_Idx or id
                 local FxGUID = FxGUID or r.TrackFX_GetFXGUID(LT_Track, id)
+                if not FxGUID then return end
                 FX[FxGUID][0] = FX[FxGUID][0] or {}
                 --when track change
                 if FX[FxGUID][0].V == nil or TrkID ~= TrkID_End or FXCountEndLoop ~= Sel_Track_FX_Count then -- if it's nil
@@ -4489,9 +4506,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     if not FX_has_Plugin then
                         return true
                     else
-                        if FX[FxGUID].Compatible_W_regular then return true end
+                        
                     end
                 end
+                if FX[FxGUID].Compatible_W_regular then return true end
             end
             local function Do_PluginScripts()
 
@@ -4568,6 +4586,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Disable_If_LayEdit('Begin')
 
             if Need_Create_Regular_Layout() then
+      
                 local WinP_X; local WinP_Y;
                 local fx = FX[FxGUID]
                 --im.DrawList_AddText(WDL, 100,200, 0xffffffff, 'asd')
@@ -4663,7 +4682,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if FX.LayEdit then
                     LE.DragX, LE.DragY = im.GetMouseDragDelta(ctx, 0)
                 end
-
                 ------------------------------------------------------
                 -- Repeat as many times as stored Param on FX -------------
                 ------------------------------------------------------
@@ -4677,10 +4695,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
 
-
                     local FP = FX[FxGUID][Fx_P] ---@class FX_P
 
-                    local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P];
                     local ID = FxGUID .. Fx_P
                     Rounding = 0.5
 
@@ -4834,7 +4850,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     if CreateParam or not FP.ConditionPrm then
                         local FP = FP
-                        local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
                         if FP and FxGUID then
 
@@ -5240,7 +5255,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         end
 
         -- Draw_Parallel_FX_Enclosure(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, im.GetWindowDrawList(ctx))
-        Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID , Parallel, (POS_X_BEFORE_MIXER or 0) + PAR_FX_MIXER_WIN_W , im.GetWindowDrawList(ctx))
+        Store_Parallel_FX_Enclosure_Pos(FX_Idx, FxGUID , Parallel, (POS_X_BEFORE_MIXER or 0) + PAR_FX_MIXER_WIN_W , im.GetWindowDrawList(ctx), SpaceClr)
 
     end
     

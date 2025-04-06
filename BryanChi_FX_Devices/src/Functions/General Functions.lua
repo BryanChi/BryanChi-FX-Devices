@@ -207,9 +207,13 @@ end
 ---@return string "NextFX"
 ---@return string "PreviousFX"
 function GetNextAndPreviousFXID(FX_Idx)
+
     local incontainer, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
     if incontainer then
+
         path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
+
+       -- r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.')
         next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, path_table[#path_table] + 1) 
         local target_pos = path_table[#path_table]
         local name_pos = path_table[#path_table] - 1
@@ -227,6 +231,30 @@ function GetNextAndPreviousFXID(FX_Idx)
     end
     local _, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
     return next_fxidx, previous_fxidx, NextFX, PreviousFX
+end
+
+
+function  GetNextAndPreviousFXID_NEW(FX_Idx) 
+
+    local parent = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,'parent_container')))
+    if parent then
+        local ct = tonumber (select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent,'container_count')))
+        for i= 0 , ct - 1 do
+            local Cont_Itm_ID = select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i))
+            if Cont_Itm_ID == FX_Idx then 
+                local NextFX_Idx = parent and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID + 1)))
+                local PrevFX_Idx = parent and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID - 1)))
+                local NextFxName =  NextFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, NextFX_Idx ))
+                local PrevFxName =  PrevFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, PrevFX_Idx ))
+                return NextFX_Idx, PrevFX_Idx, NextFxName, PrevFxName
+            end
+        end
+    else 
+        local NextFX_Idx , PrevFX_Idx = FX_Idx + 1 , FX_Idx - 1 
+        local NextFxName =  NextFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, NextFX_Idx ))
+        local PrevFxName =  PrevFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, PrevFX_Idx ))
+        return NextFX_Idx , PrevFX_Idx, NextFxName, PrevFxName
+    end
 end
 
 ---@param container_id integer 0 based or something like 33554455 in container
@@ -299,9 +327,11 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
     }
     local fxGUID = r.TrackFX_GetFXGUID(tr, fxid)
     FX = FX or {}
+
+
+    if not fxGUID then return end
     FX[fxGUID] = FX[fxGUID] or {}
     FX[fxGUID].addr_fxid =  fxid
-
 
 
     if ccok then -- if fx in container is a container
@@ -316,19 +346,55 @@ function BuildFXTree_item(tr, fxid, scale, oldscale)
 end
 
 
+local function Build_FX_TREE_ITEM(tr, id, scale, oldscale)
+    local tr = tr or LT_Track or r.GetLastTouchedTrack()
 
+    local  Cont_FX_Ct =  tonumber(select(2, r.TrackFX_GetNamedConfigParm(tr, id, 'container_count')))
+
+    local ret = {
+        fxname = select(2, r.TrackFX_GetFXName(tr, id)),
+        isopen = reaper.TrackFX_GetOpen(tr, id),
+        GUID = reaper.TrackFX_GetFXGUID(tr, id),
+        addr_fxid = id,
+        scale = oldscale,
+        parallel = select(2,  r.TrackFX_GetNamedConfigParm(tr, id, 'parallel') ) == '1' and true
+    }
+
+    if Cont_FX_Ct then 
+        ret.children = {}
+        for I = 0 , Cont_FX_Ct-1 do 
+            local ID = tonumber(select(2, r.TrackFX_GetNamedConfigParm(tr, id, 'container_item.'..I)))
+            local newscale = scale * (tonumber(Cont_FX_Ct) + 1)
+
+            ret.children[I+1] = Build_FX_TREE_ITEM(tr, ID, newscale, scale)
+
+        end
+    end
+    return ret
+end
 
 
 function BuildFXTree(tr)
     -- table with referencing ID tree
-    local tr = tr or LT_Track
+    local tr = tr or LT_Track 
     if tr then
         TREE = {}
         local cnt = reaper.TrackFX_GetCount(tr)
-        for i = 1, cnt do
-            local is_container = reaper.TrackFX_GetNamedConfigParm(tr, i-1, 'container_count')
-            local idx = is_container and 0x2000000 + i or i-1
+        --[[ for i = 1, cnt do
+
+            local _, Orig_Nm = r.TrackFX_GetNamedConfigParm(tr, i-1, 'original_name')
+            local Is_Cont =  Orig_Nm == 'Container' and true  
+
+            local is_2nd_lvl = reaper.TrackFX_GetNamedConfigParm(tr, i-1, 'container_count')
+            local idx =  is_2nd_lvl and 0x2000000 + i or i-1 
+
+            --local idx = i-1
             TREE[i] = BuildFXTree_item(tr, idx, cnt + 1, cnt + 1)
+        end ]]
+
+        for i = 0, cnt-1 do
+            TREE[i+1] = Build_FX_TREE_ITEM(tr, i, cnt + 1, cnt + 1)
+            
         end
 
         local function find_parallel_sequences(tree_items, parent_path, container_id)
@@ -337,6 +403,7 @@ function BuildFXTree(tr)
             parent_path = parent_path or ""
             
             for i = 1, #tree_items do
+
                 -- Check if this FX is parallel or the next FX is parallel
                 local is_parallel = tree_items[i].parallel
                 local next_is_parallel = tree_items[i+1] and tree_items[i+1].parallel
@@ -384,6 +451,7 @@ function BuildFXTree(tr)
                     else
                         -- If we were building a sequence and hit a non-parallel FX, finalize the sequence
                         if current_sequence and #current_sequence > 1 then
+
                             table.insert(sequences, current_sequence)
                             current_sequence = nil
                             Check_If_FX_Is_Root__If_So_Add_To_Table()
@@ -1506,8 +1574,7 @@ function DeleteAllParamOfFX(FXGUID, TrkID)
 end
 function FX_Is_Root_Of_Parallel_Chain(FX_Idx_to_Check) -- if it is, set the next fx to no be parallel with previous fx
     for i, v in ipairs(PAR_FXs)do 
-
-        if FX_Idx_to_Check == v[1].addr_fxid and FX_Idx_to_Check > 0 then 
+        if FX_Idx_to_Check == v[1].addr_fxid and FX_Idx_to_Check >= 0 then 
             return true 
         end
 
@@ -1907,17 +1974,17 @@ function Put_FXs_Into_New_Container(FX_Idx, cont, i , scale) -- i = pos in conta
     local id = FX_Idx 
 
     local scale = scale or  TREE[id] and TREE[id].scale or 1
-    msg('cont = '..(cont or 'nil'))
+
     --local cont = cont +1
     local  ct = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_count')))
     local rv , nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local rv , cont_Name = r.TrackFX_GetFXName(LT_Track, cont)
-    msg(nm .. '   ' ..cont_Name)
+
 
     if ct and ct > 0  then 
         to = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, cont, 'container_item.'..(ct-1 )))) + scale
     else    -- if container is empty 
-    msg('cont is empty')
+
         to =  0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (cont+1)
     end
     r.TrackFX_CopyToTrack(LT_Track, FX_Idx, LT_Track, to , true)
@@ -2384,7 +2451,8 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 end
 
 function If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
-    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+    --local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID_NEW(FX_Idx) 
     local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local FxGUID_Next =  r.TrackFX_GetFXGUID(LT_Track, next_fxidx)
     local FxGUID_Prev =  r.TrackFX_GetFXGUID(LT_Track, previous_fxidx)
@@ -2639,9 +2707,14 @@ function At_Begining_of_Loop()
 
         if Sel_Track_FX_Count then
             for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
-                local function Do(FX_Idx)
+                local function Do(FX_Idx, is_container, Cont_Itm_ID)  
+
                     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx or 0)
-                    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+                    --local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+                    local NextFX_Idx = is_container and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID + 1)))
+                    local PrevFX_Idx = is_container and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID - 1)))
+                    local NextFX =  NextFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, NextFX_Idx ))
+                    local PrevFX =  PrevFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, PrevFX_Idx ))
 
                     if FX_Name == 'JS: FXD Gain Reduction Scope' then
                         if string.find(PreviousFX, 'Pro%-C 2') == nil then
@@ -2668,15 +2741,13 @@ function At_Begining_of_Loop()
                     end
                 end
 
-                local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,
-                    'container_count')
+                local is_container, container_count = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
 
                 if is_container then
-                    for i = 1, container_count, 1 do
-                        local Idx = tonumber(select(2,
-                            r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
+                    for i = 0, container_count-1, 1 do
+                        local Idx = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i)))
                         if Idx then
-                            Do(Idx)
+                            Do(Idx, is_container, i)
                         end
                     end
                 else

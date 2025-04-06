@@ -461,7 +461,6 @@ function Retrieve_All_Saved_Data_Of_Project()
         Trk[TrkID].Container_Id = {}
 
         Trk[TrkID].Mod = {}
-
         Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
         Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
         local AutoPrmCount = GetTrkSavedInfo('How Many Automated Prm in Modulators', Track)
@@ -469,7 +468,7 @@ function Retrieve_All_Saved_Data_Of_Project()
         for i = 1, (AutoPrmCount or 0) + 1, 1 do
             Trk[TrkID].AutoPrms[i] = GetTrkSavedInfo('Auto Mod' .. i, Track, 'str')
         end
-    -- Trk[TrkID].Container_Id    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )
+        -- Trk[TrkID].Container_Id    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID slot '..i , #Trk[TrkID].Container_Id , true )
 
 
         local function RC(str, type)
@@ -625,26 +624,25 @@ function Retrieve_All_Saved_Data_Of_Project()
 
         function Get_FX_Data (TB)
             for i, v in ipairs(TB) do 
-            
+                
                 local FX_Idx = v.addr_fxid or  i - 1
                 local FxGUID = r.TrackFX_GetFXGUID(Track, FX_Idx)
                 local _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
-                local TRK = r.GetTrack(0, i)
+
                 --local _, FX[FxGUID].   r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , '' , false )
                 Trk[TrkID].Container_Id = Trk[TrkID].Container_Id or {}
                 if not FxGUID then return end 
+                FX[FxGUID] = FX[FxGUID] or {}
                 
                 if v.children then  -- if it's a container
                     
                     Get_FX_Data (v.children)
                     local id =  RC('Container ID of '..FxGUID)
 
-
-
                 end 
 
                 local function Parallel_FX_Solo_and_Mute()
-
+                    FX[FxGUID] = FX[FxGUID] or {}
 
                     --FX[FxGUID].Solo = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: Parallel Solo ' .. FxGUID, '', false) 
                     FX[FxGUID].Solo = RC('Parallel Solo ' .. FxGUID, 'bool')
@@ -662,67 +660,116 @@ function Retrieve_All_Saved_Data_Of_Project()
                 
                 end
 
+                local function Preset_Morph()
+                    if r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. '1' .. FxGUID, '', false) then
+                        FX[FxGUID].MorphA = FX[FxGUID].MorphA or {}
+                        FX[FxGUID].MorphB = FX[FxGUID].MorphB or {}
+                        FX[FxGUID].PrmList = {}
+                        local PrmCount = r.TrackFX_GetNumParams(Track, FX_Idx)
+    
+                        RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
+    
+                        for i = 0, PrmCount - 4, 1 do
+                            _, FX[FxGUID].MorphA[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. i .. FxGUID, '',
+                                false)
+                            FX[FxGUID].MorphA[i] = tonumber(FX[FxGUID].MorphA[i])
+                            _, FX[FxGUID].MorphB[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. i .. FxGUID, '',
+                                false)
+                            FX[FxGUID].MorphB[i] = tonumber(FX[FxGUID].MorphB[i])
+                        end
+    
+                        _, FX[FxGUID].MorphA_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', '', false)
+                        if FX[FxGUID].MorphA_Name == '' then FX[FxGUID].MorphA_Name = nil end
+                        _, FX[FxGUID].MorphB_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', '', false)
+                        if FX[FxGUID].MorphB_Name == '' then FX[FxGUID].MorphB_Name = nil end
+                    end
+
+                    if FX.InLyr[FxGUID] == "" then FX.InLyr[FxGUID] = nil end
+                    FX[FxGUID].Morph_ID = tonumber(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID, '', false)))
+                    _, FX[FxGUID].Unlink = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', '', false)
+                    if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
+
+                    if FX[FxGUID].Morph_ID then
+                        Trk[TrkID].Morph_ID = Trk[TrkID].Morph_ID or {}
+                        Trk[TrkID].Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
+                    end
+                end
+
+                local function Midi_Mods()
+                    for Fx_P in ipairs(FX[FxGUID]) do
+
+                        for i, v in ipairs(Midi_Mods) do 
+                            
+                            FP.ModAMT[v] =  RC ('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. v  )
+                            if FP.ModAMT[v] then HasModAmt = true end 
+                            local CurvePts = RC( v.. 'Curve number of points')
+
+                            Trk[TrkID][v..'Curve']= Trk[TrkID][v..'Curve'] or {}
+                            for i=1, CurvePts or 0, 1 do -- Recall curve points x ([1]) y([2]) and log or exp curve ([3])
+
+                                Trk[TrkID][v..'Curve'][i] = Trk[TrkID][v..'Curve'][i] or {}
+                                Trk[TrkID][v..'Curve'][i][1] = RC(v..' curve pt'..i..'x') 
+
+
+                                Trk[TrkID][v..'Curve'][i][2] = RC(v..' curve pt'..i..'y') 
+                                Trk[TrkID][v..'Curve'][i][3] = RC(v..' point '..i..' Curve')
+                                if i == 1 then  -- first point 
+                                    if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 0 end 
+                                    if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 0 end  
+                                end
+                                if i == CurvePts then 
+                                    if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 1 end 
+                                    if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 1 end  
+                                end
+                            end
+                        end
+                    end
+                end
+
+
+                local function Layering()
+                    _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FxGUID .. 'in layer')
+                    _, FX.LyrNum[FxGUID]         = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
+                    _, FX[FxGUID].inWhichLyr     = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
+                    _, FX[FxGUID].ContainerTitle = r.GetProjExtState(0, 'FX Devices - ', 'FX' .. FxGUID .. 'FX Layer Container Title ')
+                    if FX[FxGUID].ContainerTitle == '' then FX[FxGUID].ContainerTitle = nil end
+    
+                    FX[FxGUID].inWhichLyr = tonumber(FX[FxGUID].inWhichLyr)
+                    FX.LyrNum[FxGUID] = tonumber(FX.LyrNum[FxGUID])
+    
+                end
 
                 Parallel_FX_Solo_and_Mute()
+                Preset_Morph()
 
-                FX[FxGUID] = FX[FxGUID] or {}
+                Layering()
                 FX[FxGUID].ModSlots = Load_from_Trk('Container Active Mod Slots '..FxGUID, Track , 'num')
                 FX[FxGUID].MacroPageActive = Load_from_Trk('Container ID of '..FxGUID..'Macro Active', Track , 'bool')
 
-
-
                 FX[FxGUID].Def_Sldr_W = Load_from_Trk('Default Slider Width for FX:' .. FxGUID, Track )
-
                 FX[FxGUID].DefType = Load_from_Trk('Default Param type for FX:' .. FxGUID, Track )
 
+                GetProjExt_FxNameNum(FxGUID, Track)
 
-
-                GetProjExt_FxNameNum(FxGUID, TRK)
-
-                _, FX.InLyr[FxGUID]          = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. 'is FX' .. FxGUID .. 'in layer')
-                --FX.InLyr[FxGUID] = StringToBool[FX.InLyr[FxGUID]]
-                _, FX.LyrNum[FxGUID]         = r.GetProjExtState(0, 'FX Devices', 'FXLayer ' .. FxGUID .. 'LayerNum')
-                _, FX[FxGUID].inWhichLyr     = r.GetProjExtState(0, 'FX Devices', 'FXLayer - ' .. FxGUID .. 'is in Layer ID')
-                _, FX[FxGUID].ContainerTitle = r.GetProjExtState(0, 'FX Devices - ', 'FX' .. FxGUID .. 'FX Layer Container Title ')
-                if FX[FxGUID].ContainerTitle == '' then FX[FxGUID].ContainerTitle = nil end
-
-                FX[FxGUID].inWhichLyr = tonumber(FX[FxGUID].inWhichLyr)
-                FX.LyrNum[FxGUID] = tonumber(FX.LyrNum[FxGUID])
                 _, Lyr.SplitrAttachTo[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'SplitrAttachTo' .. FxGUID)
                 _, Prm.InstAdded[FxGUID] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added')
                 if Prm.InstAdded[FxGUID] == 'true' then Prm.InstAdded[FxGUID] = true end
 
-                if FX.InLyr[FxGUID] == "" then FX.InLyr[FxGUID] = nil end
-                FX[FxGUID].Morph_ID = tonumber(select(2,
-                    r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID, '', false)))
-                _, FX[FxGUID].Unlink = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', '',
-                    false)
-                if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
-
-                if FX[FxGUID].Morph_ID then
-                    Trk[TrkID].Morph_ID = Trk[TrkID].Morph_ID or {}
-                    Trk[TrkID].Morph_ID[FX[FxGUID].Morph_ID] = FxGUID
-                end
 
                 local rv, ProC_ID = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: ProC_ID ' .. FxGUID, '', false)
                 if rv then FX[FxGUID].ProC_ID = tonumber(ProC_ID) end
 
-                if FX[FxGUID].Unlink == 'Unlink' then FX[FxGUID].Unlink = true elseif FX[FxGUID].Unlink == '' then FX[FxGUID].Unlink = nil end
-
+                Midi_Mods()
                 --for Fx_P = 1, #FX[FxGUID] or 0, 1 do
                 for Fx_P in ipairs(FX[FxGUID]) do
                     local FP = FX[FxGUID][Fx_P]
-
                     local rv, V_before = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', '', false)
                     if rv then FP.V = tonumber(V_before) end
 
                     local ParamX_Value = 'Param' .. tostring(FX[FxGUID][Fx_P].Name) .. 'On  ID:' .. tostring(Fx_P) .. 'value' .. FxGUID
                     ParamValue_At_Script_Start = r.TrackFX_GetParamNormalized(Track, FX_Idx, FX[FxGUID][Fx_P].Num or 0)
                     _G[ParamX_Value] = ParamValue_At_Script_Start
-                    _, FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = r.GetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Prm' .. Fx_P .. 'to Trk Prm')
-                    FX.Prm.ToTrkPrm[FxGUID .. Fx_P] = tonumber(FX.Prm.ToTrkPrm[FxGUID .. Fx_P])
 
-                    local F_Tp = FX.Prm.ToTrkPrm[FxGUID .. Fx_P]
 
                     _G[ParamX_Value] = FX[FxGUID][Fx_P].V or 0
                     FP.WhichCC = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' ..(FP.Num or 0), '', false)))
@@ -745,34 +792,7 @@ function Retrieve_All_Saved_Data_Of_Project()
                     end
                     local HasModAmt, HasContModAmt
 
-                    for i, v in ipairs(Midi_Mods) do 
-                        
-                        FP.ModAMT[v] =  RC ('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. v  )
-                        if FP.ModAMT[v] then HasModAmt = true end 
-                        local CurvePts = RC( v.. 'Curve number of points')
-
-                        Trk[TrkID][v..'Curve']= Trk[TrkID][v..'Curve'] or {}
-                        for i=1, CurvePts or 0, 1 do -- Recall curve points x ([1]) y([2]) and log or exp curve ([3])
-
-                            Trk[TrkID][v..'Curve'][i] = Trk[TrkID][v..'Curve'][i] or {}
-                            Trk[TrkID][v..'Curve'][i][1] = RC(v..' curve pt'..i..'x') 
-
-
-                            Trk[TrkID][v..'Curve'][i][2] = RC(v..' curve pt'..i..'y') 
-                            Trk[TrkID][v..'Curve'][i][3] = RC(v..' point '..i..' Curve')
-                            if i == 1 then  -- first point 
-                                if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 0 end 
-                                if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 0 end  
-                            end
-                            if i == CurvePts then 
-                                if not Trk[TrkID][v..'Curve'][i][1]  then Trk[TrkID][v..'Curve'][i][1] = 1 end 
-                                if not Trk[TrkID][v..'Curve'][i][2]  then Trk[TrkID][v..'Curve'][i][2] = 1 end  
-                            end
-                        end
-
-
-                    end
-
+                    
                     local CC = FX[FxGUID][Fx_P].WhichCC
 
                     for m, v in ipairs(MacroNums) do
@@ -792,51 +812,30 @@ function Retrieve_All_Saved_Data_Of_Project()
 
                         Trk[TrkID].Mod = Trk[TrkID].Mod or {}
                         Trk[TrkID].Mod[m] = Trk[TrkID].Mod[m] or {}
-                        Trk[TrkID].Mod[m].Val = tonumber(select(2,
-                            r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
+                        Trk[TrkID].Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
 
-                        FP.ModBypass = RemoveEmptyStr(select(2,
-                            r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '',
-                                false)))
+                        FP.ModBypass = RemoveEmptyStr(select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', '', false)))
 
                         FP.ModBipolar = FP.ModBipolar or {}
                         FP.ModBipolar[m] = StringToBool[select(2, r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', '', false))]
 
                         FP.Cont_ModAMT[m] = tonumber(select(2,r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Container Mod Amt', '', false)))
-
-                        if FP.Cont_ModAMT[m] then HasContModAmt = true end 
+                       
+                        if FP.Cont_ModAMT[m] then
+                            msg('MOD AMT '.. m .. ' ' .. (FP.Cont_ModAMT[m] or 'nil'))
+                            
+                            HasContModAmt = true end 
                     
                     
                     end
 
 
-                   if not HasModAmt then FP.ModAMT = nil end
+                    if not HasModAmt then FP.ModAMT = nil end
                     if not HasContModAmt then FP.Cont_ModAMT = nil end 
                 end
 
                 FX[FxGUID] = FX[FxGUID] or {}
-                if r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. '1' .. FxGUID, '', false) then
-                    FX[FxGUID].MorphA = FX[FxGUID].MorphA or {}
-                    FX[FxGUID].MorphB = FX[FxGUID].MorphB or {}
-                    FX[FxGUID].PrmList = {}
-                    local PrmCount = r.TrackFX_GetNumParams(Track, FX_Idx)
 
-                    RestoreBlacklistSettings(FxGUID, FX_Idx, Track, PrmCount)
-
-                    for i = 0, PrmCount - 4, 1 do
-                        _, FX[FxGUID].MorphA[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. i .. FxGUID, '',
-                            false)
-                        FX[FxGUID].MorphA[i] = tonumber(FX[FxGUID].MorphA[i])
-                        _, FX[FxGUID].MorphB[i] = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. i .. FxGUID, '',
-                            false)
-                        FX[FxGUID].MorphB[i] = tonumber(FX[FxGUID].MorphB[i])
-                    end
-
-                    _, FX[FxGUID].MorphA_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', '', false)
-                    if FX[FxGUID].MorphA_Name == '' then FX[FxGUID].MorphA_Name = nil end
-                    _, FX[FxGUID].MorphB_Name = r.GetSetMediaTrackInfo_String(Track, 'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', '', false)
-                    if FX[FxGUID].MorphB_Name == '' then FX[FxGUID].MorphB_Name = nil end
-                end
 
 
                 _, FX_Name = r.TrackFX_GetFXName(Track, FX_Idx)
@@ -898,8 +897,8 @@ function Retrieve_All_Saved_Data_Of_Project()
         for m = 1, 8, 1 do
 
             Trk[TrkID].Mod[m].Type = RC('Mod' .. m .. 'Type', 'str')
-
         end
+        
         Get_FX_Data (TREE)
         if not Trk[TrkID].Container_Id [1] then Trk[TrkID].Container_Id = nil end 
 
@@ -980,6 +979,8 @@ function attachImagesAndFonts()
         Folder = im.CreateImage(CurrentDirectory .. '/src/Images/folder.png'),
         Folder_Open = im.CreateImage(CurrentDirectory .. '/src/Images/folder_open.png'),
         folder_add = im.CreateImage(CurrentDirectory .. '/src/Images/folder_add.png'),
+        folder_list = im.CreateImage(CurrentDirectory .. '/src/Images/folder_list.png'),
+
     }
     for i = 6, 30, 1 do
         _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)

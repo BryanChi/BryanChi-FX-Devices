@@ -12,7 +12,7 @@ fx.Cont_Collapse = fx.Cont_Collapse or 0
 
 local Title_Width = 33
 local AnyMacroHovered
-local ModIconSz = 18 
+local ModIconSz = 20
 local Top_Spacing = 0
 local Modulator_Outline_Clr = 0xffffff22
 LFO_Box_Size = 38
@@ -26,14 +26,9 @@ local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_
 local WinW = 0 
 local AllW = 0
 
-local TREE_ID
-for i, v in ipairs(TREE) do 
-    if v.GUID == FxGUID then 
-        TREE_ID = v.addr_fxid
-    end
-end
 
-local function Add_Width(Parallel)
+local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
+
     if  FX_Name:find('FXD Containr Macro') then return end 
     -- Add the width for parallel Mixer if haven't done so 
     --[[ if not fx.Added_Parallel_Mixer_Width then
@@ -52,10 +47,9 @@ local function Add_Width(Parallel)
     if Parallel then 
         if Parallel ~= 'Mixer Layout - Show' then return end 
     end
+
     local W = FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170
     
-
-
     fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
 end
 
@@ -92,11 +86,15 @@ end
 
 local function GetAll_Container_Data()
 
-    local rv , diyFxGUID = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', '', false)
-    if rv then fx.DIY_FxGUID = diyFxGUID end
     if not fx.DIY_FxGUID then 
-        fx.DIY_FxGUID = math.random(100000000, 999999999)
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
+                
+        local rv , diyFxGUID = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', '', false)
+        if rv and diyFxGUID ~= '' then 
+            fx.DIY_FxGUID = diyFxGUID 
+        else
+            fx.DIY_FxGUID = math.random(100000000, 999999999)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' DIY FxGUID', fx.DIY_FxGUID, true)
+        end
     end
 
 
@@ -104,7 +102,7 @@ local function GetAll_Container_Data()
     local rv, _, _ = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     if not rv  then 
         table.insert(Trk[TrkID].Container_Id , FxGUID)
-            rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
+        rv, _, Cont_ID = FindExactStringInTable(Trk[TrkID].Container_Id , FxGUID)
     end
 
 
@@ -202,20 +200,21 @@ local function Set_Midi_Output_To_Bus1() --sets to 'Merge Container Bus1 to pare
     local rv, CHUNK = r.GetTrackStateChunk(LT_Track, "", false)
     local FXStateChunk, int = ultraschall.GetFXStateChunk(CHUNK,FX_Idx)
     local tb =  Put_Long_String_Into_Table(FXStateChunk)
+
     tb[7] = number_Replacement_for_Containers(tb[7], 2, 2, 2 , 64)
     local tb = table.concat(tb, '\n')
 
     if  ultraschall.IsValidFXStateChunk(tb) then 
         local rv,  alteredStateChunk = ultraschall.SetFXStateChunk(CHUNK, tb )
         r.SetTrackStateChunk( LT_Track, alteredStateChunk, false )
-    end
+    end  
 end
 
 local function Modulation_Icon(LT_Track, slot)
     im.PushStyleColor ( ctx, im.Col_Button, 0x000000000)
     local clr = 0xD3D3D399
     if fx.MacroPageActive then clr = Accent_Clr end 
-    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
+    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz, nil, nil, nil, nil, 0x00000000, clr) then 
         fx.MacroPageActive = toggle (fx.MacroPageActive)
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID..'Macro Active' , tostring(fx.MacroPageActive), true )
 
@@ -225,12 +224,11 @@ local function Modulation_Icon(LT_Track, slot)
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID , #Trk[TrkID].Container_Id , true )
         if not slot then slot  = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1)end 
         local _, FirstFX = r.TrackFX_GetFXName(LT_Track, slot)
-        
 
         if not string.find(FirstFX, 'FXD Containr Macro') then 
 
             r.gmem_attach('ContainerMacro')
-            r.gmem_write(0, Cont_ID )
+            r.gmem_write(0, Cont_ID ) -- use to be Cont_ID , but I think it's wrong?
             r.gmem_write(1, fx.DIY_FxGUID)
 
             --- !!! gmem has to be sent before inserting jsfx , for the right gmem to be read in the @init section
@@ -242,9 +240,12 @@ local function Modulation_Icon(LT_Track, slot)
                 local pos  = r.TrackFX_AddByName(LT_Track, 'JS: FXD Container Macros', 0, 0 --[[to query the pos]])
                 TREE = BuildFXTree(LT_Track)
                 local id = FX_Idx +1
+
                 if TREE[id] and  TREE[id].children then 
                     r.TrackFX_Show(LT_Track, TREE[id].children[1].addr_fxid , 2)
                 end
+                Set_Midi_Output_To_Bus1()
+
             end 
             
         end 
@@ -252,7 +253,7 @@ local function Modulation_Icon(LT_Track, slot)
 
         fx.ModSlots = fx.ModSlots or 4  
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container Active Mod Slots '..FxGUID , fx.ModSlots  , true )
-        Set_Midi_Output_To_Bus1()
+
 
 
     end 
@@ -270,14 +271,14 @@ local function titleBar()
         
         -- Draw background FIRST
         im.DrawList_AddRectFilled(WDL, x, y, x+W, y + 220, ThemeClr('Accent_Clr'), 5)
-        
 
+        local Pad_L = fx.Collapse and 3 or 6
         -- Position other elements AFTER drawing the icon
-       -- im.SetCursorPos(ctx, 6, 135)
-       im.SetCursorPosX(ctx, 8)
+        im.SetCursorPosX(ctx, Pad_L)
         SyncWetValues(FX_Idx)
         Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
-       im.SetCursorPosX(ctx, 9)
+        local X, Y = im.GetCursorPos(ctx)
+        im.SetCursorPos(ctx, X+ Pad_L, Y - 10)
         
         --im.SetCursorPos(ctx, 7, 165)
         Modulation_Icon(LT_Track, fx.LowestID)
@@ -662,7 +663,7 @@ end
 
 local function  macroPage(TB)
     if not fx.MacroPageActive then return end 
-
+    
     local Size = 15 
     for i = 1 , 8 , 1 do 
         fx.Mc = fx.Mc or {}
@@ -776,6 +777,12 @@ local function  macroPage(TB)
     end 
     local lastrow = math.ceil ( fx.ModSlots /4 )
     fx.Width = fx.Width + Size  *3.3 * lastrow
+    if fx.MacroPageActive and fx.Collapse then 
+        fx.Width_Collapse = 27+ Size  *3.3 * lastrow  + 5
+    else 
+        fx.Width_Collapse= nil
+    end  
+
 
     im.SetCursorPos(ctx,  x_before +  (Size*3 * lastrow)  , y_before)
 
@@ -834,13 +841,15 @@ local function DndFXtoContainer_TARGET(action_type)
     if action_type == 'ADD' then
         im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
     end
+
     
     if im.BeginDragDropTarget(ctx) then
+
         -- Accept different payload types based on action
         local payload_type = action_type == 'ADD' and 'DND ADD FX' or 'FX_Drag'
         local dropped, payload = im.AcceptDragDropPayload(ctx, payload_type)
         im.EndDragDropTarget(ctx)
-        
+
         -- Highlight only for MOVE action
         if action_type == 'MOVE' then
             Highlight_Itm(WDL, 0xffffff33)
@@ -967,21 +976,25 @@ local function Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
         --Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
         --im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
 
-        Hv = createFXWindow(fx.Sel_Preview)
-        if Hv then PreviewW = Hv end 
-        if PreviewW then fx.Width = 50 + 150 + PreviewW end
+         createFXWindow(fx.Sel_Preview)
+        --if Hv then PreviewW = Hv end 
+
+        if fx.Sel_Preview then 
+            local guid = r.TrackFX_GetFXGUID(LT_Track,fx.Sel_Preview)
+            fx.Width = 50 + 155 + (FX[guid].Width or 170) + 10
+
+        end
     end
 end
 
 local function If_Container_Is_Empty()
     if tonumber( FX_Count) == 0 then 
-
-        im.SetCursorScreenPos(ctx, X-50 , Y)
-        im.InvisibleButton(ctx, 'DropDest'..FxGUID , 60 , 210)
+        local X, Y = im.GetCursorPos(ctx, X, Y)
+        im.SetCursorPos(ctx, X-50 , Y)
+        if im.InvisibleButton(ctx, 'DropDest'..FxGUID , 90 , 210) then msg("CLICK")end
     
         --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
-    
-    
+
         DndFXtoContainer_TARGET('ADD')
         DndFXtoContainer_TARGET('MOVE')
     end
@@ -993,15 +1006,15 @@ local function Main(TB, X, Y)
      CollapseXPos_screen = im.GetCursorScreenPos(ctx)
     local PreviewW , LastSpc 
     im.SetCursorPosY(ctx, Top_Spacing )
-    msg('TREE_ID = '.. (TREE_ID or 'nil'))
-    local Parallel = If_Parallel_FX(TREE_ID)
-    Add_Width(Parallel)
 
-    if TB and not Parallel   then -- if there's an upcoming container
+
+
+    if TB    then -- if there's an upcoming container
         fx.processed_containers = fx.processed_containers or {}
         fx.Added_Parallel_Mixer_Width = nil
 
         for i, v in ipairs(TB) do 
+
             if i == 1 then 
                 fx.LowestID =  v.addr_fxid
             end 
@@ -1019,15 +1032,16 @@ local function Main(TB, X, Y)
                     if i == 1 then 
                         Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
                     end
-                    im.BeginChild(ctx, 'Collapse'..FxGUID, 180, 220, nil)
+                    if im.BeginChild(ctx, 'Collapse'..FxGUID, 155, 220, nil) then 
                     
-                    local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
-                    if W then PreviewW = W end 
-                    if i == #TB then 
-                        fx.Add_FX_Btn_Ypos = im.GetCursorPosY(ctx)
-                        fx.Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
+                        local W  = Render_Collapsed(v,CollapseXPos,FX_Id, CollapseYPos,i,GUID, TB)
+                        if W then PreviewW = W end 
+                        if i == #TB then 
+                            fx.Add_FX_Btn_Ypos = im.GetCursorPosY(ctx)
+                            fx.Add_FX_Btn_Xpos = im.GetCursorPosX(ctx)  
+                        end
+                        im.EndChild(ctx)
                     end
-                    im.EndChild(ctx)
                     --fx.BgClr = 0xffffff44
 
                 else       -- if not collapsed
@@ -1045,10 +1059,13 @@ local function Main(TB, X, Y)
                     
                             local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
                             SL(nil,0)
-                            fx.Width = fx.Width + (Wid or 15)  
+
+                            if not FX_Name:find('FXD Containr Macro') then  
+                                fx.Width = fx.Width + (Wid or 15)  
+                            end
                         end
                     
-                        If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
+                        --If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
                         im.SetCursorPosY(ctx, Top_Spacing)
                     
                         -- Store the current container state before rendering child
@@ -1082,7 +1099,8 @@ local function Main(TB, X, Y)
                         if im.IsItemHovered(ctx) then Hover = true end 
                         im.SetCursorPosY(ctx, 0)
                         if not Parallel or i == #TB then 
-                            LastSpc = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                            local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                            fx.Width = fx.Width + (Wid or 15)  
                         end    
                         if Hover then DisableScroll = false end
                         
@@ -1094,7 +1112,7 @@ local function Main(TB, X, Y)
                     local Parallel = Render_Normal()
 
                     
-                    Add_Width(Parallel)
+                    Add_Width(Parallel, GUID, FX_Id, FX_Name)
 
                 end
 
@@ -1120,11 +1138,6 @@ local function Main(TB, X, Y)
     
     end
     
-   --[[  if NeedRetrieveLayout then 
-        RetrieveFXsSavedLayout(Sel_Track_FX_Count) 
-        NeedRetrieveLayout = nil 
-    end  ]]
-
     local function Enclose_With_Brackets()
         local WDL = im.GetWindowDrawList(ctx)
         -- Draw main container bracket
@@ -1167,9 +1180,8 @@ local function Main(TB, X, Y)
             im.DrawList_AddLine(WDL, rightX, Y, rightX, Y + 220, bracketColor, Thick) -- Vertical line
             im.DrawList_AddLine(WDL, rightX, Y, rightX - 12, Y, bracketColor, Thick) -- Top horizontal
             im.DrawList_AddLine(WDL, rightX, Y + 220, rightX - 12, Y + 220, bracketColor, Thick) -- Bottom horizontal
-        else 
-           -- Highlight_Itm( WDL, nil, bracketColor)
-           im.DrawList_AddRect(WDL, l, Y, l+ 27, Y + 220, bracketColor)
+        else  -- if Collapsed
+           im.DrawList_AddRect(WDL, l, Y, l+ (fx.Width_Collapse or 27), Y + 220, bracketColor)
         end 
     end
     Enclose_With_Brackets()
@@ -1193,15 +1205,16 @@ fx.BgClr = nil
 local X , Y = im.GetCursorScreenPos(ctx)
 local TB = Upcoming_Container 
 if not Upcoming_Container and TREE[Root_ID+1]  then 
+
     TB = TREE[Root_ID+1].children
+    if TB and not TB[1] then TB = TREE[Root_ID+1]end
 end 
+
 
 macroPage(TB)
 im.Dummy(ctx, 5,10)
 
 
 If_Container_Is_Empty()
-
-
 Main(TB , X, Y)
 Container_CollapseIfTab(FxGUID, FX_Idx)

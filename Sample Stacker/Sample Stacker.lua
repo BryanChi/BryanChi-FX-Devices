@@ -581,7 +581,7 @@ end
 files_array, File_Name_No_Path= BuildDataBase('/Volumes/4TB Crucial/Sound Collections')
 
 
-function loop()
+function Main_Loop()
     GlobalKeyboardShortcut()
     At_beginning_of_Each_Loop()
     local visible, open = ImGui.Begin(ctx,'Sample Stacker', nil,ImGui.WindowFlags_NoTitleBar)
@@ -605,8 +605,8 @@ function loop()
         r.ImGui_End(ctx)
     end
     if open then
-        r.defer(loop)
+        r.defer(Main_Loop)
     end
     FirstLoop = nil
 end
-r.defer(loop)
+r.defer(Main_Loop)

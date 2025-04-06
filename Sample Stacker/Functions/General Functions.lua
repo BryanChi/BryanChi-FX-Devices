@@ -702,12 +702,7 @@ function roundUp(num, multipleOf)
     return math.floor((num + multipleOf / 2) / multipleOf) * multipleOf;
 end
 
----@param FX_P integer
----@param FxGUID string
----@return unknown
-function F_Tp(FX_P, FxGUID) ---TODO this is a duplicate function, and it’s not used anywhere
-    return FX.Prm.ToTrkPrm[FxGUID .. FX_P]
-end
+
 
 ---@generic T
 ---@param Table table<string, T>
