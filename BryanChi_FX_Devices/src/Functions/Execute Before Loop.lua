@@ -725,9 +725,8 @@ function Retrieve_All_Saved_Data_Of_Project()
             
             local function RET_MacroModulation(FP, FxGUID, Fx_P, TRK, TrkID)
                 local CC = FP.WhichCC
-                
+                local has_Mod_Amt, has_Cont_Mod_Amt 
                 for m, v in ipairs(MacroNums) do
-                    FP.ModAMT[m] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Amt')
                     
                     local Curve = RC('Mod_Curve_for_Mod' .. m .. 'Prm =' .. (CC or ''))
                     
@@ -744,9 +743,14 @@ function Retrieve_All_Saved_Data_Of_Project()
                     
                     FP.ModBipolar = FP.ModBipolar or {}
                     FP.ModBipolar[m] = StringToBool[RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Bipolar', 'str')]
-                    
+
+                    FP.ModAMT[m] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Mod Amt')
                     FP.Cont_ModAMT[m] = RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Macro' .. m .. 'Container Mod Amt')
-                end
+                    if FP.ModAMT[m] then has_Mod_Amt = true end 
+                    if FP.Cont_ModAMT[m]  then has_Cont_Mod_Amt = true end 
+                end 
+                if not has_Mod_Amt then FP.ModAMT = nil  end 
+                if not has_Cont_Mod_Amt then FP.Cont_ModAMT = nil end 
             end
             
 
@@ -754,7 +758,7 @@ function Retrieve_All_Saved_Data_Of_Project()
 
             for Fx_P, v in ipairs (FX[FxGUID]) do
                 
-                msg(Fx_P)
+
                 local FP = fx[Fx_P] or {}
                 fx[Fx_P] = FP
                 FP.ModAMT = FP.ModAMT or {}
@@ -770,10 +774,10 @@ function Retrieve_All_Saved_Data_Of_Project()
                 RET_MIDIModulation(FP, FxGUID, Fx_P, TRK)
                 RET_MacroModulation(FP, FxGUID, Fx_P, TRK, TrkID)
                 
-                if not FP.ModAMT[1] then FP.ModAMT = nil end
-                if not FP.Cont_ModAMT[1] then FP.Cont_ModAMT = nil end
             end
-        end
+
+
+end
         local function RET_SpecialFX(fx, FX_Name, Track, FX_Idx, FxGUID)
             local function RET_RackMixerFX(fx, FX_Name, Track, FX_Idx, FxGUID)
                 if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
