@@ -1440,8 +1440,11 @@ function GetLT_FX_Num()
     _,  LT_Prm_TrackNum,  itemidx,  takeidx,  LT_FX_Number,  LT_ParamNum = r.GetTouchedOrFocusedFX(0) -- 0 means to query last touched parameter, 1 to query currently focused FX.
     _,  LT_Prm_TrackNum,  itemidx,  takeidx,  FOCUSED_LT_FX_Number,  FOCUSED_LT_ParamNum = r.GetTouchedOrFocusedFX(1) -- 0 means to query last touched parameter, 1 to query currently focused FX.
      --msg(FOCUSED_LT_FX_Number)
-     retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
     LT_Track = r.GetLastTouchedTrack()
+    if not LT_Track then return end 
+
+
+     retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
 end
 
     function mergeUnique(target, source)

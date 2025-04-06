@@ -418,9 +418,8 @@ end
 
 
 local function Modulation_Btn()
-    local y = im.GetCursorPosY(ctx)
-    im.SetCursorPosY(ctx, y + 3)
-    local ModIconSz = 20
+
+    local ModIconSz = 14
     if not TrkID then return end 
     Trk[TrkID] = Trk[TrkID] or {}
     local clr =  Trk[TrkID].ShowMOD and ThemeClr('Accent_Clr') or 0xffffffff
@@ -428,13 +427,12 @@ local function Modulation_Btn()
     im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
 
 
-    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz*0.46, nil, nil, nil, nil, 0x00000000, clr) then 
+    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz, nil, nil, nil, nil, 0x00000000, clr) then 
         Trk[TrkID].ShowMOD= toggle( Trk[TrkID].ShowMOD)
         AddMacroJSFX()
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Show Modulations' ,'true', true)
     end
     im.PopStyleColor(ctx)
-    im.SetCursorPosY(ctx, y)
 
 
 
