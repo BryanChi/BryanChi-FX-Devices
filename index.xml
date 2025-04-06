@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="2a6cf24ef3a7ebc3cc2ac2055287594ff8ca2b82" name="FX Devices-amend">
+<index version="1" commit="2a6cf24ef3a7ebc3cc2ac2055287594ff8ca2b82" name="FX Devices">
   <category name="BryanChi_FX_Devices">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <metadata>
