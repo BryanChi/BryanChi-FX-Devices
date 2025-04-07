@@ -1,10 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.1
+-- @version 1.0beta18.2
 -- @changelog
 --   - New layouts contributed by Arthen (todoublez)
 --   - Big Feature improvements on Containers and parallel FXs
---   - Cleaned up old code
+--   - Cleaned up old code    
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -33,7 +33,7 @@
 --   https://forum.cockos.com/showthread.php?t=263622
 
 
-
+a =123
 r = reaper
 OS = r.GetOS()
 
