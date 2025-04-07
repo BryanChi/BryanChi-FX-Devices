@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.2
+-- @version 1.0beta18.21
 -- @changelog
 --   - New layouts contributed by Arthen (todoublez)
 --   - Big Feature improvements on Containers and parallel FXs
