@@ -967,14 +967,24 @@ function scandir(directory)
     --return F ---TODO should this be Files instead of F ?
 end
 
+function Change_Unrenderable_characters(str)
+    return str:gsub('\u{202F}', ' '):gsub('\u{2212}', '-')
+end
+
 ---@param str string
 ---@param DecimalPlaces number
 function RoundPrmV(str, DecimalPlaces)
+    local str = str:gsub('\u{202F}', ' '):gsub('\u{2212}', '-')
     local A = tostring('%.' .. DecimalPlaces .. 'f')
-    --local num = tonumber(str:gsub('[^%d%.]', '')..str:gsub('[%d%.]',''))
-    local otherthanNum = str:gsub('[%d%.]', '')
-    local num = str:gsub('[^%d%.]', '')
-    return string.format(A, tonumber(num) or 0) .. otherthanNum
+    
+    -- Extract the numeric part
+    local num = str:gsub('[^%d%.%-%+]', '')
+    local formattedNum = string.format(A, tonumber(num) or 0)
+    
+    -- Replace the numeric part in the original string
+    local result = str:gsub('[%d%.%-%+]+', formattedNum)
+    
+    return result
 end
 
 ---@param str string
@@ -1849,11 +1859,11 @@ function Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
     end
 end
 
-function GetFormatPrmV(V, OrigV, i)
+function GetFormatPrmV(FX_Idx, V, OrigV, i)
     r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i, V)
     local _, RV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, i)
     r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, i, OrigV)
-    return RV
+    return Change_Unrenderable_characters(RV)
 end
 
 
@@ -3288,4 +3298,52 @@ function SimpleCombo(ctx, label, current_value, options, width)
     end
     
     return selected_value
+end
+
+---@generic T
+---@param table1 table<string, T>
+---@param table2 table<string, T>
+---@param excludeKeys? table<string, boolean> A table of keys to exclude from comparison
+---@return boolean
+function CompareTables(table1, table2, excludeKeys)
+    -- Check if both are tables
+    if type(table1) ~= "table" or type(table2) ~= "table" then
+        return false
+    end
+    
+    -- Initialize excludeKeys if not provided
+    excludeKeys = excludeKeys or {}
+    
+    -- Check if they have the same number of elements (excluding the excluded keys)
+    local count1, count2 = 0, 0
+    for k, _ in pairs(table1) do
+        if not excludeKeys[k] then
+            count1 = count1 + 1
+        end
+    end
+    for k, _ in pairs(table2) do
+        if not excludeKeys[k] then
+            count2 = count2 + 1
+        end
+    end
+    if count1 ~= count2 then
+        return false
+    end
+    
+    -- Compare each element
+    for k, v in pairs(table1) do
+        -- Skip excluded keys
+        if not excludeKeys[k] then
+            if type(v) == "table" and type(table2[k]) == "table" then
+                -- Recursively compare nested tables
+                if not CompareTables(v, table2[k], excludeKeys) then
+                    return false
+                end
+            elseif table2[k] ~= v then
+                return false
+            end
+        end
+    end
+    
+    return true
 end

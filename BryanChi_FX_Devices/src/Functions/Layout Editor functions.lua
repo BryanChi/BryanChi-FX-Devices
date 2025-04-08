@@ -274,14 +274,21 @@ function Sync_Height_Synced_Properties(FP, diff)
 end
 
 
-function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos)
+function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos, is_active)
     if not FP then return end   
     if NEED_ATACH_NEW_FONT then return end
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V) or FP.V_Clr or getClr(im.Col_Text)
+    local FtSz= FP.FontSize 
+    local PsX, PsY = (FP.Lbl_Pos_X or 0), (FP.Lbl_Pos_Y or 0)
+    if is_active and FP.V_Pos =='Only When Active'  then 
+        Font=V_Font
+        FtSz = FP.V_FontSize
+        PsX , PsY = (FP.V_Pos_X or 0), (FP.V_Pos_Y or 0)
+    end
     if FP.Lbl_Pos == 'Free' or Lbl_Pos == 'Free' then
         local Cx, Cy = im.GetCursorScreenPos(ctx)
-        im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or LblTextSize or Knob_DefaultFontSize, pos[1] + (FP.Lbl_Pos_X or 0), pos[2] + (FP.Lbl_Pos_Y or 0), Lbl_Clr, FP.CustomLbl or FP.Name)
+        im.DrawList_AddTextEx(draw_list, _G[Font], FtSz or LblTextSize or Knob_DefaultFontSize, pos[1] + PsX, pos[2] + PsY, Lbl_Clr, FP.CustomLbl or FP.Name)
     end
 
 
@@ -292,9 +299,9 @@ function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLb
         local line_height = im.GetTextLineHeight(ctx)
         im.PopFont(ctx)
 
-        local Y = BtnT - line_height  + (FP.Lbl_Pos_Y or 0) 
-        local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
-        im.DrawList_AddTextEx(draw_list, _G[Font], FP.FontSize or Knob_DefaultFontSize, X, Y, Lbl_Clr, label--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
+        local Y = BtnT - line_height  + PsY
+        local X = (CenteredLblPos or pos[1]) + PsX
+        im.DrawList_AddTextEx(draw_list, _G[Font], FtSz or Knob_DefaultFontSize, X, Y, Lbl_Clr, label--[[ , nil, pos[1], BtnT - line_height, pos[1] + Radius * 2, BtnT + line_height ]])
     end
 
     if FP.V_Pos == 'Free' then
@@ -907,15 +914,18 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     end
      im.PushStyleColor(ctx, im.Col_HeaderHovered, 0xffffff00)
     im.PushStyleColor(ctx, im.Col_HeaderActive, 0xffffff00) 
-
+    local FX_Name = ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx)))
     local FxGUID = FXGUID[FX_Idx]
 
 
     if CloseLayEdit then return end 
     if not im.Begin(ctx, 'LayoutEdit Properties', true, im.WindowFlags_NoCollapse + im.WindowFlags_NoTitleBar + im.WindowFlags_NoDocking) then return end 
-
-
-
+    local function Close()
+        im.CloseCurrentPopup(ctx)
+        FX.LayEdit = nil
+        LE.SelectedItem = nil
+        CloseLayEdit = true
+    end
 
     local function Save_Layout_Edit_Popup()
     
@@ -924,19 +934,14 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             im.Text(ctx, 'Would you like to save the editings?')
             if im.Button(ctx, '(n) No') or im.IsKeyPressed(ctx, im.Key_N) then
                 RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-                im.CloseCurrentPopup(ctx)
-                FX.LayEdit = nil
-                LE.SelectedItem = nil
-                CloseLayEdit = true
+                Close()
             end
             im.SameLine(ctx)
     
             if im.Button(ctx, '(y) Yes') or im.IsKeyPressed(ctx, im.Key_Y) then
                 SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
-                im.CloseCurrentPopup(ctx)
-                FX.LayEdit = nil
-                LE.SelectedItem = nil
-                CloseLayEdit = true
+                RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+                Close()
             end
             im.SameLine(ctx)
     
@@ -1070,131 +1075,29 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
     end
 
     local function Top_Bar()
-
-        if im.Button(ctx, 'Save') then
+        im.PushStyleVar(ctx, im.StyleVar_FramePadding, 10, 10)
+        local Same_As_Saved
+        if not IsLayoutModified(FxGUID, FX_Name) then   
+            im.BeginDisabled(ctx)
+            Same_As_Saved = true 
+        end
+        if im.ImageButton(ctx, 'Save', Img.Save, 12,12) then
             SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
-            CloseLayEdit = true; FX.LayEdit = nil
+            RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+            Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Layout Saved', 60 , 0
         end
-        SL()
+        if Same_As_Saved then im.EndDisabled(ctx) end 
+        SL(nil)
         if im.Button(ctx, 'Exit##Lay') then
-            im.OpenPopup(ctx, 'Save Editing?')
-        end
-        SL()
-
-        if LE.Sel_Items[1] then
-            local I = FX[FxGUID][LE.Sel_Items[1]]
-            if im.Button(ctx, 'Delete') then
-                local tb = {}
-
-                for i, v in pairs(LE.Sel_Items) do
-                    tb[i] = v
-                end
-                table.sort(tb)
-
-                for i = #tb, 1, -1 do
-                    DeletePrm(FxGUID, tb[i], FX_Idx)
-                end
-
-                if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
-
-                LE.Sel_Items = {}
-            end
-
-            SL(nil, 30)
-
-            if im.Button(ctx, 'Copy Properties') then
-                CopyPrm = {}
-                CopyPrm = I
-            end
-
-            SL()
-            if CopyPrm  then 
-                if im.Button(ctx, 'Paste Properties') then
-                    for i, v in pairs(LE.Sel_Items) do
-                        local I = FX[FxGUID][v]
-                        I.Type        = CopyPrm.Type
-                        I.Sldr_W      = CopyPrm.Sldr_W
-                        I.Style       = CopyPrm.Style
-                        I.V_FontSize  = CopyPrm.V_FontSize
-                        --I.CustomLbl   = CopyPrm.CustomLbl
-                        I.Image       = CopyPrm.Image
-                        I.AtchImgFileNm = CopyPrm.AtchImgFileNm
-                        I.FontSize    = CopyPrm.FontSize
-                        I.Sldr_H      = CopyPrm.Sldr_H
-                        I.BgClr       = CopyPrm.BgClr
-                        I.GrbClr      = CopyPrm.GrbClr
-                        I.Lbl_Pos     = CopyPrm.Lbl_Pos
-                        I.Lbl_Pos_X   = CopyPrm.Lbl_Pos_X
-                        I.Lbl_Pos_Y   = CopyPrm.Lbl_Pos_Y
-                        I.V_Pos       = CopyPrm.V_Pos
-                        I.Lbl_Clr     = CopyPrm.Lbl_Clr
-                        I.V_Clr       = CopyPrm.V_Clr
-                        I.DragDir     = CopyPrm.DragDir
-                        I.Value_Thick = CopyPrm.Value_Thick
-                        I.V_Pos_X     = CopyPrm.V_Pos_X
-                        I.V_Pos_Y     = CopyPrm.V_Pos_Y
-                       
-                        I.ImgFilesName   = CopyPrm.ImgFilesName
-                        I.ImgAngleMinOfs = CopyPrm.ImgAngleMinOfs
-                        I.DontReotateImg = CopyPrm.DontReotateImg
-                        I.Height      = CopyPrm.Height
-                        I.Invisible = CopyPrm.Invisible
-                        I.V_Clr_At_Full = CopyPrm.V_Clr_At_Full
-                        I.Lbl_Clr_At_Full = CopyPrm.Lbl_Clr_At_Full
-                        I.XY_Pad_Y_PNum = CopyPrm.XY_Pad_Y_PNum
-                        I.V_Round = CopyPrm.V_Round
-
-
-                        --arrows
-                        I.AddArrows = CopyPrm.AddArrows
-                        I.ArrowPic = CopyPrm.ArrowPic
-                        I.ArrowPicFileName= CopyPrm.ArrowPicFileName
-
-
-I.Conditions = deepCopy(CopyPrm.Conditions)
-                        I.Switch_On_Clr = CopyPrm.Switch_On_Clr
-
-                        -- font related
-                        I.Lbl_FONT    = CopyPrm.Lbl_FONT
-                        I.Val_FONT    = CopyPrm.Val_FONT
-                        I.Lbl_Italic  = CopyPrm.Lbl_Italic
-                        I.Val_Italic  = CopyPrm.Val_Italic
-                        I.Lbl_Bold    = CopyPrm.Lbl_Bold
-                        I.Val_Bold    = CopyPrm.Val_Bold
-
-
-                        --  switch
-                        I.SwitchType = CopyPrm.SwitchType
-                        I.SwitchTargV = CopyPrm.SwitchTargV
-                        I.SwitchBaseV = CopyPrm.SwitchBaseV
-
-                        if I.Conditions then 
-                            for i, v in ipairs(I.Conditions) do
-
-                                local i = i==1 and '' or i
-                                local Prm = CopyPrm['ConditionPrm' .. i]
-                                I['ConditionPrm' .. i] = Prm
-                                I['ConditionPrm_V'.. i] = CopyPrm['ConditionPrm_V'.. i]
-                                I['ConditionPrm_V_Norm'.. i] = CopyPrm['ConditionPrm_V_Norm'.. i]
-                            end
-                        end
-
-                        if CopyPrm.Draw then
-                            -- use this line to pool
-                            --I.Draw = CopyPrm.Draw
-                            I.Draw = I.Draw or {}
-                            for i, v in pairs(CopyPrm.Draw) do
-                                I.Draw[i] = {}
-                                for d, v in pairs(v) do
-                                    I.Draw[i][d] = v
-                                end
-                            end
-                        end
-                    end
-                end
+            if Same_As_Saved then 
+                Close()
+            else
+                im.OpenPopup(ctx, 'Save Editing?')
             end
         end
-        SL(nil, 30)
+
+
+        SL(nil, 10)
 
         if Draw.DrawMode == FxGUID then
             if im.Button(ctx, 'Exit Background Edit') then Draw.DrawMode = nil end
@@ -1203,14 +1106,14 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                 fx.VB = fx.VB or {}
                 table.insert(fx.VB, {})
             end
-            SL()
+            SL(nil)
             if im.Button(ctx, 'Enter Background Edit') then
                 Draw.DrawMode = FxGUID
                 LE.Sel_Items = {}
             end
         end
         im.Separator(ctx)
-
+        im.PopStyleVar(ctx)
     end
     local function Background_Edit_Properties()
         if LE.Sel_Items[1]  then return end 
@@ -1531,6 +1434,16 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
         if LE.SelectedItem == 'Title' and not LE.Sel_Items[1] and  Draw.DrawMode~= FxGUID then
             im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x66666688)
 
+
+            im.Text(ctx, 'Custom Title:')
+            im.SameLine(ctx)
+            local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
+                FX[FxGUID].CustomTitle or FX_Name)
+            if im.IsItemDeactivatedAfterEdit(ctx) then
+                FX[FxGUID].CustomTitle = CustomTitle
+            end
+
+
             im.Text(ctx, 'Edge Round:')
             im.SameLine(ctx)
             Edited, FX[FxGUID].Round = im.DragDouble(ctx, '##' .. FxGUID .. 'Round',
@@ -1543,7 +1456,7 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
             im.BeginGroup(ctx)
             im.Text(ctx, 'Background Color:')
             im.SetNextItemWidth(ctx, 200)
-            _, FX[FxGUID].BgClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff, im.ColorEditFlags_NoInputs|    im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
+            _, FX[FxGUID].BgClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'BgClr', FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff,     im.ColorEditFlags_AlphaPreviewHalf| im.ColorEditFlags_AlphaBar)
             if FX[FxGUID].BgClr == im.GetColor(ctx, im.Col_FrameBg) then
                 HighlightSelectedItem(nil, 0xffffffdd, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
             end
@@ -1557,14 +1470,6 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
             FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
             im.EndGroup(ctx)
 
-
-            im.Text(ctx, 'Custom Title:')
-            im.SameLine(ctx)
-            local _, CustomTitle = im.InputText(ctx, '##CustomTitle' .. FxGUID,
-                FX[FxGUID].CustomTitle or FX_Name)
-            if im.IsItemDeactivatedAfterEdit(ctx) then
-                FX[FxGUID].CustomTitle = CustomTitle
-            end
 
             im.PopStyleColor(ctx)
         end
@@ -2902,27 +2807,8 @@ I.Conditions = deepCopy(CopyPrm.Conditions)
                 TB[TB_ID].TrashIconTint = hvr
                 SL()
 
-               --[[  if im.Button(ctx, BtnTitle) then
-                    if Mods == 0 then
-                        for i, v in pairs(LE.Sel_Items) do
-                            if not FX[FxGUID][v][ShowCondition] then FX[FxGUID][v][ShowCondition] = true else FX[FxGUID][v][ShowCondition] = nil end
-                            FX[FxGUID][v][V] = FX[FxGUID][v] [V] or {}
-                        end
-                    elseif Mods == Alt then
-                        for i, v in pairs(FS[V]) do
-                            FX[FxGUID][P][V][i] = nil
-                        end
-                        FX[FxGUID][P][WhichPrm] = nil
-                        FS[ShowCondition] = nil
-                        DeleteAllConditionPrmV = nil
-                    end
-                    table.insert(fp.Conditions, {})
-                end
-
-                if im.IsItemHovered(ctx) then
-                    tooltip( 'Alt-Click to Delete All Conditions')
-                end
- ]]             im.Text(ctx, BtnTitle)
+            
+                im.Text(ctx, BtnTitle)
 
 
             
@@ -4719,11 +4605,17 @@ end
 
 function If_V_Pos_Is_Only_When_Active(FP, is_active, Format_P_V)
     if is_active then
+
         if FP.V_Pos=='Only When Active' then 
 
             FP.Orig_Custom_Lbl =  FP.Orig_Custom_Lbl or FP.CustomLbl or FP.Name
-            FP.CustomLbl = Format_P_V 
 
+            FP.CustomLbl = FP.V_Round and RoundPrmV(Format_P_V, FP.V_Round) or Format_P_V 
+            --[[ if  FP.Val_FONT or FP.V_FontSize then 
+
+                local V_Font = FP.Val_FONT.. '_' .. (FP.V_FontSize or 12) ..(FP.Val_Italic and '_Italic' or '') .. (FP.Val_Bold and '_Bold' or '')
+               return  _G[V_Font]
+            end ]]
 
         end
     elseif not is_active and FP.Orig_Custom_Lbl then 
@@ -4741,7 +4633,7 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
     local W, H          = SldrR - SldrL, SldrB - SldrT
     local draw_list = draw_list or im.GetWindowDrawList(ctx)
     im.PushFont(ctx, _G[V_Font] or Arial_11)
-    if FP.V_Round then Format_P_V = RoundPrmV(Format_P_V, FP.V_Round) end
+    local Format_P_V = FP.V_Round and RoundPrmV(Format_P_V, FP.V_Round) or Format_P_V
     TextW, Texth = im.CalcTextSize(ctx, Format_P_V, nil, nil, true, -100)
     --if is_active then txtclr = 0xEEEEEEff else txtclr = 0xD6D6D6ff end
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
@@ -4771,7 +4663,7 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
     end
     if p1 then 
         local p1 , p2  =  p1 + (FP.V_Pos_X or 0) , p2 + (FP.V_Pos_Y or 0)
-        im.DrawList_AddTextEx(draw_list, _G[V_Font], FontSz, p1 , p2 , V_Clr, Format_P_V)
+       im.DrawList_AddTextEx(draw_list, _G[V_Font], FontSz, p1 , p2 , V_Clr, Format_P_V)
     end
 
     local x, y = im.GetCursorPos(ctx)
@@ -5110,7 +5002,7 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
                 if labeltoShow == 'Release' or labeltoShow == 'Gain' and MouseX > txtX and MouseX < txtX + TextW and MouseY > txtY - 4 and MouseY < txtY + 10 then
                 else
                     if is_active then
-                        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, FX[FxGUID][Fx_P].BgClrAct or 0xE4B96B99)
+                        im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, FP.BgClrAct or 0xE4B96B99)
                         im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
                             center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2),
                             center[2] + angle_sin * (radius_outer - 2), FP.V_Clr or 0xDBDBDBff, 2.0)
@@ -5297,11 +5189,10 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
             local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
             local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
 
-            im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,labeltoShow or FX[FxGUID][Fx_P].Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
+            im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,labeltoShow or FP.Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
         end 
         if V_Pos ~= 'None' and V_Pos then
             im.PushFont(ctx, _G[V_Font])
-    
             FormatPV = FP.V_Round and RoundPrmV(FormatPV, FP.V_Round) or FormatPV
             local ValueTxtW = im.CalcTextSize(ctx, FormatPV, nil, nil, true)
 
@@ -5497,10 +5388,11 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 
     if_Drag_Knob()
 
-    Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos)
+    Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos, is_active)
 
-    If_V_Pos_Is_Only_When_Active( FP, is_active, FormatPV)
+    local V_font_when_active = If_V_Pos_Is_Only_When_Active( FP, is_active, FormatPV)
     --Knob_Interaction()
+
     MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, 'knob')
     ShowTooltip_if_Active()
     
@@ -5512,6 +5404,7 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 
     Modulation_related()    
     Highlight_Prm_If_User_Use_Actual_UI_To_Tweak()
+
 
 
 
@@ -5574,7 +5467,6 @@ function GetFonts (FP)
     local FtSz = roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1 )
     local V_Font = 'Arial_' .. FtSz
     if FP.Val_FONT then 
-        V_Font = FP.Val_FONT.. '_' .. FtSz 
         V_Font = FP.Val_FONT.. '_' .. FtSz ..(FP.Val_Italic and '_Italic' or '') .. (FP.Val_Bold and '_Bold' or '')
     end
     if not r.ImGui_ValidatePtr(_G[V_Font], 'ImGui_Font*') then 
@@ -6467,27 +6359,28 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
     local popClr
     local popFont 
 
-    local function Write_Lable()
+    local function Write_Label()
         local txt = FP.CustomLbl or FP.Name
         if FP.Lbl_Pos == 'Top' then
-
-    
             MyText(txt, _G[Font], Lbl_Clr)
+            pos = {im.GetCursorScreenPos(ctx)} -- this is needed to not throw off the attached drawings start position
         end
     end
     local function pushClr()
 
         if FP.V_Pos =='Within' then 
+
             im.PushStyleColor(ctx, im.Col_Text, V_Clr) 
             return 1
         else
-
-        end
+            im.PushStyleColor(ctx, im.Col_Text, Lbl_Clr)
+            return 1
+        end 
     end
 
     local function Calc_Text_Size_And_Lbl()
         local lbl
-        if FP.V_Pos == 'None' or FP.V_Pos == 'Free' then
+        if FP.V_Pos == 'None' or FP.V_Pos == 'Free' or (FP.Lbl_Pos =='Top' and FP.V_Pos~='Within')then
             lbl = ' '
         elseif FP.V_Pos == 'Within' then
     
@@ -6538,7 +6431,7 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
     local txt = FP.CustomLbl or FP.Name
     local FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
     Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(txt, Font,V_Font, FormatPV, FP, FP.Lbl_Pos, FP.V_Pos)
-    Write_Lable()
+    Write_Label()
     local lbl, TextW =  Calc_Text_Size_And_Lbl()
 
 
@@ -6552,9 +6445,7 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
     local PopClr_Value =   pushClr()
 
     if not FP.Image and not image then
-        im.PushStyleColor(ctx, im.Col_Text, Lbl_Clr)
         im.Button(ctx, lbl .. '##' .. FxGUID .. Fx_P, FP.Sldr_W or TextW)
-        im.PopStyleColor(ctx)
     else -- if there's an image
         local img = FP.Image or image
 
@@ -6585,12 +6476,15 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
             end
         else -- if it's a toggle
             local Value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
-            if Value == 0 then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 1)
-                FP.V = 1
-            elseif Value == 1 then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, 0)
-                FP.V = 0
+
+            if FP.V >= (FP.SwitchTargV or 0)-0.01 and FP.V <=  (FP.SwitchTargV or 0)+0.01  then
+
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FP.SwitchBaseV or 1)
+                FP.V = FP.SwitchBaseV or 1
+            else 
+
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, FP.SwitchTargV or 0)
+                FP.V = FP.SwitchTargV or 0
             end
         end
     end
@@ -6694,9 +6588,12 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local pos = { im.GetCursorScreenPos(ctx) }
     local line_height = im.GetTextLineHeight(ctx); local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
-    local _, Format_P_V = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+    local Format_P_V = Change_Unrenderable_characters(select(2,  r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)))
     local mouse_delta = { im.GetMouseDelta(ctx) }
     local Font, V_Font = GetFonts(FP)
+    local DragSpeed = Mods == Shift and 0.0003 or 0.01
+
+
 
     if type(FP) ~= 'table' then
         FX[FxGUID][Fx_P] = {}
@@ -6726,11 +6623,11 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
                 end
             elseif DragDir == 'Left' then
                 if is_active then
-                    im.DrawList_AddRectFilled(draw_list, PosR, PosT, PosL + SldrGrbPos, PosB, FP.GrbAct or 0xffffff77, Rounding)
+                    im.DrawList_AddRectFilled(draw_list, PosL + SldrGrbPos, PosT, PosR, PosB, FP.GrbAct or 0xffffff77, Rounding)
                 elseif is_hovered then
-                    im.DrawList_AddRectFilled(draw_list, PosR, PosT, PosL + SldrGrbPos, PosB, FP.GrbHvr or 0xffffff55, Rounding)
+                    im.DrawList_AddRectFilled(draw_list, PosL + SldrGrbPos, PosT, PosR, PosB, FP.GrbHvr or 0xffffff55, Rounding)
                 else
-                    im.DrawList_AddRectFilled(draw_list, PosR, PosT, PosL + SldrGrbPos, PosB, FP.GrbClr or 0xffffff44, Rounding)
+                    im.DrawList_AddRectFilled(draw_list, PosL + SldrGrbPos, PosT, PosR, PosB, FP.GrbClr or 0xffffff44, Rounding)
                 end
             end
         end
@@ -6748,14 +6645,10 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     im.PushStyleColor(ctx, im.Col_FrameBgHovered, FP.BgClrHvr or im.GetColor(ctx, im.Col_FrameBgHovered))
 
 
-
-
     Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
     im.SetNextItemWidth(ctx, Sldr_Width)
     local DragSpeed = 0.01
-    if Mods == Shift then DragSpeed = 0.0003 end
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
-
 
     local flag
 
@@ -6942,18 +6835,7 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
 
 
     Highlight_Prm_If_User_Use_Actual_UI_To_Tweak(draw_list, PosL, PosT, PosR, PosB, FP,FxGUID)
-    --[[ if Tweaking == P_Num..FxGUID and IsLBtnHeld == false then
-        if FP.WhichMODs  then
-            r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX'..FxGUID..'Prm'..Fx_P.. 'Value before modulation' , FX[FxGUID][Fx_P].V, true    )
-            r.gmem_write(7, CC) --tells jsfx to retrieve P value
-            PM.TimeNow= r.time_precise()
-            r.gmem_write(JSFX.P_ORIG_V+CC , p_value)
-            Link_Param_to_CC(LT_TrackNum, LT_FX_Number, P_Num, true, true, 176,MvingP_Idx) -- Use native API instead
 
-        end
-
-        Tweaking= nil
-    end ]]
 
     if PM.TimeNow ~= nil then
         if r.time_precise() > PM.TimeNow + 1 then
@@ -6968,10 +6850,11 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     Tweaking = MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width)
 
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , Format_P_V, Lbl_Pos)
-
-    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
+    
 
     Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value,nil, FxGUID)
+    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
+
     im.Dummy(ctx,10,10)
     im.EndGroup(ctx)
 
@@ -6979,76 +6862,6 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
 
     im.PopStyleVar(ctx)
     return value_changed, p_value
-end
-
----@param FxGUID string
----@param FX_Name string
-function CheckIfLayoutEditHasBeenMade(FxGUID, FX_Name)
-    if FX[FxGUID].File then
-        local ChangeBeenMade
-        local PrmCount = r.GetExtState('FX Devices - ' .. FX_Name, 'Param Instance')
-        local Ln = FX[FxGUID].FileLine
-
-        if FX[FxGUID].GrbRound ~= (get_aftr_Equal_Num(Ln[4]) or 0) then end
-        if FX[FxGUID].Round ~= (get_aftr_Equal_Num(Ln[3]) or 0) then end
-        if FX[FxGUID].BgClr ~= get_aftr_Equal_Num(Ln[5]) then end
-        if FX[FxGUID].TitleWidth ~= (get_aftr_Equal_Num(Ln[7]) or 0) then end
-        if FX[FxGUID].Width ~= (get_aftr_Equal_Num(Ln[6]) or 0) then end
-
-        ChangeBeenMade = true
-        --end
-
-        for Fx_P = 1, #FX[FxGUID] or 0, 1 do
-            local ID = FxGUID .. Fx_P
-            local FP = FX[FxGUID][Fx_P]
-            local function L(n)
-                return Ln[n + (40 - 14) * (Fx_P - 1)]
-            end
-            if FP.Name ~= get_aftr_Equal_Num(L(14)) or
-                FP.Num ~= get_aftr_Equal_Num(L(15)) or
-                FP.Sldr_W ~= get_aftr_Equal_Num(L(16)) or
-                FP.Type ~= get_aftr_Equal_(L(17)) or
-                FP.PosX ~= get_aftr_Equal_Num(L(18)) or
-                FP.PosY ~= get_aftr_Equal_Num(L(19)) or
-                FP.Style ~= get_aftr_Equal(L(20)) or
-                FP.V_FontSize ~= get_aftr_Equal_Num(L(21)) or
-                FP.CustomLbl ~= get_aftr_Equal_Num(L(22)) or
-                FP.FontSize ~= get_aftr_Equal_Num(L(23)) or
-                FP.Sldr_H ~= '1' or
-                FP.BgClr ~= '2' or
-                FP.GrbClr ~= '3' or
-                FP.Lbl_Pos ~= '4' or
-                FP.V_Pos ~= '' or
-                FP.Lbl_Clr ~= '4' or
-                FP.V_Clr ~= '4' or
-                FP.DragDir ~= '4' or
-                FP.ConditionPrm ~= '4'
-
-            then
-                ChangeBeenMade = true
-            end
-        end
-
-
-        if FX[FxGUID].AllPrmHasBeenDeleted then ChangeBeenMade = true end
-        return ChangeBeenMade
-    end
-end
-
----@param FX_Idx string
-function CheckIfDrawingHasBeenMade(FX_Idx)
-    local D = Draw[FX.Win_Name_S[FX_Idx]], ChangeBeenMade
-    for i, Type in pairs(D.Type) do
-        if D.L[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's L pos')) or
-            D.R[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's R Pos')) or
-            D.T[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's T Pos')) or
-            D.B[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's B Pos')) or
-            D.Txt[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's Txt')) or
-            D.clr[i] ~= tonumber(r.GetExtState('FX Devices Drawings', 'prm ' .. i .. 's Clr')) then
-            ChangeBeenMade = true
-        end
-    end
-    return ChangeBeenMade
 end
 
 
@@ -7168,6 +6981,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.Lbl_Bold            = v.Lbl_Bold
                     FP.Val_Bold            = v.Val_Bold
                     FP.Image               = v.Image
+                    FP.V_Round             = v.V_Round
                     FP.ImgFilesName        = v.ImgFilesName
                     FP.ConditionPrm        = v.ConditionPrm
                     FP.ConditionPrm_V      = v.ConditionPrm_V
@@ -7183,6 +6997,11 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     FP.ArrowPic             =v.ArrowPic
                     FP.ArrowPicFileName     = v.ArrowPicFileName
                     FP.Number_of_Conditions = v.Number_of_Conditions
+                    FP.SwitchType           = v.SwitchType
+                    FP.SwitchBaseV          = v.SwitchBaseV
+                    FP.SwitchTargV          = v.SwitchTargV
+                    FP.ManualValues         = v.ManualValues
+                    FP.ManualValuesFormat   = v.ManualValuesFormat
                     for i = 1, FP.Number_of_Conditions or 0 , 1 do 
                         FP.Conditions = FP.Conditions or {}
                         FP.Conditions[i] = FP.Conditions[i]  or {}
@@ -7387,6 +7206,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
                             FP.V_Round = RecallInfo(Ct, 'Decimal Rounding', Fx_P, 'Num')
+
                             FP.SwitchType = RecallInfo(Ct, 'Switch type', Fx_P, 'Num')
                             FP.SwitchBaseV = RecallInfo(Ct, 'Switch Base Value', Fx_P, 'Num')
                             FP.SwitchTargV = RecallInfo(Ct, 'Switch Target Value', Fx_P, 'Num')
@@ -7394,8 +7214,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
 
-                                StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState', Fx_P, FX_Idx, TrkID)
-                                r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
+                            StoreNewParam(FxGUID, FP.Name, FP.Num, FX_Idx, 'Not Deletable', 'AddingFromExtState', Fx_P, FX_Idx, TrkID)
+                            r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added', 'true')
                             
 
                             FP.ManualValues = RecallIntoTable(Ct, Fx_P .. '. Manual V:1=', Fx_P, 'Num')
@@ -7563,6 +7383,78 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
         end
     end
   
+end
+function IsLayoutModified(FxGUID, FX_Name)
+
+    if not LO[FX_Name] then msg('no saved')end
+    if not LO[FX_Name] or not FX[FxGUID] then return false end
+    
+    local saved = LO[FX_Name]
+    local current = FX[FxGUID]
+    
+    -- Check global properties
+    local globalProps = {
+        'MorphHide', 'Round', 'GrbRound', 'BgClr', 'Width', 
+        'TitleWidth', 'TitleClr', 'CustomTitle'
+    }
+    
+    for _, prop in ipairs(globalProps) do
+        if current[prop] ~= saved[prop] then
+            return true
+        end
+    end
+    
+    -- Check if number of parameters match
+    local savedParamCount = #saved
+    local currentParamCount = #current
+    if savedParamCount ~= currentParamCount then
+        return true
+    end
+    
+    -- Check each parameter's properties
+    for i = 1, currentParamCount do
+        local currentParam = current[i]
+        local savedParam = saved[i]
+        
+        -- List of properties to compare
+        local paramProps = {
+            'Name', 'Num', 'Sldr_W', 'Type', 'PosX', 'PosY', 'Style',
+            'V_FontSize', 'CustomLbl', 'FontSize', 'Height', 'BgClr',
+            'GrbClr', 'Lbl_Pos', 'V_Pos', 'Lbl_Clr', 'V_Clr', 'DragDir',
+            'Value_Thick', 'V_Pos_X', 'V_Pos_Y', 'Lbl_Pos_X', 'Lbl_Pos_Y',
+            'Lbl_FONT', 'Val_FONT', 'Lbl_Italic', 'Val_Italic', 'Lbl_Bold',
+            'Val_Bold', 'Image', 'V_Round', 'ImgFilesName', 'ConditionPrm',
+            'Switch_On_Clr', 'Invisible', 'ImgAngleMinOfs', 'DontRotateImg',
+            'V_Clr_At_Full', 'Lbl_Clr_At_Full', 'XY_Pad_Y_PNum', 'AddArrows',
+            'ArrowPic', 'ArrowPicFileName', 'Number_of_Conditions', 'SwitchType',
+            'SwitchBaseV', 'SwitchTargV', 'ManualValues', 'ManualValuesFormat'
+        }
+        
+        for _, prop in ipairs(paramProps) do
+            if currentParam[prop] ~= savedParam[prop] then
+                return true
+            end
+        end
+        
+        -- Check condition parameter values if they exist
+        if currentParam.ConditionPrm_V and savedParam.ConditionPrm_V then
+            if #currentParam.ConditionPrm_V ~= #savedParam.ConditionPrm_V then
+                return true
+            end
+            for j = 1, #currentParam.ConditionPrm_V do
+                if currentParam.ConditionPrm_V[j] ~= savedParam.ConditionPrm_V[j] then
+                    return true
+                end
+            end
+        end
+    end
+    
+    -- Check if all parameters have been deleted
+    if current.AllPrmHasBeenDeleted then
+        return true
+    end
+    
+    return false
 end
 
 ---@param FxGUID string
@@ -8118,10 +8010,13 @@ function Save_Attached_Drawings_As_Style(Name, Type, FP )
     --set size to 15, and sync all drawing size
     if FP.Sldr_W  then 
         orig_sz = FP.Sldr_W
+
         if FP.Type == 'Knob' then
             FP.Sldr_W = DfKnobRD
         elseif FP.Type == 'V-Slider' then
             FP.Sldr_W = Df.V_Sldr_W
+        else 
+            FP.Sldr_W = Df.Sldr_W
         end
         
         Sync_Size_Height_Synced_Properties(FP, FP.Sldr_W- orig_sz )
@@ -8142,6 +8037,7 @@ function Save_Attached_Drawings_As_Style(Name, Type, FP )
 
     if FP.Sldr_W then 
         -- set size back to original size
+
         FP.Sldr_W = orig_sz
 
         

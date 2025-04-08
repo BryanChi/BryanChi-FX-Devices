@@ -22,8 +22,6 @@ function If_Theres_Selected_FX()
         
             if im.Button(ctx, 'Put FXs into Container') then 
 
-                --[[ local firstSlot =  Find_FxID_By_GUID (Sel_FX[1])
-                msg('firstSlot = '..(firstSlot or 'nill')) ]]
                 local cont = AddFX_HideWindow(LT_Track, 'Container', -1000 - Sel_FX_Idx[1])
                -- local ContFxGUID = r.TrackFX_GetFXGUID(LT_Track, cont)
                 TREE = BuildFXTree(LT_Track)
@@ -197,11 +195,16 @@ function Layout_Edit_MenuBar_Buttons()
 
     if not FX.LayEdit then return end 
     local FxGUID = FX.LayEdit
+    local BtnSz = 15
 
     local function Grid_Adjust_Btns()
-        if im.Button(ctx, 'Grid +') then
+        im.Text(ctx, 'Grid: ')
+        SL(nil, 0)
+        if im.Button(ctx, '+',BtnSz*2 ) then
             LE.GridSize = LE.GridSize + 5
-        elseif im.Button(ctx, 'Grid -') then
+        end
+        SL(nil,0)
+        if im.Button(ctx, '-', BtnSz*2 ) then
             LE.GridSize = LE.GridSize - 5
         end
     end
@@ -255,12 +258,137 @@ function Layout_Edit_MenuBar_Buttons()
             end
         end
     end
+    local function Delete()
+        if not LE.Sel_Items[1] then return end 
+        im.SetNextItemWidth(ctx, 20)
+        
+        if im.ImageButton(ctx, '## Delete', Img.Trash, BtnSz, BtnSz) then
+            local tb = {}
+            local isVirtualButton = type(LE.Sel_Items[1]) == 'table'
+            local Undo_LBL = isVirtualButton and 'Delete Virtual Button' or (#LE.Sel_Items > 1 and 'Delete '..#LE.Sel_Items..' Parameters' or 'Delete '..(FX[FxGUID][LE.Sel_Items[1]].Name or ''))
+            Create_Undo_Point(Undo_LBL, FxGUID)
 
-    
+            for i, v in pairs(LE.Sel_Items) do
+                tb[i] = v
+            end
+            table.sort(tb)
+
+            for i = #tb, 1, -1 do
+                DeletePrm(FxGUID, tb[i], FX_Idx)
+            end
+
+
+            if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
+
+            LE.Sel_Items = {}
+        end
+    end
+
+    local function Copy_and_Properties ()
+        if not LE.Sel_Items[1] then return end 
+        if im.ImageButton(ctx, '## Copy', Img.Copy, BtnSz, BtnSz) then
+            local I = FX[FxGUID][LE.Sel_Items[1]]
+            CopyPrm = {}
+            CopyPrm = I
+        end
+
+        if CopyPrm  then 
+            if im.ImageButton(ctx, '## paste', Img.Paste, BtnSz, BtnSz) then
+                Create_Undo_Point('Paste Properties', FxGUID)
+                for i, v in pairs(LE.Sel_Items) do
+                    local I = FX[FxGUID][v]
+                    I.Type        = CopyPrm.Type
+                    I.Sldr_W      = CopyPrm.Sldr_W
+                    I.Style       = CopyPrm.Style
+                    I.V_FontSize  = CopyPrm.V_FontSize
+                    --I.CustomLbl   = CopyPrm.CustomLbl
+                    I.Image       = CopyPrm.Image
+                    I.AtchImgFileNm = CopyPrm.AtchImgFileNm
+                    I.FontSize    = CopyPrm.FontSize
+                    I.Sldr_H      = CopyPrm.Sldr_H
+                    I.BgClr       = CopyPrm.BgClr
+                    I.GrbClr      = CopyPrm.GrbClr
+                    I.Lbl_Pos     = CopyPrm.Lbl_Pos
+                    I.Lbl_Pos_X   = CopyPrm.Lbl_Pos_X
+                    I.Lbl_Pos_Y   = CopyPrm.Lbl_Pos_Y
+                    I.V_Pos       = CopyPrm.V_Pos
+                    I.Lbl_Clr     = CopyPrm.Lbl_Clr
+                    I.V_Clr       = CopyPrm.V_Clr
+                    I.DragDir     = CopyPrm.DragDir
+                    I.Value_Thick = CopyPrm.Value_Thick
+                    I.V_Pos_X     = CopyPrm.V_Pos_X
+                    I.V_Pos_Y     = CopyPrm.V_Pos_Y
+                    
+                    I.ImgFilesName   = CopyPrm.ImgFilesName
+                    I.ImgAngleMinOfs = CopyPrm.ImgAngleMinOfs
+                    I.DontReotateImg = CopyPrm.DontReotateImg
+                    I.Height      = CopyPrm.Height
+                    I.Invisible = CopyPrm.Invisible
+                    I.V_Clr_At_Full = CopyPrm.V_Clr_At_Full
+                    I.Lbl_Clr_At_Full = CopyPrm.Lbl_Clr_At_Full
+                    I.XY_Pad_Y_PNum = CopyPrm.XY_Pad_Y_PNum
+                    I.V_Round = CopyPrm.V_Round
+
+
+                    --arrows
+                    I.AddArrows = CopyPrm.AddArrows
+                    I.ArrowPic = CopyPrm.ArrowPic
+                    I.ArrowPicFileName= CopyPrm.ArrowPicFileName
+
+
+                    I.Conditions = deepCopy(CopyPrm.Conditions)
+                    I.Switch_On_Clr = CopyPrm.Switch_On_Clr
+
+                    -- font related
+                    I.Lbl_FONT    = CopyPrm.Lbl_FONT
+                    I.Val_FONT    = CopyPrm.Val_FONT
+                    I.Lbl_Italic  = CopyPrm.Lbl_Italic
+                    I.Val_Italic  = CopyPrm.Val_Italic
+                    I.Lbl_Bold    = CopyPrm.Lbl_Bold
+                    I.Val_Bold    = CopyPrm.Val_Bold
+
+
+                    --  switch
+                    I.SwitchType = CopyPrm.SwitchType
+                    I.SwitchTargV = CopyPrm.SwitchTargV
+                    I.SwitchBaseV = CopyPrm.SwitchBaseV
+
+                    if I.Conditions then 
+                        for i, v in ipairs(I.Conditions) do
+
+                            local i = i==1 and '' or i
+                            local Prm = CopyPrm['ConditionPrm' .. i]
+                            I['ConditionPrm' .. i] = Prm
+                            I['ConditionPrm_V'.. i] = CopyPrm['ConditionPrm_V'.. i]
+                            I['ConditionPrm_V_Norm'.. i] = CopyPrm['ConditionPrm_V_Norm'.. i]
+                        end
+                    end
+
+                    if CopyPrm.Draw then
+                        -- use this line to pool
+                        --I.Draw = CopyPrm.Draw
+                        I.Draw = I.Draw or {}
+                        for i, v in pairs(CopyPrm.Draw) do
+                            I.Draw[i] = {}
+                            for d, v in pairs(v) do
+                                I.Draw[i][d] = v
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     Grid_Adjust_Btns()
+    im.PushStyleVar(ctx, im.StyleVar_FramePadding, 10, 2)
+    Delete()
+    Copy_and_Properties ()
+    im.PopStyleVar(ctx)
     Align_Btns()
     Equalize_Btns()
     Swap_Btns()
+    
 
     im.Separator(ctx)
 

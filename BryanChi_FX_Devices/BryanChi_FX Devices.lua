@@ -1,10 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.21
+-- @version 1.0beta18.22
 -- @changelog
---   - New layouts contributed by Arthen (todoublez)
---   - Big Feature improvements on Containers and parallel FXs
---   - Cleaned up old code    
+--   - New Khs Comb filter layout 
+--   - improved some layout editor gui.
+--   - Fixed some bugs in preset morph.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

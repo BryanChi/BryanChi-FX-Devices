@@ -11,6 +11,8 @@ end
 
 
 
+
+
 function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
     -- Handle boundary conditions explicitly
     if x <= xmin then
@@ -2926,12 +2928,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     local rv, presetname = r.TrackFX_GetPreset(LT_Track, FX_Idx)
                     if rv and AB == 'A' then
                         FX[FxGUID].MorphA_Name = presetname
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', presetname, true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph A' .. FxGUID .. 'Preset Name', presetname, true)
                     elseif rv and AB == 'B' then
                         FX[FxGUID].MorphB_Name = presetname
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', presetname, true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX Morph B' .. FxGUID .. 'Preset Name', presetname, true)
                     end
                 end
             end
@@ -2943,12 +2943,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             SCx = SCx - 2
             im.SetCursorPosX(ctx, x)
 
-            --im.PushStyleColor(ctx, im.Col_Button,DefClr_A) im.PushStyleColor(ctx, im.Col_ButtonHovered, DefClr_A_Hvr) im.PushStyleColor(ctx, im.Col_ButtonActive, DefClr_A_Act)
+            im.PushStyleColor(ctx, im.Col_Button,DefClr_A) im.PushStyleColor(ctx, im.Col_ButtonHovered, DefClr_A_Hvr) im.PushStyleColor(ctx, im.Col_ButtonActive, DefClr_A_Act)
+
 
             if im.Button(ctx, 'A##' .. FxGUID, 20, 20) then
                 StoreAllPrmVal('A', nil, FX[FxGUID].Morph_ID)
+                MORPH__NEED_TO_REFRESH = 1
             end
-            --im.PopStyleColor(ctx,3)
+            im.PopStyleColor(ctx,3)
 
 
             if im.IsItemHovered(ctx) and FX[FxGUID].MorphA_Name then
@@ -3107,15 +3109,10 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 elseif FX[FxGUID].Morph_ID or not FX[FxGUID].Unlink then
                     if im.Selectable(ctx, 'Unlink Parameters to Morph Automation', false) then
                         for i, v in ipairs(FX[FxGUID].MorphA), FX[FxGUID].MorphA, -1 do
-                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i ..
-                                ".plink.active", 0) -- 1 active, 0 inactive
+                            local unsetcc = r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, "param." .. i .. ".plink.active", 0) -- 1 active, 0 inactive
                         end
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FXs Morph_ID' .. FxGUID,
-                            FX[FxGUID].Morph_ID, true)
-                        FX[FxGUID].Unlink = true
-                        r.GetSetMediaTrackInfo_String(LT_Track,
-                            'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', 'Unlink', true)
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID, FX[FxGUID].Morph_ID, true) FX[FxGUID].Unlink = true
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FXs Morph_ID' .. FxGUID .. 'Unlink', 'Unlink', true)
                     end
                 end
 
@@ -3192,6 +3189,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             if im.Button(ctx, 'B##' .. FxGUID, 20, 20) then
                 StoreAllPrmVal('B', nil, FX[FxGUID].Morph_ID)
                 local rv, presetname = r.TrackFX_GetPreset(LT_Track, FX_Idx)
+                MORPH__NEED_TO_REFRESH = 2
                 if rv then FX[FxGUID].MorphB_Name = presetname end
             end
             if im.IsItemHovered(ctx) and FX[FxGUID].MorphB_Name then
@@ -4093,342 +4091,328 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if DebugMode and im.IsKeyDown(ctx, im.Key_D) then tooltip(TrkID) end
             end
             local function If_Open_Morph_Settings()
-                if OpenMorphSettings then
-                    im.SetNextWindowSizeConstraints(ctx, 500, 500, FLT_MAX, FLT_MAX)
-                    Open, Oms = im.Begin(ctx, 'Preset Morph Settings ', Oms,
-                        im.WindowFlags_NoCollapse | im.WindowFlags_NoDocking)
-                    if Oms then
-                        if FxGUID == OpenMorphSettings then
-                            im.Text(ctx, 'Set blacklist parameters here: ')
-                            local SpaceForBtn
-                            if not im.ValidatePtr(Filter, "ImGui_TextFilter*") then
-                                Filter = im.CreateTextFilter(FilterTxt)
-                            end
-                            im.Text(ctx, 'Filter :')
-                            im.SameLine(ctx)
-                            if FilterTxt then SpaceForBtn = 170 end
-                            if im.TextFilter_Draw(Filter, ctx, '##', -1 - (SpaceForBtn or 0)) then
-                                FilterTxt = im.TextFilter_Get(Filter)
-                                im.TextFilter_Set(Filter, Txt)
-                            end
-                            if FilterTxt then
-                                SL()
-                                BL_All = im.Button(ctx, 'Blacklist all results')
-                            end
+                if not OpenMorphSettings then return end 
+                im.SetNextWindowSizeConstraints(ctx, 500, 500, FLT_MAX, FLT_MAX)
+                Open, Oms = im.Begin(ctx, 'Preset Morph Settings ', Oms, im.WindowFlags_NoCollapse | im.WindowFlags_NoDocking)
+                if not Oms then 
+                    im.End(ctx)
+                    OpenMorphSettings = false
+                    return 
+                end 
+                if FxGUID ~= OpenMorphSettings then  im.End(ctx) return end 
+                im.Text(ctx, 'Set blacklist parameters here: ')
+                local SpaceForBtn
+                if not im.ValidatePtr(Filter, "ImGui_TextFilter*") then
+                    Filter = im.CreateTextFilter(FilterTxt)
+                end
+                im.Text(ctx, 'Filter :')
+                im.SameLine(ctx)
+                if FilterTxt then SpaceForBtn = 170 end
+                if im.TextFilter_Draw(Filter, ctx, '##', -1 - (SpaceForBtn or 0)) then
+                    FilterTxt = im.TextFilter_Get(Filter)
+                    im.TextFilter_Set(Filter, Txt)
+                end
+                if FilterTxt then
+                    SL()
+                    BL_All = im.Button(ctx, 'Blacklist all results')
+                end
 
-                            im.Text(ctx, 'Save morphing settings to : ')
-                            SL()
-                            local Save_FX = im.Button(ctx, 'FX Instance', 80)
-                            SL()
-                            local Save_Proj = im.Button(ctx, 'Project', 80)
-                            SL()
-                            local Save_Glob = im.Button(ctx, 'Global', 80)
-                            SL()
-                            local FxNam = FX.Win_Name_S[FX_Idx]:gsub("%b()", "")
-                            demo.HelpMarker(
-                                'FX Instance: \nBlacklist will only apply to the current instance of ' ..
-                                FxNam ..
-                                '\n\nProject:\nBlacklist will apply to all instances of ' ..
-                                FxNam ..
-                                'in the current project\n\nGlobal:\nBlacklist will be applied to all instances of ' ..
-                                FxNam ..
-                                'across all projects.\n\nOrder of precedence goes from: FX Instance -> Project -> Global')
-
-
-
-                            if Save_FX or Save_Proj or Save_Glob then
-                                Tooltip_Timer = r.time_precise()
-                                TTP_x, TTP_y = im.GetMousePos(ctx)
-                                im.OpenPopup(ctx, '## Successfully saved preset morph')
-                            end
-
-                            if Tooltip_Timer then
-                                if im.BeginPopupModal(ctx, '## Successfully saved preset morph', nil, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize) then
-                                    im.Text(ctx, 'Successfully saved ')
-                                    if im.IsMouseClicked(ctx, 0) then
-                                        im.CloseCurrentPopup(
-                                            ctx)
-                                    end
-                                    im.EndPopup(ctx)
-                                end
-
-                                if Tooltip_Timer + 3 < r.time_precise() then
-                                    Tooltip_Timer = nil
-                                    TTP_x = nil
-                                    TTP_y = nil
-                                end
-                            end
-
-                            --
-
-
-                            if not FX[FxGUID].PrmList[1].Name then
-                                FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
-                                --[[ local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
-                                for i=0, Ct-4, 1 do
-                                    FX[FxGUID].PrmList[i]=FX[FxGUID].PrmList[i] or {}
-                                    local rv, name = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
-                                    FX[FxGUID].PrmList[i].Name  = name
-                                end ]]
-
-                                RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track,
-                                    r.TrackFX_GetNumParams(LT_Track, FX_Idx), FX_Name)
-                            else
-                                im.BeginTable(ctx, 'Parameter List', 5, im.TableFlags_Resizable)
-                                --im.TableSetupColumn( ctx, 'BL',  flagsIn, 20,  user_idIn)
-
-                                im.TableHeadersRow(ctx)
-                                im.SetNextItemWidth(ctx, 20)
-                                im.TableSetColumnIndex(ctx, 0)
-
-                                local rv = im.InvisibleButton(ctx, '##M', 20, 20) -- (/) icon
-                                DrawListButton(WDL, 'M', 0x00000000, nil, true, icon1_middle, false)
-                                im.TableSetColumnIndex(ctx, 1)
-                                im.AlignTextToFramePadding(ctx)
-                                im.Text(ctx, 'Parameter Name ')
-                                im.TableSetColumnIndex(ctx, 2)
-                                im.AlignTextToFramePadding(ctx)
-                                im.Text(ctx, 'A')
-                                im.TableSetColumnIndex(ctx, 3)
-                                im.AlignTextToFramePadding(ctx)
-                                im.Text(ctx, 'B')
-                                im.TableNextRow(ctx)
-                                im.TableSetColumnIndex(ctx, 0)
+                im.Text(ctx, 'Save morphing settings to : ')
+                SL()
+                local Save_FX = im.Button(ctx, 'FX Instance', 80)
+                SL()
+                local Save_Proj = im.Button(ctx, 'Project', 80)
+                SL()
+                local Save_Glob = im.Button(ctx, 'Global', 80)
+                SL()
+                local FxNam = FX.Win_Name_S[FX_Idx]:gsub("%b()", "")
+                demo.HelpMarker(
+                    'FX Instance: \nBlacklist will only apply to the current instance of ' ..
+                    FxNam ..
+                    '\n\nProject:\nBlacklist will apply to all instances of ' ..
+                    FxNam ..
+                    'in the current project\n\nGlobal:\nBlacklist will be applied to all instances of ' ..
+                    FxNam ..
+                    'across all projects.\n\nOrder of precedence goes from: FX Instance -> Project -> Global')
 
 
 
+                if Save_FX or Save_Proj or Save_Glob then
+                    Tooltip_Timer = r.time_precise()
+                    TTP_x, TTP_y = im.GetMousePos(ctx)
+                    im.OpenPopup(ctx, '## Successfully saved preset morph')
+                end
 
-                                if --[[Last Touch]] LT_ParamNum and LT_FXGUID == FxGUID then
-                                    local P = FX[FxGUID].PrmList
-                                    local N = math.max(LT_ParamNum, 1)
-                                    im.TableSetBgColor(ctx, 1,
-                                        getClr(im.Col_TabUnfocused))
-                                    im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 9)
-
-                                    rv, P[N].BL = im.Checkbox(ctx, '##' .. N, P[N].BL)
-                                    if P[N].BL then im.BeginDisabled(ctx) end
-
-                                    im.TableSetColumnIndex(ctx, 1)
-                                    im.Text(ctx, N .. '. ' .. (P[N].Name or ''))
-
-
-                                    ------- A --------------------
-                                    im.TableSetColumnIndex(ctx, 2)
-                                    im.Text(ctx, 'A:')
-                                    SL()
-                                    im.SetNextItemWidth(ctx, -FLT_MIN)
-
-                                    local i = LT_ParamNum or 0
-                                    local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
-                                    if not P.FormatV_A and FX[FxGUID].MorphA[1] then
-                                        P.FormatV_A = GetFormatPrmV(FX[FxGUID].MorphA[i], OrigV, i)
-                                    end
-
-
-                                    P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx, '## MorphVal_A' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1, P.FormatV_A or '')
-                                    if P.Drag_A then
-                                        P.FormatV_A = GetFormatPrmV(FX[FxGUID].MorphA[i], OrigV, i)
-                                    end
-
-                                    SL()
-                                    --------- B --------------------
-                                    im.TableSetColumnIndex(ctx, 3)
-                                    im.Text(ctx, 'B:')
-                                    SL()
-
-                                    local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
-                                    im.SetNextItemWidth(ctx, -FLT_MIN)
-                                    if not P.FormatV_B and FX[FxGUID].MorphB[1] then
-                                        P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i], OrigV, i)
-                                    end
-
-
-                                    P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx, '## MorphVal_B' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1, P.FormatV_B)
-                                    if P.Drag_B then
-                                        P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i], OrigV, i)
-                                    end
-
-
-                                    if P[N].BL then im.EndDisabled(ctx) end
-                                    --HighlightSelectedItem( 0xffffff33 , OutlineClr, 1, L,T,R,B,h,w, H_OutlineSc, V_OutlineSc,'GetItemRect', Foreground)
-
-                                    im.PopStyleVar(ctx)
-                                    im.TableNextRow(ctx)
-                                    im.TableSetColumnIndex(ctx, 0)
-                                end
-                                local Load_FX_Proj_Glob
-                                local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID, '', false)
-                                if FXsBL == 'Has Blacklist saved to FX' then -- if there's FX-specific BL settings
-                                    Load_FX_Proj_Glob = 'FX'
-                                else
-                                    local _, whether = r.GetProjExtState(0, 'FX Devices - Preset Morph', 'Whether FX has Blacklist' .. (FX.Win_Name_S[FX_Idx] or ''))
-                                    if whether == 'Yes' then Load_FX_Proj_Glob = 'Proj' end
-                                end
-
-                                local TheresBL = TheresBL or {}
-                                local hasBL
-                                for i, v in ipairs(FX[FxGUID].PrmList) do
-                                    local P = FX[FxGUID].PrmList[i - 1]
-                                    local prm = FX[FxGUID].PrmList
-
-                                    if im.TextFilter_PassFilter(Filter, P.Name) --[[ and (i~=LT_ParamNum and LT_FXGUID==FxGUID) ]] then
-                                        i = i - 1
-                                        if prm[i].BL == nil then
-                                            if Load_FX_Proj_Glob == 'FX' then
-                                                local _, V = r.GetSetMediaTrackInfo_String(
-                                                    LT_Track,
-                                                    'P_EXT: Morph_BL' .. FxGUID .. i, '', false)
-                                                if V == 'Blacklisted' then prm[i].BL = true end
-                                            end
-                                            --[[  elseif Load_FX_Proj_Glob== 'Proj' then
-                                                local rv, BLprm  = r.GetProjExtState(0,'FX Devices - Preset Morph', FX.Win_Name_S[FX_Idx]..' Blacklist '..i)
-                                                if BLprm~='' and BLprm then  BLpm = tonumber(BLprm)
-                                                    if BLprm then prm[1].BL = true  end
-                                                end
-                                            end ]]
-                                        end
-                                        if BL_All --[[BL all filtered params ]] then if P.BL then P.BL = false else P.BL = true end end
-                                        rv, prm[i].BL = im.Checkbox(ctx, '## BlackList' .. i,
-                                            prm[i].BL)
-
-                                        im.TableSetColumnIndex(ctx, 1)
-                                        if P.BL then
-                                            im.PushStyleColor(ctx, im.Col_Text,
-                                                getClr(im.Col_TextDisabled))
-                                        end
-
-
-                                        im.Text(ctx, i .. '. ' .. (P.Name or ''))
-
-
-
-                                        ------- A --------------------
-                                        im.TableSetColumnIndex(ctx, 2)
-                                        im.Text(ctx, 'A:')
-                                        SL()
-
-                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
-                                            FX_Idx,
-                                            i)
-                                        im.SetNextItemWidth(ctx, -FLT_MIN)
-                                        if not P.FormatV_A and FX[FxGUID].MorphA[1] then
-                                            P.FormatV_A =
-                                                GetFormatPrmV(FX[FxGUID].MorphA[i + 1], OrigV, i)
-                                        end
-
-
-                                        P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx,
-                                            '## MorphVal_A' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1,
-                                            P.FormatV_A or '')
-                                        if P.Drag_A then
-                                            P.FormatV_A = GetFormatPrmV(FX[FxGUID].MorphA[i], OrigV,
-                                                i)
-                                            --[[ r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,i, FX[FxGUID].MorphA[i])
-                                            _,P.FormatV_A = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,i)
-                                            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,i, OrigV)  ]]
-                                        end
-
-                                        SL()
-
-                                        --------- B --------------------
-                                        im.TableSetColumnIndex(ctx, 3)
-                                        im.Text(ctx, 'B:')
-                                        SL()
-
-                                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
-                                            FX_Idx,
-                                            i)
-                                        im.SetNextItemWidth(ctx, -FLT_MIN)
-                                        if not P.FormatV_B and FX[FxGUID].MorphB[1] then
-                                            P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i] or 0,
-                                                OrigV, i)
-                                        end
-
-                                        P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx,
-                                            '## MorphVal_B' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1,
-                                            P.FormatV_B)
-                                        if P.Drag_B then
-                                            P.FormatV_B = GetFormatPrmV(FX[FxGUID].MorphB[i], OrigV,
-                                                i)
-                                        end
-
-
-                                        if Save_FX then
-                                            if P.BL then
-                                                hasBL = true
-                                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                                    'P_EXT: Morph_BL' .. FxGUID .. i, 'Blacklisted',
-                                                    true)
-                                            else
-                                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                                    'P_EXT: Morph_BL' .. FxGUID .. i, '', true)
-                                            end
-                                            if hasBL then
-                                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                                    'P_EXT: Morph_BL' .. FxGUID,
-                                                    'Has Blacklist saved to FX', true)
-                                            else
-                                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                                    'P_EXT: Morph_BL' .. FxGUID, '', true)
-                                            end
-                                        elseif Save_Proj then
-                                            if P.BL then table.insert(TheresBL, i) end
-                                        elseif Save_Glob then
-                                            if P.BL then table.insert(TheresBL, i) end
-                                        end
-
-                                        im.SetNextItemWidth(ctx, -1)
-
-                                        if P.BL then im.PopStyleColor(ctx) end
-
-                                        im.TableNextRow(ctx)
-                                        im.TableSetColumnIndex(ctx, 0)
-                                    end
-                                end
-
-                                if Save_Proj then
-                                    if TheresBL[1] then
-                                        r.SetProjExtState(0, 'FX Devices - Preset Morph',
-                                            'Whether FX has Blacklist' .. FX.Win_Name_S[FX_Idx],
-                                            'Yes')
-                                    else
-                                        r.SetProjExtState(0, 'FX Devices - Preset Morph',
-                                            'Whether FX has Blacklist' .. FX.Win_Name_S[FX_Idx], 'No')
-                                    end
-                                    for i, V in ipairs(FX[FxGUID].MorphA) do
-                                        local PrmBLed
-                                        for I, v in ipairs(TheresBL) do
-                                            if i == v then PrmBLed = v end
-                                        end
-                                        if PrmBLed then
-                                            r.SetProjExtState(0, 'FX Devices - Preset Morph',
-                                                FX.Win_Name_S[FX_Idx] .. ' Blacklist ' .. i, PrmBLed)
-                                        else
-                                            r.SetProjExtState(0, 'FX Devices - Preset Morph',
-                                                FX.Win_Name_S[FX_Idx] .. ' Blacklist ' .. i, '')
-                                        end
-                                    end
-                                    --else r.SetProjExtState(0,'FX Devices - Preset Morph','Whether FX has Blacklist'..FX.Win_Name_S[FX_Idx], '')
-                                elseif TheresBL[1] and Save_Glob then
-                                    file, file_path = CallFile('w', FX.Win_Name_S[FX_Idx] .. '.ini',
-                                        'Preset Morphing')
-                                    if file then
-                                        for i, V in ipairs(TheresBL) do
-                                            file:write(i, ' = ', V, '\n')
-                                        end
-                                        file:close()
-                                    end
-                                end
-
-                                im.EndTable(ctx)
-                            end
+                if Tooltip_Timer then
+                    if im.BeginPopupModal(ctx, '## Successfully saved preset morph', nil, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize) then
+                        im.Text(ctx, 'Successfully saved ')
+                        if im.IsMouseClicked(ctx, 0) then
+                            im.CloseCurrentPopup(
+                                ctx)
                         end
-                        im.End(ctx)
-                    else
-                        im.End(ctx)
-                        OpenMorphSettings = false
+                        im.EndPopup(ctx)
+                    end
+
+                    if Tooltip_Timer + 3 < r.time_precise() then
+                        Tooltip_Timer = nil
+                        TTP_x = nil
+                        TTP_y = nil
                     end
                 end
+
+                --
+
+
+                if not FX[FxGUID].PrmList[1].Name then
+                    FX[FxGUID].PrmList = FX[FxGUID].PrmList or {}
+                    --[[ local Ct = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
+                    for i=0, Ct-4, 1 do
+                        FX[FxGUID].PrmList[i]=FX[FxGUID].PrmList[i] or {}
+                        local rv, name = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
+                        FX[FxGUID].PrmList[i].Name  = name
+                    end ]]
+
+                    RestoreBlacklistSettings(FxGUID, FX_Idx, LT_Track, r.TrackFX_GetNumParams(LT_Track, FX_Idx), FX_Name)
+                else
+                    im.BeginTable(ctx, 'Parameter List', 5, im.TableFlags_Resizable)
+                    --im.TableSetupColumn( ctx, 'BL',  flagsIn, 20,  user_idIn)
+
+                    im.TableHeadersRow(ctx)
+                    im.SetNextItemWidth(ctx, 20)
+                    im.TableSetColumnIndex(ctx, 0)
+
+                    local rv = im.InvisibleButton(ctx, '##M', 20, 20) -- (/) icon
+                    DrawListButton(WDL, 'M', 0x00000000, nil, true, icon1_middle, false)
+                    im.TableSetColumnIndex(ctx, 1)
+                    im.AlignTextToFramePadding(ctx)
+                    im.Text(ctx, 'Parameter Name ')
+                    im.TableSetColumnIndex(ctx, 2)
+                    im.AlignTextToFramePadding(ctx)
+                    im.Text(ctx, 'A')
+                    im.TableSetColumnIndex(ctx, 3)
+                    im.AlignTextToFramePadding(ctx)
+                    im.Text(ctx, 'B')
+                    im.TableNextRow(ctx)
+                    im.TableSetColumnIndex(ctx, 0)
+
+
+
+
+                    if --[[Last Touch]] LT_ParamNum and LT_FXGUID == FxGUID then
+                        local P = FX[FxGUID].PrmList
+                        local N = math.max(LT_ParamNum, 1)
+                        im.TableSetBgColor(ctx, 1, 0xffffff11)
+                        im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 9)
+
+                        rv, P[N].BL = im.Checkbox(ctx, '##' .. N, P[N].BL)
+                        if P[N].BL then im.BeginDisabled(ctx) end
+
+                        im.TableSetColumnIndex(ctx, 1)
+                        im.Text(ctx, N .. '. ' .. (P[N].Name or ''))
+
+
+                        ------- A --------------------
+                        im.TableSetColumnIndex(ctx, 2)
+                        im.Text(ctx, 'A:')
+                        SL()
+                        im.SetNextItemWidth(ctx, -FLT_MIN)
+
+                        local i = LT_ParamNum or 0
+                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                        if not P.FormatV_A and FX[FxGUID].MorphA[1] then
+                            P.FormatV_A = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphA[i], OrigV, i)
+                        end
+
+
+                        P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx, '## MorphVal_A LT' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1, P.FormatV_A or '')
+                        if P.Drag_A then
+                            P.FormatV_A = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphA[i], OrigV, i)
+                        end
+
+                        SL()
+                        --------- B --------------------
+                        im.TableSetColumnIndex(ctx, 3)
+                        im.Text(ctx, 'B:')
+                        SL()
+
+                        local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                        im.SetNextItemWidth(ctx, -FLT_MIN)
+                        if not P.FormatV_B and FX[FxGUID].MorphB[1] then
+                            P.FormatV_B = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphB[i], OrigV, i)
+                        end
+
+
+                        P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx, '## MorphVal_B LT' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1, P.FormatV_B)
+                        if P.Drag_B then
+                            P.FormatV_B = GetFormatPrmV(FX_Idx,FX[FxGUID].MorphB[i], OrigV, i)
+                        end
+
+
+                        if P[N].BL then im.EndDisabled(ctx) end
+                        --HighlightSelectedItem( 0xffffff33 , OutlineClr, 1, L,T,R,B,h,w, H_OutlineSc, V_OutlineSc,'GetItemRect', Foreground)
+
+                        im.PopStyleVar(ctx)
+                        im.TableNextRow(ctx)
+                        im.TableSetColumnIndex(ctx, 0)
+                    end
+                    local Load_FX_Proj_Glob
+                    local _, FXsBL = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Morph_BL' .. FxGUID, '', false)
+                    if FXsBL == 'Has Blacklist saved to FX' then -- if there's FX-specific BL settings
+                        Load_FX_Proj_Glob = 'FX'
+                    else
+                        local _, whether = r.GetProjExtState(0, 'FX Devices - Preset Morph', 'Whether FX has Blacklist' .. (FX.Win_Name_S[FX_Idx] or ''))
+                        if whether == 'Yes' then Load_FX_Proj_Glob = 'Proj' end
+                    end
+
+                    local TheresBL = TheresBL or {}
+                    local hasBL
+                    for i, v in ipairs(FX[FxGUID].PrmList) do
+                        local P = FX[FxGUID].PrmList[i - 1]
+                        local prm = FX[FxGUID].PrmList
+
+                        if im.TextFilter_PassFilter(Filter, P.Name) --[[ and (i~=LT_ParamNum and LT_FXGUID==FxGUID) ]] then
+                            i = i - 1
+                            if prm[i].BL == nil then
+                                if Load_FX_Proj_Glob == 'FX' then
+                                    local _, V = r.GetSetMediaTrackInfo_String( LT_Track, 'P_EXT: Morph_BL' .. FxGUID .. i, '', false)
+                                    if V == 'Blacklisted' then prm[i].BL = true end
+                                end
+                                --[[  elseif Load_FX_Proj_Glob== 'Proj' then
+                                    local rv, BLprm  = r.GetProjExtState(0,'FX Devices - Preset Morph', FX.Win_Name_S[FX_Idx]..' Blacklist '..i)
+                                    if BLprm~='' and BLprm then  BLpm = tonumber(BLprm)
+                                        if BLprm then prm[1].BL = true  end
+                                    end
+                                end ]]
+                            end
+                            if BL_All --[[BL all filtered params ]] then if P.BL then P.BL = false else P.BL = true end end
+                            rv, prm[i].BL = im.Checkbox(ctx, '## BlackList' .. i, prm[i].BL)
+
+                            im.TableSetColumnIndex(ctx, 1)
+                            if P.BL then
+                                im.PushStyleColor(ctx, im.Col_Text, getClr(im.Col_TextDisabled))
+                            end
+
+
+                            im.Text(ctx, i .. '. ' .. (P.Name or ''))
+
+
+
+                            ------- A --------------------
+                            im.TableSetColumnIndex(ctx, 2)
+                            im.Text(ctx, 'A:')
+                            SL()
+
+                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            if not P.FormatV_A and FX[FxGUID].MorphA[1] or MORPH__NEED_TO_REFRESH ==1 then
+                                P.FormatV_A = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphA[i ], OrigV, i)
+                            end
+
+
+                            P.Drag_A, FX[FxGUID].MorphA[i] = im.DragDouble(ctx, '## MorphVal_A' .. i, FX[FxGUID].MorphA[i], 0.01, 0, 1, P.FormatV_A or '')
+                            if P.Drag_A then
+                                P.FormatV_A = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphA[i], OrigV, i)
+                                --[[ r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,i, FX[FxGUID].MorphA[i])
+                                _,P.FormatV_A = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,i)
+                                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx,i, OrigV)  ]]
+                            end
+
+                            SL()
+
+                            --------- B --------------------
+                            im.TableSetColumnIndex(ctx, 3)
+                            im.Text(ctx, 'B:')
+                            SL()
+
+                            local OrigV = r.TrackFX_GetParamNormalized(LT_Track,
+                                FX_Idx,
+                                i)
+                            im.SetNextItemWidth(ctx, -FLT_MIN)
+                            if not P.FormatV_B and FX[FxGUID].MorphB[1] or MORPH__NEED_TO_REFRESH == 2  then
+                                P.FormatV_B = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphB[i] or 0, OrigV, i)
+                            end
+
+                            P.Drag_B, FX[FxGUID].MorphB[i] = im.DragDouble(ctx, '## MorphVal_B' .. i, FX[FxGUID].MorphB[i], 0.01, 0, 1, P.FormatV_B)
+                            if P.Drag_B then
+                                P.FormatV_B = GetFormatPrmV(FX_Idx, FX[FxGUID].MorphB[i], OrigV, i)
+                            end
+
+
+                            if Save_FX then
+                                if P.BL then
+                                    hasBL = true
+                                    r.GetSetMediaTrackInfo_String(LT_Track,
+                                        'P_EXT: Morph_BL' .. FxGUID .. i, 'Blacklisted',
+                                        true)
+                                else
+                                    r.GetSetMediaTrackInfo_String(LT_Track,
+                                        'P_EXT: Morph_BL' .. FxGUID .. i, '', true)
+                                end
+                                if hasBL then
+                                    r.GetSetMediaTrackInfo_String(LT_Track,
+                                        'P_EXT: Morph_BL' .. FxGUID,
+                                        'Has Blacklist saved to FX', true)
+                                else
+                                    r.GetSetMediaTrackInfo_String(LT_Track,
+                                        'P_EXT: Morph_BL' .. FxGUID, '', true)
+                                end
+                            elseif Save_Proj then
+                                if P.BL then table.insert(TheresBL, i) end
+                            elseif Save_Glob then
+                                if P.BL then table.insert(TheresBL, i) end
+                            end
+
+                            im.SetNextItemWidth(ctx, -1)
+
+                            if P.BL then im.PopStyleColor(ctx) end
+
+                            im.TableNextRow(ctx)
+                            im.TableSetColumnIndex(ctx, 0)
+                        end
+
+                    end
+                    MORPH__NEED_TO_REFRESH = nil
+
+                    if Save_Proj then
+                        if TheresBL[1] then
+                            r.SetProjExtState(0, 'FX Devices - Preset Morph',
+                                'Whether FX has Blacklist' .. FX.Win_Name_S[FX_Idx],
+                                'Yes')
+                        else
+                            r.SetProjExtState(0, 'FX Devices - Preset Morph',
+                                'Whether FX has Blacklist' .. FX.Win_Name_S[FX_Idx], 'No')
+                        end
+                        for i, V in ipairs(FX[FxGUID].MorphA) do
+                            local PrmBLed
+                            for I, v in ipairs(TheresBL) do
+                                if i == v then PrmBLed = v end
+                            end
+                            if PrmBLed then
+                                r.SetProjExtState(0, 'FX Devices - Preset Morph',
+                                    FX.Win_Name_S[FX_Idx] .. ' Blacklist ' .. i, PrmBLed)
+                            else
+                                r.SetProjExtState(0, 'FX Devices - Preset Morph',
+                                    FX.Win_Name_S[FX_Idx] .. ' Blacklist ' .. i, '')
+                            end
+                        end
+                        --else r.SetProjExtState(0,'FX Devices - Preset Morph','Whether FX has Blacklist'..FX.Win_Name_S[FX_Idx], '')
+                    elseif TheresBL[1] and Save_Glob then
+                        file, file_path = CallFile('w', FX.Win_Name_S[FX_Idx] .. '.ini',
+                            'Preset Morphing')
+                        if file then
+                            for i, V in ipairs(TheresBL) do
+                                file:write(i, ' = ', V, '\n')
+                            end
+                            file:close()
+                        end
+                    end
+
+                    im.EndTable(ctx)
+                end
+
+                im.End(ctx)
+
+                
             end
             
             --------------------------------
