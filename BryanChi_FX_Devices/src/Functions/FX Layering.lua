@@ -36,7 +36,7 @@ function DropFXtoLayerNoMove(FXGUID_RackMixer, LayerNum, DragFX_ID)
 
 
     r.SetProjExtState(0, 'FX Devices', 'FX Inst in Layer' .. FXGUID_RackMixer, Lyr.FX_Ins[FXGUID_RackMixer])
-    for i = 1, RepeatTimeForWindows, 1 do
+    for i = 1, Sel_Track_FX_Count, 1 do
         local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
         if FX.LyrNum[FXGUID] == LayerNum and FX.InLyr[FXGUID] == FXGUID_RackMixer then
             _, FXName = r.TrackFX_GetFXName(LT_Track, i)
@@ -118,7 +118,7 @@ function DropFXtoLayer(FX_Idx, LayerNum, AltDragSrc)
     if FX.LyrNum[guid] == LayerNum and FX.InLyr[guid] == FXGUID_RackMixer then
         local FX_Idx
         --_, FXName  = r.TrackFX_GetFXName( LT_Track, i )
-        for i = 1, RepeatTimeForWindows, 1 do
+        for i = 1, Sel_Track_FX_Count, 1 do
             local FXGUID = r.TrackFX_GetFXGUID(LT_Track, i)
             if FXGUID == guid then FX_Idx = i end
         end
@@ -151,10 +151,10 @@ function RepositionFXsInContainer(FX_Idx)
 
 
     -- Move the Head of Container
-    if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+    if FX_Idx > Glob.Payload or (FX_Idx == Sel_Track_FX_Count and AddLastSpace == 'LastSpc') then
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx-1)
         r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-    elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+    elseif Glob.Payload > FX_Idx and FX_Idx ~= Sel_Track_FX_Count then
         r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx, true)
         --table.insert(MovFX.FromPos,DragFX_ID) table.insert(MovFX.ToPos, FX_Idx)
     end
@@ -170,10 +170,10 @@ function RepositionFXsInContainer(FX_Idx)
                 local ID = r.TrackFX_GetFXGUID(LT_Track, DropDest)
 
                 if FX.InLyr[ID] == FXGUID_RackMixer or tablefind(FX[FXGUID[Glob.Payload]].FXsInBS, ID) then
-                    if FX_Idx > DropDest and FX_Idx ~= RepeatTimeForWindows or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+                    if FX_Idx > DropDest and FX_Idx ~= Sel_Track_FX_Count or (FX_Idx == Sel_Track_FX_Count and AddLastSpace == 'LastSpc') then
                         r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx - 2, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx-2)
-                    elseif DropDest > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+                    elseif DropDest > FX_Idx and FX_Idx ~= Sel_Track_FX_Count then
                         r.TrackFX_CopyToTrack(LT_Track, DropDest, LT_Track, FX_Idx, true)
                         --table.insert(MovFX.FromPos,DropDest) table.insert(MovFX.ToPos, FX_Idx)
                     end
@@ -195,17 +195,17 @@ function RepositionFXsInContainer(FX_Idx)
         end
     elseif Payload_Type == 'BS_Drag' then
         for i, v in ipairs(FX[FXGUID[Glob.Payload]].FXsInBS) do
-            if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+            if FX_Idx > Glob.Payload or (FX_Idx == Sel_Track_FX_Count and AddLastSpace == 'LastSpc') then
                 r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-            elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+            elseif Glob.Payload > FX_Idx and FX_Idx ~= Sel_Track_FX_Count then
                 r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + i, LT_Track, FX_Idx + i, true)
             end
         end
 
         --Move Joiner
-        if FX_Idx > Glob.Payload or (FX_Idx == RepeatTimeForWindows and AddLastSpace == 'LastSpc') then
+        if FX_Idx > Glob.Payload or (FX_Idx == Sel_Track_FX_Count and AddLastSpace == 'LastSpc') then
             r.TrackFX_CopyToTrack(LT_Track, Glob.Payload, LT_Track, FX_Idx - 1, true)
-        elseif Glob.Payload > FX_Idx and FX_Idx ~= RepeatTimeForWindows then
+        elseif Glob.Payload > FX_Idx and FX_Idx ~= Sel_Track_FX_Count then
             r.TrackFX_CopyToTrack(LT_Track, Glob.Payload + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, LT_Track,
                 FX_Idx + #FX[FXGUID[Glob.Payload]].FXsInBS + 1, true)
         end
@@ -677,6 +677,10 @@ function If_Saike_Band_Splitter(FxGUID, FX_Idx, FX_Name)
                             end
                         end
                         AnySplitBandHvred = true
+                        if AnySplitBandHvred then
+                            HintMessage =
+                            'Mouse: Alt=Delete All FXs in Layer | Shift=Bypass FXs    Keys: M=mute band   Shift+M=Toggle all muted band | S=solo band  Shift+S=Toggle all solo\'d band'
+                        end
                         FX[FxGUID].PreviouslyMutedBand = FX[FxGUID].PreviouslyMutedBand or {}
                         FX[FxGUID].PreviouslySolodBand = FX[FxGUID].PreviouslySolodBand or {}
 

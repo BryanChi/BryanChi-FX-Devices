@@ -281,6 +281,7 @@ function Write_Label_And_Value_All_Types(FP, pos, draw_list, label ,  CenteredLb
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V) or FP.V_Clr or getClr(im.Col_Text)
     local FtSz= FP.FontSize 
     local PsX, PsY = (FP.Lbl_Pos_X or 0), (FP.Lbl_Pos_Y or 0)
+    local draw_list = draw_list or im.GetWindowDrawList(ctx)
     if is_active and FP.V_Pos =='Only When Active'  then 
         Font=V_Font
         FtSz = FP.V_FontSize
@@ -1083,9 +1084,20 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         end
         if im.ImageButton(ctx, 'Save', Img.Save, 12,12) then
             SaveLayoutEditings(FX_Name, FX_Idx, FXGUID[FX_Idx])
-            RetrieveFXsSavedLayout(Sel_Track_FX_Count)
-            Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Layout Saved', 60 , 0
+
+            RetrieveFXsSavedLayout(Sel_Track_FX_Count, FX_Idx)
+            Tooltip = {txt = 'Layout Saved', dur = 60, time = 0, clr = ThemeClr('Accent_Clr'), pos = {im.GetCursorScreenPos(ctx)}}
+
+
         end
+        --[[ if NEED_TO_RETRIEVE_SAVED_LAYOUT then 
+            NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT = (NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT or 0) + 1
+            if NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT > 40 then 
+                msg("retrieve")
+                RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+                NEED_TO_RETRIEVE_SAVED_LAYOUT =nil
+            end
+        end ]]
         if Same_As_Saved then im.EndDisabled(ctx) end 
         SL(nil)
         if im.Button(ctx, 'Exit##Lay') then
@@ -1466,8 +1478,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             im.Text(ctx, 'FX Title Color:')
             im.SetNextItemWidth(ctx, 200)
-            _, FX[FxGUID].TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'), im.ColorEditFlags_NoInputs)
-            FX[FxGUID].TitleClr = Change_Clr_A(FX[FxGUID].TitleClr, nil, 1)
+            local rv, TitleClr = im.ColorPicker4(ctx, '##' .. FxGUID .. 'Title Clr', FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'))
+            if rv then 
+                FX[FxGUID].TitleClr = Change_Clr_A(TitleClr, nil, 1)
+                FX[FxGUID].TitleClrAct, FX[FxGUID].TitleClrHvr = Generate_Active_And_Hvr_CLRs( FX[FxGUID].TitleClr)
+            end
+            FX[FxGUID].TitleClr = Change_Clr_A(TitleClr, nil, 1)
             im.EndGroup(ctx)
 
 
@@ -3134,12 +3150,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 if  im.Button(ctx, 'Save (Enter)') or EnterNewName or im.IsKeyPressed(ctx,im.Key_Enter) then 
                     Save_Attached_Drawings_As_Style(NewName, FS.Type, FS)
                     im.CloseCurrentPopup(ctx)
-                    Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Saved Successfully', 60 , 0
+                    Tooltip.txt, Tooltip.dur,  Tooltip.time, Tooltip.pos = 'Saved Successfully', 60 , 0, im.GetCursorScreenPos (ctx)
+
                 end
                 SL()
                 if im.Button(ctx, 'Cancel (Esc)') or  im.IsKeyPressed(ctx,im.Key_Escape)then 
                     im.CloseCurrentPopup(ctx)
-                    Tooltip.Txt, Tooltip.Dur,  Tooltip.time = 'Canceled', 60 , 0
+                    Tooltip.txt, Tooltip.dur,  Tooltip.time = 'Canceled', 60 , 0
 
                 end
                 im.EndPopup(ctx)
@@ -3177,7 +3194,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         Highlight_Itm(WDL, nil, 0xffffffff)
                         if not im.IsItemHovered(ctx) then 
                             D.HighlightBullet = nil 
-                        end 
+                        end
                         if im.IsItemClicked(ctx) then
                             --im.SetDragDropPayload(ctx, 'Reorder Item attached drawings', D)
                         end
@@ -4015,6 +4032,30 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             end
         end
 
+        local function Param_selector()
+            local txt =( LE.Sel_Items and #LE.Sel_Items> 1 ) and 's' or ''
+            im.AlignTextToFramePadding(ctx)
+
+            im.Text(ctx, 'Selected Param'..txt)
+            SL()
+            for I, V in ipairs(LE.Sel_Items) do 
+                im.SetNextItemWidth(ctx, 150)
+
+                if im.BeginCombo(ctx, '##Param selector'..I,  ' '..tostring(fx[V].Name)) then 
+                    for i, v in ipairs(FX[FxGUID]) do 
+                        if im.Selectable(ctx, ' '..tostring(v.Name)) then 
+                            LE.Sel_Items[I] = i
+                        end
+                    end
+                    im.EndCombo(ctx)
+                end
+                if I ~= #LE.Sel_Items then SL() end 
+            end
+
+        end
+
+
+        Param_selector()
 
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 6)
 
@@ -4027,7 +4068,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         Label_and_Value_Table()                 --[[ AddSpacing(2) ]]
 
 
-        AddSpacing(3)
+        AddSpacing(1)
         im.SeparatorText( ctx, 'Size and Position')
 
         Width_Height_PosX_PosY_Table()          --[[ AddSpacing(2) ]]
@@ -4559,7 +4600,7 @@ function GetParamOptions( FxGUID, FX_Idx, Fx_P, P_Num)
         
         -- Set CurrentOps to match current value if not already set
         if not FX[FxGUID][Fx_P].CurrentOps then
-            local current_value = r.r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
+            local current_value = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
             for i, opt in ipairs(FX[FxGUID][Fx_P].Options) do
                 if current_value == opt.V_Form then 
                     FX[FxGUID][Fx_P].CurrentOps = i
@@ -4574,7 +4615,8 @@ function Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
 
     if Lbl_Pos == 'Left' then
-
+     
+        im.AlignTextToFramePadding(ctx)
 
         MyText(labeltoShow, _G[Font], Lbl_Clr or 0xaaaaaaff)
         --im.Text(ctx, labeltoShow)
@@ -6074,12 +6116,17 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
     if Fx_P and FP then
         if (FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl') or FP.Lbl_Pos == 'Top' then
 
-            local nm = LabelOveride or FP.CustomLbl or CustomLbl or FP.Name or select(2, r.TrackFX_GetParamName( LT_Track, FX_Idx, WhichPrm))
-            im.AlignTextToFramePadding(ctx)
+            local nm = LabelOveride or FP.CustomLbl or CustomLbl or FP.Name or select(2, r.TrackFX_GetParamName( LT_Track, FX_Idx, FP.Num))
+
             MyText(nm, _G[Font], Lbl_Clr)
             if FP.Lbl_Pos == 'Left' and Lbl_Pos ~= 'No Lbl' then
                 SL()
             end
+            im.AlignTextToFramePadding(ctx)
+
+            --im.SetCursorPosY (ctx, im.GetCursorPosY(ctx) - (h)/4)
+
+
         end
     end
 
@@ -6147,7 +6194,8 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
 
 
 
-
+    Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , Format_P_V, Lbl_Pos)
+    
 
 
     if FX[FxGUID][Fx_P].ManualValues then
@@ -6306,7 +6354,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
 
     if FP.Lbl_Pos == 'Right' then
         SL()
-        im.AlignTextToFramePadding(ctx) --[[ im.Text(ctx,FP.CustomLbl or FP.Name)  ]]
+        im.AlignTextToFramePadding(ctx)
         MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font], Lbl_Clr)
     elseif FP.Lbl_Pos == 'Bottom' then
         MyText(LabelOveride or FP.CustomLbl or CustomLbl or FP.Name, _G[Font], Lbl_Clr)
@@ -6599,7 +6647,10 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
         FX[FxGUID][Fx_P] = {}
         FP = FX[FxGUID][Fx_P]
     end
-
+    if FP.GrbClr and not FP.GrbAct then 
+        msg("msja")
+        FP.GrbAct, FP.GrbHvr = Generate_Active_And_Hvr_CLRs(FP.GrbClr, 1)
+    end
 
 
     local function Draw_Value_Rect(  is_active, is_hovered, PosL,PosT , PosR , PosB )
@@ -6868,7 +6919,7 @@ end
 
 
 ---@param Sel_Track_FX_Count integer
-function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
     if not LT_Track then return end
     TREE = BuildFXTree(LT_Track or tr)
@@ -6879,26 +6930,26 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
         local fx = FX[FxGUID]
         --local file = CallFile('r', FX_Name..'.ini', 'FX Layouts')
 
-        local function GetInfo(FxGUID, FX_Idx)
+        local function GetInfo(FxGUID, FX_Idx, get_from_file_2nd_lvl)
             if not FxGUID then return end
-            local function Virtual_Btns(Ct)
+            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+            local FX_Name = ChangeFX_Name(FX_Name)
+       
+            local function Virtual_Btns(Ct , TB)
 
-                local fx = FX[FxGUID]
+                local fx = TB
 
                 VBCount = RecallGlobInfo(Ct, 'Virtual Button Instance = ', 'Num')
                 local P = { 'CustomLbl', 'PosY', 'PosX', 'Type', 'Sldr_W', 'AddArrows', 'Btn_Clr'} 
                 if not VBCount or VBCount<1 then return end 
                 fx.VB = fx.VB or {}
                 for i= 1, VBCount , 1 do 
-                    table.insert(fx.VB, {})
+                    fx.VB[i] = fx.VB[i] or {}
                     for I, V in pairs(P) do 
                         fx.VB[i][V] = RecallInfo(Ct, 'VB'..i .. '. '..V, nil)
-                        -- Convert string to number if it only contains digits
-                        -- Convert "true"/"false" strings to boolean
                         local value = fx.VB[i][V]
                         if type(value) == "string" then
                             if value == "true" then
-
                                 fx.VB[i][V] = true
                             elseif value == "false" then
                                 fx.VB[i][V] = false 
@@ -6907,6 +6958,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                             end
                         end
                     end
+
 
                     local Num_Choices = RecallInfo(Ct, 'VB'..i .. '. Number of Choices', nil, 'Num')
 
@@ -6919,7 +6971,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     end 
 
                 end
-                    
+                return fx
 
             end
 
@@ -6927,11 +6979,9 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
             FX[FxGUID] = FX[FxGUID] or {}
             FX[FxGUID].File = file
-            local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-            local FX_Name = ChangeFX_Name(FX_Name)
-       
+           
 
-            if LO[FX_Name] then
+            if LO[FX_Name] and (get_from_file_2nd_lvl == nil or (get_from_file_2nd_lvl and get_from_file_2nd_lvl ~= FX_Idx)) then
 
 
                 FX[FxGUID] = FX[FxGUID] or {}
@@ -6944,7 +6994,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 FX[FxGUID].TitleWidth = T.TitleWidth
                 FX[FxGUID].TitleClr = T.TitleClr
                 FX[FxGUID].CustomTitle = T.CustomTitle
-                
+                FX[FxGUID].VB = T.VB
+
 
                 for i, v in ipairs(T) do
                     FX[FxGUID][i]          = FX[FxGUID][i] or {}
@@ -7020,6 +7071,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         end
 
                     end
+
                     FP.ManualValues = v.ManualValues
                     FP.ManualValuesFormat = v.ManualValuesFormat
                     FP.Draw = v.Draw
@@ -7035,7 +7087,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 local file = io.open(file_path, 'r')
 
                 local PrmInst
-                LO[FX_Name] = LO[FX_Name] or {}
+                LO[FX_Name] =  LO[FX_Name]  or {}
                 local T = LO[FX_Name]
                 if file then
                     Line = get_lines(file_path)
@@ -7054,7 +7106,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
                     T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
                     PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
-                    Virtual_Btns(Ct)
+                    T = Virtual_Btns(Ct, T)
 
                     FX[FxGUID].FileLine = nil 
                 else
@@ -7079,14 +7131,15 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                     end
                 end
 
-                if --[[ r.GetExtState('FX Devices - '..FX_Name, 'Param Instance') ~= ''  ]] PrmInst then
+                if  PrmInst  then
+                    local T = LO[FX_Name]
+
                     local Ct = Content
                     PrmCount = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
                     --Virtual_Btns(Ct)
                 
 
                     if PrmCount then
-
 
                         for Fx_P = 1, PrmCount or 0, 1 do
 
@@ -7157,11 +7210,12 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                                     for I, v in pairs(Recall ) do   
                                         FP.Conditions[i][v] = RecallInfo(Ct, 'Condition '.. i..': '.. v, Fx_P)
                                     end 
-
-                                    for I, v in ipairs(FX[FxGUID].VB) do 
-                                        if CustomLbl == v.CustomLbl then 
-                                            local i = i==1 and '' or i
-                                            FP['ConditionPrm' .. i ] = v
+                                    if T.VB then 
+                                        for I, v in ipairs(T.VB) do 
+                                            if CustomLbl == v.CustomLbl then 
+                                                local i = i==1 and '' or i
+                                                FP['ConditionPrm' .. i ] = v
+                                            end
                                         end
                                     end
                                 else 
@@ -7283,6 +7337,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
 
 
                     if Top then
+                        local T = LO[FX_Name]
+
                         local Ct = Content
 
 
@@ -7347,7 +7403,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                         end
                     end
                 end
-                GetInfo(FxGUID, FX_Idx)
+                GetInfo(FxGUID, FX_Idx, nil)
             end
             
         end
@@ -7379,7 +7435,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 end
             end
         else
-            GetInfo(FxGUID, FX_Idx)
+            GetInfo(FxGUID, FX_Idx, get_from_file)
         end
     end
   
@@ -7443,8 +7499,8 @@ function IsLayoutModified(FxGUID, FX_Name)
             end
             for j = 1, #currentParam.ConditionPrm_V do
                 if currentParam.ConditionPrm_V[j] ~= savedParam.ConditionPrm_V[j] then
-                    return true
-                end
+                return true
+            end
             end
         end
     end
@@ -7456,6 +7512,9 @@ function IsLayoutModified(FxGUID, FX_Name)
     
     return false
 end
+
+
+
 
 ---@param FxGUID string
 ---@param P_Name string
@@ -8215,9 +8274,23 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                         
                         if v == Fx_P then 
                             if type(Fx_P) == 'table' then
-                                Fx_P[Var] = Fx_P[Var] + HowMuch
+                                if not Fx_P[Var]  then 
+                                    if Var == 'PosX' then
+                                        Fx_P[Var] = im.GetCursorPosX(ctx)   
+                                    elseif Var == 'PosY' then
+                                        Fx_P[Var] = im.GetCursorPosY(ctx)
+                                    end
+                                end
+                                Fx_P[Var] = Fx_P[Var] + (HowMuch or 0)
                             else
-                                FX[FxGUID][v][Var] = FX[FxGUID][v][Var]  + HowMuch 
+                                if not FX[FxGUID][v][Var]  then 
+                                    if Var == 'PosX' then
+                                        FX[FxGUID][v][Var] = im.GetCursorPosX(ctx)   
+                                    elseif Var == 'PosY' then
+                                        FX[FxGUID][v][Var] = im.GetCursorPosY(ctx)
+                                    end
+                                end
+                                FX[FxGUID][v][Var] = FX[FxGUID][v][Var]  + (HowMuch or 0) 
                             end
                         end
                     end

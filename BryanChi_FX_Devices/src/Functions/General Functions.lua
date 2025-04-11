@@ -1799,7 +1799,6 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
                 FX[FxGUID_Container] = FX[FxGUID_Container] or {}
                 DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
-            FX_Idx_OpenedPopup = nil
         end
         im.EndDragDropTarget(ctx)
     end
@@ -2264,7 +2263,6 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
     im.PushStyleColor(ctx, im.Col_Border, 0xffffffff)
     if im.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
-        FX_Idx_OpenedPopup = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
         im.SeparatorText(ctx, "PLUGINS")
         for i = 1, #CAT do
 
@@ -2409,7 +2407,6 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
 
 
-            FX_Idx_OpenedPopup = nil
             im.CloseCurrentPopup(ctx)
             if val & 4 ~= 0 then
                 r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
@@ -2424,7 +2421,6 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
                 r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 12)
             end
 
-            FX_Idx_OpenedPopup = nil
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
         --DndAddFX_SRC("FXD Saike BandSplitter")
@@ -2767,12 +2763,34 @@ function At_Begining_of_Loop()
         end
     end
 
+    local function If_Just_Dropped_FX () -- this prevents the spac between fx hover state from triggering when user has just dropping fx
+        if Dvdr.JustDroppedFX then
+            if not Dvdr.JustDrop.X then
+                Dvdr.JustDrop.X, Dvdr.JustDrop.Y = im.GetMousePos(ctx)
+            end
+            local X, Y = im.GetMousePos(ctx)
+
+            if X > Dvdr.JustDrop.X + 15 or X < Dvdr.JustDrop.X - 15 then
+                Dvdr.JustDroppedFX = nil
+                Dvdr.JustDrop.X = nil
+                Dvdr.JustDrop.Y = nil
+            end
+        end
+    end
+    local function Check_FX_Count_Is_Changed ()
+
+        if ImGUI_Time > 3 then
+            CompareFXCount = r.TrackFX_GetCount(LT_Track);
+            ImGUI_Time = 0
+        end
+    end
+
     If_Need_Add_FX ()   
     If_Ned_Del_FX ()
 
-
-
-
+    Always_Move_Modulator_to_1st_Slot()
+    If_Just_Dropped_FX ()
+    If_New_FX_Is_Added()
 
 
     for i, v in ipairs(DelFX.GUID) do 
@@ -2889,6 +2907,13 @@ function At_Begining_of_Loop()
     end
 
 
+    ----- Duplicating FX to Layer -------
+    if DragFX_Dest then
+        MoveFX(DragFX_Src, DragFX_Src + 1, false)
+        DropFXtoLayerNoMove(DroptoRack, DropToLyrID, DragFX_Src)
+        MoveFX(DragFX_Src, DragFX_Dest + 1, true)
+        DragFX_Src, DragFX_Dest, DropToLyrID = nil -- TODO should these be DragFX_Src, DragFX_Dest, DropToLyrID = nil, nil, nil
+    end
 
 end
 
@@ -3169,6 +3194,7 @@ function At_End_Of_Loop()
         
     end
 
+    Track_Fetch_At_End = r.GetLastTouchedTrack()
 
 end
 
@@ -3256,6 +3282,19 @@ function If_New_Font()
 
 end
 
+function If_Change_Font()
+    if ChangeFont then
+        local ft =  _G[(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)]
+        if r.ImGui_ValidatePtr(ft, 'ImGui_Font') then 
+
+            im.Attach(ctx, _G[(ChangeFont_Font or 'Font_Andale_Mono') .. '_' .. (ChangeFont_Size or ChangeFont.FtSize)])
+            ChangeFont = nil
+            ChangeFont_Size = nil
+            ChangeFont_Font = nil
+            ChangeFont_Var = nil
+        end
+    end
+end
 
 
 
@@ -3346,4 +3385,39 @@ function CompareTables(table1, table2, excludeKeys)
     end
     
     return true
+end
+
+
+
+function Detect_If_FX_Deleted()
+    for i = 0, #FXGUID do
+        local FXid = r.TrackFX_GetFXGUID(LT_Track, i)
+
+        if FXid ~= FXGUID[i] then
+        end
+        --Detects if any FX is deleted
+        if FXid == nil then
+            FXGUID[i] = nil
+        else
+        end
+    end 
+
+    if Sel_Track_FX_Count == 0 and DeletePrms == nil then --if it's the only fx
+        DeleteAllParamOfFX(FXGUID[0], TrkID, 0)
+        FXGUID[0] = nil
+        DeletePrms = true
+    elseif Sel_Track_FX_Count ~= 0 then
+        DeletePrms = nil
+    end
+
+end
+
+function At_Script_Close(CommanID)
+    im.End(ctx)
+    NumOfTotalTracks = r.GetNumTracks()
+    for T = 0, NumOfTotalTracks - 1, 1 do
+        local track = r.GetTrack(0, T)
+        Delete_All_FXD_AnalyzerFX(track)
+    end
+    r.SetToggleCommandState(0, CommanID, 0)
 end

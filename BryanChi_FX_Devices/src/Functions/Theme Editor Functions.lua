@@ -539,7 +539,7 @@ function Show_KBShortcutEditor(OpenKBEditor)
             end
 
 
-            Tooltip.Txt, Tooltip.Dur , Tooltip.time = 'Saved', 60, 0
+            Tooltip.txt, Tooltip.dur , Tooltip.time = 'Saved', 60, 0
         end
 
 

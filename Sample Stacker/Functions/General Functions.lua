@@ -1073,8 +1073,7 @@ function HideCursor(time)
 end
 function GetAllInfoNeededEachLoop()
     TimeEachFrame = r.ImGui_GetDeltaTime(ctx)
-    if ImGUI_Time == nil then ImGUI_Time = 0 end
-    ImGUI_Time             = ImGUI_Time + TimeEachFrame
+    ImGUI_Time             = (ImGUI_Time or 0) + TimeEachFrame
     _, TrkName             = r.GetTrackName(LT_Track)
 
     Wheel_V, Wheel_H       = r.ImGui_GetMouseWheel(ctx)
@@ -1244,22 +1243,6 @@ function GetMouseDelta(MouseBtn, triggerKey)
 
 end
 
-
----@param Name string
----@param FX_Idx integer
-function CreateWindowBtn_Vertical(Name, FX_Idx)
-    local rv = r.ImGui_Button(ctx, Name, 25, 220) -- create window name button
-    if rv and Mods == 0 then
-        openFXwindow(LT_Track, FX_Idx)
-    elseif rv and Mods == Shift then
-        ToggleBypassFX(LT_Track, FX_Idx)
-    elseif rv and Mods == Alt then
-        DeleteFX(FX_Idx)
-    end
-    if r.ImGui_IsItemClicked(ctx, 1) and Mods == 0 then
-        FX.Collapse[FXGUID[FX_Idx]] = false
-    end
-end
 
 function HighlightHvredItem()
     local DL = r.ImGui_GetForegroundDrawList(ctx)
@@ -1951,7 +1934,6 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
             elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
                 DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
             end
-            FX_Idx_OpenedPopup = nil
 
         end
 
@@ -2155,10 +2137,6 @@ function AddFX_Menu(FX_Idx)
 
             end
 
-
-
-
-            FX_Idx_OpenedPopup = nil
             r.ImGui_CloseCurrentPopup(ctx)
             if val & 4 ~= 0 then
                 r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
@@ -2172,8 +2150,6 @@ function AddFX_Menu(FX_Idx)
             if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 12 then -- Set track channels to 10 if it's lower than 10
                 r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 12)
             end
-
-            FX_Idx_OpenedPopup = nil
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
         --DndAddFX_SRC("FXD Saike BandSplitter")

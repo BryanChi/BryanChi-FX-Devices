@@ -905,6 +905,14 @@ function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
     end
 end
 
+function Always_Move_Modulator_to_1st_Slot()
+    MacroPos = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0)
+    if MacroPos ~= -1 and MacroPos ~= 0 then -- if macro exists on track, and Macro is not the 1st fx
+        if FX.Win_Name[0] ~= 'JS: FXD Macros' then r.TrackFX_CopyToTrack(LT_Track, MacroPos, LT_Track, 0, true)
+        end -- move it to 1st slot
+    end
+end
+
 function DrawFollowerLine (mc, Macro, GmemAttach, clr)
     r.gmem_attach(GmemAttach or 'ParamValues')
     local MOD  = math.abs(SetMinMax((r.gmem_read(100 + Macro) or 0) / 127, -1, 1))

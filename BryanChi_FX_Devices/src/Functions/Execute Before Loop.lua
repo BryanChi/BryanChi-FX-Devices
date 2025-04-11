@@ -737,7 +737,8 @@ function Retrieve_All_Saved_Data_Of_Project()
                     
                     TRK.Mod = TRK.Mod or {}
                     TRK.Mod[m] = TRK.Mod[m] or {}
-                    TRK.Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
+                    TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, 0, m-1)
+                   -- TRK.Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
                     
                     FP.ModBypass = RemoveEmptyStr(RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', 'str'))
                     
@@ -1090,7 +1091,6 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     KB_Shortcut = KB_Shortcut or {}
     Command_ID = Command_ID or {}
 
-    FirstLoop = true
     FX_DeviceWindow_NoScroll = 0
 
     os_separator = package.config:sub(1, 1)

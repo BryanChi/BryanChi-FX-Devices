@@ -25,24 +25,21 @@ local function Get_Prms(Band)
     return paramOfUsed, paramOfEnabled, P_num_Freq, P_num_Gain, P_num_Q, P_num_Slope, P_num_Shape
 end
 -------- Add params-----------
-if Prm.InstAdded[FxGUID] ~= true then
-    
-    for Band = 1, 24, 1 do
-        local gain_P_num =  ((Band - 1) * 23) + 3
-        local freq_P_num =  ((Band - 1) * 23) + 2
 
-        local Fx_P_Freq = 24+Band
 
-        StoreNewParam(FxGUID, 'Band '.. Band..'Gain', gain_P_num, FX_Idx, false, 'AddingFromExtState', Band, FX_Idx)  -- Bands gain
-        StoreNewParam(FxGUID, 'Band '.. Band..'Frequency', freq_P_num, FX_Idx, false, 'AddingFromExtState',Fx_P_Freq, FX_Idx)  -- Bands gain
-    end
+for Band = 1, 24, 1 do
+    local gain_P_num =  ((Band - 1) * 23) + 3
+    local freq_P_num =  ((Band - 1) * 23) + 2
+
+    local Fx_P_Freq = 24+Band
+
+    StoreNewParam(FxGUID, 'Band '.. Band..'Gain', gain_P_num, FX_Idx, false, 'AddingFromExtState', Band, FX_Idx)  -- Bands gain
+    StoreNewParam(FxGUID, 'Band '.. Band..'Frequency', freq_P_num, FX_Idx, false, 'AddingFromExtState',Fx_P_Freq, FX_Idx)  -- Bands gain
+end
 
    -- FX.Prm.Count[FxGUID]= 28
     --- number in green represents FX Prm Index
 
-    Prm.InstAdded[FxGUID] = true
-    r.SetProjExtState(0, 'FX Devices', 'FX' .. FxGUID .. 'Params Added','true')
-end
 
 
 ---------------------------------------------
@@ -223,11 +220,11 @@ im.PopStyleColor(ctx)
 if not FX[FxGUID].Collapse then
     r.gmem_attach('gmemReEQ_Spectrum')
 
-    if FirstLoop == true then
+    --[[ if FirstLoop == true then
         _, fx.DspRange = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, 331)
         fx.Scale_Label = fx.DspRange
         fx.Scale = syncProQ_DispRange(fx.DspRange)
-    end
+    end ]]
 
     _, ProQ3.Format = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_type')
 
@@ -1088,7 +1085,7 @@ if not FX[FxGUID].Collapse then
                         proQ_LT_GUID = r.TrackFX_GetFXGUID(LT_Track, fxnumber)
 
 
-                        for i = 1, RepeatTimeForWindows, 1 do
+                        for i = 1, Sel_Track_FX_Count, 1 do
                             if proQ_LT_GUID == FxGUID and proQ_LT_GUID ~= nil then
                                 for i = 1, 24, 1 do
                                     if LT_ParamNum > 23 * (i - 1) and LT_ParamNum < 23 * i then

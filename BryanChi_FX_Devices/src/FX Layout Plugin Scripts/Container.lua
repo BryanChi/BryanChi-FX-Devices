@@ -276,7 +276,7 @@ local function titleBar()
         -- Position other elements AFTER drawing the icon
         im.SetCursorPosX(ctx, Pad_L)
         SyncWetValues(FX_Idx)
-        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx)
+        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx,nil,FxGUID)
         local X, Y = im.GetCursorPos(ctx)
         im.SetCursorPos(ctx, X+ Pad_L, Y - 10)
         
@@ -934,7 +934,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         end
         SyncWetValues(FX_Id)
 
-        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a'..FX_Id, '', Wet.Val[FX_Id] or 1, 0, 1, FX_Id)
+        Wet.ActiveAny, Wet.Active, Wet.Val[FX_Id] = Add_WetDryKnob(ctx, 'a'..FX_Id, '', Wet.Val[FX_Id] or 1, 0, 1, FX_Id,nil,GUID)
         
         
 

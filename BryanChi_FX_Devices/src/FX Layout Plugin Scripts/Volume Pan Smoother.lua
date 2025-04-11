@@ -15,7 +15,7 @@ SL()
 
 
 
-ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 0, 0, 1, FX_Idx)
+ActiveAny, Active, Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Val[FX_Idx] or 0, 0, 1, FX_Idx,nil,FxGUID)
 
 
 
