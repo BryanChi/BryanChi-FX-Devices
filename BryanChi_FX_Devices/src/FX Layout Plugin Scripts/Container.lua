@@ -991,8 +991,7 @@ local function If_Container_Is_Empty()
     if tonumber( FX_Count) == 0 then 
         local X, Y = im.GetCursorPos(ctx, X, Y)
         im.SetCursorPos(ctx, X-50 , Y)
-        if im.InvisibleButton(ctx, 'DropDest'..FxGUID , 90 , 210) then msg("CLICK")end
-    
+        im.InvisibleButton(ctx, 'DropDest'..FxGUID , 90 , 210) 
         --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
         DndFXtoContainer_TARGET('ADD')

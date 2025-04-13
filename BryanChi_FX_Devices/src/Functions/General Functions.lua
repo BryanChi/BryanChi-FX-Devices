@@ -8,7 +8,7 @@ function msg(...)
     end
 end
 
-function deepCopy(orig)
+function DeepCopy(orig)
     -- Table to store already copied tables to handle cyclic references
     local copies = {}
     
@@ -1449,7 +1449,7 @@ function GetLT_FX_Num()
     --_, LT_Prm_TrackNum, LT_FX_Number, LT_ParamNum = r.GetLastTouchedFX()
     _,  LT_Prm_TrackNum,  itemidx,  takeidx,  LT_FX_Number,  LT_ParamNum = r.GetTouchedOrFocusedFX(0) -- 0 means to query last touched parameter, 1 to query currently focused FX.
     _,  LT_Prm_TrackNum,  itemidx,  takeidx,  FOCUSED_LT_FX_Number,  FOCUSED_LT_ParamNum = r.GetTouchedOrFocusedFX(1) -- 0 means to query last touched parameter, 1 to query currently focused FX.
-     --msg(FOCUSED_LT_FX_Number)
+
     LT_Track = r.GetLastTouchedTrack()
     if not LT_Track then return end 
 
@@ -1690,10 +1690,13 @@ end
 ---@param FxGUID string
 ---@param Fx_P integer parameter index
 ---@param FX_Idx integer
-function DeletePrm(FxGUID, Fx_P, FX_Idx)
+function DeletePrm(FxGUID, Fx_P, FX_Idx, Remove_selection)
     --LE.Sel_Items[1] = nil
 
     local FP = FX[FxGUID][Fx_P]
+    if type(Fx_P) == 'table' then  LE.Delete_VB_Popup_Open = true  return end 
+
+    if not FP then return end 
     for i, v in ipairs(FX[FxGUID]) do
         if v.ConditionPrm then
             v.ConditionPrm = nil
@@ -1732,6 +1735,9 @@ function DeletePrm(FxGUID, Fx_P, FX_Idx)
     Save_to_Trk('Prm Count' .. FxGUID ,   #FX[FxGUID])
    -- r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, #FX[FxGUID])
     -- Delete Proj Ext state data!!!!!!!!!!
+    if Remove_selection then
+        LE.Sel_Items = {}
+    end
 end
 
 function SyncTrkPrmVtoActualValue()

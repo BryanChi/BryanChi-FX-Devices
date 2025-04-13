@@ -1,10 +1,10 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.22
+-- @version 1.0beta18.3
 -- @changelog
---   - New Khs Comb filter layout 
---   - improved some layout editor gui.
---   - Fixed some bugs in preset morph.
+--   - New Khs Faturator layout 
+--   - Layout Editor: XY pad
+--   - improved Layout editor Gui. 
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

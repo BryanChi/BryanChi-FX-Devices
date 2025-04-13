@@ -1,9 +1,9 @@
 -- @noindex
 Size_Sync_Properties= {'Y_Offset_SS' , 'Y_Offset_VA_SS', 'X_Offset_SS' , 'X_Offset_VA_SS', 'Width_SS', 'Rad_In_SS', 'Rad_Out_SS', 'Repeat_SS'}  --- used when user drag node to resize items
 
-function Sync_Size_Height_Synced_Properties(FP, diff)
+function Sync_Size_Height_Synced_Properties(FP, diff, mult)
     if not FP.Draw then return end     
-
+    local mult = mult or 1
     local function Main (V)
         
         if FP.Type == 'Knob' then 
@@ -18,9 +18,14 @@ function Sync_Size_Height_Synced_Properties(FP, diff)
             end 
         else 
             for i, v in ipairs(Size_Sync_Properties) do 
-                if V[v] then 
-                    V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff
-                else
+                if V[v]  then 
+                    if FP.Type == 'XY Pad - X' then 
+                        if v ~= 'Y_Offset_VA_SS' then 
+                            V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff * mult
+                        end
+                    else
+                        V[string.sub(v,1, -4)] =V[string.sub(v,1, -4)] + diff * mult
+                    end
                 end
             end 
         end
@@ -238,9 +243,9 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
     return  TB.Image, ImgFileName
 end
 
-function Sync_Height_Synced_Properties(FP, diff)
+function Sync_Height_Synced_Properties(FP, diff, rt)
     if not FP.Draw  then  return end 
-    local rt = FP.Type == 'V-Slider' and 1 or  2    
+    local rt = FP.Type == 'V-Slider' and 1 or  rt or 2 
     local function Sync(v)
 
             if v.Height_SS then 
@@ -1093,7 +1098,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         --[[ if NEED_TO_RETRIEVE_SAVED_LAYOUT then 
             NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT = (NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT or 0) + 1
             if NEED_TO_RETRIEVE_SAVED_LAYOUT_WAIT > 40 then 
-                msg("retrieve")
                 RetrieveFXsSavedLayout(Sel_Track_FX_Count)
                 NEED_TO_RETRIEVE_SAVED_LAYOUT =nil
             end
@@ -1955,16 +1959,20 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 if FS.Type ~= 'Knob' then
 
                     local max, defaultH
-                    if FS.Type == 'V-Slider' then
-                        max = 200
-                        defaultH = Df.V_Sldr_H
+                    if FS.Type == 'V-Slider' or FS.Type == 'XY Pad - X' then
+                        max = 220
+                        defaultH = FS.Type == 'XY Pad - X' and Df.XY_Pad_Size or Df.V_Sldr_H
                     end
                     im.SetNextItemWidth(ctx, -FLT_MIN)
                     local _, W = im.DragDouble(ctx, '##Height' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Height or Df.Sldr_H , LE.GridSize / 4, -5, max or 40, '%.1f')
                     if im.IsItemEdited(ctx) then
                         for i, v in pairs(LE.Sel_Items) do
                             local w = FX[FxGUID][LE.Sel_Items[1] or ''].Height or defaultH or Df.Sldr_H
-                            Sync_Height_Synced_Properties(FX[FxGUID][v], W-w)
+                            if FS.Type == 'XY Pad - X' then 
+                                Sync_Height_Synced_Properties(FX[FxGUID][v], w-W, 1)
+                            else
+                                Sync_Height_Synced_Properties(FX[FxGUID][v], W-w)
+                            end
 
                             FX[FxGUID][v].Height = W
 
@@ -2211,11 +2219,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
                     FP.Chosen_Atch_Draw_Preset = DrawingStylesTB.Name
                 else
-
-                    local DfH =  FP.Type == 'V-Slider'  and Df.V_Sldr_H or Df.Sldr_H
-                    local DfW =  FP.Type == 'V-Slider'  and Df.V_Sldr_W or Df.Sldr_W
-                        
-
+                    local DfH = FP.Type == 'V-Slider' and Df.V_Sldr_H or FP.Type == 'XY Pad - X' and Df.XY_Pad_Size or Df.Sldr_H
+                    local DfW = FP.Type == 'V-Slider' and Df.V_Sldr_W or FP.Type == 'XY Pad - X' and Df.XY_Pad_Size or Df.Sldr_W
+                    local mult = FP.Type == 'XY Pad - X' and -1 or 1
                     local orig_h = FP.Height or DfH
                     local orig_sz = FP.Sldr_W or DfW
 
@@ -2226,13 +2232,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                     FP.Sldr_W = orig_sz
                     FP.Height = orig_h
-                    Sync_Height_Synced_Properties(FP, orig_h - DfH)
+                    Sync_Height_Synced_Properties(FP, orig_h - DfH, mult)
 
-                    if FP.Type == 'V-Slider' then
-                        Sync_Size_Height_Synced_Properties(FP, orig_sz - Df.V_Sldr_W)
-                    else
-                        Sync_Size_Height_Synced_Properties(FP, orig_sz - Df.Sldr_W)
-                    end
+
+                    Sync_Size_Height_Synced_Properties(FP, orig_sz - DfW )
                     
                     FP.Chosen_Atch_Draw_Preset = DrawingStylesTB.Name
                 end
@@ -2481,6 +2484,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     AddCombo(ctx, FxGUID, -1 , FX_Idx)
                 end
                 Add_Style_Previews(Combo)
+            elseif FS.Type =='XY Pad - X' then 
+                local function Add()
+                    im.Button(ctx, '##XY Pad', 50, 50)
+                end
+                Add_Style_Previews(Add, nil, 0, 25*2, 250)
 
             end 
         end
@@ -2658,10 +2666,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         local function Custom_Image()
             
-            if FS.Type ~= 'Knob' and FS.Type ~= 'Switch' then return end 
+            if FS.Type ~= 'Knob' and FS.Type ~= 'Switch' and FS.Type ~= 'XY Pad - X' then return end 
             local function Angle_Settings()
 
-                if not FS.Image or not FS.Type =='Knob' then return end 
+                if not FS.Image or  FS.Type ~='Knob' then return end 
                 local w, h = im.Image_GetSize(FS.Image)
 
                 if  (h > w * 5) then return end -- if it's a single image and not a strip 
@@ -3100,6 +3108,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
             local function Attach_New_Drawing_Btn()
                 if im.Button(ctx, 'attach a new drawing') then
+                    FS.Draw = FS.Draw or {}
+
                     table.insert(FS.Draw, {})
                 end
             end
@@ -3166,7 +3176,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 Attach_New_Drawing_Btn() SL(nil, 30)
                 Save_As_Style_Btn()
                 local BeganChild = im.BeginChild(ctx, 'Attached Drawings',nil,nil,im.ChildFlags_AutoResizeY)
-                FS.Draw = FS.Draw or {}
                 --[[ if RemoveDraw then
                     table.remove(FS.Draw, RemoveDraw)
                     RemoveDraw = nil
@@ -3285,7 +3294,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     local function Duplicate_Btn()
                         if im.Button(ctx, 'Duplicate##' .. i) then
                             for I, v in ipairs(LE.Sel_Items) do 
-                                local copy = deepCopy(D)
+                                local copy = DeepCopy(D)
                                 table.insert(FX[FxGUID][v].Draw, copy)
                             end
                         end
@@ -3860,12 +3869,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     end
 
                 end
-
-                for i, v in ipairs(FS.Draw)  do
-                    if v[1] then  -- if this is a recalled preset
-                        Preset_Properties(v, i)
-                    else 
-                        Drawing_Properties(v, i)
+                if FS.Draw and #FS.Draw > 0 then
+                    for i, v in ipairs(FS.Draw)  do
+                        if v[1] then  -- if this is a recalled preset
+                            Preset_Properties(v, i)
+                        else 
+                            Drawing_Properties(v, i)
+                        end
                     end
                 end
 
@@ -3889,8 +3899,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         local function Colors_Table()
             local function ThirdColoumn()
 
-                if FS.Type == 'Knob' then
-                    local TD, Thick = im.DragDouble(ctx, '##EditValueFontSize' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Value_Thick or 2, 0.1, 0.5, 8, '%.1f')
+                if FS.Type == 'Knob' or FS.Type == 'XY Pad - X' then
+                    local Max = FS.Type == 'Knob' and 8 or 20
+                    local TD, Thick = im.DragDouble(ctx, '##EditValueFontSize' .. FxGUID .. (LE.Sel_Items[1] or ''), FX[FxGUID][LE.Sel_Items[1] or ''].Value_Thick or 2, 0.1, 0.5, Max, '%.1f')
                     if TD then
                         for i, v in pairs(LE.Sel_Items) do FX[FxGUID][v].Value_Thick = Thick end
                     end
@@ -3921,6 +3932,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 elseif FS.Type == 'Selection' then  C3Name = 'Text Color'
                 elseif FS.Type == 'Switch'  then C3Name = 'On Color'
                 elseif FS.Type == 'Drag' then C3Name ='Direction'
+                elseif FS.Type == 'XY Pad - X' then C3Name = 'Value Size'
                 end
                 im.TableSetupColumn(ctx, 'Color')
                 im.TableSetupColumn(ctx, 'Value Color')
@@ -4349,10 +4361,12 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
     Top_Bar()
+    im.BeginChild(ctx, 'Main Content')
     Background_Edit_Properties()
     FX_Title_Properties()
     Virtual_Button_Properties()
     Parameter_Properties()
+    im.EndChild(ctx)
     Save_Layout_Edit_Popup()
     Color_Palette()
     Save_Drawing_Popup()
@@ -4457,7 +4471,7 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
         d.Type = RC('Type')
         d.X_Offset = RC('X Offset', 'Num', true )
         d.X_Offset_SS = RC('X Offset_SS', 'Bool' )
-
+        d.X_Offset_VA_SS = RC('X offset Value Affect Size Sync', 'Bool')
         d.X_Offset_VA = RC('X Offset Value Affect', 'Num')
         d.X_Offset_VA_BP = RC('X Offset Value Affect BP', 'Bool')
 
@@ -4542,8 +4556,11 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
             d.Image = im.CreateImage(dir_path)
             im.Attach(ctx, d.Image)
         end
-    end
 
+    end
+    if #FP.Draw < 1 then 
+        FP.Draw = nil
+    end
     return FP.Draw
 
 end
@@ -5473,22 +5490,68 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 end
 
 
-function Add_XY_Pad(ctx, FP, FxGUID,FX_Idx)
+function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
     local TB = FX[FxGUID].XY_Pad_TB
+    local FP = FX[FxGUID][Fx_P]
     local P_Num_Y = FP.XY_Pad_Y_PNum
-
-    im.Button(ctx, '   ##XY Pad '..FP.Num, 20, 20)
     local V_Y = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num_Y)
-    FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+    local V_X = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)    
+    local ScrnCurX, ScrnCurY = im.GetCursorScreenPos(ctx)
+    local CurX, CurY = im.GetCursorPos(ctx)
+    local Width = FP.Sldr_W or Df.XY_Pad_Size
+    local Height = FP.Height or Df.XY_Pad_Size
 
-    if im.IsItemActive(ctx) then
-        local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDragDelta(ctx, x, y, 0)
-        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, FP.V + Ms_Delta_X)
-        r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, V_Y + Ms_Delta_Y)
-        if Ms_Delta_X ~= 0 or Ms_Delta_Y ~= 0 then
-            im.ResetMouseDragDelta(ctx, 0)
-        end 
+
+    local function Drag_to_Set_value()
+        if im.IsItemActive(ctx) then
+            local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDragDelta(ctx, x, y, 0)
+            if Ms_Delta_X ~= 0 then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, V_X + ((Ms_Delta_X or 0) / 100))
+            end 
+            if Ms_Delta_Y ~= 0 then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, V_Y - ((Ms_Delta_Y or 0) / 100))
+            end
+            if Ms_Delta_X ~= 0 or Ms_Delta_Y ~= 0 then
+                im.ResetMouseDragDelta(ctx, 0)
+            end
+        end
     end
+    local function Create_Button()
+
+        if FP.Image then 
+
+            im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x00000000)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
+            im.ImageButton(ctx, '##XY Pad '..FP.Num, FP.Image, Width, Height, nil,nil,nil,nil,0x00000000,(FP.BgClr or 0xffffffff))
+            im.PopStyleColor(ctx, 3)
+        else 
+            local BgClrHvr, BgClrAct = Generate_Active_And_Hvr_CLRs(FP.BgClr or getClr(ctx, im.Col_Button), 0.5)
+            im.PushStyleColor(ctx, im.Col_Button, FP.BgClr or getClr(ctx, im.Col_Button))
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, BgClrHvr)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, BgClrAct)
+            im.Button(ctx, '##XY Pad '..FP.Num, Width, Height)
+            im.PopStyleColor(ctx, 3)
+
+        end
+    end
+    local function Draw_Value_Circle()
+        local CircleSz = FP.Value_Thick or 10
+        local W = Width - CircleSz*2
+        local H = Height - CircleSz*2
+        local ScrnCurX , ScrnCurY = ScrnCurX + CircleSz , ScrnCurY + CircleSz* 1.1
+        local x = ScrnCurX + V_X * W
+        local y = ScrnCurY + H - V_Y * H
+        im.DrawList_AddCircleFilled(WDL, x, y, CircleSz, FP.GrbClr)
+
+
+    end
+
+    Create_Button()
+    Draw_Value_Circle()
+    Drag_to_Set_value()
+    MakeItemEditable(FxGUID, Fx_P, Width, 'XY_Pad', CurX, CurY)
+    Draw_Attached_Drawings(FP, FX_Idx, {ScrnCurX, ScrnCurY}, V_X, nil, FxGUID, V_Y)
 end
 
 function GetFonts (FP)
@@ -6648,7 +6711,6 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
         FP = FX[FxGUID][Fx_P]
     end
     if FP.GrbClr and not FP.GrbAct then 
-        msg("msja")
         FP.GrbAct, FP.GrbHvr = Generate_Active_And_Hvr_CLRs(FP.GrbClr, 1)
     end
 
@@ -6923,7 +6985,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
     if not LT_Track then return end
     TREE = BuildFXTree(LT_Track or tr)
-
     for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
         local PrmInst, Line, FX_Name
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
@@ -6934,7 +6995,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
             if not FxGUID then return end
             local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
             local FX_Name = ChangeFX_Name(FX_Name)
-       
+
+            
             local function Virtual_Btns(Ct , TB)
 
                 local fx = TB
@@ -6983,7 +7045,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
             if LO[FX_Name] and (get_from_file_2nd_lvl == nil or (get_from_file_2nd_lvl and get_from_file_2nd_lvl ~= FX_Idx)) then
 
-
                 FX[FxGUID] = FX[FxGUID] or {}
                 local T = LO[FX_Name]
                 FX[FxGUID].MorphHide = T.MorphHide
@@ -6996,7 +7057,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 FX[FxGUID].CustomTitle = T.CustomTitle
                 FX[FxGUID].VB = T.VB
 
-
+                SAVED_DRAW =  FX.LayEdit ==FxGUID and {}
                 for i, v in ipairs(T) do
                     FX[FxGUID][i]          = FX[FxGUID][i] or {}
                     local FP               = FX[FxGUID][i]
@@ -7072,13 +7133,28 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
                     end
 
-                    FP.ManualValues = v.ManualValues
-                    FP.ManualValuesFormat = v.ManualValuesFormat
-                    FP.Draw = v.Draw
+                    FP.ManualValues        = v.ManualValues
+                    FP.ManualValuesFormat  = v.ManualValuesFormat
+                    FP.Draw                = v.Draw-- *** Explicitly deep copy drawings ***
+                    if FP.Draw and #FP.Draw <1 then 
+                        FP.Draw = nil
+                    end
+
+
+                    if FX.LayEdit == FxGUID then 
+
+                        SAVED_MANUAL_VALUES = SAVED_MANUAL_VALUES or {}
+                        SAVED_MANUAL_VALUES_FORMAT = SAVED_MANUAL_VALUES_FORMAT or {}
+                        SAVED_DRAW[i] = DeepCopy(v.Draw)
+                        SAVED_MANUAL_VALUES[i] = DeepCopy(v.ManualValues)
+                        SAVED_MANUAL_VALUES_FORMAT[i] = DeepCopy(v.ManualValuesFormat)
+                    end
                 end
                 FX[FxGUID].Draw = T.Draw 
-
+                SAVED_BG_DRAW = FX.LayEdit ==FxGUID and {} 
+                SAVED_BG_DRAW = DeepCopy(T.Draw)
             else
+
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
                 local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
 
@@ -7187,7 +7263,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                             FP.Val_Italic      = RecallInfo(Ct, 'Value Font Italic', Fx_P, 'Bool')
                             FP.Val_Bold      = RecallInfo(Ct, 'Value Font Bold', Fx_P, 'Bool')
                             FP.AddArrows      = RecallInfo(Ct, 'Add Arrows', Fx_P, 'Bool')
-
+                            FP.XY_Pad_Y_PNum     = RecallInfo(Ct, 'XY_Pad_Y_PNum', Fx_P, 'Num')
                             FP.Invisible     = RecallInfo(Ct, 'Invisible', Fx_P, 'Bool')
                             FP.DontRotateImg       = RecallInfo(Ct, 'DontRotateImg', Fx_P, 'Bool')
                             FP.ImgAngleMinOfs      = RecallInfo(Ct, 'ImgAngleMinOfs', Fx_P, 'Num')
@@ -7238,6 +7314,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                                 local SUBFOLDER 
                                 if FP.Type =='Knob' then SUBFOLDER = 'Knobs'
                                 elseif FP.Type == 'Switch' then SUBFOLDER = 'Switches' 
+                                elseif FP.Type == 'XY Pad - X' then SUBFOLDER = 'XY Pad - X'
                                 end
                                 if SUBFOLDER then 
                                     local dir_path = ConcatPath(CurrentDirectory , 'src', 'Images', SUBFOLDER, FileName)
@@ -7442,7 +7519,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 end
 function IsLayoutModified(FxGUID, FX_Name)
 
-    if not LO[FX_Name] then msg('no saved')end
     if not LO[FX_Name] or not FX[FxGUID] then return false end
     
     local saved = LO[FX_Name]
@@ -7459,7 +7535,56 @@ function IsLayoutModified(FxGUID, FX_Name)
             return true
         end
     end
-    
+
+    local function Compare_BG_Drawings()
+        -- *** COMPARE GLOBAL BACKGROUND DRAWINGS ***
+        local currentGlobalDraw = current.Draw
+        local savedGlobalDraw = SAVED_BG_DRAW -- Compare against the loaded state
+
+        -- 1. Check existence mismatch
+        if (currentGlobalDraw and not savedGlobalDraw) or (not currentGlobalDraw and savedGlobalDraw) then
+            return true -- Background drawings added or removed
+        end
+
+        -- 2. If both exist, compare counts
+        if currentGlobalDraw and savedGlobalDraw then
+            if #currentGlobalDraw ~= #savedGlobalDraw then
+                return true -- Different number of background drawings
+            end
+
+            -- 3. If counts match, compare individual drawing properties
+            for j = 1, #currentGlobalDraw do
+                local cDraw = currentGlobalDraw[j] or {}
+                local sDraw = savedGlobalDraw[j] or {}
+
+                local drawProps = { -- Essential properties for background drawings
+                    'Type', 'Left', 'Right', 'Top', 'Bottom', 'Color', 'Text',
+                    'ImagePath', 'KeepImgRatio', 'Font', 'FontSize', 'FontBold',
+                    'FontItalic', 'Fill', 'Repeat', 'RepeatClr', 'XGap', 'YGap',
+                    'Gap', 'Thick'
+                    -- Add other critical drawing properties as needed
+                }
+                for _, prop in ipairs(drawProps) do
+                    local cVal = cDraw[prop]
+                    local sVal = sDraw[prop]
+                        -- Handle nil/false equivalence for boolean 'Fill' and similar flags
+                        if prop == 'Fill' or prop == 'KeepImgRatio' or prop == 'FontBold' or prop == 'FontItalic' then
+                        cVal = cVal or false
+                        sVal = sVal or false
+                        end
+                        if cVal ~= sVal then
+                        return true -- Found a difference
+                        end
+                end
+                -- Note: Nested drawing comparison might not be relevant for global drawings,
+                -- but add it here if necessary, similar to parameter drawings.
+            end
+        end
+        -- *** END OF GLOBAL BACKGROUND DRAWING COMPARISON ***
+    end
+
+
+    if Compare_BG_Drawings() then return true end
     -- Check if number of parameters match
     local savedParamCount = #saved
     local currentParamCount = #current
@@ -7503,12 +7628,88 @@ function IsLayoutModified(FxGUID, FX_Name)
             end
             end
         end
+       
+        -- Compare Parameter Drawings against the SAVED_DRAW snapshot
+        local currentDrawings = currentParam.Draw
+        -- Use SAVED_DRAW for comparison as per user clarification
+        local savedDrawingsComparisonTarget = SAVED_DRAW and SAVED_DRAW[i] 
+
+        -- 1. Check existence mismatch (current vs SAVED_DRAW snapshot)
+        if (currentDrawings and not savedDrawingsComparisonTarget) or (not currentDrawings and savedDrawingsComparisonTarget) then
+            -- One has drawings, the other (snapshot) doesn't\
+            return true
+        end
+
+        -- 2. If both exist, compare counts
+        if currentDrawings and savedDrawingsComparisonTarget then
+            if #currentDrawings ~= #savedDrawingsComparisonTarget then
+                -- Different number of drawings
+                return true
+            end
+
+            -- 3. If counts match, compare individual drawing properties
+            for j = 1, #currentDrawings do
+                local cDraw = currentDrawings[j] or {}
+                -- Use SAVED_DRAW[i][j] for the comparison target
+                local sDraw = savedDrawingsComparisonTarget[j] or {} 
+
+                -- Essential drawing properties to compare
+                local drawProps = {
+                    'Type', 'X_Offset', 'Y_Offset', 'Width', 'Height', 'Thick', 'Clr', 'Fill',
+                    'Round', 'Angle_Min', 'Angle_Max', 'Rad_In', 'Rad_Out', 'Repeat', 'Gap',
+                    'X_Gap', 'Y_Gap', 'AtchImgFileNm', 'Belong_To_Preset'
+                    -- Add other critical drawing properties here if needed
+                }
+                for _, prop in ipairs(drawProps) do
+                    local cVal = cDraw[prop]
+                    local sVal = sDraw[prop]
+                    -- Handle nil/false equivalence for boolean 'Fill'
+                    if prop == 'Fill' then
+                    cVal = cVal or false
+                    sVal = sVal or false
+                    end
+                 
+
+                    if prop == 'X_Offset' or prop == 'Y_Offset' then
+                        if sVal == 0 then sVal = nil  end
+                        if cVal == 0 then cVal = nil end
+                    end
+
+                    if cVal ~= sVal then
+                        -- Found a difference in a drawing property
+                        return true
+                    end
+                end
+                -- Optional: Add nested drawing comparison here if needed, comparing cDraw[k] vs sDraw[k]
+                local cIsNested = type(cDraw) == "table" and type(cDraw[1]) == "table"
+                local sIsNested = type(sDraw) == "table" and type(sDraw[1]) == "table"
+                if cIsNested ~= sIsNested then return true end -- Structure mismatch
+                if cIsNested then
+                    if #cDraw ~= #sDraw then return true end -- Nested count mismatch
+                    for k = 1, #cDraw do
+                        for _, prop in ipairs(drawProps) do
+                            -- Compare cDraw[k][prop] vs sDraw[k][prop]
+                            local cNestedVal = cDraw[k][prop]
+                            local sNestedVal = sDraw[k][prop]
+                            if prop == 'Fill' then
+                                cNestedVal = cNestedVal or false
+                                sNestedVal = sNestedVal or false
+                            end
+                            if cNestedVal ~= sNestedVal then return true end
+                        end
+                    end
+                end
+            end
+        end
     end
     
     -- Check if all parameters have been deleted
     if current.AllPrmHasBeenDeleted then
         return true
     end
+
+
+
     
     return false
 end
@@ -7659,6 +7860,7 @@ function Save_Attached_Drawings(FP, file,Fx_P)
 
                 WRITE('X Offset Value Affect', v.X_Offset_VA)
                 WRITE('X Offset Value Affect BP', v.X_Offset_VA_BP) 
+                WRITE('X offset Value Affect Size Sync', v.X_Offset_VA_SS)
 
                 WRITE('X Offset Value Affect GR', v.X_Offset_VA_GR)
                 WRITE('Y offset', v.Y_Offset)
@@ -8074,21 +8276,26 @@ function Save_Attached_Drawings_As_Style(Name, Type, FP )
             FP.Sldr_W = DfKnobRD
         elseif FP.Type == 'V-Slider' then
             FP.Sldr_W = Df.V_Sldr_W
+        elseif FP.Type == 'XY Pad - X' then
+            FP.Sldr_W = Df.XY_Pad_Size
         else 
             FP.Sldr_W = Df.Sldr_W
         end
-        
         Sync_Size_Height_Synced_Properties(FP, FP.Sldr_W- orig_sz )
     end
     
     if FP.Height then 
         orig_h = FP.Height
+        local mult = FP.Type == 'XY Pad - X' and -1 or 1
+
         if FP.Type == 'V-Slider' then
             FP.Height = Df.V_Sldr_H
+        elseif FP.Type == 'XY Pad - X' then
+            FP.Height = Df.XY_Pad_Size
         else
             FP.Height = Df.Sldr_H
         end
-        Sync_Height_Synced_Properties(FP, FP.Height - orig_h)
+        Sync_Height_Synced_Properties(FP, FP.Height - orig_h, mult)
     end
 
 
@@ -8099,19 +8306,20 @@ function Save_Attached_Drawings_As_Style(Name, Type, FP )
 
         FP.Sldr_W = orig_sz
 
-        
         local DfSz = Df.Sldr_W
         if FP.Type == 'Knob' then DfSz = DfKnobRD 
         elseif FP.Type == 'V-Slider' then DfSz = Df.V_Sldr_W
+        elseif FP.Type == 'XY Pad - X' then DfSz = Df.XY_Pad_Size
         end
-
         Sync_Size_Height_Synced_Properties(FP,  orig_sz - DfSz )
     end
 
     if FP.Height then 
         FP.Height =  orig_h 
+        local mult = FP.Type == 'XY Pad - X' and -1 or 1
         local DfH = FP.Type == 'V-Slider' and Df.V_Sldr_H or Df.Sldr_H
-        Sync_Height_Synced_Properties(FP, orig_h - DfH )
+        if FP.Type == 'XY Pad - X' then DfH = Df.XY_Pad_Size end
+        Sync_Height_Synced_Properties(FP, orig_h - DfH , mult)
     end
 
 
@@ -8346,7 +8554,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
                         end
                     end 
                 end
-            elseif ItemType == 'Knob' or (not ItemType and FX[FxGUID].DefType == 'Knob') then
+            elseif ItemType == 'Knob' or (not ItemType and FX[FxGUID].DefType == 'Knob') or ItemType == 'XY_Pad' then
                 im.DrawList_AddCircleFilled(WinDrawList, R, B, 3, 0x999999dd)
                 if MouseX > R - 5 and MouseX < R + 5 and MouseY > B - 5 and MouseY < B + 3 then
                     im.SetMouseCursor(ctx, im.MouseCursor_ResizeNWSE)
@@ -8403,6 +8611,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             if Mods == 0 then 
                 ItemWidth = ItemWidth + Dx 
                 Sync_Size_Height_Synced_Properties(FP, Dx)
+              
             end
 
             if ItemType == 'Sldr' or ItemType == 'V-Slider' or ItemType == 'Drag' or ItemType == 'Selection' or ItemType == 'Switch' then
@@ -8429,6 +8638,10 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
             if Mods == 0 then
                 FP.Sldr_W = FP.Sldr_W + DiagDrag;
                 Sync_Size_Height_Synced_Properties(FP,DiagDrag)
+                if FP.Type == 'XY Pad - X' then
+                    FP.Height = FP.Height + DiagDrag
+                    Sync_Height_Synced_Properties(FP, DiagDrag, -1)
+                end
             end
             if LBtnRel and LE.ChangeRaius == Fx_P then
                 FP.Sldr_W = roundUp(FP.Sldr_W, LE.GridSize / 2)
@@ -8582,7 +8795,7 @@ function Create_Undo_Point(str , FxGUID)
     LE.Undo_Points = LE.Undo_Points or {}
     FX[FxGUID].Draw =  FX[FxGUID].Draw or {}
     FX[FxGUID].Draw.Preview = nil 
-    table.insert(LE.Undo_Points, deepCopy(FX[FxGUID]))
+    table.insert(LE.Undo_Points, DeepCopy(FX[FxGUID]))
     LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name = str
 end
 

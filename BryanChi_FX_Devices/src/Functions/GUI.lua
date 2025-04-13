@@ -1071,6 +1071,11 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     if not FX[FxGUID] then return end 
     local fx = FX[FxGUID]
 
+    local WindowBtn 
+
+    local _, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
+    local isContainer = orig_Name == 'Container' and true
+    local Cont_Clr = isContainer and Calculate_Color_Based_On_Nesting_Level(fx.nestingLevel)
 
     local function Marquee_Selection (LC, RC)
         Trk[TrkID].Sel_FX = Trk[TrkID].Sel_FX or {}
@@ -1139,6 +1144,18 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             return true 
         end
     end
+    local function Open_Layout_Editor()
+        if FX.LayEdit == FxGUID then
+            FX.LayEdit = nil
+        else
+            FX.LayEdit = FxGUID
+        end
+        RetrieveFXsSavedLayout(Sel_Track_FX_Count)
+
+        CloseLayEdit = nil
+        im.CloseCurrentPopup(ctx)
+        if Draw.DrawMode then Draw.DrawMode = nil end
+    end
 
     local function Add_Prm_Btn()
         if FX[FxGUID].Dont_Allow_Add_Prm then return end
@@ -1166,238 +1183,114 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
     end
 
+    local function Mouse_Interactions(R_ClickOnWindowBtn, L_ClickOnWindowBtn)
+        local function Ctrl_Double_R_Click_to_Enter_Layout_Editor()
+            if Mods == Ctrl + Shift and  im.IsItemClicked(ctx, 1)  then
+                Open_Layout_Editor()     
+            end
+        end
+        Ctrl_Double_R_Click_to_Enter_Layout_Editor()
+        -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
+
     
-    Push_Clr()
-    local WindowBtn 
-
-    local _, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
-    local isContainer = orig_Name == 'Container' and true
-    local Cont_Clr = isContainer and Calculate_Color_Based_On_Nesting_Level(fx.nestingLevel)
-
-
-    if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
-        if not fx.NoWindowBtn then
-            local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-            if DebugMode then Name = FxGUID end
-
-            local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
-            im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
-            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
-            im.PopStyleVar(ctx)
-            if isContainer then
-                Highlight_Itm(WDL, nil, Cont_Clr)
+        if not CantCollapse then
+            if R_ClickOnWindowBtn and Mods == Ctrl then
+                im.OpenPopup(ctx, 'Fx Module Menu')
+    
+            elseif R_ClickOnWindowBtn and Mods == 0  then
+                Long_Or_Short_FX_Idx = FX_Idx
+    
+            elseif R_ClickOnWindowBtn and Mods == Alt then
+                -- check if all are collapsed
+                BlinkFX = ToggleCollapseAll(FX_Idx)
             end
-
-                Add_Prm_Btn()
-
         end
+        local RC =  Determine_Long_Or_Short_Click(R_ClickOnWindowBtn, IsRBtnHeld, 0.5) 
+        if Long_Or_Short_FX_Idx == FX_Idx then 
+            if RC == 'Short'  then 
+                fx.Collapse = toggle(fx.Collapse)
 
-    elseif (fx.V_Win_Btn_Height and not fx.Collapse ) or (isContainer ) then -- Vertical btn
-        
-        local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-        local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-        -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
-        --im.SameLine(ctx, nil, 0)
-
-        if isContainer then
-            local W = isContainer and fx.Collapse and 20 or 25
-            local clr = Cont_Clr
-            local pad_L = fx.Collapse and 3 or 6
-            local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
-            im.SetCursorPosX(ctx, pad_L)
-            im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x00000000)
-            im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
-            im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
-
-            if im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr) then 
-                fx.Cont_Collapse = toggle(fx.Cont_Collapse, 1, 0 )
+                if not fx.Collapse then fx.Width_Collapse= nil end
+                Animate_FX_Width= toggle(Animate_FX_Width , FxGUID)
+                Anim_Time = 0
+                Long_Or_Short_Click_Time_Start = nil 
+    
+            elseif RC =='Long'   then 
+                Long_Or_Short_Click_Time_Start = nil 
+    
             end
-            im.PopStyleColor(ctx,3)
-            im.SetCursorPosX(ctx, pad_L)
-
-            WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, W, fx.V_Win_Btn_Height)
-
-        else
-            WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
             
         end
-
-
-
-        -- im.PopStyleVar(ctx)             --StyleVar#3 POP
-    else -- if collapsed
-        --[[ fx.Width_Collapse= 27 ]]
-        local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-        local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-        im.PushStyleVar(ctx, im.StyleVar_ButtonTextAlign, 0.5, 0.2) --StyleVar#3
-        --im.SameLine(ctx, nil, 0)
-
-        WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
-        im.PopStyleVar(ctx)             --StyleVar#3 POP
-    end
-    im.PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
-
-    local BgClr = not fx.Enable  and  0x00000088
-    fx.Enable = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
-
-
-
-    -- im.SetNextWindowSizeConstraints(ctx, AddPrmWin_W or 50, 50, 9999, 500)
-    local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
-    local L_ClickOnWindowBtn = im.IsItemClicked(ctx)
-
-    if not CantCollapse then
-        if R_ClickOnWindowBtn and Mods == Ctrl then
-            im.OpenPopup(ctx, 'Fx Module Menu')
-
-        elseif R_ClickOnWindowBtn and Mods == 0  then
-            Long_Or_Short_FX_Idx = FX_Idx
-
-        elseif R_ClickOnWindowBtn and Mods == Alt then
-            -- check if all are collapsed
-            BlinkFX = ToggleCollapseAll(FX_Idx)
-        end
-    end
-
-
-    local RC =  Determine_Long_Or_Short_Click(R_ClickOnWindowBtn, IsRBtnHeld, 0.5) 
-    if not fx.Collapse then fx.Width_Collapse= nil end
-
-    if Long_Or_Short_FX_Idx == FX_Idx then 
-        if RC == 'Short'  then 
-            fx.Collapse = toggle(fx.Collapse)
-            if not fx.Collapse then fx.Width_Collapse= nil end
-            Animate_FX_Width= toggle(Animate_FX_Width , FxGUID)
-            Anim_Time = 0
-            Long_Or_Short_Click_Time_Start = nil 
-
-        elseif RC =='Long'   then 
-            Long_Or_Short_Click_Time_Start = nil 
-
-        end
+        if FX.LayEdit ~=FxGUID then 
         
-    end
-
-    if Animate_FX_Width==FxGUID then 
-
-        if fx.Collapse then  -- if user is collapsing 
-            fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
-            fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
-
-            
-            if fx.AnimComplete  then 
-
-                Animate_FX_Width = nil 
-                Anim_Time=nil
-                Long_Or_Short_FX_Idx = nil
+            if WindowBtn and Mods == 0 then
+                if If_Multi_Select_FX(FxGUID) then
+                    for i, v in ipairs(Trk[TrkID].Sel_FX) do
+                        local idx = Find_FxID_By_GUID(v)
+                        openFXwindow(LT_Track, idx)
+                    end
+                else
+                    openFXwindow(LT_Track, FX_Idx)
+                end
+                
+            elseif WindowBtn and Mods == Shift then
+                if If_Multi_Select_FX(FxGUID) then
+                    for i, v in ipairs(Trk[TrkID].Sel_FX) do
+                        local idx = Find_FxID_By_GUID(v)
+                        ToggleBypassFX(LT_Track, idx)
+                    end
+                else
+                    ToggleBypassFX(LT_Track, FX_Idx)
+                end
+            elseif WindowBtn and Mods == Alt then
+                if If_Multi_Select_FX(FxGUID) then
+                    for i, v in ipairs(Trk[TrkID].Sel_FX) do
+                        local idx = Find_FxID_By_GUID(v)
+                        DeleteFX(idx, FxGUID)
+                    end
+                else
+                    DeleteFX(FX_Idx, FxGUID)
+                end
             end
-        else        --- if uncollapsing
+        end
+    end
+    local function Animation_When_Collapse()
+        if Animate_FX_Width==FxGUID then 
 
-            fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, COLLAPSED_FX_WIDTH, fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
-
-            if fx.AnimComplete then 
-                Animate_FX_Width = nil 
-                fx.Width_Before_Collapse = nil 
-                Anim_Time=nil
-                Long_Or_Short_FX_Idx = nil
+            if fx.Collapse then  -- if user is collapsing 
+                fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
+                fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
+    
+                
+                if fx.AnimComplete  then 
+    
+                    Animate_FX_Width = nil 
+                    Anim_Time=nil
+                    Long_Or_Short_FX_Idx = nil
+                end
+            else        --- if uncollapsing
+    
+                fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, COLLAPSED_FX_WIDTH, fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
+    
+                if fx.AnimComplete then 
+                    Animate_FX_Width = nil 
+                    fx.Width_Before_Collapse = nil 
+                    Anim_Time=nil
+                    Long_Or_Short_FX_Idx = nil
+                end 
+            end
+        else 
+            if fx.Collapse then fx.Width_Collapse = 27 
+            else fx.Width_Collapse = nil
             end 
         end
-    else 
-        if fx.Collapse then fx.Width_Collapse = 27 
-        else fx.Width_Collapse = nil
-        end 
+    
     end
-
-
-
-    if FX.LayEdit ~=FxGUID then 
-        
-        if WindowBtn and Mods == 0 then
-            if If_Multi_Select_FX(FxGUID) then
-                for i, v in ipairs(Trk[TrkID].Sel_FX) do
-                    local idx = Find_FxID_By_GUID(v)
-                    openFXwindow(LT_Track, idx)
-                end
-            else
-                openFXwindow(LT_Track, FX_Idx)
-            end
-            
-        elseif WindowBtn and Mods == Shift then
-            if If_Multi_Select_FX(FxGUID) then
-                for i, v in ipairs(Trk[TrkID].Sel_FX) do
-                    local idx = Find_FxID_By_GUID(v)
-                    ToggleBypassFX(LT_Track, idx)
-                end
-            else
-                ToggleBypassFX(LT_Track, FX_Idx)
-            end
-        elseif WindowBtn and Mods == Alt then
-            if If_Multi_Select_FX(FxGUID) then
-                for i, v in ipairs(Trk[TrkID].Sel_FX) do
-                    local idx = Find_FxID_By_GUID(v)
-                    DeleteFX(idx, FxGUID)
-                end
-            else
-                DeleteFX(FX_Idx, FxGUID)
-            end
-        end
-    end
-
-    if im.IsItemHovered(ctx) then
-        HelperMsg.L = 'Open FX Window'
-        HelperMsg.R = 'Collapse'
-        HelperMsg.Shift_L = 'Toggle Bypass'
-        HelperMsg.Alt_L = 'Delete'
-        HelperMsg.Alt_R = 'Collapse All'
-        HelperMsg.Ctrl_R = 'Open Menu'
-        HelperMsg.Need_separator = true 
-    end
-
-
-
-    ----==  Drag and drop----
-    if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip) then
-
-        if Trk[TrkID].Sel_FX and Trk[TrkID].Sel_FX[1] and tablefind(Trk[TrkID].Sel_FX, FxGUID)  then 
-
-            for i, v in ipairs( Trk[TrkID].Sel_FX )do 
-                local id = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-                DragFX_ID_Table = {}
-                table.insert(DragFX_ID_Table , id )
-            end
-        else
-            DragFX_ID = FX_Idx
-            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
-        end
-        im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
-        im.EndDragDropSource(ctx)
-        Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
-
-        DragDroppingFX = true
-        if IsAnyMouseDown == false then DragDroppingFX = false end
-        HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
-        Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FxGUID_DragFX)
-    end
-
-    if IsAnyMouseDown == false and DragDroppingFX == true then
-        DragDroppingFX = false
-    end
-
-    ----Drag and drop END----
-    Marquee_Selection(L_ClickOnWindowBtn, R_ClickOnWindowBtn)
-
-
-    if R_ClickOnWindowBtn then
-        return 2
-    elseif L_ClickOnWindowBtn then
-        return 1
-    end
-
-    -- Add Prm popup
-    if im.BeginPopup(ctx, 'Add Parameter' .. FxGUID, im.WindowFlags_AlwaysVerticalScrollbar) then
-        local CheckBox, rv = {}, {}
-        if im.Button(ctx, 'Add all parameters', -1) then
+    
+    local function AddPrmPopup()
+        if im.BeginPopup(ctx, 'Add Parameter' .. FxGUID, im.WindowFlags_AlwaysVerticalScrollbar) then
+            local CheckBox, rv = {}, {}
+            if im.Button(ctx, 'Add all parameters', -1) then
             for i = 0, r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 1, 1 do
                 local P_Name = select(2, r.TrackFX_GetParamName(LT_Track, FX_Idx, i))
 
@@ -1470,12 +1363,147 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
         fx.NotFirstOpenPrmWin = true
         im.EndPopup(ctx)
-    elseif AddPrmPopupOpen == FxGUID then
-        PrmFilterTxt = nil
-        fx.NotFirstOpenPrmWin = nil
+        elseif AddPrmPopupOpen == FxGUID then
+            PrmFilterTxt = nil
+            fx.NotFirstOpenPrmWin = nil
+        end
     end
+    local function Create_Window_Btn()
+        if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
+            if not fx.NoWindowBtn then
+                local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+                if DebugMode then Name = FxGUID end
     
+                local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
+                im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
+                WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
+                im.PopStyleVar(ctx)
+                if isContainer then
+                    Highlight_Itm(WDL, nil, Cont_Clr)
+                end
+    
+                    Add_Prm_Btn()
+    
+            end
+    
+        elseif (fx.V_Win_Btn_Height and not fx.Collapse ) or (isContainer ) then -- Vertical btn
+            
+            local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
+            -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
+            --im.SameLine(ctx, nil, 0)
+    
+            if isContainer then
+                local W = isContainer and fx.Collapse and 20 or 25
+                local clr = Cont_Clr
+                local pad_L = fx.Collapse and 3 or 6
+                local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
+                im.SetCursorPosX(ctx, pad_L)
+                im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x00000000)
+                im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
+                im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
+    
+                if im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr) then 
+                    fx.Cont_Collapse = toggle(fx.Cont_Collapse, 1, 0 )
+                end
+                im.PopStyleColor(ctx,3)
+                im.SetCursorPosX(ctx, pad_L)
+    
+                WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, W, fx.V_Win_Btn_Height)
+    
+            else
+                WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
+                
+            end
+    
+    
+    
+            -- im.PopStyleVar(ctx)             --StyleVar#3 POP
+        else -- if collapsed
+            --[[ fx.Width_Collapse= 27 ]]
+            local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
+            im.PushStyleVar(ctx, im.StyleVar_ButtonTextAlign, 0.5, 0.2) --StyleVar#3
+            --im.SameLine(ctx, nil, 0)
+    
+            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
+            im.PopStyleVar(ctx)             --StyleVar#3 POP
+        end
+    end    
+    Push_Clr()
 
+    Create_Window_Btn()
+    im.PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
+    local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
+    local L_ClickOnWindowBtn = im.IsItemClicked(ctx)
+    local BgClr = not fx.Enable  and  0x00000088
+    fx.Enable = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
+
+    Mouse_Interactions(R_ClickOnWindowBtn, L_ClickOnWindowBtn)
+
+
+
+    if not fx.Collapse then fx.Width_Collapse= nil end
+
+
+    Animation_When_Collapse()
+
+
+
+
+    if im.IsItemHovered(ctx) then
+        HelperMsg.L = 'Open FX Window'
+        HelperMsg.R = 'Collapse'
+        HelperMsg.Shift_L = 'Toggle Bypass'
+        HelperMsg.Alt_L = 'Delete'
+        HelperMsg.Alt_R = 'Collapse All'
+        HelperMsg.Ctrl_R = 'Open Menu'
+        HelperMsg.Need_separator = true 
+    end
+
+
+
+    ----==  Drag and drop----
+    if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip) then
+
+        if Trk[TrkID].Sel_FX and Trk[TrkID].Sel_FX[1] and tablefind(Trk[TrkID].Sel_FX, FxGUID)  then 
+
+            for i, v in ipairs( Trk[TrkID].Sel_FX )do 
+                local id = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+                DragFX_ID_Table = {}
+                table.insert(DragFX_ID_Table , id )
+            end
+        else
+            DragFX_ID = FX_Idx
+            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+
+        end
+        im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
+        im.EndDragDropSource(ctx)
+        Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
+
+        DragDroppingFX = true
+        if IsAnyMouseDown == false then DragDroppingFX = false end
+        HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
+        Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FxGUID_DragFX)
+    end
+
+    if IsAnyMouseDown == false and DragDroppingFX == true then
+        DragDroppingFX = false
+    end
+
+    ----Drag and drop END----
+    Marquee_Selection(L_ClickOnWindowBtn, R_ClickOnWindowBtn)
+
+
+    if R_ClickOnWindowBtn then
+        return 2
+    elseif L_ClickOnWindowBtn then
+        return 1
+    end
+
+
+    AddPrmPopup()
     if im.BeginPopup(ctx, 'Fx Module Menu') then
         local function Preset_Morph()
             if not fx.MorphA then
@@ -1592,14 +1620,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 return
             end
             if im.Button(ctx, 'Layout Edit mode', -FLT_MIN) then
-                if not FX.LayEdit then
-                    FX.LayEdit = FxGUID
-                else
-                    FX.LayEdit = false
-                end
-                CloseLayEdit = nil
-                im.CloseCurrentPopup(ctx)
-                if Draw.DrawMode then Draw.DrawMode = nil end
+                Open_Layout_Editor()
             end
         end
 
@@ -2057,7 +2078,7 @@ end
 
 
 
-function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
+function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pad_Y_Val )
                             
     if not FP.Draw  then return end
 
@@ -2070,7 +2091,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
     if DraggingMorph == FxGUID then
         Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
     end
-
 
 
     local function Draw(v)
@@ -2101,11 +2121,16 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
                 func(Xgap)
             end
         end
-
+        
         local Val_X = v.X_Offset_VA_BP and (Val - 0.5)* 2 * (v.X_Offset_VA or 0) or (Val * (v.X_Offset_VA or 0))
         local Val_Y = v.Y_Offset_VA_BP and (Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (Val * (v.Y_Offset_VA or 0))
         local x = x + (v.X_Offset or 0) + Val_X + ((GR or 0) * (v.X_Offset_VA_GR or 0))
         local y = y + (v.Y_Offset or 0) + Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
+
+        if XY_Pad_Y_Val then 
+            Val_Y = v.Y_Offset_VA_BP and (XY_Pad_Y_Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (XY_Pad_Y_Val * (v.Y_Offset_VA or 0))
+            y = (v.Y_Offset or 0) + pos[2] + (v.Y_Offset_VA or 0) - Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0)) 
+        end
         
         
         local Thick             = (v.Thick or 2)
@@ -2128,7 +2153,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
             local w = v.Width or im.GetItemRectSize(ctx)
             local h = v.Height or select(2, im.GetItemRectSize(ctx))
 
-            
             local x2 = x + w
             local y2 = y + h
             local GR = GR or 0
@@ -2464,7 +2488,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID )
     end
     for i, v in ipairs(FP.Draw) do
         if type(v)== 'table' then 
-             
             for I, V in ipairs(v) do 
                 if not  v.Bypass then 
                     Draw(V)
@@ -3891,7 +3914,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             LE.SelectedItem = 'Title'
                             LE.ChangingTitleSize = true
                             LE.MouseX_before, _ = im.GetMousePos(ctx)
-                        elseif IsRBtnClicked then
+                        elseif IsRBtnClicked and Mods == 0 then
                             im.OpenPopup(ctx, 'Fx Module Menu')
                         end
                     end
@@ -4671,7 +4694,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 elseif FP.Type == 'Selection' then
                                     AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'XY Pad - X' then
-                                    Add_XY_Pad(ctx, FP, FxGUID, FX_Idx)
+                                    Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
                                 end
                                 
                                 return pos

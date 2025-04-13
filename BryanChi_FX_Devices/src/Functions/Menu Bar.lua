@@ -274,13 +274,13 @@ function Layout_Edit_MenuBar_Buttons()
             table.sort(tb)
 
             for i = #tb, 1, -1 do
-                DeletePrm(FxGUID, tb[i], FX_Idx)
+                DeletePrm(FxGUID, tb[i], FX_Idx, true)
             end
 
 
             if not FX[FxGUID][1] then FX[FxGUID].AllPrmHasBeenDeleted = true else FX[FxGUID].AllPrmHasBeenDeleted = nil end
 
-            LE.Sel_Items = {}
+            
         end
     end
 
@@ -336,7 +336,7 @@ function Layout_Edit_MenuBar_Buttons()
                     I.ArrowPicFileName= CopyPrm.ArrowPicFileName
 
 
-                    I.Conditions = deepCopy(CopyPrm.Conditions)
+                    I.Conditions = DeepCopy(CopyPrm.Conditions)
                     I.Switch_On_Clr = CopyPrm.Switch_On_Clr
 
                     -- font related
@@ -446,7 +446,7 @@ function Backrgound_Edit_MenuBar_Buttons()
         local function Preview(preview_str, func, ...)
             if im.IsItemHovered(ctx) then 
                 if not FX[FxGUID].Draw.Preview then
-                    FX[FxGUID].Draw.Preview = deepCopy(FX[FxGUID].Draw)
+                    FX[FxGUID].Draw.Preview = DeepCopy(FX[FxGUID].Draw)
                 else 
                     func(...)
                     Draw.Preview = preview_str
@@ -534,7 +534,7 @@ function LayEdit_and_Backrgound_Edit_Undo_Button()
         if #LE.Undo_Points > 0 then
             if im.Button(ctx, ( 'Undo ' .. LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name)) then
 
-                    FX[FX.LayEdit] = deepCopy (LE.Undo_Points[#LE.Undo_Points])
+                    FX[FX.LayEdit] = DeepCopy (LE.Undo_Points[#LE.Undo_Points])
                     table.remove(LE.Undo_Points, #LE.Undo_Points)
 
             end
