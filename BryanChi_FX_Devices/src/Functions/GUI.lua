@@ -5402,9 +5402,9 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                     AltDestLow = FX_Idx-1
                 end ]]
                 local offset = 0 
-                if (fx.ShortName or ''):find('Pro%-C 2') then
+                --[[ if (FX[FxGUID].ShortName or ''):find('Pro%-C 2') then
                     AltDestHigh = FX_Idx - 1
-                end
+                end ]]
                 FX_Idx = tonumber(FX_Idx)
                 DragFX_ID = tonumber(DragFX_ID)
 
