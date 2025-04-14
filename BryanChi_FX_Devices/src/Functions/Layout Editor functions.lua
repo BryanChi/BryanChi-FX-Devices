@@ -7205,7 +7205,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                     T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
                     T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
                     PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
-                    LO[FX_Name] = Virtual_Btns(Ct, LO[FX_Name])
+                    T = Virtual_Btns(Ct, T)
                     
 
                     FX[FxGUID].FileLine = nil 
