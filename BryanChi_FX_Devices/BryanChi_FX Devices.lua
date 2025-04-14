@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.3
+-- @version 1.0beta18.3.1
 -- @changelog
---   - New Khs Faturator layout 
---   - Layout Editor: XY pad
---   - improved Layout editor Gui. 
+--   - Fix Layout editor save button always clickable when there's an FX after. 
+--   - Fixed console 1 layout.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
