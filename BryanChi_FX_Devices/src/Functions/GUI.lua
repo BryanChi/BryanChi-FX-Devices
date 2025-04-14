@@ -2600,7 +2600,7 @@ end
 
 
 function AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
-    if FX_Idx + 1 == Sel_Track_FX_Count and not Trk[TrkID].PostFX[1] then -- add last space
+    if FX_Idx + 1 == Sel_Track_FX_Count --[[ and not Trk[TrkID].PostFX[1] ]] then -- add last space
         SL(nil, 10)
         AddSpaceBtwnFXs(FX_Idx + 1, nil, 'LastSpc', nil,nil,nil,100, nil, true)
     elseif FX_Idx + 1 == Sel_Track_FX_Count and Trk[TrkID].PostFX[1] then
