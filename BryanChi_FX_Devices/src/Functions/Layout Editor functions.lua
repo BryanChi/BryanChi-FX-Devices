@@ -4168,7 +4168,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         local function Selection_Choices()
             if FS.Type ~= 'Selection' and FS.Type ~='Selection Btns' then return end
-            
+            im.SeparatorText(ctx, "Selection Choices")
+
                 
             FS.Choices = FS.Choices or  {}
             for i, v in ipairs(FS.Choices) do 
@@ -4333,7 +4334,6 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         Horizontal_Layout_If_Type_Is_Selection_Btns()
         Set_Virtual_Button_Color()
 
-        im.SeparatorText(ctx, "Selection Choices")
         Selection_Choices()
 
 
@@ -7588,7 +7588,7 @@ function IsLayoutModified(FxGUID, FX_Name)
     end
 
 
-    if Compare_BG_Drawings() then msg("BG Draw are different") return true end
+    if Compare_BG_Drawings() then return true end
     -- Check if number of parameters match
     local savedParamCount = #saved
     local currentParamCount = #current
