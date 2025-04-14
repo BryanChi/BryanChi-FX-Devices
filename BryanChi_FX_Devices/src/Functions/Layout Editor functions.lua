@@ -7232,6 +7232,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 end
 
                 if  PrmInst  then
+                    LO[FX_Name] = LO[FX_Name] or {}
                     local T = LO[FX_Name]
 
                     local Ct = Content
@@ -7250,6 +7251,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                                 return Line[n + (40 - 14) * (Fx_P - 1)]
                             end
                             FX[FxGUID]    = FX[FxGUID] or {}
+                            
                             T[Fx_P]       = T[Fx_P] or {}
 
                             local FP      = T[Fx_P]
