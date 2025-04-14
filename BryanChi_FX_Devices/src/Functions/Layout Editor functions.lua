@@ -5531,8 +5531,8 @@ function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
             im.ImageButton(ctx, '##XY Pad '..FP.Num, FP.Image, Width, Height, nil,nil,nil,nil,0x00000000,(FP.BgClr or 0xffffffff))
             im.PopStyleColor(ctx, 3)
         else 
-            local BgClrHvr, BgClrAct = Generate_Active_And_Hvr_CLRs(FP.BgClr or getClr(ctx, im.Col_Button), 0.5)
-            im.PushStyleColor(ctx, im.Col_Button, FP.BgClr or getClr(ctx, im.Col_Button))
+            local BgClrHvr, BgClrAct = Generate_Active_And_Hvr_CLRs(FP.BgClr or im.GetStyleColor(ctx, im.Col_Button) or 0xffffff22 , 0.5)
+            im.PushStyleColor(ctx, im.Col_Button, FP.BgClr or getClr(ctx, im.Col_Button) or 0xffffff22)
             im.PushStyleColor(ctx, im.Col_ButtonHovered, BgClrHvr)
             im.PushStyleColor(ctx, im.Col_ButtonActive, BgClrAct)
             im.Button(ctx, '##XY Pad '..FP.Num, Width, Height)
@@ -5547,7 +5547,7 @@ function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
         local ScrnCurX , ScrnCurY = ScrnCurX + CircleSz , ScrnCurY + CircleSz* 1.1
         local x = ScrnCurX + V_X * W
         local y = ScrnCurY + H - V_Y * H
-        im.DrawList_AddCircleFilled(WDL, x, y, CircleSz, FP.GrbClr)
+        im.DrawList_AddCircleFilled(WDL, x, y, CircleSz, (FP.GrbClr or 0xffffff22))
 
 
     end

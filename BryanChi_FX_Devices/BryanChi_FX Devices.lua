@@ -4,7 +4,7 @@
 -- @changelog
 --   - Fix Layout editor save button always clickable when there's an FX after. 
 --   - Fixed console 1 layout.
---   - Fixed small bugs 
+--   - Fixed small bugs .
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc

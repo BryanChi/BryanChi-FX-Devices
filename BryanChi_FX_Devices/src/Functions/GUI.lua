@@ -1736,7 +1736,11 @@ end
 ---@param f integer
 ---@return integer
 function getClr(f)
-    return im.GetStyleColor(ctx, f)
+    if type(f) == 'number' then
+        return im.GetStyleColor(ctx, f)
+    else
+
+    end
 end
 
 function ThemeClr(str)
@@ -3056,13 +3060,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             im.SameLine(ctx)
             im.SetCursorPos(ctx, x, y + 200)
             if not FX[FxGUID].MorphB[1] then
-                BtnB_TxtClr = im.GetStyleColor(ctx,
-                    im.Col_TextDisabled)
+                BtnB_TxtClr = im.GetStyleColor(ctx, im.Col_TextDisabled)
             end
 
             if BtnB_TxtClr then
-                im.PushStyleColor(ctx, im.Col_Text,
-                    im.GetStyleColor(ctx, im.Col_TextDisabled))
+                im.PushStyleColor(ctx, im.Col_Text, im.GetStyleColor(ctx, im.Col_TextDisabled))
             end
             im.PushStyleColor(ctx, im.Col_Button, DefClr_B)
             im.PushStyleColor(ctx, im.Col_ButtonHovered, DefClr_B_Hvr)
