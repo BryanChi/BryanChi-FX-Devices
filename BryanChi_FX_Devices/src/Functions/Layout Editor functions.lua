@@ -4045,25 +4045,30 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         end
 
         local function Param_selector()
-            local txt =( LE.Sel_Items and #LE.Sel_Items> 1 ) and 's' or ''
-            im.AlignTextToFramePadding(ctx)
+            im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 2)
+            im.PushStyleVar(ctx, im.StyleVar_ScrollbarSize, 3)
+            if im.BeginChild(ctx, 'Param selector', -1, 30,nil, im.WindowFlags_HorizontalScrollbar) then 
+                local txt =( LE.Sel_Items and #LE.Sel_Items> 1 ) and 's' or ''
+                im.AlignTextToFramePadding(ctx)
 
-            im.Text(ctx, 'Selected Param'..txt)
-            SL()
-            for I, V in ipairs(LE.Sel_Items) do 
-                im.SetNextItemWidth(ctx, 150)
+                im.Text(ctx, 'Selected Param'..txt..':')
+                SL()
+                for I, V in ipairs(LE.Sel_Items) do 
+                    im.SetNextItemWidth(ctx, 150)
 
-                if im.BeginCombo(ctx, '##Param selector'..I,  ' '..tostring(fx[V].Name)) then 
-                    for i, v in ipairs(FX[FxGUID]) do 
-                        if im.Selectable(ctx, ' '..tostring(v.Name)) then 
-                            LE.Sel_Items[I] = i
+                    if im.BeginCombo(ctx, '##Param selector'..I,  ' '..tostring(fx[V].Name)) then 
+                        for i, v in ipairs(FX[FxGUID]) do 
+                            if im.Selectable(ctx, ' '..tostring(v.Name)) then 
+                                LE.Sel_Items[I] = i
+                            end
                         end
+                        im.EndCombo(ctx)
                     end
-                    im.EndCombo(ctx)
+                    if I ~= #LE.Sel_Items then SL() end 
                 end
-                if I ~= #LE.Sel_Items then SL() end 
+                im.EndChild(ctx)
             end
-
+            im.PopStyleVar(ctx,2)
         end
 
 
@@ -4361,7 +4366,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
     Top_Bar()
-    im.BeginChild(ctx, 'Main Content')
+    im.BeginChild(ctx, 'Main Content', -30)
     Background_Edit_Properties()
     FX_Title_Properties()
     Virtual_Button_Properties()
@@ -7057,7 +7062,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 FX[FxGUID].CustomTitle = T.CustomTitle
                 FX[FxGUID].VB = T.VB
 
-                SAVED_DRAW =  FX.LayEdit ==FxGUID and {}
+                SAVED_DRAW =  FX.LayEdit ==FxGUID and {} or SAVED_DRAW
                 for i, v in ipairs(T) do
                     FX[FxGUID][i]          = FX[FxGUID][i] or {}
                     local FP               = FX[FxGUID][i]
@@ -7151,8 +7156,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                     end
                 end
                 FX[FxGUID].Draw = T.Draw 
-                SAVED_BG_DRAW = FX.LayEdit ==FxGUID and {} 
-                SAVED_BG_DRAW = DeepCopy(T.Draw)
+                SAVED_BG_DRAW = FX.LayEdit ==FxGUID and DeepCopy(T.Draw) or SAVED_BG_DRAW
             else
 
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
@@ -7584,7 +7588,7 @@ function IsLayoutModified(FxGUID, FX_Name)
     end
 
 
-    if Compare_BG_Drawings() then return true end
+    if Compare_BG_Drawings() then msg("BG Draw are different") return true end
     -- Check if number of parameters match
     local savedParamCount = #saved
     local currentParamCount = #current
@@ -7624,8 +7628,8 @@ function IsLayoutModified(FxGUID, FX_Name)
             end
             for j = 1, #currentParam.ConditionPrm_V do
                 if currentParam.ConditionPrm_V[j] ~= savedParam.ConditionPrm_V[j] then
-                return true
-            end
+                    return true
+                end
             end
         end
        
@@ -7635,8 +7639,8 @@ function IsLayoutModified(FxGUID, FX_Name)
         local savedDrawingsComparisonTarget = SAVED_DRAW and SAVED_DRAW[i] 
 
         -- 1. Check existence mismatch (current vs SAVED_DRAW snapshot)
-        if (currentDrawings and not savedDrawingsComparisonTarget) or (not currentDrawings and savedDrawingsComparisonTarget) then
-            -- One has drawings, the other (snapshot) doesn't\
+        if (currentDrawings and not savedDrawingsComparisonTarget) then
+        elseif (not currentDrawings and savedDrawingsComparisonTarget) then
             return true
         end
 
@@ -7711,7 +7715,7 @@ function IsLayoutModified(FxGUID, FX_Name)
 
 
     
-    return false
+
 end
 
 

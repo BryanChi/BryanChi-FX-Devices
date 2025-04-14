@@ -1,3 +1,5 @@
+-- @noindex
+
 function ThirdPartyDeps()
     local ultraschall_path = r.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua"
     local readrum_machine = r.GetResourcePath() ..

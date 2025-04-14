@@ -1,4 +1,4 @@
-
+-- @noindex
 function StoreSettings()
     local data = tableToString(
         {
