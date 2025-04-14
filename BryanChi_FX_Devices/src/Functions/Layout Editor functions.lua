@@ -1813,7 +1813,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             local function Value_Decimal_Places ()
 
 
-                if FS.Type == 'Knob' or FS.Type == 'Drag' or FS.Type == 'Slider' then
+                if FS.Type == 'Knob' or FS.Type == 'Drag' or FS.Type == 'Slider' or FS.Type == 'V-Slider' then
 
                     if not FX[FxGUID][LE.Sel_Items[1]].V_Round then
                         local _, FormatV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx,
@@ -4055,8 +4055,8 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 SL()
                 for I, V in ipairs(LE.Sel_Items) do 
                     im.SetNextItemWidth(ctx, 150)
-
-                    if im.BeginCombo(ctx, '##Param selector'..I,  ' '..tostring(fx[V].Name)) then 
+                    local Nm = fx[V] and fx[V].Name or ''
+                    if im.BeginCombo(ctx, '##Param selector'..I,  ' '..tostring(Nm)) then 
                         for i, v in ipairs(FX[FxGUID]) do 
                             if im.Selectable(ctx, ' '..tostring(v.Name)) then 
                                 LE.Sel_Items[I] = i
@@ -4155,14 +4155,31 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         local function Horizontal_Layout_If_Type_Is_Selection_Btns()
             if FS.Type ~= 'Selection Btns' then  return end
-            local vert = not FS.H_or_V and true 
-            local Horiz = FS.H_or_V and true or false
+            local vert = not FS.Is_Horizontal and true 
+            local Horiz = FS.Is_Horizontal and true or false
             if  im.RadioButton(ctx, 'Horizontal' , Horiz) then 
-                FS.H_or_V = true
+                FS.Is_Horizontal = true
             end
             SL()
             if im.RadioButton(ctx, 'Vertical' , vert) then 
-                FS.H_or_V = nil
+                FS.Is_Horizontal = nil
+            end
+
+            im.Text(ctx, 'Spacing: ')
+            SL()
+            im.SetNextItemWidth(ctx, 80)
+            local rv, spacing = im.DragDouble(ctx, '##Spacing VB'..FS.Name, FS.Spacing or 0, nil,nil,nil, '%.1f')
+            SL()
+            if rv then 
+                FS.Spacing = spacing
+            end
+            im.Text(ctx, 'Size: ')
+            SL()
+            im.SetNextItemWidth(ctx, 80)
+
+            local rv, Size = im.DragDouble(ctx, '##Size VB'..FS.Name, FS.Sldr_W or 40, nil,nil,nil, '%.1f')
+            if rv then 
+                FS.Sldr_W = Size
             end
         end
 
@@ -7007,7 +7024,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 local fx = TB
 
                 VBCount = RecallGlobInfo(Ct, 'Virtual Button Instance = ', 'Num')
-                local P = { 'CustomLbl', 'PosY', 'PosX', 'Type', 'Sldr_W', 'AddArrows', 'Btn_Clr'} 
+                local P = { 'CustomLbl', 'PosY', 'PosX', 'Type', 'Sldr_W', 'AddArrows', 'Btn_Clr', 'Is_Horizontal', 'Spacing'} 
                 if not VBCount or VBCount<1 then return end 
                 fx.VB = fx.VB or {}
                 for i= 1, VBCount , 1 do 
@@ -7061,7 +7078,9 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 FX[FxGUID].TitleClr = T.TitleClr
                 FX[FxGUID].CustomTitle = T.CustomTitle
                 FX[FxGUID].VB = T.VB
-
+                if FX.LayEdit == FxGUID then
+                    SAVED_VB = DeepCopy(LO[FX_Name].VB) or SAVED_VB
+                end
                 SAVED_DRAW =  FX.LayEdit ==FxGUID and {} or SAVED_DRAW
                 for i, v in ipairs(T) do
                     FX[FxGUID][i]          = FX[FxGUID][i] or {}
@@ -7186,7 +7205,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                     T.TitleClr = RecallGlobInfo(Ct, 'Title Clr = ', 'Num')
                     T.CustomTitle = RecallGlobInfo(Ct, 'Custom Title = ')
                     PrmInst = RecallGlobInfo(Ct, 'Param Instance = ', 'Num')
-                    T = Virtual_Btns(Ct, T)
+                    LO[FX_Name] = Virtual_Btns(Ct, LO[FX_Name])
+                    
 
                     FX[FxGUID].FileLine = nil 
                 else
@@ -7587,8 +7607,76 @@ function IsLayoutModified(FxGUID, FX_Name)
         -- *** END OF GLOBAL BACKGROUND DRAWING COMPARISON ***
     end
 
+    local function Compare_VB()
+        -- *** COMPARE VIRTUAL BUTTONS ***
+        local currentVB = current.VB
+        local savedVB = SAVED_VB
+
+        -- 1. Check existence mismatch
+        if (currentVB and not savedVB) or (not currentVB and savedVB) then
+
+            return true -- Virtual buttons added or removed
+        end
+
+        -- 2. If both exist, compare counts
+        if currentVB and savedVB then
+            if #currentVB ~= #savedVB then
+                return true -- Different number of virtual buttons
+            end
+
+            -- 3. If counts match, compare individual virtual button properties
+            for j = 1, #currentVB do
+                local cVB = currentVB[j] or {}
+                local sVB = savedVB[j] or {}
+
+                -- Essential properties for virtual buttons based on the code search
+                local vbProps = {
+                    'Name', 'CustomLbl', 'PosX', 'PosY', 'Type', 'Sldr_W',
+                    'AddArrows', 'Btn_Clr', 'Is_Horizontal', 'Spacing'
+                }
+                
+                for _, prop in ipairs(vbProps) do
+                    local cVal = cVB[prop]
+                    local sVal = sVB[prop]
+                    -- Handle nil/false equivalence for boolean properties
+                    if prop == 'AddArrows' or prop == 'Is_Horizontal' then
+                        cVal = cVal or false
+                        sVal = sVal or false
+                    end
+                    if cVal ~= sVal then
+                        return true -- Found a difference
+                    end
+                end
+                
+                -- Compare Choices if they exist
+                if (cVB.Choices and not sVB.Choices) or (not cVB.Choices and sVB.Choices) then
+                    return true -- Choices added or removed
+                end
+                
+                if cVB.Choices and sVB.Choices then
+                    if #cVB.Choices ~= #sVB.Choices then
+                        return true -- Different number of choices
+                    end
+                    
+                    -- Compare individual choices
+                    for k = 1, #cVB.Choices do
+                        local cChoice = cVB.Choices[k] or {}
+                        local sChoice = sVB.Choices[k] or {}
+                        
+                        if cChoice.ChoiceName ~= sChoice.ChoiceName then
+                            return true -- Choice name mismatch
+                        end
+                    end
+                end
+            end
+        end
+        -- *** END OF VIRTUAL BUTTONS COMPARISON ***
+        return false
+    end
+
 
     if Compare_BG_Drawings() then return true end
+    if Compare_VB() then return true end
     -- Check if number of parameters match
     local savedParamCount = #saved
     local currentParamCount = #current

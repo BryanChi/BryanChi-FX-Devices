@@ -4433,6 +4433,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         for i,v in ipairs(fx.VB) do 
                             --local Pos_BeforeX, Pos_BeforeY = im.GetCursorPos(ctx)
+                            v.Chosen = v.Chosen or v.Choices[1].ChoiceName
                             if v.Btn_Clr then 
                                 local Clr = v.Btn_Clr or 0xffffff44
                                 im.PushStyleColor(ctx, im.Col_Button, Clr)
@@ -4469,7 +4470,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if v.AddArrows then
                                     im.SetNextItemWidth(ctx, v.Sldr_W or 150) 
                                 end
-                                if im.BeginCombo(ctx, '##'.. lbl, v.Chosen or '', v.AddArrows and im.ComboFlags_NoArrowButton) then 
+                                local flg = v.AddArrows and im.ComboFlags_NoArrowButton
+                                if im.BeginCombo(ctx, '##'.. lbl, v.Chosen or '', flg) then 
                                     for i , V in ipairs(v.Choices)do 
                                         if im.Selectable(ctx,(V.ChoiceName or '')..'##' ) then 
                                             v.Chosen = V.ChoiceName
@@ -4492,8 +4494,12 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     if v.Chosen and v.Chosen ~= V.ChoiceName then 
                                         Highlight_Itm(WDL, 0x00000044)
                                     end
-                                    if v.H_or_V then 
-                                        SL(nil,0)
+                                    if v.Is_Horizontal then 
+                                        SL(nil, v.Spacing or 0)
+                                    else 
+                                        local pos = {im.GetCursorPos(ctx)}
+                                        im.SetCursorPos(ctx, pos[1], pos[2] + v.Spacing or 0)
+                                        im.Dummy(ctx, 0, 0)
                                     end
                                 end
                                 im.EndGroup(ctx)

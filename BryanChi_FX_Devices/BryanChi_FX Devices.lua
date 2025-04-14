@@ -1,10 +1,9 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta19
+-- @version 1.0beta19.1
 -- @changelog
---   - Fix Layout editor save button always clickable when there's an FX after. 
---   - Fixed console 1 layout.
---   - Fixed small bugs .
+--   - Layout Editor bug fixes.
+--   - Added Valhalla Ubermod Layout
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
