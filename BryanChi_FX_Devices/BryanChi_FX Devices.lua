@@ -1,6 +1,6 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta18.3.1
+-- @version 1.0beta19
 -- @changelog
 --   - Fix Layout editor save button always clickable when there's an FX after. 
 --   - Fixed console 1 layout.
