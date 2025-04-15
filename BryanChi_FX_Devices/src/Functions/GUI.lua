@@ -5389,12 +5389,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             end
         end
         for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '',
-                true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
         end
         for i = 1, #Trk[TrkID].PreFX + 1, 1 do
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '',
-                true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, Trk[TrkID].PreFX[i] or '', true)
         end
         if not DontMove then
             if FX_Idx ~= Sel_Track_FX_Count and SpaceIsBeforeRackMixer ~= 'End of PreFX' then

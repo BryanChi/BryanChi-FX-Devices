@@ -2627,12 +2627,17 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                 local function Image_Styles_For_Switches()
                     if FS.Type == 'Switch' or (not FS.Type and FX[FxGUID].DefType == 'Switch') then 
+
+                        local function Add_Invisibutton()
+                            im.InvisibleButton(ctx, '##Add Switch', 25, 25)
+                        end
                         local function Add_Image_STYLE ()
                             im.SeparatorText(ctx, 'Images')
                             for i, v in pairs(StyleWinImg) do
                                 local Dir = '/Scripts/FX Devices/BryanChi_FX_Devices/src/Images/Switches/' 
-
-                                SetStyle(StyleWinImgName[i], 'Custom Image', v, Dir .. StyleWinImgName[i], AddSwitch, LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil, 0, nil,nil,FxGUID, v)
+                                --[[ AddSwitch, LT_Track, FX_Idx, FS.V, FS.Num, FS.Clr, nil, 0, nil,nil,FxGUID, v ]]
+                                FX[FxGUID][-1] =  {Num = FS.Num; Type = FS.Type; Sldr_W = 30 ; Height = 15; Lbl_Pos= 'Non'; DONT_MAKE_EDITABLE = true ; Image = v; Name = 'Switch'}
+                                SetStyle(StyleWinImgName[i], 'Custom Image', v, Dir .. StyleWinImgName[i], AddSwitch, ctx, FxGUID, -1, FX_Idx)
                             end
                         end
                         Add_Image_Styles ('Switches', Add_Image_STYLE)
@@ -6532,11 +6537,11 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
             _, lbl = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
         end
         if FP.Lbl_Pos == 'Within' or (not FP.Lbl_Pos and FP.V_Pos~= 'Within')  then 
-            lbl = FP.CustomLbl or FP.Name 
+            lbl = FP.CustomLbl or FP.Name or ''
             im.PushFont(ctx,  _G[Font])
             popFont = (popFont or 0) + 1
         end
-
+        local lbl = lbl or ''
         return lbl, TextW
     end
     local function applyButtonColors()

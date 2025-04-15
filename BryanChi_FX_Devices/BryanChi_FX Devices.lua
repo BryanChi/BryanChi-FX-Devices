@@ -1,9 +1,8 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta19.1
+-- @version 1.0beta19.1.1
 -- @changelog
---   - Layout Editor bug fixes.
---   - Added Valhalla Ubermod Layout
+--   - fix crash when opening switch style chooser
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
