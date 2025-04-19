@@ -289,10 +289,13 @@ function Layout_Edit_MenuBar_Buttons()
         if im.ImageButton(ctx, '## Copy', Img.Copy, BtnSz, BtnSz) then
             local I = FX[FxGUID][LE.Sel_Items[1]]
             CopyPrm = {}
-            CopyPrm = I
+            CopyPrm = I.Link and I.Link or I
         end
 
         if CopyPrm  then 
+            local FS = FX[FxGUID][LE.Sel_Items[1]]
+            im.InvisibleButton(ctx, '## paste arrow', BtnSz, BtnSz)
+            DrawArrow(nil,nil,nil,nil, 2)
             if im.ImageButton(ctx, '## paste', Img.Paste, BtnSz, BtnSz) then
                 Create_Undo_Point('Paste Properties', FxGUID)
                 for i, v in pairs(LE.Sel_Items) do
@@ -377,9 +380,30 @@ function Layout_Edit_MenuBar_Buttons()
                     end
                 end
             end
+            if im.Button(ctx, 'Link',  nil, BtnSz * 1.25 ) then 
+                for i, v in pairs(LE.Sel_Items) do
+                    FX[FxGUID][v].Link = CopyPrm
+                end
+            end
+            Tooltip_If_Itm_Hvr('Link ' .. (FS.CustomLbl or FS.Name) ..'\'s properties to '.. (CopyPrm.CustomLbl or CopyPrm.Name or ''))
         end
     end
-
+    local function LayEdit_and_Backrgound_Edit_Undo_Button()
+        if Draw.DrawMode or FX.LayEdit then
+            LE.Undo_Points = LE.Undo_Points or {}
+            if #LE.Undo_Points > 0 then
+                local str = ( 'Undo ' .. LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name)
+                if im.ImageButton(ctx, 'Undo', Img.Undo, BtnSz , BtnSz , nil,nil,nil,nil, nil) then
+    
+                    FX[FX.LayEdit] = DeepCopy (LE.Undo_Points[#LE.Undo_Points])
+                    table.remove(LE.Undo_Points, #LE.Undo_Points)
+    
+                end
+                Tooltip_If_Itm_Hvr(str)
+            end
+        end
+    end
+    LayEdit_and_Backrgound_Edit_Undo_Button()
     Grid_Adjust_Btns()
     im.PushStyleVar(ctx, im.StyleVar_FramePadding, 10, 2)
     Delete()
@@ -528,19 +552,7 @@ function ShowTrackName(Condition)
     end
 end 
 
-function LayEdit_and_Backrgound_Edit_Undo_Button()
-    if Draw.DrawMode or FX.LayEdit then
-        LE.Undo_Points = LE.Undo_Points or {}
-        if #LE.Undo_Points > 0 then
-            if im.Button(ctx, ( 'Undo ' .. LE.Undo_Points[#LE.Undo_Points].Undo_Pt_Name)) then
 
-                    FX[FX.LayEdit] = DeepCopy (LE.Undo_Points[#LE.Undo_Points])
-                    table.remove(LE.Undo_Points, #LE.Undo_Points)
-
-            end
-        end
-    end
-end
 
 
 
@@ -573,7 +585,6 @@ function MenuBar ()
 
     im.PushStyleVar(ctx, im.StyleVar_FrameRounding, 4)
     im.PushStyleVar(ctx, im.StyleVar_FrameBorderSize, 2)
-    LayEdit_and_Backrgound_Edit_Undo_Button()
 
     Layout_Edit_MenuBar_Buttons()
     Backrgound_Edit_MenuBar_Buttons()

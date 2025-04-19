@@ -2997,7 +2997,7 @@ function When_User_Switch_Track()
         RetrieveFXsSavedLayout(Sel_Track_FX_Count)
         TREE = BuildFXTree(LT_Track)
 
-
+        DRAW_PAR_ENCLOSURE = nil
 
         
         layoutRetrieved = true

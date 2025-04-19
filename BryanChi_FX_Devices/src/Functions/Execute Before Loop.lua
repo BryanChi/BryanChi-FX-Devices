@@ -914,7 +914,7 @@ end
 function attachImagesAndFonts()
     
     FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 
-            }
+            'Font_Andale_Mono'}
     for i , v in ipairs(FONT_CHOICES) do    
         _G[v] = im.CreateFont(v, 15)
         im.Attach(ctx, _G[v])
@@ -925,7 +925,7 @@ function attachImagesAndFonts()
     icon1_middle        = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
     icon1_small         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
     Img = {
-        
+        Undo = im.CreateImage(CurrentDirectory .. '/src/Images/undo.png'),
         Trash  = im.CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
         Pin    = im.CreateImage(CurrentDirectory .. '/src/Images/pin.png'),
         Pinned = im.CreateImage(CurrentDirectory .. '/src/Images/pinned.png'),
@@ -957,7 +957,10 @@ function attachImagesAndFonts()
     end
 
     System_Font = im.CreateFont('sans-serif', 14)
+    System_Font_12 = im.CreateFont('sans-serif', 12)
     im.Attach(ctx, System_Font)
+    im.Attach(ctx, System_Font_12)
+
     Font_Andale_Mono_20_B = im.CreateFont('andale mono', 20, im.FontFlags_Bold) -- TODO move to constants
     im.Attach(ctx, Font_Andale_Mono_20_B)
 

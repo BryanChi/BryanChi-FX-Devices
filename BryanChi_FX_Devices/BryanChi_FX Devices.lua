@@ -1,8 +1,13 @@
 -- @description FX Devices
 -- @author Bryan Chi
--- @version 1.0beta19.1.1
+-- @version 1.0beta19.1.2
 -- @changelog
---   - fix crash when opening switch style chooser
+--   - Layout Editor : Added link feature to pool parameter properties to other parameters.
+--   - Layout Editor : Added option to show buttons for selection type.
+--   - Revamped fancy layout for Fresh Air.
+--   - new Khs layout for phaser and compressor.
+--   - fix Container enclosure display still showing when track selection has changed.
+--   - fix Value tooltip still shows even when values are shwon in the Layout.
 -- @provides
 --   [effect] FXD JSFXs/*.jsfx
 --   [effect] FXD JSFXs/*.jsfx-inc
@@ -31,7 +36,6 @@
 --   https://forum.cockos.com/showthread.php?t=263622
 
 
-a =123
 r = reaper
 OS = r.GetOS()
 
@@ -134,7 +138,7 @@ function Main_Loop()
         Glob.WDL = im.GetWindowDrawList(ctx)
 
 
-        Font = Font_Andale_Mono
+        Font = Font_Andale_Mono_13
         im.PushFont(ctx, Font)
 
         MenuBar ()

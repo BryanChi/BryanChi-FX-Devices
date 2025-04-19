@@ -60,7 +60,49 @@ function Drag_With_Bar(ctx, str, v, v_speed, v_min, v_max, format, flags, clr)
 end
 
 
+function RenderChoiceButtons(v, Choices, ChoiceName)
+    local Choices = Choices or v.Choices
+    if not Choices then return end
+    im.BeginGroup(ctx)
+    local WDL = im.GetWindowDrawList(ctx)
+    local btn_click 
+    for i, V in ipairs(Choices) do 
+        local CN = V.V_Form or ChoiceName[i] or V.ChoiceName
+        local NeedPop 
+        if v.GrbClr and v.Chosen == CN then 
+            im.PushStyleColor(ctx, im.Col_Button, v.GrbClr)
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, v.GrbClr)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, v.GrbClr)
+            NeedPop =3 
+        end
+        if im.Button(ctx, (CN or '')..'##', v.Sldr_W, nil) then 
+            v.Chosen = CN
+            v.CurrentOps = i
+            btn_click = i 
+        end
 
+        if NeedPop then 
+            im.PopStyleColor(ctx,NeedPop)
+        end
+
+
+        if v.Chosen and v.Chosen ~= CN then 
+            Highlight_Itm(WDL, 0x00000044)
+        end
+        if v.Is_Horizontal then 
+            SL(nil, v.Spacing or 0)
+        else 
+            local pos = {im.GetCursorPos(ctx)}
+            im.SetCursorPos(ctx, pos[1], pos[2] + (v.Spacing or 0))
+            im.Dummy(ctx, 0, 0)
+        end
+
+
+        
+    end
+    im.EndGroup(ctx)
+    if btn_click then return btn_click end 
+end
 
 ------------- Buttons/Knobs -------------
 function InvisiBtn(ctx, x, y, str, w, h)
@@ -775,7 +817,6 @@ function Show_Tooltip_For_Duration(text, duration , pos)
 
         local time = Tooltip.time
         if time < duration then 
-
             tooltip(text, Tooltip.clr, pos)
         elseif time > duration then
             Tooltip= {}
@@ -1844,12 +1885,21 @@ end
 
 ---@param A string text for tooltip
 function tooltip(A, clr, pos)
+    if pos then
+        if type(pos) == 'table' then
+            im.SetNextWindowPos(ctx, pos[1], pos[2]+ (pos.SpacingY or 0) )
+            if pos.SpacingY and pos.Line_From_PosY then 
+                local X = pos.Line_From_PosX or pos[1]
+                local Tk = 2 
+                im.DrawList_AddLine(im.GetForegroundDrawList(ctx), X, pos.Line_From_PosY , X, pos.Line_From_PosY+ pos.SpacingY +Tk , 0xffffff44, Tk)
+            end
+        end
+    end
     
     im.BeginTooltip(ctx)
     if clr then 
         im.PushStyleColor(ctx, im.Col_Text, clr)
     end
-    --im.SetTooltip(ctx, A)
     im.Text(ctx, A)
 
     if clr then 
@@ -1887,6 +1937,20 @@ function TooltipUI(str, flags)
     end
 end
 
+function Tooltip_If_Itm_Hvr(Str, Distance)
+    if im.IsItemHovered(ctx) then
+        local Distance = Distance or - 15
+        local text = Str
+        local pos = {im.GetItemRectMin(ctx)}
+        local w, h = im.GetItemRectSize(ctx)
+        pos.Line_From_PosY = pos[2]
+        pos.Line_From_PosX = pos[1] + w/2
+        pos[2] = pos[2] - h
+        pos.SpacingY = Distance
+        tooltip(text, nil , pos)
+    end
+end
+
 ---@param str string text for tooltip
 ---@param flags string flags (delayshort, delaynormal, stationary, etc) for tooltip
 function QuestionHelpObject(str, flags)
@@ -1919,10 +1983,11 @@ function Highlight_Itm(WDL, FillClr, OutlineClr, rounding, padding, thick, ofs)
     if OutlineClr then im.DrawList_AddRect(WDL, L, T, R, B, OutlineClr, rounding, nil, thick) end
 end
 
-function HighlightHvredItem( FillClr, OutlineClr , FillClrAct, OutlineClrAct, rounding, On_Release )
+function HighlightHvredItem( FillClr, OutlineClr , FillClrAct, OutlineClrAct, rounding, On_Release , trigger)
     local DL = im.GetForegroundDrawList(ctx)
     L, T = im.GetItemRectMin(ctx)
     R, B = im.GetItemRectMax(ctx)
+
     if im.IsMouseHoveringRect(ctx, L, T, R, B) then
         im.DrawList_AddRect(DL, L, T, R, B, OutlineClr or  0x99999999   , rounding)
         im.DrawList_AddRectFilled(DL, L, T, R, B,  FillClr or 0x99999933, rounding)
@@ -1965,33 +2030,32 @@ end
 ---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
     Foreground, rounding, thick)
-local GetItemRect = GetItemRect or 'GetItemRect'
-if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
-L, T = im.GetItemRectMin(ctx); R, B = im.GetItemRectMax(ctx); w, h = im.GetItemRectSize(ctx)
---Get item rect
-end
-local P = Padding or 0; local HSC = H_OutlineSc or 4; local VSC = V_OutlineSc or 4
-if Foreground == 'Foreground' then WinDrawList = Glob.FDL elseif Foreground then WinDrawList = Foreground  else WinDrawList = Foreground end
-local WinDrawList = WinDrawList or  im.GetWindowDrawList(ctx)
-if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
+    local GetItemRect = GetItemRect or 'GetItemRect'
+    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
+        L, T = im.GetItemRectMin(ctx); R, B = im.GetItemRectMax(ctx); w, h = im.GetItemRectSize(ctx)
+    end
+    local P = Padding or 0; local HSC = H_OutlineSc or 4; local VSC = V_OutlineSc or 4
+    if Foreground == 'Foreground' then WinDrawList = Glob.FDL elseif Foreground then WinDrawList = Foreground  else WinDrawList = Foreground end
+    local WinDrawList = WinDrawList or  im.GetWindowDrawList(ctx)
+    if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr) end
 
-local h = h or B - T
-local w = w or R - L
+    local h = h or B - T
+    local w = w or R - L
 
-if OutlineClr and not rounding then
-    im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
-    im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
-else
-if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
-if OutlineClr then im.DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
-end
-if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
+    if OutlineClr and not rounding then
+        im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P, T + h / VSC - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P, T + h / VSC - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P, B + P - h / VSC, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P, B - h / VSC + P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, T - P, L - P + w / HSC, T - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, T - P, R + P - w / HSC, T - P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, L - P, B + P, L - P + w / HSC, B + P, OutlineClr, thick)
+        im.DrawList_AddLine(WinDrawList, R + P, B + P, R + P - w / HSC, B + P, OutlineClr, thick)
+    else
+    if FillClr then im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, FillClr, rounding) end
+    if OutlineClr then im.DrawList_AddRect(WinDrawList, L, T, R, B, OutlineClr, rounding) end
+    end
+    if GetItemRect == 'GetItemRect' then return L, T, R, B, w, h end
 end
 
 ---@param dur number
@@ -2084,10 +2148,14 @@ end
 
 function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pad_Y_Val )
                             
-    if not FP.Draw  then return end
+    if not FP.Draw  and not FP.Link then return end
 
+    local DrawTB = FP.Draw
+    if FP.Link then 
+        DrawTB = FP.Link.Draw
+    end
     local prm = FP
-    
+
     local GR = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'GainReduction_dB')))
     local x, y              = pos[1], pos[2]
     
@@ -2095,7 +2163,6 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
     if DraggingMorph == FxGUID then
         Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num) 
     end
-
 
     local function Draw(v)
         
@@ -2490,14 +2557,17 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
         Draw_Gain_Reduction_Text(v)
         ::END_OF_LOOP::
     end
-    for i, v in ipairs(FP.Draw) do
-        if type(v)== 'table' then 
-            for I, V in ipairs(v) do 
-                if not  v.Bypass then 
-                    Draw(V)
-                end
-            end 
-            Draw(v)
+    if DrawTB then 
+        for i, v in ipairs(DrawTB) do
+            
+            if type(v)== 'table' then 
+                for I, V in ipairs(v) do 
+                    if not  v.Bypass then 
+                        Draw(V)
+                    end
+                end 
+                Draw(v)
+            end
         end
     end
 
@@ -4433,7 +4503,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                         for i,v in ipairs(fx.VB) do 
                             --local Pos_BeforeX, Pos_BeforeY = im.GetCursorPos(ctx)
-                            v.Chosen = v.Chosen or v.Choices[1].ChoiceName
+                            v.Choices = v.Choices or {}
+                            v.Chosen = v.Chosen or (v.Choices[1] and v.Choices[1].ChoiceName)
                             if v.Btn_Clr then 
                                 local Clr = v.Btn_Clr or 0xffffff44
                                 im.PushStyleColor(ctx, im.Col_Button, Clr)
@@ -4485,24 +4556,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 im.EndGroup(ctx)
 
                             elseif v.Type =='Selection Btns' then 
-                                im.BeginGroup(ctx)
-                                for i , V in ipairs(v.Choices)do 
-                                    if im.Button(ctx, (V.ChoiceName or '')..'##', v.Sldr_W, nil) then 
-                                        v.Chosen = V.ChoiceName
-                                        v.CurrentOps = i
-                                    end
-                                    if v.Chosen and v.Chosen ~= V.ChoiceName then 
-                                        Highlight_Itm(WDL, 0x00000044)
-                                    end
-                                    if v.Is_Horizontal then 
-                                        SL(nil, v.Spacing or 0)
-                                    else 
-                                        local pos = {im.GetCursorPos(ctx)}
-                                        im.SetCursorPos(ctx, pos[1], pos[2] + v.Spacing or 0)
-                                        im.Dummy(ctx, 0, 0)
-                                    end
-                                end
-                                im.EndGroup(ctx)
+                                RenderChoiceButtons(v)
                             end
                             if v.Btn_Clr then 
                                 im.PopStyleColor(ctx,6)
@@ -4683,7 +4737,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         local FP = FP
 
                         if FP and FxGUID then
-
+                            Lk(FP)
                             ---!!!!!! use  drawlist  splitter here?  So that Mod Lines can be on top, or to decide what drawings take precedence
                             local function Create_Item()
                                 local pos =  { im.GetCursorScreenPos(ctx) }
@@ -6459,4 +6513,51 @@ function Marquee_Selection(ItmCt, TB, V , FillClr)
         --end
     end
     return TB
+end
+
+
+function DrawArrow(coords, color, thickness, headSize, Y_Offset)
+    local thickness = thickness or 1
+    local headSize = headSize or 10
+    local DrawList = im.GetWindowDrawList(ctx)
+    local color = color or 0xffffffff
+    if not coords then 
+        local sX, sY = im.GetItemRectMin(ctx)
+        local eX, eY = im.GetItemRectMax(ctx)
+        local w, h = im.GetItemRectSize(ctx)
+        coords = {
+            startX = sX,
+            startY = sY + h/2 + Y_Offset,
+            endX = eX,
+            endY = eY - h/2 + Y_Offset
+        }
+    end
+    -- Draw the main line
+    im.DrawList_AddLine(DrawList, coords.startX, coords.startY, coords.endX, coords.endY, color, thickness)
+    
+    -- Calculate the angle of the line
+    local dx = coords.endX - coords.startX
+    local dy = coords.endY - coords.startY
+    local angle
+    
+    if dx == 0 then
+        angle = dy > 0 and math.pi/2 or -math.pi/2
+    else
+        angle = math.atan(dy/dx)
+        if dx < 0 then
+            angle = angle + math.pi
+        end
+    end
+    
+    -- Calculate arrow head points
+    local angle1 = angle - (30 * (math.pi/180))
+    local angle2 = angle + (30 * (math.pi/180))
+    local arrowP1X = coords.endX - headSize * math.cos(angle1)
+    local arrowP1Y = coords.endY - headSize * math.sin(angle1)
+    local arrowP2X = coords.endX - headSize * math.cos(angle2)
+    local arrowP2Y = coords.endY - headSize * math.sin(angle2)
+    
+    -- Draw arrow head
+    im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP1X, arrowP1Y, color, thickness)
+    im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP2X, arrowP2Y, color, thickness)
 end
