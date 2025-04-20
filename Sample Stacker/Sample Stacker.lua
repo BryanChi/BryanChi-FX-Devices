@@ -16,7 +16,7 @@ require("Functions.Initial Stuff")
 
 if ThirdPartyDeps() then return end
 package.path = r.ImGui_GetBuiltinPath() .. '/?.lua'
-ImGui = require 'imgui' '0.9'
+im = require 'imgui' '0.9'
 
 
 
@@ -59,7 +59,7 @@ end
 
 
 
-CreateFont(ImGui)
+CreateFont(im)
 
 ctx = r.ImGui_CreateContext('Sample Stacker', r.ImGui_ConfigFlags_DockingEnable())
 package.path = CurrentDirectory .. "?.lua;"
@@ -75,22 +75,22 @@ end
 
 function Show_AddedSamples (MatchedFiles)
     function Added_Samples_Number_Box(i, sz)
-        ImGui.Button( ctx, i, sz,sz)
+        im.Button( ctx, i, sz,sz)
     end
     
     function Added_Samples_Volume_Drag(i, tb)
         if not tb or not tb.it   then return end 
-        ImGui.SetNextItemWidth(ctx, 50)
+        im.SetNextItemWidth(ctx, 50)
         local Vol = r.GetMediaItemInfo_Value( tb.it, 'D_VOL' )
        -- local v =   10^(Vol/20)
     
         local Vol_dB = dBFromVal(Vol)
     
     
-        ImGui.SetNextItemWidth(ctx, 40)
-        local rv, Vol_dB = ImGui.DragDouble( ctx, '## Vol'..i, Vol_dB,  0.2, -120, 24, ('%.1f'):format(Vol_dB))
+        im.SetNextItemWidth(ctx, 40)
+        local rv, Vol_dB = im.DragDouble( ctx, '## Vol'..i, Vol_dB,  0.2, -120, 24, ('%.1f'):format(Vol_dB))
         SL(nil,0)
-        ImGui.Text(ctx, 'dB')
+        im.Text(ctx, 'dB')
         SL(nil, 10 )
     
         if rv then
@@ -109,27 +109,27 @@ function Show_AddedSamples (MatchedFiles)
     end
     function Added_Samples_Selection(i)
         local x, y , w , h , WDL    
-        w, h = ImGui.GetWindowSize( ctx)
-        x, y = ImGui.GetWindowPos( ctx)
-        WDL  = ImGui.GetWindowDrawList(ctx)
+        w, h = im.GetWindowSize( ctx)
+        x, y = im.GetWindowPos( ctx)
+        WDL  = im.GetWindowDrawList(ctx)
 
-        if ImGui.IsWindowHovered(ctx, ImGui.HoveredFlags_ChildWindows) then 
+        if im.IsWindowHovered(ctx, im.HoveredFlags_ChildWindows) then 
             
 
-            if MODS==ImGui.Mod_Alt then  
-                ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0x93222266)
+            if MODS==im.Mod_Alt then  
+                im.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0x93222266)
             else    
-                ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff11)
+                im.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff11)
             end 
-            if ImGui.IsMouseClicked(ctx,0) and MODS==0   then 
-                ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff55)
+            if im.IsMouseClicked(ctx,0) and MODS==0   then 
+                im.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff55)
                 Sel_Samples= {}
                 
                 Sel_Samples[1]=i
 
                 PreviewSample_Solo(Added[i].it)
-            elseif ImGui.IsMouseClicked(ctx,0) and MODS==ImGui.Mod_Super then 
-                ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff55)
+            elseif im.IsMouseClicked(ctx,0) and MODS==im.Mod_Super then 
+                im.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff55)
                 if tablefind(Sel_Samples,i) then 
                     table.remove(Sel_Samples, tablefind(Sel_Samples,i))
                 else
@@ -137,7 +137,7 @@ function Show_AddedSamples (MatchedFiles)
                 end 
 
                 PreviewSample_Solo(Added[i].it, Sel_Samples, Added)
-            elseif ImGui.IsMouseClicked(ctx,0) and MODS==ImGui.Mod_Alt then 
+            elseif im.IsMouseClicked(ctx,0) and MODS==im.Mod_Alt then 
                 
                 --table.remove(Added, i)
                 table.insert(Delete_Itm,  i)
@@ -145,8 +145,8 @@ function Show_AddedSamples (MatchedFiles)
             end
         end 
         if FindExactStringInTable(Sel_Samples, i) then 
-            ImGui.DrawList_AddRect(WDL, x, y , x+w, y+h , 0xffffff55)
-            ImGui.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff0f)
+            im.DrawList_AddRect(WDL, x, y , x+w, y+h , 0xffffff55)
+            im.DrawList_AddRectFilled(WDL, x, y , x+w, y+h , 0xffffff0f)
     
         end
     end
@@ -154,14 +154,14 @@ function Show_AddedSamples (MatchedFiles)
     function Solo_State_Controls()
         if Solo_Playing_Itm then 
 
-            if ImGui.IsKeyPressed(ctx, ImGui.Key_Space) then 
+            if im.IsKeyPressed(ctx, im.Key_Space) then 
 
                 --r.SetMediaItemInfo_Value(it, 'B_UISEL', 1)  --select item 
                 r.Main_OnCommand(41560,0) -- unsolo
             end 
         end 
         if #Sel_Samples >1 then --- if there are more than one samples selected 
-            if ImGui.IsKeyPressed(ctx, ImGui.Key_Space) then 
+            if im.IsKeyPressed(ctx, im.Key_Space) then 
                 r.Main_OnCommand(41558, 0 ) -- solo item 
 
             end 
@@ -173,7 +173,7 @@ function Show_AddedSamples (MatchedFiles)
         SL()
         local sz = Added_Saamples_Name_Height
         --ImGui.Button(ctx, 'Random',  sz,sz)
-        if DiceButton ('Dice'..i, 3, sz,sz , nil,nil,'No Fill', ImGui.GetStyleColor(ctx,ImGui.Col_Text)) then 
+        if DiceButton ('Dice'..i, 3, sz,sz , nil,nil,'No Fill', im.GetStyleColor(ctx,im.Col_Text)) then 
             local tb = FilterFileType (files_array, File_Types_To_Show )
 
 
@@ -200,7 +200,7 @@ function Show_AddedSamples (MatchedFiles)
     
             local Name = filenamebuf:sub(string.find(filenamebuf, "/[^/]*$")+1)
     
-            ImGui.Text(ctx, Name)
+            im.Text(ctx, Name)
         end
     end
 
@@ -210,7 +210,7 @@ function Show_AddedSamples (MatchedFiles)
     for i, v in ipairs(Added) do 
         local W = Added_Saamples_Name_Width
         local H = Added_Saamples_Name_Height
-        ImGui.BeginChild(ctx, '##Sample'..i, W, H, nil,ImGui.WindowFlags_NoScrollbar)
+        im.BeginChild(ctx, '##Sample'..i, W, H, nil,im.WindowFlags_NoScrollbar)
         Added_Samples_Number_Box(i,H)
         SL()
         --ImGui.AlignTextToFramePadding( ctx)
@@ -219,41 +219,41 @@ function Show_AddedSamples (MatchedFiles)
 
         ShowSampleName(v)
         Show_Added_Samples_KeyWord(v, H + 5, H/2, i)
-        ImGui.SetCursorPos(ctx, 10, 10 )
+        im.SetCursorPos(ctx, 10, 10 )
         Added_Samples_Selection(i)
         
         Solo_State_Controls()
 
         --ImGui.PopStyleVar(ctx)
         
-        ImGui.EndChild(ctx)
+        im.EndChild(ctx)
         RandomButton_For_Added_Sample(i)
         SL()
         Added_Samples_Volume_Drag(i,v )
-        ImGui.Separator(ctx)
+        im.Separator(ctx)
 
     end 
 end
 
 function Show_Added_Samples_KeyWord(tb, x, y , i )
-    ImGui.SetCursorPos(ctx, x, y )
+    im.SetCursorPos(ctx, x, y )
     for i, v in ipairs(tb.KeyWord) do 
-        ImGui.SetCursorPosY(ctx, y )
-        if ImGui.Button(ctx, v) then 
+        im.SetCursorPosY(ctx, y )
+        if im.Button(ctx, v) then 
             table.remove(tb.KeyWord, i )
         end 
         SL()
     end
     if AddNewKeyWord~=i then 
-        ImGui.SetCursorPosY(ctx, y )
-        if ImGui.Button(ctx, '+##' ) then 
+        im.SetCursorPosY(ctx, y )
+        if im.Button(ctx, '+##' ) then 
             AddNewKeyWord = i
             
         end 
     elseif AddNewKeyWord==i then 
-        ImGui.SetKeyboardFocusHere(ctx)
-        ImGui.SetNextItemWidth(ctx, 60)
-        local rv, txt =  ImGui.InputText(ctx, '##NewKeyWord'..i, txt) 
+        im.SetKeyboardFocusHere(ctx)
+        im.SetNextItemWidth(ctx, 60)
+        local rv, txt =  im.InputText(ctx, '##NewKeyWord'..i, txt) 
         if r.ImGui_IsItemDeactivatedAfterEdit( ctx) and txt  then 
            table.insert(  Added[i].KeyWord ,  txt)
            AddNewKeyWord=nil
@@ -265,12 +265,12 @@ end
 
 function Show_MatchedSamples(MatchedFiles)
     if not MatchedFiles then return end 
-    ImGui.BeginChild(ctx, 'Matched Samples')
+    im.BeginChild(ctx, 'Matched Samples')
     for i, v in pairs( MatchedFiles) do 
         Rslt[v]= Rslt[v] or {}
         if  not Rslt[v].Added  then 
             local Name = v:sub(string.find(v, "/[^/]*$")+1)
-            rv , Rslt[v].Added = ImGui.Checkbox( ctx, Name..'##'..v, Rslt[v].Added)
+            rv , Rslt[v].Added = im.Checkbox( ctx, Name..'##'..v, Rslt[v].Added)
             if rv  then 
                 InsertSample(v)
 
@@ -287,28 +287,28 @@ function Show_MatchedSamples(MatchedFiles)
             end
         end
     end
-    ImGui.EndChild(ctx)
+    im.EndChild(ctx)
 end
 
 
-AttachFont(ctx, ImGui)
+AttachFont(ctx, im)
 
 function SearchBar()
-    ImGui.PushFont(ctx, Arial_20)
-    if FirstLoop then ImGui.SetKeyboardFocusHere(ctx) end 
+    im.PushFont(ctx, Arial_20)
+    if FirstLoop then im.SetKeyboardFocusHere(ctx) end 
     rv, SearchTxt = r.ImGui_InputText( ctx, '##', SearchTxt--[[ ImGui.InputTextFlags_EnterReturnsTrue ]])
-    ImGui.PopFont(ctx)
+    im.PopFont(ctx)
 
 
-    if ImGui.IsItemDeactivatedAfterEdit(ctx) then 
+    if im.IsItemDeactivatedAfterEdit(ctx) then 
         if  SearchTxt~=''   then
             table.insert(KeyWord, SearchTxt)
             SearchTxt = nil 
-            ImGui.SetKeyboardFocusHere( ctx,   -1)
+            im.SetKeyboardFocusHere( ctx,   -1)
         end
     end 
-    if ImGui.IsItemActive (ctx) then 
-        if SearchTxt=='' and KeyWord[1] and ImGui.IsKeyPressed(ctx, ImGui.Key_Backspace) and DontFocusKeyword ==0  then 
+    if im.IsItemActive (ctx) then 
+        if SearchTxt=='' and KeyWord[1] and im.IsKeyPressed(ctx, im.Key_Backspace) and DontFocusKeyword ==0  then 
             ConfirmDeleteKeyWord = #KeyWord
         end 
         if SearchTxt~= '' then 
@@ -341,25 +341,25 @@ end
 function ToolBar()
     local function Save()
 
-        if ImGui.Button(ctx,'Save Search Set')then 
+        if im.Button(ctx,'Save Search Set')then 
             Save_Search_Set = true 
-            ImGui.OpenPopup(ctx, 'Search Set Save Window')
+            im.OpenPopup(ctx, 'Search Set Save Window')
         end
         if Save_Search_Set then 
-            local x , y = ImGui.GetCursorScreenPos(ctx)
-            ImGui.SetNextWindowPos(ctx, x, y - 20 )
+            local x , y = im.GetCursorScreenPos(ctx)
+            im.SetNextWindowPos(ctx, x, y - 20 )
 
 
-            if ImGui.BeginPopupModal( ctx, 'Search Set Save Window',  true , ImGui.WindowFlags_AlwaysAutoResize+ ImGui.WindowFlags_NoDecoration) then 
-                ImGui.SetKeyboardFocusHere(ctx)
-                ImGui.Text(ctx ,  'Search Set Name:')
-                local rv, Search_Set_Name = ImGui.InputText(ctx, '## Enter Search Set Name', Search_Set_Name , ImGui.InputTextFlags_EnterReturnsTrue)
+            if im.BeginPopupModal( ctx, 'Search Set Save Window',  true , im.WindowFlags_AlwaysAutoResize+ im.WindowFlags_NoDecoration) then 
+                im.SetKeyboardFocusHere(ctx)
+                im.Text(ctx ,  'Search Set Name:')
+                local rv, Search_Set_Name = im.InputText(ctx, '## Enter Search Set Name', Search_Set_Name , im.InputTextFlags_EnterReturnsTrue)
                 if rv then 
                     Save_Search_set_Into_File(Search_Set_Name)
                     Save_Search_Set = nil
                 end 
 
-                ImGui.EndPopup(ctx)
+                im.EndPopup(ctx)
             end 
         end
 
@@ -409,16 +409,16 @@ function ToolBar()
             end
         end
         SL()
-        if ImGui.Button(ctx,'Load Search Set')then
+        if im.Button(ctx,'Load Search Set')then
             Search_Set_Files = Load_Files()
             Load_Srch_Set_Win_Open = true 
-            ImGui.OpenPopup(ctx, 'Load Search Set Window')
+            im.OpenPopup(ctx, 'Load Search Set Window')
             ShapeFilter =  r.ImGui_CreateTextFilter(Shape_Filter_Txt)
         end
 
-        if ImGui.BeginPopup(ctx, 'Load Search Set Window') then 
+        if im.BeginPopup(ctx, 'Load Search Set Window') then 
             
-            ImGui.SetNextItemWidth(ctx, 300)
+            im.SetNextItemWidth(ctx, 300)
             if r.ImGui_TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', 200 ) then
                 Shape_Filter_Txt = r.ImGui_TextFilter_Get(ShapeFilter)
                 r.ImGui_TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
@@ -426,14 +426,14 @@ function ToolBar()
             for i, v in ipairs(Search_Set_Files) do 
                 if r.ImGui_TextFilter_PassFilter(ShapeFilter, v) then
 
-                    if ImGui.Selectable(ctx,v) then 
+                    if im.Selectable(ctx,v) then 
 
                         load_file_info(v)
                     end
                 end
 
             end
-            ImGui.EndPopup(ctx)
+            im.EndPopup(ctx)
 
         end
         SL()
@@ -445,17 +445,17 @@ function ToolBar()
 end 
 
 function ShowKeyWords(ctx)
-    ImGui.PushFont(ctx, Arial_20)
+    im.PushFont(ctx, Arial_20)
 
     for i , v in ipairs(KeyWord) do 
         
-        if ImGui.Button(ctx, v) then 
+        if im.Button(ctx, v) then 
             table.remove(KeyWord, i)
         end 
 
         if ConfirmDeleteKeyWord==i then 
             Highlight_Itm(ctx, nil, nil,0x992299ff)
-            if ImGui.IsKeyPressed(ctx, ImGui.Key_Backspace) then  
+            if im.IsKeyPressed(ctx, im.Key_Backspace) then  
                 table.remove(KeyWord, ConfirmDeleteKeyWord)
                 ConfirmDeleteKeyWord = nil
                 DontFocusKeyword= 1
@@ -471,18 +471,18 @@ function ShowKeyWords(ctx)
     end 
     SL()
     
-    ImGui.PopFont(ctx)
+    im.PopFont(ctx)
 
 end
 
 
 function GlobalKeyboardShortcut()
-    if ImGui.IsKeyPressed(ctx, ImGui.Key_Space) then 
-        if not ImGui.IsAnyItemActive( ctx) then 
+    if im.IsKeyPressed(ctx, im.Key_Space) then 
+        if not im.IsAnyItemActive( ctx) then 
             r.Main_OnCommand(40044,0) --- Unselect ALL
         end
     end 
-    MODS = ImGui.GetKeyMods(ctx)
+    MODS = im.GetKeyMods(ctx)
 end
 
 function At_beginning_of_Each_Loop()
@@ -573,7 +573,7 @@ function RandomButtons(MatchedFiles, Mode)
         end 
 
     end 
-    ImGui.Separator(ctx)
+    im.Separator(ctx)
 
 end
 
@@ -584,9 +584,9 @@ files_array, File_Name_No_Path= BuildDataBase('/Volumes/4TB Crucial/Sound Collec
 function Main_Loop()
     GlobalKeyboardShortcut()
     At_beginning_of_Each_Loop()
-    local visible, open = ImGui.Begin(ctx,'Sample Stacker', nil,ImGui.WindowFlags_NoTitleBar)
+    local visible, open = im.Begin(ctx,'Sample Stacker', nil,im.WindowFlags_NoTitleBar)
     ShowKeyWords(ctx)
-    Mods = ImGui.GetKeyMods(ctx)
+    Mods = im.GetKeyMods(ctx)
     MatchedFiles = SearchBar()
     Random_Button_For_Selected_Samples()
     SL()

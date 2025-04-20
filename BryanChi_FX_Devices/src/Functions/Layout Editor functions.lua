@@ -137,8 +137,8 @@ end
 
 
 
-function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
-    if ImgFileName then
+function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER, i)
+    if TB.AtchImgFileNm then
         SL() 
         local rv , hvr =  TrashIcon(13, 'Image Delete', nil, TB.TrashImgTint) 
         if rv then 
@@ -148,6 +148,7 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
        
     end
     SL()
+    local ImgFileName
     --[[ if im.BeginChild(ctx, '##drop_files', width, im.GetTextLineHeight(ctx)) then
         if not ImgFileName then
             im.Text(ctx, 'Drag and drop files here...')
@@ -193,7 +194,7 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
         
     end
 
-    if im.BeginCombo(ctx, '##Choose Attached drawing image', TB.AtchImgFileNm or 'Drag and drop image here', im.ComboFlags_HeightLarge) then 
+    if im.BeginCombo(ctx, '##Choose Attached drawing image'..(i or ''), TB.AtchImgFileNm or 'Drag and drop image here', im.ComboFlags_HeightLarge) then 
         local function addInvisibleButton(Image, sz)
             for i, v in ipairs(AtchDrawingImg) do
                 if (i-1) % 3 ~= 0 and i ~= 1  then 
@@ -210,12 +211,12 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
                 if HighlightHvredItem() then --if clicked on highlighted itm
 
                     ImgFileName = AtchDrawingImg.Name[i]
-
-
                     TB.Image  = v  
+                    TB.AtchImgFileNm = ImgFileName
                 end
             end
         end
+
         Add_Image_Styles('Attached Drawings' , addInvisibleButton , 50)
         im.EndCombo(ctx)
 
@@ -239,8 +240,10 @@ function Draw_Drop_Image_Module_With_Combo(TB, SUBFOLDER)
             end
         end
         im.EndDragDropTarget(ctx)
+        return  TB.Image, ImgFileName
+
     end 
-    return  TB.Image, ImgFileName
+
 end
 
 function Sync_Height_Synced_Properties(FP, diff, rt)
@@ -3506,18 +3509,13 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         end
 
                         if D.Type == 'Image' or D.Type == 'Knob Image' then
-                            local img, name =  Draw_Drop_Image_Module_With_Combo(D, 'Attached Drawings')
-                            if img then 
+                            local img, name =  Draw_Drop_Image_Module_With_Combo(D, 'Attached Drawings', i)
+                            --[[ if img then 
                                 for I, v in ipairs(LE.Sel_Items) do 
                                     FX[FxGUID][v].Draw[i].AtchImgFileNm = name
                                     FX[FxGUID][v].Draw[i].Image = img
                                 end
-                            --[[  Set_Property ('AtchImgFileNm', name, true)
-                                Set_Property ('Image', img, true) ]]
---[[ 
-                                D.AtchImgFileNm = name
-                                D.Image = img ]]
-                            end
+                            end ]]
                         end
 
                     
@@ -7332,6 +7330,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 FX[FxGUID].Draw = T.Draw 
                 SAVED_BG_DRAW = FX.LayEdit ==FxGUID and DeepCopy(T.Draw) or SAVED_BG_DRAW
             else  -- retrieving info from saved file
+
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
                 local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
 
@@ -7342,6 +7341,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                 local PrmInst
                 LO[FX_Name] =  LO[FX_Name] or  {}
                 local T =  LO[FX_Name]
+
                 if file then
                     Line = get_lines(file_path)
                     FX[FxGUID].FileLine = Line

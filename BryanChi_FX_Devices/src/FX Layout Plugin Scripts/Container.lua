@@ -3,6 +3,7 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
+if FX_Name == 'Transient' or FX_Name == 'Sustain' then return end 
 
 fx.TitleWidth  = 0
 --fx.CustomTitle = fx.Name
@@ -25,8 +26,6 @@ local Add_FX_Btn_Xpos
 local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
 local WinW = 0 
 local AllW = 0
-
-
 local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
 
     if  FX_Name:find('FXD Containr Macro') then return end 
@@ -52,8 +51,6 @@ local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     
     fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
 end
-
-
 
 
 local function Container_CollapseIfTab(FxGUID, FX_Idx)

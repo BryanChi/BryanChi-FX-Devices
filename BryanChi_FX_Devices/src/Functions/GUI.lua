@@ -1110,8 +1110,9 @@ function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterCl
 end
 function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer, NoVert)
     if not FX[FxGUID] then return end 
-    local fx = FX[FxGUID]
 
+
+    local fx = FX[FxGUID]
     local WindowBtn 
 
     local _, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
@@ -4370,6 +4371,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
 
             local function AddWetDryKnob_If_not_SpecialLayoutFX()
+                if FX[FxGUID].NoWetKnob then return end
                 local orig_name = orig_name
                 if orig_name:find('JS: ') then orig_name = string.sub(orig_name, 5) end 
                 if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, orig_name) then -- orig_name used to be fx.ShortName , changed to orig_name to work with containers in case if user changes name
@@ -4440,6 +4442,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local function Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
                 if FX[FxGUID].Collapse then return end
+                if FX[FxGUID].NoWetKnob then return end
                 if IsContainer then return end
                 local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr')
                 local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
@@ -4458,7 +4461,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             end
             local function Window_Title_Area()
                 local sz= WET_DRY_KNOB_SZ
-                local gap = 5
+                local gap = FX[FxGUID].Left_Padding or 5
                 SL( nil, gap)
                 local St = {im.GetCursorScreenPos(ctx)}
 

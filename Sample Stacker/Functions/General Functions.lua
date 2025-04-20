@@ -931,7 +931,7 @@ function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H
 end
 
 function Highlight_Itm(ctx, WDL, FillClr, OutlineClr )
-    if not WDL then WDL = ImGui.GetWindowDrawList(ctx) end 
+    if not WDL then WDL = im.GetWindowDrawList(ctx) end 
     local L, T = r.ImGui_GetItemRectMin(ctx); 
     local R, B = r.ImGui_GetItemRectMax(ctx); 
     
@@ -1028,9 +1028,9 @@ end
 ---TODO remove this duplicate of tooltip()
 ---@param A string text for tooltip
 function ttp(A)
-    ImGui.BeginTooltip(ctx)
-    ImGui.SetTooltip(ctx, A)
-    ImGui.EndTooltip(ctx)
+    im.BeginTooltip(ctx)
+    im.SetTooltip(ctx, A)
+    im.EndTooltip(ctx)
 end
 
 
@@ -1152,21 +1152,21 @@ end
 
 
 function DiceButton (label, number, w, h, clr, clr2 , fill, outlineClr)
-    local WDL = WDL or ImGui.GetWindowDrawList(ctx)
-    local x, y = ImGui.GetCursorScreenPos(ctx)
+    local WDL = WDL or im.GetWindowDrawList(ctx)
+    local x, y = im.GetCursorScreenPos(ctx)
     local Cx, Cy = x + w/2, y+h/2
 
-    local clr = clr or ImGui.GetStyleColor(ctx,ImGui.Col_Button)
-    local clr2 = clr2 or ImGui.GetStyleColor(ctx,ImGui.Col_Text)
-    local act = ImGui.InvisibleButton(ctx,label, w, h   )
-    ImGui.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , clr, 3 )
+    local clr = clr or im.GetStyleColor(ctx,im.Col_Button)
+    local clr2 = clr2 or im.GetStyleColor(ctx,im.Col_Text)
+    local act = im.InvisibleButton(ctx,label, w, h   )
+    im.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , clr, 3 )
 
-    local circle = ImGui.DrawList_AddCircleFilled
+    local circle = im.DrawList_AddCircleFilled
     if fill == 'No Fill' then 
-        circle = ImGui.DrawList_AddCircle
+        circle = im.DrawList_AddCircle
     end
     if outlineClr then 
-        ImGui.DrawList_AddRect(WDL, x, y, x+w,y+h , outlineClr, 3 )
+        im.DrawList_AddRect(WDL, x, y, x+w,y+h , outlineClr, 3 )
     end
 
     if number == 1 then 
@@ -1197,9 +1197,9 @@ function DiceButton (label, number, w, h, clr, clr2 , fill, outlineClr)
         circle(WDL, Cx+ w/4, Cy- w/4, w/9, clr2)
         circle(WDL, Cx- w/4, Cy, w/9, clr2)
     end 
-    if ImGui.IsItemActive(ctx) then 
+    if im.IsItemActive(ctx) then 
         local act  = Generate_Active_And_Hvr_CLRs(clr)
-        ImGui.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , act, 3 )
+        im.DrawList_AddRectFilled(WDL, x, y, x+w,y+h , act, 3 )
     end 
     if act then 
         return act
@@ -1392,7 +1392,7 @@ function Add_Pan_Knob(tb, label, labeltoShow, v_min,v_max)
     local line_height = r.ImGui_GetTextLineHeight(ctx)
     local draw_list = r.ImGui_GetWindowDrawList(ctx)
     local item_inner_spacing = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_ItemInnerSpacing()) }
-    local mouse_delta = { ImGui.GetMouseDelta(ctx) }
+    local mouse_delta = { im.GetMouseDelta(ctx) }
 
     local ANGLE_MIN = 3.141592 * 0.75
     local ANGLE_MAX = 3.141592 * 2.25
@@ -1416,7 +1416,7 @@ function Add_Pan_Knob(tb, label, labeltoShow, v_min,v_max)
         r.UpdateArrange()
         
     end
-    if is_active and ImGui.IsMouseDoubleClicked(ctx,0) then 
+    if is_active and im.IsMouseDoubleClicked(ctx,0) then 
         r.SetMediaItemTakeInfo_Value(tb.tk, "D_PAN", 0   )
 
     end 
@@ -1464,7 +1464,7 @@ function Add_Pan_Knob(tb, label, labeltoShow, v_min,v_max)
         local window_padding = { r.ImGui_GetStyleVar(ctx, r.ImGui_StyleVar_WindowPadding()) }
         r.ImGui_SetNextWindowPos(ctx, pos[1] - window_padding[1],
             pos[2] - line_height - item_inner_spacing[2] - window_padding[2] - 8)
-        ImGui.SetNextWindowSize(ctx, 60, 30)
+        im.SetNextWindowSize(ctx, 60, 30)
         r.ImGui_BeginTooltip(ctx)
         local L_or_R 
         if pan_V > 0 then L_or_R = 'R' elseif pan_V < 0 then  L_or_R = 'L' else L_or_R = '' end 
