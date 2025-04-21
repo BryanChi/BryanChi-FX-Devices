@@ -1060,7 +1060,16 @@ local function Main(TB, X, Y)
                                 fx.Width = fx.Width + (Wid or 15)  
                             end
                         end
-                    
+                        local function Add_Space(Parallel, FX_Id_next) 
+                            local blacklist = { 'Amplitude Splitter', 'Transient', 'Sustain' }
+                            if FindStringInTable(blacklist, FX_Name) then 
+                                return 
+                            end
+                            if not Parallel or i == #TB   then 
+                                local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                                fx.Width = fx.Width + (Wid or 15)  
+                            end 
+                        end
                         --If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
                         im.SetCursorPosY(ctx, Top_Spacing)
                     
@@ -1094,10 +1103,8 @@ local function Main(TB, X, Y)
                         SL(nil,0)
                         if im.IsItemHovered(ctx) then Hover = true end 
                         im.SetCursorPosY(ctx, 0)
-                        if not Parallel or i == #TB then 
-                            local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
-                            fx.Width = fx.Width + (Wid or 15)  
-                        end    
+
+                        Add_Space(Parallel, FX_Id_next) 
                         if Hover then DisableScroll = false end
                         
                         -- Restore the previous container state

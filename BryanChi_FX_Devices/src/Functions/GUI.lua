@@ -2031,8 +2031,9 @@ end
 ---@return number|nil h
 function HighlightSelectedItem(FillClr, OutlineClr, Padding, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, GetItemRect,
     Foreground, rounding, thick)
-    local GetItemRect = GetItemRect or 'GetItemRect'
-    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' then
+    --[[ local GetItemRect = GetItemRect or 'GetItemRect' ]]
+    if GetItemRect == 'GetItemRect' or L == 'GetItemRect' or L == nil then
+
         L, T = im.GetItemRectMin(ctx); R, B = im.GetItemRectMax(ctx); w, h = im.GetItemRectSize(ctx)
     end
     local P = Padding or 0; local HSC = H_OutlineSc or 4; local VSC = V_OutlineSc or 4
@@ -3822,7 +3823,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         if FindStringInTable(BlackListFXs, FX_Name) then
             Hide = true
         end
-
+ 
 
 
         if Trk[TrkID].PreFX_Hide then

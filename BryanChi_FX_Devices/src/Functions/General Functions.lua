@@ -35,7 +35,7 @@ function DeepCopy(orig)
 end
 
 
-function Save_to_Trk(str,v, trk  )
+function  Save_to_Trk(str,v, trk  )
 
     local _ , v = r.GetSetMediaTrackInfo_String(trk or LT_Track, 'P_EXT: '..str, tostring(v), true) 
 end
@@ -132,7 +132,6 @@ function get_container_path_from_fx_id(tr, fxidx) -- returns a list of 1-based F
     end
     return { fxid+1 }
 end
-
 ---@param tr MediaTrack
 ---@param NestedPath table
 ---@param idx1 number
@@ -404,6 +403,26 @@ function BuildFXTree(tr)
             
             for i = 1, #tree_items do
 
+                -- Add blacklist check at the start
+                local function IsBlacklistedFX()
+                    local BlackListFXs = { 'Amplitude Splitter', 'Transient', 'Sustain' }
+                    local _, Name = r.TrackFX_GetNamedConfigParm(tr, tree_items[i].addr_fxid, 'renamed_name')
+                   
+                    for I, blocked_name in ipairs(BlackListFXs) do
+                        
+                        if Name:find(blocked_name) then
+
+                            return true
+                        end
+                    end
+                    return false
+                end
+
+                -- Skip this iteration if the FX is blacklisted
+                if IsBlacklistedFX() then
+                    goto continue
+                end
+
                 -- Check if this FX is parallel or the next FX is parallel
                 local is_parallel = tree_items[i].parallel
                 local next_is_parallel = tree_items[i+1] and tree_items[i+1].parallel
@@ -437,7 +456,7 @@ function BuildFXTree(tr)
                 Check_If_FX_Is_Root__If_So_Add_To_Table()
 
                 
-                    -- Add the current FX to the sequence if it's parallel
+                -- Add the current FX to the sequence if it's parallel
                 if not Is_Root then 
                     if is_parallel  then
                         table.insert(current_sequence, {
@@ -477,6 +496,7 @@ function BuildFXTree(tr)
                         table.insert(sequences, seq)
                     end
                 end
+                ::continue::
             end
             
             -- Check if we ended the loop while still building a sequence
@@ -484,7 +504,7 @@ function BuildFXTree(tr)
             if current_sequence and #current_sequence > 1 then
                 table.insert(sequences, current_sequence)
             elseif current_sequence and #current_sequence == 1 then -- if there's a FX set to parallel but there's no FX before it 
-                r.TrackFX_SetNamedConfigParm( LT_Track, current_sequence[1].addr_fxid , 'parallel', '0' ) -- set to not parallel 
+                r.TrackFX_SetNamedConfigParm( tr, current_sequence[1].addr_fxid , 'parallel', '0' ) -- set to not parallel 
             end
             
             return sequences
@@ -2064,12 +2084,11 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
             end
         elseif ParallelFX then 
             r.TrackFX_SetNamedConfigParm( LT_Track, FX_Idx, 'parallel', '1' )
-
         end
 
-        if Name =='Container' then 
-            r.TrackFX_Show(LT_Track, FX_Idx , 2)
-        end
+        local HideFX = {'Container', 'Transient', 'Sustain'}
+
+        r.TrackFX_Show(LT_Track, FX_Idx , 2)
         local FXCount = r.TrackFX_GetCount(LT_Track)
 
         RetrieveFXsSavedLayout(FXCount)

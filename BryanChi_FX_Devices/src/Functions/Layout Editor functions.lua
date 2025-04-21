@@ -7,7 +7,10 @@ function Sync_Size_Height_Synced_Properties(FP, diff, mult)
     local function Main (V)
         
         if FP.Type == 'Knob' then 
-            
+            local Size_Sync_Properties = Size_Sync_Properties
+            if not FindExactStringInTable(Size_Sync_Properties, 'Height_SS') then 
+                table.insert(Size_Sync_Properties, 'Height_SS')
+            end
             for i, v in ipairs(Size_Sync_Properties) do 
                 local mult = 1 
                 if V.Type == 'Rect' then mult = 2 end 
@@ -8119,7 +8122,7 @@ function Save_Attached_Drawings(FP, file,Fx_P)
 
                 WRITE('Type', v.Type)
                 WRITE('X Offset', v.X_Offset)
-                WRITE('X Offset_SS', v.X_Offset)
+                WRITE('X Offset_SS', v.X_Offset_SS)
 
                 WRITE('X Offset Value Affect', v.X_Offset_VA)
                 WRITE('X Offset Value Affect BP', v.X_Offset_VA_BP) 
