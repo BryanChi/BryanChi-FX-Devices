@@ -924,6 +924,8 @@ function attachImagesAndFonts()
     icon1               = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
     icon1_middle        = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
     icon1_small         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
+    _G['Font_Andale_Mono_Vertical_13'] = im.CreateFont(script_folder .. '/Fonts/AndaleMonoVertical.ttf',  13, im.FontFlags_Bold)
+
     Img = {
         Undo = im.CreateImage(CurrentDirectory .. '/src/Images/undo.png'),
         Trash  = im.CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
@@ -955,6 +957,8 @@ function attachImagesAndFonts()
         _G['Arial_' .. i] = im.CreateFont('Arial', i)
         im.Attach(ctx, _G['Arial_' .. i])
     end
+    im.Attach(ctx, _G['Font_Andale_Mono_Vertical_13'])
+
 
     System_Font = im.CreateFont('sans-serif', 14)
     System_Font_12 = im.CreateFont('sans-serif', 12)
@@ -972,13 +976,6 @@ function attachImagesAndFonts()
     end
 
 
-
-    --[[ for i = 6, 64, 1 do
-        _G['Arial_' .. i] = im.CreateFont('Arial', i)
-        im.Attach(ctx, _G['Arial_' .. i])
-    end ]]
-
-    --Arial = im.CreateFont('Arial', 12) -- TODO move to constants
 end
 
 

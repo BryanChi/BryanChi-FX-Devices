@@ -232,19 +232,62 @@ function GetNextAndPreviousFXID(FX_Idx)
     return next_fxidx, previous_fxidx, NextFX, PreviousFX
 end
 
+function GetNextAndPreviousFXID_NEW_2(FX_Idx)
+
+    local incontainer, parent_container = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, "parent_container")
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX
+    if incontainer then
+
+        path_table = get_container_path_from_fx_id(LT_Track, FX_Idx)
+
+        local ct = tonumber (select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent_container,'container_count')))
+        
+       -- r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.')
+        next_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, ct + 1) 
+        local target_pos = path_table[#path_table]
+        local name_pos = path_table[#path_table] - 1
+        local previous_name = TrackFX_GetInsertPositionInContainer(parent_container, name_pos)
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_name)
+        previous_fxidx = TrackFX_GetInsertPositionInContainer(parent_container, target_pos)
+    else -- not in container
+        next_fxidx = FX_Idx + 1
+        if FX_Idx == 0 then -- 0 based, when the first slot is FX_Idx, there's no slot in the previous position (-1)
+            previous_fxidx = FX_Idx
+        else
+            previous_fxidx = FX_Idx - 1
+        end
+        _, PreviousFX = r.TrackFX_GetFXName(LT_Track, previous_fxidx)
+    end
+    local _, NextFX = r.TrackFX_GetFXName(LT_Track, next_fxidx)
+    return next_fxidx, previous_fxidx, NextFX, PreviousFX
+end
+
 
 function  GetNextAndPreviousFXID_NEW(FX_Idx) 
 
     local parent = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx,'parent_container')))
+
     if parent then
         local ct = tonumber (select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent,'container_count')))
+     
         for i= 0 , ct - 1 do
-            local Cont_Itm_ID = select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. i))
+            local Cont_Itm_ID = tonumber (select(2, r.TrackFX_GetNamedConfigParm(LT_Track, parent, 'container_item.' .. i)))
+
             if Cont_Itm_ID == FX_Idx then 
                 local NextFX_Idx = parent and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID + 1)))
                 local PrevFX_Idx = parent and  tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_item.' .. Cont_Itm_ID - 1)))
                 local NextFxName =  NextFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, NextFX_Idx ))
                 local PrevFxName =  PrevFX_Idx and  select(2,r.TrackFX_GetFXName(LT_Track, PrevFX_Idx ))
+
+                if not NextFX_Idx then -- if there's no next FX \
+
+                    NextFX_Idx = TrackFX_GetInsertPositionInContainer(parent, ct -1 )
+                end
+
+                if not PrevFX_Idx then -- if there's no previous FX 
+                    PrevFX_Idx = TrackFX_GetInsertPositionInContainer(parent, 0)
+                end
+
                 return NextFX_Idx, PrevFX_Idx, NextFxName, PrevFxName
             end
         end
@@ -810,7 +853,7 @@ function RecallGlobInfo(Str, ID, Type, untilwhere)
     if Str then
         local Out, LineChange
         local Start, End = Str:find(ID)
-
+        
         if untilwhere then
             LineChange = Str:find(untilwhere, Start)
         else
@@ -2272,7 +2315,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
                 if im.BeginMenu(ctx, tbl[i].dir) then
                     local cur_path = table.concat({ path, os_separator, tbl[i].dir })
                     DrawTrackTemplates(tbl[i], cur_path)
-                    im.EndMenu(ctx)
+                    im.EndMenu(ctx) 
                 end
             end
             if type(tbl[i]) ~= "table" then
@@ -2365,78 +2408,8 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
         DndAddFX_SRC(LAST_USED_FX)
         im.SeparatorText(ctx, "UTILS")
-        if im.Selectable(ctx, 'FX Layering', false) then
-            local FX_Idx = FX_Idx
-            --[[ if FX_Name:find('Pro%-C 2') then FX_Idx = FX_Idx-1 end ]]
-            local val = r.SNM_GetIntConfigVar("fxfloat_focus", 0)
-            if val & 4 ~= 0 then
-                r.SNM_SetIntConfigVar("fxfloat_focus", val & (~4))
-            end
-
-            if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 16 then
-                r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 16)
-            end
-            FXRack = r.TrackFX_AddByName(LT_Track, 'FXD (Mix)RackMixer', 0, -1000 - FX_Idx)
-            local RackFXGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
-            ChanSplitr = r.TrackFX_AddByName(LT_Track, 'FXD Split to 32 Channels', 0,
-                -1000 - FX_Idx)
-            local SplitrGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-            Lyr.SplitrAttachTo[SplitrGUID] = RackFXGUID
-            r.SetProjExtState(0, 'FX Devices', 'SplitrAttachTo' .. SplitrGUID, RackFXGUID)
-            _, ChanSplitFXName = r.TrackFX_GetFXName(LT_Track, FX_Idx - 1)
-
-            FX[RackFXGUID] = FX[RackFXGUID] or {}
-            FX[RackFXGUID].LyrID = FX[RackFXGUID].LyrID or {}
-            table.insert(FX[RackFXGUID].LyrID, 1)
-            table.insert(FX[RackFXGUID].LyrID, 2)
-
-            r.SetProjExtState(0, 'FX Devices', 'FX' .. RackFXGUID .. 'Layer ID 1', 1)
-            r.SetProjExtState(0, 'FX Devices', 'FX' .. RackFXGUID .. 'Layer ID 2', 2)
-            FX[RackFXGUID].ActiveLyrCount = 2
-
-            FX_Layr_Inst = 0
-            for F = 0, Sel_Track_FX_Count, 1 do
-                local FXGUID = r.TrackFX_GetFXGUID(LT_Track, F)
-                local _, FX_Name = r.TrackFX_GetFXName(LT_Track, F)
-                if string.find(FX_Name, 'FXD Split to 32 Channels') ~= nil then
-                    FX_Layr_Inst                       = FX_Layr_Inst + 1
-                    Lyr.SpltrID[FX_Layr_Inst .. TrkID] = r.TrackFX_GetFXGUID(LT_Track,
-                        FX_Idx - 1)
-                end
-            end
-
-            Spltr[SplitrGUID] = Spltr[SplitrGUID] or {}
-            Spltr[SplitrGUID].New = true
-
-
-            if FX_Layr_Inst == 1 then
-                --sets input channels to 1 and 2
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 0, 0, 1, 0)
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 0, 1, 2, 0)
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 0, 2, 1, 0)
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 0, 3, 2, 0)
-                for i = 2, 16, 1 do
-                    r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 0, i, 0, 0)
-                end
-                --sets Output to all channels
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 1, 0, 21845, 0)
-                r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 1, 1, 43690, 0)
-                for i = 2, 16, 1 do
-                    r.TrackFX_SetPinMappings(LT_Track, FX_Idx - 1, 1, i, 0, 0)
-                end
-            elseif FX_Layr_Inst > 1 then
-
-            end
-
-
-
-
-            im.CloseCurrentPopup(ctx)
-            if val & 4 ~= 0 then
-                r.SNM_SetIntConfigVar("fxfloat_focus", val|4) -- re-enable Auto-float
-            end
-        elseif im.Selectable(ctx, 'Band Split', false) then
+        
+        if im.Selectable(ctx, 'Band Split', false) then
             r.gmem_attach('FXD_BandSplit')
             table.insert(AddFX.Name, 'FXD Saike BandSplitter')
             table.insert(AddFX.Pos, FX_Idx)
@@ -2445,6 +2418,11 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
             if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 12 then -- Set track channels to 10 if it's lower than 10
                 r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 12)
             end
+        elseif im.Selectable(ctx, 'Transient Split', false) then
+            r.gmem_attach('AmplitudeSplitter')
+            table.insert(AddFX.Name, 'FXD - Amplitude Splitter')
+            table.insert(AddFX.Pos, FX_Idx)
+        else
 
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
@@ -2480,7 +2458,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 end
 
 function If_Theres_Pro_C_Analyzers(FX_Name, FX_Idx)
-    --local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
+    local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID(FX_Idx)
     local next_fxidx, previous_fxidx, NextFX, PreviousFX = GetNextAndPreviousFXID_NEW(FX_Idx) 
     local FxGUID =  r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
     local FxGUID_Next =  r.TrackFX_GetFXGUID(LT_Track, next_fxidx)
@@ -3334,12 +3312,36 @@ function Set_Prm_To_Default(FX_Idx, FP)
     if file then
         local Ct = file:read('*a')
         file:close()
-        local P_Num = FP.Num
-        local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx, P_Num)
-        local Df = RecallGlobInfo(Ct, P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
-        if Df then
-            r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, Df)
-            ToDef = { ID = FX_Idx, P = P_Num, V = Df }
+        
+        -- Check if it's a JSFX
+
+        local _, type  = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_type')
+        local is_jsfx = type == 'JS' 
+        if is_jsfx then
+            -- For JSFX, read values line by line
+            local values = {}
+            for line in Ct:gmatch("[^\r\n]+") do
+                table.insert(values, tonumber(line))
+            end
+            
+            -- Get the value for this parameter
+            local P_Num = FP.Num
+            local Df = values[P_Num + 1] -- +1 because Lua tables are 1-based
+            
+            if Df then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, Df)
+                ToDef = { ID = FX_Idx, P = P_Num, V = Df }
+            end
+        else
+            -- Original format for VST/AU plugins
+            local P_Num = FP.Num
+            local _, P_Nm = r.TrackFX_GetParamName(LT_Track, FX_Idx, P_Num)
+            local Df = RecallGlobInfo(Ct, P_Num .. '. ' .. P_Nm .. ' = ', 'Num')
+            
+            if Df then
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num, Df)
+                ToDef = { ID = FX_Idx, P = P_Num, V = Df }
+            end
         end
     end
 end
@@ -3445,4 +3447,49 @@ function At_Script_Close(CommanID)
         Delete_All_FXD_AnalyzerFX(track)
     end
     r.SetToggleCommandState(0, CommanID, 0)
+end
+
+local function SaveDefaultValues(FX_Idx, FX_Name)
+    if im.Button(ctx, 'Save values as default', -FLT_MIN) then
+        local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Default Values')
+        r.RecursiveCreateDirectory(dir_path, 0)
+        local FX_Name = ChangeFX_Name(FX_Name)
+        local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+        local file = io.open(file_path, 'w')
+
+        if file then    
+            -- Check if it's a JSFX
+            local is_jsfx = FX_Name:match("%.jsfx") or FX_Name:match("FXD%s+%-")
+            
+            if is_jsfx then
+                -- Simple format for JSFX: just parameter values, one per line
+                local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
+                for i = 0, PrmCount - 1 do
+                    local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                   
+                    file:write(V .. '\n')
+                end
+            else
+         
+                -- Original format for VST/AU plugins
+                file:write(FX_Name, '\n')
+                local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 4
+                file:write('Number of Params: ', PrmCount, '\n')
+                
+                local function write(i, name, Value)
+                    file:write(i, '. ', name, ' = ', Value or '', '\n')
+                end
+                
+                for i = 0, PrmCount, 1 do
+                    local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                    local _, N = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
+                    write(i, N, V)
+                end
+            end
+            
+            file:write('\n')
+            file:close()
+        end
+        im.CloseCurrentPopup(ctx)
+    end
 end

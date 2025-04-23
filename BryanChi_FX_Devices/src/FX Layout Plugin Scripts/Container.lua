@@ -3,7 +3,7 @@
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
-if FX_Name == 'Transient' or FX_Name == 'Sustain' then return end 
+if FX_Name == 'Transient' or FX_Name == 'Sustain'  then return end 
 
 fx.TitleWidth  = 0
 --fx.CustomTitle = fx.Name
@@ -26,6 +26,16 @@ local Add_FX_Btn_Xpos
 local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
 local WinW = 0 
 local AllW = 0
+local function If_FX_Is_In_Blacklist(FX_Name, blacklist)
+    local blacklist = blacklist or { 'Amplitude Splitter', 'Transient', 'Sustain' }
+    for _, v in ipairs(blacklist) do
+        if FX_Name== v then
+            return true
+        end
+      
+    end
+    return false
+end
 local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
 
     if  FX_Name:find('FXD Containr Macro') then return end 
@@ -46,11 +56,36 @@ local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     if Parallel then 
         if Parallel ~= 'Mixer Layout - Show' then return end 
     end
+    if not fx or not FxGUID then return end
 
     local W = FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170
+   if If_FX_Is_In_Blacklist(FX_Name, {'Transient', 'Sustain'}) then W = 0 end 
     
     fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
 end
+local function If_Transient_Split_Exists()
+    if FX_Name ~= 'Transient Split' then return end 
+
+    local idx = tonumber( select(2, r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.0')))
+    if idx then 
+        local _, Nm = r.TrackFX_GetFXName(LT_Track, idx)
+  
+        if Nm:find('FXD Containr Macro') then 
+            idx = tonumber( select(2, r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.1')))
+        end
+        SL()
+        im.SetCursorPosY(ctx, 0)
+        createFXWindow(idx)
+        local FxGUID = r.TrackFX_GetFXGUID(LT_Track, idx)
+        Add_Width(nil, FxGUID, idx, 'Transient Split')
+        return true
+    end
+   
+end
+
+
+
+
 
 
 local function Container_CollapseIfTab(FxGUID, FX_Idx)
@@ -1049,27 +1084,37 @@ local function Main(TB, X, Y)
                         if fx.Collapse then return end 
                     
                         local diff, Cur_X_ofs  
-                        if i == 1 then 
-                            SL(nil,0)
-                            im.SetCursorPosY(ctx, Top_Spacing)
-                    
-                            local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
-                            SL(nil,0)
+                        local function Add_First_Space()
+                            if i == 1 then 
+                                SL(nil,0)
+                                im.SetCursorPosY(ctx, Top_Spacing)
+                            
+                                if If_FX_Is_In_Blacklist(FX_Name) then  return  end
+                                if FX_Name:find('Amplitude Splitter') then  return  end
+                                local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
+                                SL(nil,0)
+                            
 
-                            if not FX_Name:find('FXD Containr Macro') then  
-                                fx.Width = fx.Width + (Wid or 15)  
+                                if not FX_Name:find('FXD Containr Macro') then  
+                                    fx.Width = fx.Width + (Wid or 15)  
+                                end
+
+
+
                             end
                         end
                         local function Add_Space(Parallel, FX_Id_next) 
-                            local blacklist = { 'Amplitude Splitter', 'Transient', 'Sustain' }
-                            if FindStringInTable(blacklist, FX_Name) then 
+                            if If_FX_Is_In_Blacklist(FX_Name) then 
                                 return 
                             end
+                            if FX_Name:find('Amplitude Splitter') then  return  end
                             if not Parallel or i == #TB   then 
-                                local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                             
+                            local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
                                 fx.Width = fx.Width + (Wid or 15)  
                             end 
                         end
+                        Add_First_Space()
                         --If_Theres_Pro_C_Analyzers(FX_Name, FX_Id)
                         im.SetCursorPosY(ctx, Top_Spacing)
                     
@@ -1216,7 +1261,7 @@ end
 
 macroPage(TB)
 im.Dummy(ctx, 5,10)
-
+if If_Transient_Split_Exists() then return end 
 
 If_Container_Is_Empty()
 Main(TB , X, Y)

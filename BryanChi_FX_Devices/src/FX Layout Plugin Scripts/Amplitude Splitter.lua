@@ -79,8 +79,12 @@ end
 
 
 -- Function to draw FX indicators on a button (Uses ReaImGui DrawList API)
-function DrawFXIndicators(draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y, count, color_u32)
-    if count <= 0 or not draw_list then return end 
+function DrawFXIndicators(container_idx, btn_min_x, btn_min_y, btn_max_x, btn_max_y, color_u32)
+    local ok, count = r.TrackFX_GetNamedConfigParm(track, container_idx, "container_count")
+    local count = tonumber(count) or 0
+    local draw_list = WDL or im.GetWindowDrawList(ctx)
+    if count <= 0 then return end 
+
     
     -- Calculate indicator area (bottom portion of button)
     local button_height = btn_max_y - btn_min_y
@@ -205,23 +209,12 @@ function DrawPlusSymbol(draw_list, center_x, center_y, size, color, is_hovered, 
 end
 
 -- Function to add a small wet/dry slider for containers
-function AddContainerWetDrySlider(container_guid, x_pos, y_pos, width, height, is_bottom)
+function AddContainerWetDrySlider(container_guid, container_idx, x_pos, y_pos, width, height, is_bottom)
     if not container_guid then return end
     
-    local track = LT_Track
-    local container_idx = -1
     
-    -- Find container index
-    for i = 0, r.TrackFX_GetCount(track) - 1 do
-        local guid = r.TrackFX_GetFXGUID(track, i)
-        if guid == container_guid then
-            container_idx = i
-            break
-        end
-    end
-    
-    if container_idx < 0 then return end
-    
+ 
+    if not container_idx then return end
     -- Get the current wet value (wet is always the last parameter in REAPER FX)
     local wet_param_idx = r.TrackFX_GetParamFromIdent(track, container_idx, ':wet')
     local wet_value = r.TrackFX_GetParamNormalized(track, container_idx, wet_param_idx)
@@ -429,42 +422,60 @@ local function DrawRadialButton(label, width, height, base_color, glow_color, in
     local symbol_size = math.min(btn_width, btn_height) * 0.25
     if is_empty then
         DrawPlusSymbol(draw_list, center_x, center_y, symbol_size, glow_color_u32, is_hovered, is_active)
+        local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
+
         if im.IsItemClicked(ctx, 0) then -- Left click on the "+" icon
-            -- Get the container's FX index with proper nesting support
-
-            local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
-
+            -- Store the menu position before any container content is drawn
+            local menu_x, menu_y = im.GetCursorScreenPos(ctx)
+            menu_x = menu_x + 60
+            menu_y = VP.Y - 285
             
-            -- Open the FX browser menu at the cursor position
-            local x, y = im.GetCursorScreenPos(ctx)
-            im.SetNextWindowPos(ctx, x, y-100)
+            -- Store the position for later use
+            fx.MenuPosition = {x = menu_x, y = menu_y}
+            
             FX_Adder_Idx = targ_pos
             im.OpenPopup(ctx, 'Btwn FX Windows' .. targ_pos)
-            -- The existing AddFX_Menu function will handle the rest
+        end
+
+        -- Draw line to menu and outline when menu is open
+        if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. targ_pos) then
+            -- Draw line from button to menu
+            local btn_max_x, btn_max_y = im.GetItemRectMax(ctx)
+            local btn_w, btn_h = im.GetItemRectSize(ctx)
+            local btn_center_y = btn_max_y - btn_h/2
+            draw_list = im.GetForegroundDrawList(ctx)
+            -- Draw horizontal line from button
+            im.DrawList_AddLine(draw_list, btn_max_x, btn_center_y, btn_max_x + 16, btn_center_y, glow_color_u32, 3)
+            
+            -- Draw vertical line to menu
+            local menu_y = VP.Y - 285
+            im.DrawList_AddLine(draw_list, btn_max_x + 15, btn_center_y, btn_max_x + 15, menu_y, glow_color_u32, 3)
+            
+            -- Draw outline around radial button
+            local btn_min_x, btn_min_y = im.GetItemRectMin(ctx)
+            im.DrawList_AddRect(draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y, glow_color_u32, 0, 0, 1)
         end
     else
         DrawArrowSymbol(draw_list, center_x, center_y, symbol_size, glow_color_u32, is_hovered, is_active)
-    end
-    
-    -- Set chosen container when clicked
-    if clicked then 
-        if fx.ChosenContainer == label then 
-            fx.ChosenContainer = nil 
-        else 
-            fx.ChosenContainer = label 
+        -- Set chosen container when clicked
+        if clicked then 
+            if fx.ChosenContainer == label then 
+                fx.ChosenContainer = nil 
+            else 
+                fx.ChosenContainer = label 
+            end
+        end
+        if container_idx then
+            DrawFXIndicators( container_idx, btn_min_x, btn_min_y, btn_max_x, btn_max_y, glow_color_u32 )
         end
     end
-    --[[ local container_idx, insert_idx = find_container_in_tree(TREE, container_guid) ]]
-
     
-    
-
     return clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y
 end
 
 
 -- Function to draw the signal buttons
-function DrawTransientSustainButtons(button_width, button_height)
+function DrawTransientSustainButtons(button_width, button_height, transient_guid, sustain_guid)
     button_width = button_width or 120
     button_height = button_height or 80
     local spacing = 10  -- Space between buttons
@@ -476,7 +487,7 @@ function DrawTransientSustainButtons(button_width, button_height)
     end
     
     -- First check/create containers to ensure we have GUIDs
-    local containers_exist, transient_guid, sustain_guid = DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
+
     local transient_idx = find_container_in_tree(TREE, transient_guid)
     local sustain_idx = find_container_in_tree(TREE, sustain_guid)
     
@@ -531,7 +542,7 @@ function DrawTransientSustainButtons(button_width, button_height)
 
     local Trans_Btn_scrnPos = { im.GetCursorScreenPos(ctx)}
 
-    local transient_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Transient", single_button_width, button_height, TRANSIENT_BASE, TRANSIENT_GLOW, color_level, transient_guid )
+    local transient_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Transient", single_button_width, button_height, TRANSIENT_BASE, TRANSIENT_GLOW, color_level, transient_guid, transient_idx )
     -- Use ThemeClr for sustain if available
     local sustain_glow = SUSTAIN_GLOW
     if ThemeClr then
@@ -541,12 +552,10 @@ function DrawTransientSustainButtons(button_width, button_height)
     end
     
     -- Add drag-drop handling for transient button
-    if containers_exist then
         
-        HandleContainerDragDrop("Transient", transient_guid, transient_idx)
-    end
+    HandleContainerDragDrop("Transient", transient_guid, transient_idx)
     local Sldr_posX , Sldr_posY = im.GetCursorPos(ctx)
-    AddContainerWetDrySlider(transient_guid, Sldr_posX, Sldr_posY-5, single_button_width, Wet_Dry_Drag_Height, true)
+    AddContainerWetDrySlider(transient_guid, transient_idx, Sldr_posX, Sldr_posY-5, single_button_width, Wet_Dry_Drag_Height, true)
     local R, B = im.GetItemRectMax(ctx)
     HighlightSelectedItem( nil , fx.ChosenContainer == 'Transient' and  Transient_Color or  OutlineClr, 0, Trans_Btn_scrnPos[1], Trans_Btn_scrnPos[2], R-1, B, nil,nil, 1,1,nil,nil,nil, 1)
 
@@ -554,17 +563,16 @@ function DrawTransientSustainButtons(button_width, button_height)
     AddSpacing(25)
     local Sldr_scr_pos= {im.GetCursorScreenPos(ctx)}
     local Sldr_posX , Sldr_posY = im.GetCursorPos(ctx)
-    AddContainerWetDrySlider(sustain_guid, Sldr_posX, Sldr_posY-10, single_button_width, Wet_Dry_Drag_Height, nil)
+    AddContainerWetDrySlider(sustain_guid, sustain_idx, Sldr_posX, Sldr_posY-10, single_button_width, Wet_Dry_Drag_Height, nil)
     -- Sustain button with radial effect
     local sustain_color_level = apply_response_curve(FXD_color_sustain) * 2.0
     local sustain_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Sustain", single_button_width, button_height, SUSTAIN_BASE, sustain_glow ,sustain_color_level, sustain_guid, sustain_idx )
     local R, B = im.GetItemRectMax(ctx)
     HighlightSelectedItem(nil , fx.ChosenContainer == 'Sustain' and  Sustain_Color or  OutlineClr ,0 , Sldr_scr_pos[1], Sldr_scr_pos[2]-10, R-2, B, nil,nil, 1,1,nil,nil,nil, 1)
     -- Add drag-drop handling for sustain button
-    if containers_exist then
-        HandleContainerDragDrop("Sustain", sustain_guid, sustain_idx)
-    end
-    
+ 
+    HandleContainerDragDrop("Sustain", sustain_guid, sustain_idx)
+ 
     im.PopStyleVar(ctx)
 
 
@@ -669,11 +677,13 @@ function DrawTransientSustainButtons(button_width, button_height)
         
         if not container_guid then return end
 
+        -- Store the initial cursor position
+        local initial_x, initial_y = im.GetCursorScreenPos(ctx)
+        local initial_cursor_x, initial_cursor_y = im.GetCursorPos(ctx)
 
         local container_idx = find_container_in_tree(TREE, container_guid)
-
         if not container_idx then return end
-        local track = LT_Track
+        
         -- Get container FX count
         local ok, count = r.TrackFX_GetNamedConfigParm(track, container_idx, "container_count")
         if not ok or tonumber(count) <= 0 then return end
@@ -684,10 +694,14 @@ function DrawTransientSustainButtons(button_width, button_height)
         local previous_fx_id = GetLastFXid_in_Container(container_idx)
         
         local enclosure_start_x, enclosure_start_y = nil, nil
-        
+        local tint_color = nil
+        if fx.ChosenContainer == "Transient" then
+            tint_color = Change_Clr_A(Transient_Color, -0.5)
+        elseif fx.ChosenContainer == "Sustain" then
+            tint_color = Change_Clr_A(Sustain_Color,-0.5)
+        end
         -- Iterate through the FX in the container
         for i = 0, count_num - 1 do
-
             local ok, fx_idx_str = r.TrackFX_GetNamedConfigParm(track, container_idx, "container_item." .. i)
             if ok and fx_idx_str then
                 local fx_id = tonumber(fx_idx_str)
@@ -695,74 +709,64 @@ function DrawTransientSustainButtons(button_width, button_height)
                 im.SetCursorPosY(ctx, 0)
                 if i == 0 then
                     enclosure_start_x, enclosure_start_y = im.GetCursorScreenPos(ctx)
-                    -- Draw a circle at the beginning of the container
                 end
 
                 if fx_id then
                     local fx_guid = r.TrackFX_GetFXGUID(track, fx_id)
                     local _, fx_name = r.TrackFX_GetFXName(track, fx_id)
-                    -- Reset position for each FX to create a vertical stack to the right
-
-                    AddSpaceBtwnFXs(fx_id)
-
                     
+                    -- Get the appropriate tint color based on container type
+                   
                     
+                    -- Pass the tint color to AddSpaceBtwnFXs
+                    AddSpaceBtwnFXs(fx_id, nil, nil, nil, nil, nil, nil, nil, nil, tint_color)
                     im.SetCursorPosY(ctx, 0)
-                    -- Create FX window
                     createFXWindow(fx_id)
-                    SL(nil,0)
+                    SL(nil, 0)
 
-                    local fx_W =  FX[fx_guid] and FX[fx_guid].Width or Df.Default_FX_Width or 170
-
-                    fx.Width = fx.Width   + fx_W + Df.Dvdr_Width
-
+                    local fx_W = FX[fx_guid] and FX[fx_guid].Width or Df.Default_FX_Width or 170
+                    fx.Width = fx.Width + fx_W + Df.Dvdr_Width
                 end
             end
         end
         
-        -- Add space at the end of the container using TrackFX_GetInsertPositionInContainer
-        -- This calculates the position AFTER the last item in the container
+        -- Add space at the end of the container
         local end_position_id = TrackFX_GetInsertPositionInContainer(container_idx, count_num + 1)
-        
         if end_position_id then
-
             im.SetCursorPosY(ctx, 0)
-
-            AddSpaceBtwnFXs(end_position_id)
-            fx.Width = fx.Width   + Df.Dvdr_Width
+            AddSpaceBtwnFXs(end_position_id, nil, nil, nil, nil, nil, nil, nil, nil, tint_color)
+            fx.Width = fx.Width + Df.Dvdr_Width
         end
 
-
         im.SetCursorPosY(ctx, 0)
-
         local enclosure_end_x = im.GetCursorScreenPos(ctx)
         local enclosure_end_y = enclosure_start_y + 224
+
         -- Draw the enclosure if we have valid coordinates
         if enclosure_start_x and enclosure_start_y and enclosure_end_x and enclosure_end_y then
-            -- Get the container name for the title
             local _, container_name = r.TrackFX_GetFXName(track, container_idx)
-            
-            -- Choose a color based on container type
-            local enclosure_color = 0xFF66AAFF  -- Default bluish color
+            local enclosure_color = 0xFF66AAFF
             if fx.ChosenContainer == "Transient" then
-                enclosure_color = Transient_Color  -- Orange-red for Transient
+                enclosure_color = Transient_Color
             elseif fx.ChosenContainer == "Sustain" then
-                enclosure_color = Sustain_Color  -- Green for Sustain
+                enclosure_color = Sustain_Color
             end
             
-            -- Draw the custom enclosure
             local draw_list = im.GetWindowDrawList(ctx)
             DrawCustomContainerEnclosure(
                 draw_list,
-                enclosure_start_x ,  -- Add some padding
-                enclosure_start_y ,  -- Add some padding
-                enclosure_end_x ,    -- Add some padding
-                enclosure_end_y ,    -- Add some padding
+                enclosure_start_x,
+                enclosure_start_y,
+                enclosure_end_x,
+                enclosure_end_y,
                 enclosure_color,
-                3.0,  -- Line thickness
+                3.0,
                 container_name
             )
         end
+
+        -- Restore cursor position to where it was before drawing container contents
+        im.SetCursorPos(ctx, initial_cursor_x, initial_cursor_y)
     end
 
     -- Leave space for container contents, if any are shown
@@ -778,9 +782,10 @@ end
 function HandleContainerDragDrop(button_type, container_guid, container_idx)
     local is_valid_target = false
     local drag_highlight_color = 0x66FFFFFF -- Semi-transparent white highlight
-    
+
     -- Check if anything is being dragged
     if im.BeginDragDropTarget(ctx) then
+
         -- Get the button's rectangle for visual highlighting
         local draw_list = im.GetWindowDrawList(ctx)
         local min_x, min_y = im.GetItemRectMin(ctx)
@@ -792,18 +797,20 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx)
         -- Try both payload types - one at a time
         local dropped_add, payload_add = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
         local dropped_move, payload_move = im.AcceptDragDropPayload(ctx, 'FX_Drag')
-        
+        --[[ 
+        local _, container_name = r.TrackFX_GetNamedConfigParm(track, container_idx, "renamed_name")
+        msg('container_idx = ' .. container_idx .. ' - ' .. container_name) ]]
         -- Process the drop if it happened and no modifier keys are pressed
         if (dropped_add or dropped_move) and Mods == 0 then
-            local track = LT_Track
             if track and container_guid then
                 
                 if container_idx >= 0 then
+                  
                     -- Calculate the FX_Id for insertion inside the container
                     -- This follows the pattern seen in Container.lua
-                    local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
+                    local rv, container_count = r.TrackFX_GetNamedConfigParm(track, container_idx, 'container_count')
+                    local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, tonumber(container_count) + 1)
 
-                    --[[ local FX_Id = 0x2000000 + 1 * (r.TrackFX_GetCount(track) + 1) + (container_idx + 1) ]]
                     
                     -- Get the container name for user feedback
                     local _, container_name = r.TrackFX_GetFXName(track, container_idx)
@@ -818,8 +825,9 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx)
                         if DragFX_ID then
                             r.TrackFX_CopyToTrack(track, DragFX_ID, track, targ_pos, true)
                         end
+
                     end
-                    
+                    BuildFXTree(track)
                     is_valid_target = true
                 end
             end
@@ -830,31 +838,71 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx)
     
     return is_valid_target
 end
+function MoveFX_BetweenContainers_Away(container_idx)
+    -- Get the next FX indices using the proper container-aware function
+    local next_idx1, next_idx2, next_idx3
+    local fx_idx = container_idx
+    next_idx1= GetNextAndPreviousFXID(fx_idx)
+    next_idx2= GetNextAndPreviousFXID(next_idx1)
+    next_idx3 = GetNextAndPreviousFXID(next_idx2)
 
+
+    -- Check for any FX between the splitter and where containers should be
+    
+    
+    if next_idx1 then
+        local _, fx_name = r.TrackFX_GetFXName(track, next_idx1)
+        local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx1, "renamed_name")
+        if not (rv and renamed_name == "Transient") then
+            MovFX.FromPos[1] = next_idx1
+            MovFX.Lbl[1] = fx_name
+            MovFX.ToPos[1] = next_idx3
+        end
+    end
+    
+    -- Check for FX between first and second container position
+
+    if next_idx2 then
+        local _, fx_name = r.TrackFX_GetFXName(track, next_idx2)
+        local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx2, "renamed_name")
+        if not (rv and renamed_name == "Sustain") and not MovFX.FromPos[1] then
+            table.insert(MovFX.FromPos, next_idx2)
+            table.insert(MovFX.Lbl, fx_name)
+            table.insert(MovFX.ToPos, FX_Idx)
+        end
+    end
+
+
+end
 -- Function to detect or create Transient/Sustain containers after amplitude splitter
 function DetectOrCreateSplitterContainers(fx_idx, fxguid)
-    -- Get track and basic info
-    local track = LT_Track
-    if not track then return false end
-    
+
     -- Try to load existing container GUIDs first
     local transient_guid, sustain_guid = LoadContainerGUIDsFromTrack(track, fxguid)
     
     -- If we have both GUIDs and they're valid, we can return early
     if transient_guid and sustain_guid then
-       
         -- Verify the GUIDs still exist in the track
-        local transient_exists = false
-        local sustain_exists = false
-        for i = 0, r.TrackFX_GetCount(track) - 1 do
-            local guid = r.TrackFX_GetFXGUID(track, i)
-            if guid == transient_guid then transient_exists = true end
-            if guid == sustain_guid then sustain_exists = true end
-        end
+
+        local next_idx1= GetNextAndPreviousFXID_NEW(fx_idx)
+        local guid1 = r.TrackFX_GetFXGUID(track, next_idx1)
+    
+        local transient_exists = guid1 == transient_guid and true or nil
+
+        local next_idx2= GetNextAndPreviousFXID_NEW(next_idx1)
+        local guid2 = r.TrackFX_GetFXGUID(track, next_idx2)
+        local sustain_exists = guid2 == sustain_guid and true or nil
+
         
         if transient_exists and sustain_exists then
             return true, transient_guid, sustain_guid
+        --[[ else 
+            local transient_guid = find_container_in_tree(TREE, guid1)
+            
+
+            local sustain_guid = find_container_in_tree(TREE, guid2) ]]
         end
+        
     end
     
     -- Check if track has enough channels (at least 4)
@@ -868,32 +916,21 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
     local has_sustain = false
     local transient_idx = -1
     local sustain_idx = -1
-    
+    local now = r.time_precise()
+
     -- Get the next FX indices using the proper container-aware function
-    local next_idx1, next_idx2
-    local _, container_items = r.TrackFX_GetNamedConfigParm(track, fx_idx, "container_count")
-    local container_count = tonumber(container_items) or 0
-    
-    local next_idx1, next_idx2
-    if FX_Idx> 0x2000000 then
-        next_idx1, this_id1, parent_cont1, cont_fx_count1 = GetNextFXid_in_Container(fx_idx)
-        next_idx2 = nil
-        if next_idx1 then
-            next_idx2, this_id2, parent_cont2, cont_fx_count2 = GetNextFXid_in_Container(next_idx1)
-        end
-    else 
-        next_idx1 = fx_idx + 1
-        next_idx2 = fx_idx + 2
-    end
+
+    local next_idx1= GetNextAndPreviousFXID_NEW(fx_idx)
+
     
     -- Check if the containers exist - look carefully for exact match
     if next_idx1  then
-        local _, name1 = r.TrackFX_GetFXName(track, next_idx1)
         -- Check specifically for container named "Transient"
         local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx1, "renamed_name")
         if rv and renamed_name == "Transient" then
             local guid1 = r.TrackFX_GetFXGUID(track, next_idx1)
             if guid1 then
+               
                 has_transient = true
                 transient_idx = next_idx1
                 transient_guid = guid1
@@ -902,28 +939,6 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
                 FX[guid1].HideContainer = true
             end
         end
-    end
-    if next_idx2 then
-        local _, name2 = r.TrackFX_GetFXName(track, next_idx2)
-        -- Check specifically for container named "Sustain"
-        local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx2, "renamed_name")
-        if rv and renamed_name == "Sustain" then
-            local guid2 = r.TrackFX_GetFXGUID(track, next_idx2)
-            if guid2 then
-                has_sustain = true
-                sustain_idx = next_idx2
-                sustain_guid = guid2
-                FX[guid2] = FX[guid2] or {}
-                FX[guid2].IsContainer = true
-                FX[guid2].HideContainer = true
-            end
-        end
-    end
-
-    
-    -- After checking for existing containers, create them if they don't exist
-    if not (has_transient and has_sustain) then
-        -- Create Transient container if needed
         if not has_transient then
             local container_idx = r.TrackFX_AddByName(track, "Container", false, -1)
             if container_idx >= 0 then
@@ -942,63 +957,169 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
                     r.TrackFX_SetPinMappings(track, container_idx, 0, 0, 1, 0)  -- input L
                     r.TrackFX_SetPinMappings(track, container_idx, 0, 1, 2, 0)  -- input R
                     
-                    -- Move to correct position if needed
+                   --[[  -- Move to correct position if needed
                     if container_idx ~= next_idx1 then
                         r.TrackFX_CopyToTrack(track, container_idx, track, next_idx1, true)
                         transient_idx = next_idx1
                         transient_guid = r.TrackFX_GetFXGUID(track, next_idx1)
                         r.TrackFX_Show(track, next_idx1, 2)  -- Hide the FX window after moving
-                    end
+                    end ]]
                     
                     has_transient = true
                 end
             end
-        end
-        
-        -- Create Sustain container if needed
-        if not has_sustain then
-            local container_idx = r.TrackFX_AddByName(track, "Container", false, -1)
-            if container_idx >= 0 then
-                r.TrackFX_Show(track, container_idx, 2)  -- Hide the FX window (2 = hide)
-                r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Sustain")
-                r.TrackFX_SetNamedConfigParm(track, container_idx, "parallel", "1")
-                sustain_idx = container_idx
-                sustain_guid = r.TrackFX_GetFXGUID(track, container_idx)
-                if sustain_guid then
-                    -- Set up container properties
-                    FX[sustain_guid] = FX[sustain_guid] or {}
-                    FX[sustain_guid].IsContainer = true
-                    FX[sustain_guid].HideContainer = true
-                    FX[sustain_guid].Idx = container_idx
-                    
-                    -- Set input pins for sustain (3,4)
-                    r.TrackFX_SetPinMappings(track, container_idx, 0, 0, 3, 0)  -- input L
-                    r.TrackFX_SetPinMappings(track, container_idx, 0, 1, 4, 0)  -- input R
-                    
-                    -- Move to correct position if needed
-                    if container_idx ~= next_idx2 then
-                        r.TrackFX_CopyToTrack(track, container_idx, track, next_idx2, true)
+            local next_idx2= GetNextAndPreviousFXID_NEW(next_idx1)
+
+            if next_idx2 then
+            
+                -- Check specifically for container named "Sustain"
+                local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx2, "renamed_name")
+                if rv and renamed_name == "Sustain" then
+                    local guid2 = r.TrackFX_GetFXGUID(track, next_idx2)
+                    if guid2 then
+                        has_sustain = true
                         sustain_idx = next_idx2
-                        sustain_guid = r.TrackFX_GetFXGUID(track, next_idx2)
-                        r.TrackFX_Show(track, next_idx2, 2)  -- Hide the FX window after moving
+                        sustain_guid = guid2
+                        FX[guid2] = FX[guid2] or {}
+                        FX[guid2].IsContainer = true
+                        FX[guid2].HideContainer = true
                     end
-                    
-                    has_sustain = true
+                end
+                
+                -- Create Sustain container if needed
+                if not has_sustain then
+                    local container_idx = r.TrackFX_AddByName(track, "Container", false, -1)
+                    if container_idx >= 0 then
+                        r.TrackFX_Show(track, container_idx, 2)  -- Hide the FX window (2 = hide)
+                        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Sustain")
+                        r.TrackFX_SetNamedConfigParm(track, container_idx, "parallel", "1")
+                        sustain_idx = container_idx
+                        sustain_guid = r.TrackFX_GetFXGUID(track, container_idx)
+                        if sustain_guid then
+                            -- Set up container properties
+                            FX[sustain_guid] = FX[sustain_guid] or {}
+                            FX[sustain_guid].IsContainer = true
+                            FX[sustain_guid].HideContainer = true
+                            FX[sustain_guid].Idx = container_idx
+                            
+                            -- Set input pins for sustain (3,4)
+                            r.TrackFX_SetPinMappings(track, container_idx, 0, 0, 4, 0)  -- input L
+                            r.TrackFX_SetPinMappings(track, container_idx, 0, 1, 8, 0)  -- input R
+                            
+                            --[[   -- Move to correct position if needed
+                            if container_idx ~= next_idx2 then
+                                r.TrackFX_CopyToTrack(track, container_idx, track, next_idx2, true)
+                                sustain_idx = next_idx2
+                                sustain_guid = r.TrackFX_GetFXGUID(track, next_idx2)
+                                r.TrackFX_Show(track, next_idx2, 2)  -- Hide the FX window after moving
+                            end ]]
+                            
+                            has_sustain = true
+                        end
+                    end
                 end
             end
+            -- After creating containers, save their GUIDs
+            if has_transient and has_sustain then
+                FX[fxguid] = FX[fxguid] or {}
+                FX[fxguid].ContainersCreated = true
+                FX[fxguid].TransientContainer = transient_guid
+                FX[fxguid].SustainContainer = sustain_guid
+                SaveContainerGUIDsToTrack(track, fxguid)
+            end
         end
+
+     
     end
+
+
+
+
+        
+ 
+
     
-    -- After creating containers, save their GUIDs
-    if has_transient and has_sustain then
-        FX[fxguid] = FX[fxguid] or {}
-        FX[fxguid].ContainersCreated = true
-        FX[fxguid].TransientContainer = transient_guid
-        FX[fxguid].SustainContainer = sustain_guid
-        SaveContainerGUIDsToTrack(track, fxguid)
-    end
+    -- After checking for existing containers, create them if they don't exist
+
+    -- Create Transient container if needed
+    
+
+
+    
     
     return has_transient and has_sustain, transient_guid, sustain_guid
+end
+
+function Put_All_In_Container(fx_idx)
+    if fx.DonePuttingInContainer then return end 
+
+    -- Function to check if Amplitude Splitter is in a container and create one if needed
+    local track = LT_Track
+
+    local fx_idx = Find_FxID_By_GUID(PluginScript.Guid)
+    if not fx_idx then return end
+    -- Get the parent container by checking if this FX has a container index
+    local parent_container = tonumber(  select(2, r.TrackFX_GetNamedConfigParm(track, fx_idx, "parent_container")))
+    if parent_container then
+        local rv, Name = r.TrackFX_GetNamedConfigParm(track, fx_idx, "renamed_name")
+        if Name == "Transient Split" then
+            return parent_container
+        end
+    end
+    -- If not in a container, create one and move the Amplitude Splitter into it
+    if not parent_container   then
+        
+
+        -- Create a new container
+        local container_idx = r.TrackFX_AddByName(track, "Container", false, -1000 -fx_idx)
+        
+        -- Rename the container to "Transient Split"
+        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Transient Split")
+        
+        -- Get the GUIDs we need
+        local transient_guid = FX[FxGUID].TransientContainer
+        local sustain_guid = FX[FxGUID].SustainContainer
+        
+        -- Move the Amplitude Splitter into the container at position 0
+        local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
+        local fx_idx = fx_idx + 1
+        r.TrackFX_CopyToTrack(track, fx_idx, track, insert_pos, true)
+     
+        
+        -- Find the indices for the transient and sustain containers
+        local transient_idx
+        local sustain_idx 
+
+        local next_idx1= GetNextAndPreviousFXID(fx_idx)
+
+        
+        for i = 0, r.TrackFX_GetCount(track) - 1 do
+            local guid = r.TrackFX_GetFXGUID(track, i)
+            if guid == transient_guid then
+                transient_idx = i
+            elseif guid == sustain_guid then
+                sustain_idx = i
+            end
+        end
+        
+        -- Move the Transient container into the new container at position 1
+        if transient_idx >= 0 then
+            local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 2)
+            r.TrackFX_CopyToTrack(track, transient_idx, track, insert_pos, true)
+        end
+        
+        -- Move the Sustain container into the new container at position 2
+
+        local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 3)
+        r.TrackFX_CopyToTrack(track, sustain_idx-1, track, insert_pos, true)
+       
+        fx.DonePuttingInContainer = true
+        -- Return the new container index for further operations
+        return container_idx
+
+    end
+    
+    return parent_container
 end
 
 -- Add this function to save container GUIDs to track data
@@ -1040,25 +1161,18 @@ function LoadContainerGUIDsFromTrack(track, fxguid)
     return FX[fxguid].TransientContainer, FX[fxguid].SustainContainer
 end
 
+local _, transient_guid, sustain_guid = DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
 im.PushFont(ctx, Font_Andale_Mono_11)
-DrawTransientSustainButtons(50, 60)
+DrawTransientSustainButtons(50, 60,  transient_guid, sustain_guid)
 im.PopFont(ctx)
-if FX_Adder_Idx then
-    AddFX_Menu(FX_Adder_Idx)
-end
 
-DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
-
--- To use this function, call it only when the user explicitly requests container creation
-if FX_Name:find("Amplitude Splitter") and im.IsItemClicked(ctx, 1) then -- Right click on splitter
-    local menu = "Add Transient/Sustain Containers"
-    if im.BeginPopupContextItem(ctx) then
-        if im.MenuItem(ctx, menu) then
-            DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
-        end
-        im.EndPopup(ctx)
+if FX_Adder_Idx then 
+    if fx.MenuPosition then
+        im.SetNextWindowPos(ctx, fx.MenuPosition.x, fx.MenuPosition.y)
     end
-end
+    AddFX_Menu(FX_Adder_Idx)  end
+MoveFX_BetweenContainers_Away(FX_Idx)
+Put_All_In_Container(FX_Idx)
 
 -- Add this in your container plugin script or where you display containers:
 function ShouldShowContainer(fxguid)

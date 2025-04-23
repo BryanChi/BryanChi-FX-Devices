@@ -839,11 +839,134 @@ function RemoveFXfromBS()
         end
     end
 end
-
-
-
-
-
+-- Function to draw text with adjustable character spacing (horizontal, vertical up or down)
+-- Function to draw text with adjustable character spacing
+-- Supports horizontal, vertical top-down, or vertical bottom-up text
+-- Function to draw text with adjustable character spacing
+-- Supports horizontal, vertical top-down, or vertical bottom-up text
+-- Function to draw text with adjustable character spacing
+-- Supports horizontal, vertical top-down, or vertical bottom-up text
+function DrawTextWithSpacing(draw_list, text, pos_x, pos_y, color, spacing_factor, font, direction, max_length)
+    if not text or text == "" then return end
+    
+    -- Save current font if needed
+    local prev_font = nil
+    if font then
+        prev_font = im.GetFont(ctx)
+        im.PushFont(ctx, font)
+    end
+    
+    -- Direction options: "horizontal", "vertical_down", "vertical_up"
+    local vertical = direction == "vertical_down" or direction == "vertical_up"
+    local bottom_up = direction == "vertical_up"
+    
+    local total_length = 0
+    local chars_drawn = 0
+    
+    -- Check if using Andale Mono font (for special 'P' handling)
+    local is_andale_mono = false
+    local font_name = ""
+    if font then
+        -- Extract font name from the font object or variable name
+        font_name = tostring(font)
+        is_andale_mono = font_name:find("Andale_Mono") ~= nil
+    end
+    
+    -- Special extra spacing for 'P' in Andale Mono font when vertical
+    local p_extra_spacing = 0.3  -- 12% extra spacing
+    
+    -- Prepare characters array
+    local chars = {}
+    for i = 1, #text do
+        local char = string.sub(text, i, i)
+        local char_width, char_height = im.CalcTextSize(ctx, char)
+        local nextchar = string.sub(text, i+1, i+1)
+        
+        -- Apply special P spacing for Andale Mono in vertical mode
+        local char_spacing = spacing_factor
+        if vertical and is_andale_mono and nextchar == "P" or nextchar == "p" then
+            
+            char_spacing = spacing_factor * (1 + p_extra_spacing)
+        end
+        
+        table.insert(chars, {
+            char = char,
+            width = char_width,
+            height = char_height,
+            spacing = char_spacing  -- Store custom spacing for this character
+        })
+    end
+    
+    -- For bottom-up, we need to calculate position for each character from bottom
+    if bottom_up then
+        -- Calculate total height first (needed to position characters from bottom)
+        local total_height = 0
+        for _, char_data in ipairs(chars) do
+            total_height = total_height + char_data.height * char_data.spacing
+            if max_length and total_height > max_length then
+                total_height = max_length
+                break
+            end
+        end
+        
+        -- Set position to start from the bottom
+        local curr_y = pos_y
+        
+        -- Place characters from bottom up
+        for i = 1, #chars do
+            local char_data = chars[i]
+            
+            -- Check if exceeding max length
+            if max_length and total_length + char_data.height * char_data.spacing > max_length then
+                break
+            end
+            
+            -- Draw the character at bottom position
+            im.DrawList_AddText(draw_list, pos_x, curr_y, color, char_data.char)
+            chars_drawn = chars_drawn + 1
+            
+            -- Move upward for next character using character-specific spacing
+            curr_y = curr_y - char_data.height * char_data.spacing
+            total_length = total_length + char_data.height * char_data.spacing
+        end
+    else
+        -- Horizontal or vertical downward text (normal behavior)
+        local curr_x = pos_x
+        local curr_y = pos_y
+        
+        for i = 1, #chars do
+            local char_data = chars[i]
+            
+            -- Check if exceeding max length
+            if max_length and total_length + (vertical and char_data.height or char_data.width) * char_data.spacing > max_length then
+                break
+            end
+            
+            -- Draw the character
+            im.DrawList_AddText(draw_list, curr_x, curr_y, color, char_data.char)
+            chars_drawn = chars_drawn + 1
+            
+            -- Move position for next character using character-specific spacing
+            if vertical then
+                curr_y = curr_y + char_data.height * char_data.spacing
+                total_length = total_length + char_data.height * char_data.spacing
+            else
+                curr_x = curr_x + char_data.width * char_data.spacing
+                total_length = total_length + char_data.width * char_data.spacing
+            end
+        end
+    end
+    
+    -- Restore previous font if we pushed a new one
+    if font then
+        im.PopFont(ctx)
+    end
+    
+    -- Return the final position and total length
+    return bottom_up and (pos_y - total_length) or (vertical and pos_y + total_length or pos_x + total_length), 
+           total_length, 
+           chars_drawn
+end
 
 function Pre_FX_Chain(FX_Idx)
     if not FX_Idx then return end 
@@ -1411,29 +1534,32 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
     end
     local function Create_Window_Btn()
+        local function Draw_Vert_Text(nm)
+            local x, y = im.GetItemRectMin(ctx)
+            local w, h = im.GetItemRectSize(ctx)
+            DrawTextWithSpacing(im.GetForegroundDrawList(ctx), nm, x+7,y+h-15 , 0xffffffff, 0.67, Font_Andale_Mono_Vertical_13, "vertical_up")
+        end
+        if fx.NoWindowBtn then return end 
         if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
-            if not fx.NoWindowBtn then
-                local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-                if DebugMode then Name = FxGUID end
-    
-                local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
-                im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
-                WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
-                im.PopStyleVar(ctx)
-                if isContainer then
-                    Highlight_Itm(WDL, nil, Cont_Clr)
-                end
-    
-                    Add_Prm_Btn()
-    
+
+            local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
+            if DebugMode then Name = FxGUID end
+
+            local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
+            im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
+            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
+            im.PopStyleVar(ctx)
+            if isContainer then
+                Highlight_Itm(WDL, nil, Cont_Clr)
             end
-    
-        elseif (fx.V_Win_Btn_Height and not fx.Collapse ) or (isContainer ) then -- Vertical btn
+
+            Add_Prm_Btn()
+
+
+        elseif (fx.V_Win_Btn_Height  ) or (isContainer ) or fx.Collapse then -- Vertical btn
             
             local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-            -- im.PushStyleVar(ctx, BtnTxtAlign, 0.5, 0.2) --StyleVar#3
-            --im.SameLine(ctx, nil, 0)
+            
     
             if isContainer then
                 local W = isContainer and fx.Collapse and 20 or 25
@@ -1451,27 +1577,18 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 im.PopStyleColor(ctx,3)
                 im.SetCursorPosX(ctx, pad_L)
     
-                WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, W, fx.V_Win_Btn_Height)
-    
+                WindowBtn = im.Button(ctx,   '##' .. FxGUID, W, fx.V_Win_Btn_Height)
+                Draw_Vert_Text(Name)    
             else
-                WindowBtn = im.Button(ctx,  Name_V_NoManuFacturer .. '##' .. FxGUID, 25, fx.V_Win_Btn_Height)
-                
+                WindowBtn = im.Button(ctx,  '##' .. FxGUID, 25, fx.V_Win_Btn_Height or 200 )
+                Draw_Vert_Text(Name)                
             end
     
     
-    
-            -- im.PopStyleVar(ctx)             --StyleVar#3 POP
-        else -- if collapsed
-            --[[ fx.Width_Collapse= 27 ]]
-            local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-            local Name_V_NoManuFacturer = Vertical_FX_Name(Name)
-            im.PushStyleVar(ctx, im.StyleVar_ButtonTextAlign, 0.5, 0.2) --StyleVar#3
-            --im.SameLine(ctx, nil, 0)
-    
-            WindowBtn = im.Button(ctx, Name_V_NoManuFacturer .. '##' .. FxGUID, 25, 220)
-            im.PopStyleVar(ctx)             --StyleVar#3 POP
         end
-    end    
+
+    end
+
     Push_Clr()
 
     Create_Window_Btn()
@@ -1670,23 +1787,41 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             if im.Button(ctx, 'Save values as default', -FLT_MIN) then
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Default Values')
                 r.RecursiveCreateDirectory(dir_path, 0)
-                local FX_Name = ChangeFX_Name(FX_Name)
-                local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
+                local nm = ChangeFX_Name(FX_Name)
+                local file_path = ConcatPath(dir_path, nm .. '.ini')
                 local file = io.open(file_path, 'w')
+        
+        
+                if file then    
+                    -- Check if it's a JSFX
 
-                if file then
-                    file:write(FX_Name, '\n')
-                    local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 4
-                    file:write('Number of Params: ', PrmCount, '\n')
-                    
-                    local function write(i, name, Value)
-                        file:write(i, '. ', name, ' = ', Value or '', '\n')
-                    end
-                    
-                    for i = 0, PrmCount, 1 do
-                        local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
-                        local _, N = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
-                        write(i, N, V)
+                    local _, type  = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'fx_type')
+                
+                    local is_jsfx = type == 'JS'
+                    if is_jsfx then
+                        -- Simple format for JSFX: just parameter values, one per line
+                        local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx)
+                        for i = 0, PrmCount - 1 do
+                            local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                            
+                            file:write(V .. '\n')
+                        end
+                    else
+                      
+                        -- Original format for VST/AU plugins
+                        file:write(nm, '\n')
+                        local PrmCount = r.TrackFX_GetNumParams(LT_Track, FX_Idx) - 4
+                        file:write('Number of Params: ', PrmCount, '\n')
+                        
+                        local function write(i, name, Value)
+                            file:write(i, '. ', name, ' = ', Value or '', '\n')
+                        end
+                        
+                        for i = 0, PrmCount, 1 do
+                            local V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, i)
+                            local _, N = r.TrackFX_GetParamName(LT_Track, FX_Idx, i)
+                            write(i, N, V)
+                        end
                     end
                     
                     file:write('\n')
@@ -4378,14 +4513,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, orig_name) then -- orig_name used to be fx.ShortName , changed to orig_name to work with containers in case if user changes name
                     SyncWetValues()
 
-                    if FX[FxGUID].Collapse ~= true then
+
                         FX[FxGUID] = FX[FxGUID] or {}
                         FX[FxGUID][0]= FX[FxGUID][0] or {}
                         FX[FxGUID][0].V  = FX[FxGUID][0].V  or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet') )
-                       --im.SetCursorPosX(ctx, im.GetCursorPosX(ctx) - WET_DRY_KNOB_SZ*1.5)
                         Wet.ActiveAny, Wet.Active, FX[FxGUID][0].V = Add_WetDryKnob(ctx, 'a', '', FX[FxGUID][0].V, 0, 1, FX_Idx,nil,FxGUID)
 
-                    end
+
 
                     if im.BeginDragDropTarget(ctx) then
                         rv, payload = im.AcceptDragDropPayload(ctx, 'FX_Drag')
@@ -4441,7 +4575,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                 end
             end
-            local function Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
+            local function Wet_Dry_Knob_And_WindowBtn_Decoration_NOT_COLLAPSED(sz, gap,St)
                 if FX[FxGUID].Collapse then return end
                 if FX[FxGUID].NoWetKnob then return end
                 if IsContainer then return end
@@ -4457,12 +4591,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 im.DrawList_AddRectFilled(WDL, pos[1]- gap, pos[2], ENDpos[1] + sz, ENDpos[2] + sz, clr, FX_Title_Round)
                 AddWetDryKnob_If_not_SpecialLayoutFX()
                 im.DrawList_AddRect(WDL, St[1]-gap/2, St[2], ENDpos[1] + sz, ENDpos[2] + sz, clr_outline, FX_Title_Round, nil,1)
+            end
+            local function Wet_Dry_Knob_COLLAPSED(sz, gap,pos)
+                if not FX[FxGUID].Collapse then return end
+                local pos = im.GetCursorPosX(ctx)
+                im.SetCursorPosX(ctx, pos + 2)
+                AddWetDryKnob_If_not_SpecialLayoutFX()
 
 
             end
+
             local function Window_Title_Area()
                 local sz= WET_DRY_KNOB_SZ
-                local gap = FX[FxGUID].Left_Padding or 5
+
+                local gap = fx.Left_Padding or 0
                 SL( nil, gap)
                 local St = {im.GetCursorScreenPos(ctx)}
 
@@ -4470,7 +4612,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 If_LayEdit_Activated__WindowBtn()
                 If_DebugMode_Active()
                 If_Open_Morph_Settings()
-                Wet_Dry_Knob_And_WindowBtn_Decoration(sz, gap,St)
+                Wet_Dry_Knob_And_WindowBtn_Decoration_NOT_COLLAPSED(sz, gap,St)
+                Wet_Dry_Knob_COLLAPSED(sz, gap,St)
+
             end
 
             
@@ -5198,14 +5342,17 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         local thick = 4
         im.DrawList_AddLine(WDL, X, Y, X , Y+ H , 0xFF0000FF, thick)
     end
-    
 
+    local function If_No_Need_To_Proceed()
+        if FX_Name and  string.find( FX_Name , 'FXD Containr Macro') then
+            return true
+        end 
+        
+    end
+    if If_No_Need_To_Proceed() then return end 
     if FX_Idx == 0 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then FX_Idx = 1 end
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
-    if string.find( FX_Name , 'FXD Containr Macro') then
-
-        return nil
-    end 
+    
 
     --[[ local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx_in_Container or FX_Idx)
     if FindStringInTable(BlackListFXs, FX_Name) then
@@ -6565,3 +6712,4 @@ function DrawArrow(coords, color, thickness, headSize, Y_Offset)
     im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP1X, arrowP1Y, color, thickness)
     im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP2X, arrowP2Y, color, thickness)
 end
+
