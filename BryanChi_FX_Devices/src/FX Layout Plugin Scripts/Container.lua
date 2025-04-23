@@ -7,7 +7,9 @@ if FX_Name == 'Transient' or FX_Name == 'Sustain'  then return end
 
 fx.TitleWidth  = 0
 --fx.CustomTitle = fx.Name
-fx.Width = 35 +10
+if  Animate_FX_Width ~=FxGUID and not FX[PluginScript.Guid].Width_Before_Collapse then 
+    fx.Width =     35 +10
+end
 fx.V_Win_Btn_Height = fx.V_Win_Btn_Height or  130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
 
@@ -37,17 +39,19 @@ local function If_FX_Is_In_Blacklist(FX_Name, blacklist)
     return false
 end
 local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
-
+    if Animate_FX_Width ==PluginScript.Guid then return end 
     if  FX_Name:find('FXD Containr Macro') then return end 
     -- Add the width for parallel Mixer if haven't done so 
     --[[ if not fx.Added_Parallel_Mixer_Width then
         fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
         fx.Added_Parallel_Mixer_Width = true
     end ]]
+    
+    if FX[PluginScript.Guid].Width_Before_Collapse then return end 
     for I,V in ipairs(PAR_FXs) do
         for ii, vv in ipairs(V) do 
 
-            if ii== 1 and  vv.addr_fxid == FX_Id then 
+            if ii== 1 and  vv.addr_fxid == X_Id then 
                 fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
                 fx.Added_Parallel_Mixer_Width = true
             end 
@@ -775,7 +779,7 @@ local function  macroPage(TB)
                 
             end
 
-        end 
+        end  
         if im.BeginPopup(ctx, 'Container Macro' .. I .. 'Menu') then
             im.SeparatorText(ctx, 'Set Type to :')
 
@@ -809,11 +813,13 @@ local function  macroPage(TB)
     end 
     local lastrow = math.ceil ( fx.ModSlots /4 )
     fx.Width = fx.Width + Size  *3.3 * lastrow
-    if fx.MacroPageActive and fx.Collapse then 
-        fx.Width_Collapse = 27+ Size  *3.3 * lastrow  + 5
-    else 
-        fx.Width_Collapse= nil
-    end  
+    if Animate_FX_Width ~=FxGUID then 
+        if fx.MacroPageActive and fx.Collapse then 
+            fx.Width_Collapse = 27+ Size  *3.3 * lastrow  + 5
+        else 
+            fx.Width_Collapse= nil
+        end  
+    end
 
 
     im.SetCursorPos(ctx,  x_before +  (Size*3 * lastrow)  , y_before)
@@ -1082,7 +1088,7 @@ local function Main(TB, X, Y)
 
                     local function Render_Normal()
                         if fx.Collapse then return end 
-                    
+                      
                         local diff, Cur_X_ofs  
                         local function Add_First_Space()
                             if i == 1 then 
@@ -1094,12 +1100,12 @@ local function Main(TB, X, Y)
                                 local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
                                 SL(nil,0)
                             
-
-                                if not FX_Name:find('FXD Containr Macro') then  
-                                    fx.Width = fx.Width + (Wid or 15)  
+                                if fx.Width_Before_Collapse and  fx.Width_Before_Collapse~= fx.Width then return end 
+                                if not FX_Name:find('FXD Containr Macro')   then  
+                                   fx.Width = fx.Width + (Wid or 15)  
                                 end
 
-
+                             
 
                             end
                         end
@@ -1108,9 +1114,11 @@ local function Main(TB, X, Y)
                                 return 
                             end
                             if FX_Name:find('Amplitude Splitter') then  return  end
-                            if not Parallel or i == #TB   then 
-                             
-                            local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                            if not Parallel or i == #TB    then 
+
+                                local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
+                                if fx.Width_Before_Collapse and  fx.Width_Before_Collapse~= fx.Width then return end 
+
                                 fx.Width = fx.Width + (Wid or 15)  
                             end 
                         end

@@ -152,7 +152,7 @@ function Main_Loop()
         im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 3) --StyleVar#1 (Child Frame for all FX Devices)
 
 
-        local spaceIfPreFX = Add_Btn_To_Drop_On_If_Mouse_Is_At_Left_Edge(Trk[TrkID])
+       --[[  local spaceIfPreFX = Add_Btn_To_Drop_On_If_Mouse_Is_At_Left_Edge(Trk[TrkID]) ]]
 
         im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 0) --  styleVar#2 Child Border size
         im.PushStyleColor(ctx, im.Col_ChildBg, Window_BG or CustomColorsDefault.Window_BG)
@@ -161,7 +161,7 @@ function Main_Loop()
             
         MainWin_Flg = im.WindowFlags_HorizontalScrollbar | FX_DeviceWindow_NoScroll
         local MaxX, MaxY = im.GetContentRegionMax(ctx)
-        if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) - spaceIfPreFX, 260, nil, MainWin_Flg) then
+        if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) --[[ - spaceIfPreFX ]], 260, nil, MainWin_Flg) then
             local X , Y = im.GetCursorScreenPos(ctx)
 
             Draw_Parallel_FX_Enclosure(FxGUID)

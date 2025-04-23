@@ -797,9 +797,6 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx)
         -- Try both payload types - one at a time
         local dropped_add, payload_add = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
         local dropped_move, payload_move = im.AcceptDragDropPayload(ctx, 'FX_Drag')
-        --[[ 
-        local _, container_name = r.TrackFX_GetNamedConfigParm(track, container_idx, "renamed_name")
-        msg('container_idx = ' .. container_idx .. ' - ' .. container_name) ]]
         -- Process the drop if it happened and no modifier keys are pressed
         if (dropped_add or dropped_move) and Mods == 0 then
             if track and container_guid then

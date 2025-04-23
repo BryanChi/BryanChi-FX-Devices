@@ -2386,13 +2386,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
             im.EndMenu(ctx)
         end
         TRACK = r.GetSelectedTrack(0, 0)
-        if im.Selectable(ctx, "CONTAINER") then
-            r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
-            AddedFX = true
-            LAST_USED_FX = "Container"
-            r.TrackFX_Show(TRACK, FX_Idx , 2)
-        end
-        DndAddFX_SRC("Container")
+
         if im.Selectable(ctx, "VIDEO PROCESSOR") then
             r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
             AddedFX = true
@@ -2408,7 +2402,13 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
         end
         DndAddFX_SRC(LAST_USED_FX)
         im.SeparatorText(ctx, "UTILS")
-        
+        if im.Selectable(ctx, "CONTAINER") then
+            r.TrackFX_AddByName(TRACK, "Container", false, -1000 - FX_Idx)
+            AddedFX = true
+            LAST_USED_FX = "Container"
+            r.TrackFX_Show(TRACK, FX_Idx , 2)
+        end
+        DndAddFX_SRC("Container")
         if im.Selectable(ctx, 'Band Split', false) then
             r.gmem_attach('FXD_BandSplit')
             table.insert(AddFX.Name, 'FXD Saike BandSplitter')

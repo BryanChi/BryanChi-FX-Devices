@@ -1067,7 +1067,6 @@ function PinIcon(PinStatus, PinStr, size, lbl, ClrBG, ClrTint)
     return PinStatus, TintClr
 end
 
-
 ---@param ctx ImGui_Context
 ---@param label string
 ---@param labeltoShow string
@@ -1421,7 +1420,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     end
     local function Animation_When_Collapse()
         if Animate_FX_Width==FxGUID then 
-
+       
             if fx.Collapse then  -- if user is collapsing 
                 fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
                 fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8,  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
@@ -1434,7 +1433,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     Long_Or_Short_FX_Idx = nil
                 end
             else        --- if uncollapsing
-    
+               
                 fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, COLLAPSED_FX_WIDTH, fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
     
                 if fx.AnimComplete then 
@@ -1442,7 +1441,10 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     fx.Width_Before_Collapse = nil 
                     Anim_Time=nil
                     Long_Or_Short_FX_Idx = nil
+                    msg('comp')
                 end 
+
+                
             end
         else 
             if fx.Collapse then fx.Width_Collapse = 27 
@@ -1534,10 +1536,11 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end
     end
     local function Create_Window_Btn()
-        local function Draw_Vert_Text(nm)
+        local function Draw_Vert_Text(nm, x_offset)
             local x, y = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
-            DrawTextWithSpacing(im.GetForegroundDrawList(ctx), nm, x+7,y+h-15 , 0xffffffff, 0.67, Font_Andale_Mono_Vertical_13, "vertical_up")
+            local x_ofs = x_offset or 8
+            DrawTextWithSpacing(im.GetForegroundDrawList(ctx), nm, x+x_ofs,y+h-15 , 0xffffffff, 0.67, Font_Andale_Mono_Vertical_13, "vertical_up")
         end
         if fx.NoWindowBtn then return end 
         if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
@@ -1559,10 +1562,10 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         elseif (fx.V_Win_Btn_Height  ) or (isContainer ) or fx.Collapse then -- Vertical btn
             
             local Name = (fx.CustomTitle or fx.ShortName or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) .. '## ')
-            
+            local is_T_Split = Name == "Transient Split" and true or nil
     
-            if isContainer then
-                local W = isContainer and fx.Collapse and 20 or 25
+            if isContainer and not is_T_Split then
+                local W = isContainer and fx.Collapse and 20  or 25
                 local clr = Cont_Clr
                 local pad_L = fx.Collapse and 3 or 6
                 local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
@@ -1571,7 +1574,8 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
                 im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
     
-                if im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr) then 
+                if im.ImageButton(ctx,  'Folder_Icon', img ,W,W ,nil,nil,nil,nil, 0x00000000, clr)  then 
+
                     fx.Cont_Collapse = toggle(fx.Cont_Collapse, 1, 0 )
                 end
                 im.PopStyleColor(ctx,3)
@@ -1579,7 +1583,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     
                 WindowBtn = im.Button(ctx,   '##' .. FxGUID, W, fx.V_Win_Btn_Height)
                 Draw_Vert_Text(Name)    
+            elseif is_T_Split then
+                local H = is_T_Split and 170 or fx.V_Win_Btn_Height or 200
+                local W = is_T_Split and 30 or 25
+                local x_ofs = fx.Collapse and 8 or 12
+                WindowBtn = im.Button(ctx,  '##' .. FxGUID, 30, 170 )
+                Draw_Vert_Text(Name, x_ofs )                
             else
+
                 WindowBtn = im.Button(ctx,  '##' .. FxGUID, 25, fx.V_Win_Btn_Height or 200 )
                 Draw_Vert_Text(Name)                
             end
@@ -1600,8 +1611,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
     Mouse_Interactions(R_ClickOnWindowBtn, L_ClickOnWindowBtn)
 
-
-
+    if DragFX_ID == FX_Idx then
+        -- Store the position of the dragged FX for the arrow
+        local x, y = im.GetItemRectMin(ctx)
+        local w, h = im.GetItemRectSize(ctx)
+        DragFX_Arrow_StartX  = x + w/2
+        DragFX_Arrow_StartY = y 
+       
+    end
     if not fx.Collapse then fx.Width_Collapse= nil end
 
 
@@ -1635,11 +1652,18 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         else
             DragFX_ID = FX_Idx
             DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
+            
+            --[[ local arrowCoords = {
+            startX = DragFX_Arrow_StartX,
+            startY = DragFX_Arrow_StartY,
+            endX = x + w/2,
+            endY = y + h/2
+        }
+            DrawArrow(arrowCoords, 0xCCFFFF66, 2, 12) ]]
         end
         im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
         im.EndDragDropSource(ctx)
-        Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
+       -- Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
 
         DragDroppingFX = true
         if IsAnyMouseDown == false then DragDroppingFX = false end
@@ -5430,6 +5454,26 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
             end
 
+            if HoverOnWindow == true and DragDroppingFX == true and DragFX_Arrow_StartX and DragFX_Arrow_StartY then
+                -- Draw an arrow when hovering during drag
+                local x, y = im.GetCursorScreenPos(ctx)
+                local sX, sY = DragFX_Arrow_StartX, DragFX_Arrow_StartY
+                local eX, eY = x + w/2, y + 110
+                local P = 13
+                
+                im.DrawList_AddLine(Glob.FDL, sX, sY , sX, sY-P, 0xFFFFFFFF, 2)
+                im.DrawList_AddLine(Glob.FDL, sX, sY - P, eX, sY - P, 0xFFFFFFFF, 2)
+                --[[ im.DrawList_AddLine(Glob.FDL, eX, sY - 20 , eX, sY , 0xFFFFFFFF, 2) ]]
+                local arrowCoords = {
+                    startX = eX,
+                    startY = sY-P,
+                    endX = eX,
+                    endY = sY
+                }
+                DrawArrow(arrowCoords, 0xFFFFFFFF, 2, 8, nil, Glob.FDL)
+                
+            end
+
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and Wet.ActiveAny ~= true and Knob_Active ~= true and not Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 
                 or Sel_Track_FX_Count == 0 or AddLastSpace  then
                 Dvdr.Spc_Hover[TblIdxForSpace] = Df.Dvdr_Hvr_W
@@ -5472,7 +5516,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
             else
                 Dvdr.RestoreNormWidthWait[FX_Idx] = (Dvdr.RestoreNormWidthWait[FX_Idx] or 0) + 1
-                if Dvdr.RestoreNormWidthWait[FX_Idx] >= 8 then
+                if Dvdr.RestoreNormWidthWait[FX_Idx] >= 2 then
                     Dvdr.Spc_Hover[TblIdxForSpace] = Dvdr_Hvr_W
                     Dvdr.RestoreNormWidthWait[FX_Idx] = 0
                 end
@@ -5501,6 +5545,10 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             im.EndChild(ctx)
         end
         im.PopStyleColor(ctx)
+
+        if HoverOnWindow == true and DragDroppingFX == true and DragFX_Arrow_StartX and DragFX_Arrow_StartY then
+            Highlight_Itm(Glob.FDL, nil, 0xffffffff, 0, 0, 1, 0)
+        end
     end
     im.PopStyleColor(ctx)
     local FXGUID_FX_Idx = r.TrackFX_GetFXGUID(LT_Track, FX_Idx - 1)
@@ -5735,7 +5783,6 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
                 ----------- Add FX ---------------
                 
-
 
 
                 im.EndDragDropTarget(ctx)
@@ -6667,10 +6714,10 @@ function Marquee_Selection(ItmCt, TB, V , FillClr)
 end
 
 
-function DrawArrow(coords, color, thickness, headSize, Y_Offset)
+function DrawArrow(coords, color, thickness, headSize, Y_Offset, DL)
     local thickness = thickness or 1
     local headSize = headSize or 10
-    local DrawList = im.GetWindowDrawList(ctx)
+    local DrawList = DL or im.GetWindowDrawList(ctx)
     local color = color or 0xffffffff
     if not coords then 
         local sX, sY = im.GetItemRectMin(ctx)
@@ -6712,4 +6759,5 @@ function DrawArrow(coords, color, thickness, headSize, Y_Offset)
     im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP1X, arrowP1Y, color, thickness)
     im.DrawList_AddLine(DrawList, coords.endX, coords.endY, arrowP2X, arrowP2Y, color, thickness)
 end
+
 
