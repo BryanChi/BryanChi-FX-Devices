@@ -108,9 +108,10 @@ end
 function GetVersionNum()
     local script_path = select(2, reaper.get_action_context())
     local pkg = reaper.ReaPack_GetOwner(script_path)
-    local version = select(7, reaper.ReaPack_GetEntryInfo(pkg))
+    local    ver = select(7, reaper.ReaPack_GetEntryInfo(pkg))
+  
     reaper.ReaPack_FreeEntry(pkg)
-    return version 
+    return ver 
 end
 
 
@@ -441,7 +442,13 @@ function Retrieve_User_Settings()
                 Ctrl_Scroll = storedTable.ctrl_scroll
                 ProC.GR_NATIVE = storedTable.proc_gr_native
                 ProQ.Analyzer = storedTable.proq_analyzer
-                USE_MOD_CONTROL_POPUP =storedTable.USE_MOD_CONTROL_POPUP
+                USE_MOD_CONTROL_POPUP = storedTable.USE_MOD_CONTROL_POPUP
+                -- Restore plugin type preferences if available
+                if storedTable.plugin_type_order then
+                    PluginTypeOrder = storedTable.plugin_type_order
+                else
+                    PluginTypeOrder = {"VST3", "VST", "AU", "CLAP", "JS"}
+                end
                 --Use_SystemFont = storedTable.use_systemfont
             end
         end

@@ -206,7 +206,7 @@ function zdf_eq(freq, q, gain)
 
     nlp = 1;
     onepole = 0;
-    this._zdf_eq(freq, q, gain);
+    _zdf_eq(freq, q, gain);
 end
 
 function rbj_eq(freq, q, gain)
@@ -531,20 +531,33 @@ function svf_hp(freq, q, slope)
     return cas0, cas1, cas2, cas3, cas4, cas5, cas6, cas7, cas8, cas9
 end
 
+function zdf_set_coeffs(a1, a2, a3, m0, m1, m2)
+    -- Store coefficients for use in magnitude calculation
+    g = a2 / a1
+    k = 1.0 / ((1.0 / a1) - 1.0) / g - 1.0
+    
+    -- Also store the mix coefficients
+    m0 = m0
+    m1 = m1
+    m2 = m2
+    
+    return a1, a2, a3, m0, m1, m2
+end
+
 function svf_set_coeffs(tg, tk, ta1, ta2, ta3, tm0, tm1, tm2)
     --instance(g, k, a1, a2, a3, m0, m1, m2, t_g, t_k, t_a1, t_a2, t_a3, t_m0, t_m1, t_m2, s_g, s_k, s_a1, s_a2, s_a3, s_m0, s_m1, s_m2, iter_t)
 
     iter_t = 0.0;
 
     -- Start coefficients
-    s_g = g;
-    s_k = k;
-    s_a1 = a1;
-    s_a2 = a2;
-    s_a3 = a3;
-    s_m0 = m0;
-    s_m1 = m1;
-    s_m2 = m2;
+    s_g = g or 0;
+    s_k = k or 0;
+    s_a1 = a1 or 0;
+    s_a2 = a2 or 0;
+    s_a3 = a3 or 0;
+    s_m0 = m0 or 0;
+    s_m1 = m1 or 0;
+    s_m2 = m2 or 0;
 
     -- Target coefficients
     t_g = tg;
@@ -555,6 +568,16 @@ function svf_set_coeffs(tg, tk, ta1, ta2, ta3, tm0, tm1, tm2)
     t_m0 = tm0;
     t_m1 = tm1;
     t_m2 = tm2;
+    
+    -- Set the current coefficients to target for immediate effect
+    g = tg
+    k = tk
+    a1 = ta1
+    a2 = ta2
+    a3 = ta3
+    m0 = tm0
+    m1 = tm1
+    m2 = tm2
 end
 
 function magnitude(freq)
@@ -702,3 +725,600 @@ function syncProQ_DispRange(Actual_dB_Val)
     end
     return Output
 end
+
+---Draws a high cut (low pass) filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Cutoff frequency
+---@param q number Q value (resonance)
+---@param slope number Slope value (0-1 range, will be scaled to 0-20 internally)
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawHighCutFilter(ctx, drawList, x, y, width, height, freq, q, slope, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Scale the slope to match Pro Q behavior
+    local Slope_HighCut = slope * 20
+    
+    -- Convert normalized Q to actual Q value
+    local MIN_Q = 0.15
+    local MAX_Q = 40
+    local Q_LOG_MAX = math.log(MAX_Q / MIN_Q, 5)
+    local Q_HC = MIN_Q * (Euler ^ (Q_LOG_MAX * q))
+    
+    -- Calculate filter coefficients
+    zdf_lp(freq, Q_HC, Slope_HighCut)
+    
+    -- Draw the curve
+    local lastX = x
+    local lastY = y
+    local first = true
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    for i = 1, width, 2 do
+        -- Convert x position to frequency
+        local normalizedX = i / width
+        local iToFreq = MIN_FREQ * (Euler ^ (freq_log_max * normalizedX))
+        iToFreq = math.max(math.min(iToFreq, MAX_FREQ), MIN_FREQ)
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Special case for brickwall filters
+        if slope >= 0.99 then
+            if iToFreq > freq then
+                magY = y + (height/2) -- -100 dB (bottom)
+            else
+                magY = y - (height/2) -- 0 dB (top)
+            end
+        end
+        
+        -- Draw line segment
+        local currentX = x + i
+        
+        -- Ensure points stay within bounds
+        currentX = clamp(currentX, x, xMax)
+        local clampedY = clamp(Y_Mid - magY, yMin, yMax)
+        local clampedLastY = clamp(lastY, yMin, yMax)
+        
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, clampedLastY, currentX, clampedY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = Y_Mid - magY
+        first = false
+    end
+end
+
+---Draws a low cut (high pass) filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Cutoff frequency
+---@param q number Q value (resonance)
+---@param slope number Slope value (0-1 range, will be scaled to 0-20 internally)
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawLowCutFilter(ctx, drawList, x, y, width, height, freq, q, slope, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Scale the slope to match Pro Q behavior
+    local Slope_LowCut = slope * 20
+    
+    -- Convert normalized Q to actual Q value
+    local MIN_Q = 0.15
+    local MAX_Q = 40
+    local Q_LOG_MAX = math.log(MAX_Q / MIN_Q, 5)
+    local Q_LC = MIN_Q * (Euler ^ (Q_LOG_MAX * q))
+    
+    -- Calculate filter coefficients
+    svf_hp(freq, Q_LC, Slope_LowCut)
+    
+    -- Draw the curve
+    local lastX = x
+    local lastY = y
+    local first = true
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    for i = 1, width, 2 do
+        -- Convert x position to frequency
+        local normalizedX = i / width
+        local iToFreq = MIN_FREQ * (Euler ^ (freq_log_max * normalizedX))
+        iToFreq = math.max(math.min(iToFreq, MAX_FREQ), MIN_FREQ)
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Special case for brickwall filters
+        if slope >= 0.99 then
+            if iToFreq < freq then
+                magY = y + (height/2) -- -100 dB (bottom)
+            else
+                magY = y - (height/2) -- 0 dB (top)
+            end
+        end
+        
+        -- Draw line segment
+        local currentX = x + i
+        
+        -- Ensure points stay within bounds
+        currentX = clamp(currentX, x, xMax)
+        local clampedY = clamp(Y_Mid - magY, yMin, yMax)
+        local clampedLastY = clamp(lastY, yMin, yMax)
+        
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, clampedLastY, currentX, clampedY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = Y_Mid - magY
+        first = false
+    end
+end
+
+---Draws a bell filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Center frequency
+---@param q number Q value (bandwidth)
+---@param gain number Gain value in dB
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawBellFilter(ctx, drawList, x, y, width, height, freq, q, gain, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Calculate the frequency position on the x-axis and the gain scaling
+    local freq_normalized = math.log(freq / MIN_FREQ) / freq_log_max
+    local Freq_Math = freq_normalized * width
+    
+    -- Convert normalized gain to actual gain value (-30 to +30 dB)
+    local gainDb = (gain * 2 - 1) * 30
+    
+    -- Scale gain for display
+    local Gain_Math = (gainDb / 30) * (height / 2)
+    
+    -- Q calculation based on the Pro Q4 implementation
+    local Q_Math = ((q ^ 3.2) * 0.55) / 2 + 0.005
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    -- Draw using precise line segments for a clean appearance
+    local lastX = x
+    local lastY = y
+    local first = true
+    
+    -- Use smaller step size for smoother curve but without making it thick
+    local step = 1
+    for i = 0, width, step do
+        -- Gaussian bell curve calculation - directly from Pro Q4
+        local magnitude = Gain_Math * Euler^(-(Q_Math * (i - Freq_Math))^2)
+        
+        -- Calculate y position (adjusted for the height of the display)
+        local yPos = y - magnitude
+        
+        -- Ensure points stay within bounds
+        local currentX = x + i
+        currentX = clamp(currentX, x, xMax)
+        local clampedY = clamp(yPos, yMin, yMax)
+        
+        -- Draw line segment
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, lastY, currentX, clampedY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = clampedY
+        first = false
+    end
+    
+    -- Make sure we draw to the edge
+    im.DrawList_AddLine(drawList, lastX, lastY, xMax, y, color, thickness)
+end
+
+---Draws a notch filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Center frequency
+---@param q number Q value (bandwidth)
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawNotchFilter(ctx, drawList, x, y, width, height, freq, q, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Convert normalized Q to actual Q value
+    local MIN_Q = 0.15
+    local MAX_Q = 40
+    local Q_LOG_MAX = math.log(MAX_Q / MIN_Q, 5)
+    local Q_Notch = MIN_Q * (Euler ^ (Q_LOG_MAX * q))
+    
+    -- Calculate filter coefficients
+    svf_bs(freq, Q_Notch)
+    
+    -- Draw the curve
+    local lastX = x
+    local lastY = y
+    local first = true
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    for i = 1, width, 2 do
+        -- Convert x position to frequency
+        local normalizedX = i / width
+        local iToFreq = MIN_FREQ * (Euler ^ (freq_log_max * normalizedX))
+        iToFreq = math.max(math.min(iToFreq, MAX_FREQ), MIN_FREQ)
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Draw line segment
+        local currentX = x + i
+        
+        -- Ensure points stay within bounds
+        currentX = clamp(currentX, x, xMax)
+        local clampedY = clamp(Y_Mid - magY, yMin, yMax)
+        local clampedLastY = clamp(lastY, yMin, yMax)
+        
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, clampedLastY, currentX, clampedY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = Y_Mid - magY
+        first = false
+    end
+end
+
+---Draws a bandpass filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Center frequency
+---@param q number Q value (bandwidth)
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawBandpassFilter(ctx, drawList, x, y, width, height, freq, q, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Convert normalized Q to actual Q value
+    local MIN_Q = 0.15
+    local MAX_Q = 40
+    local Q_LOG_MAX = math.log(MAX_Q / MIN_Q, 5)
+    local Q_BP = MIN_Q * (Euler ^ (Q_LOG_MAX * q))
+    
+    -- Calculate filter coefficients
+    svf_bp(freq, Q_BP)
+    
+    -- Draw the curve
+    local lastX = x
+    local lastY = y
+    local first = true
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    for i = 1, width, 2 do
+        -- Convert x position to frequency
+        local normalizedX = i / width
+        local iToFreq = MIN_FREQ * (Euler ^ (freq_log_max * normalizedX))
+        iToFreq = math.max(math.min(iToFreq, MAX_FREQ), MIN_FREQ)
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Draw line segment
+        local currentX = x + i
+        
+        -- Ensure points stay within bounds
+        currentX = clamp(currentX, x, xMax)
+        local clampedY = clamp(Y_Mid - magY, yMin, yMax)
+        local clampedLastY = clamp(lastY, yMin, yMax)
+        
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, clampedLastY, currentX, clampedY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = Y_Mid - magY
+        first = false
+    end
+end
+
+---Draws a low shelf filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Shelf frequency
+---@param q number Q value (slope)
+---@param gain number Gain value in dB
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawLowShelfFilter(ctx, drawList, x, y, width, height, freq, q, gain, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Use a proper Q scaling that provides steeper shelves
+    local MIN_Q = 0.1
+    local MAX_Q = 20
+    -- Power curve for Q makes it more responsive at low values
+    local Q_LS = MIN_Q + (MAX_Q * (q * q))
+    
+    -- Convert normalized gain to actual gain value (-30 to +30 dB)
+    local gainDb = (gain * 2 - 1) * 30
+    local gainFactor = 10^(gainDb/20)
+    
+    -- Calculate filter coefficients
+    svf_ls(freq, Q_LS, gainFactor)
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    -- Draw using line segments
+    local lastX = x
+    local lastY = Y_Mid
+    local first = true
+    
+    -- Use fixed step size for smoother curves
+    local steps = 100
+    local step = width / steps
+    
+    for i = 0, steps do
+        -- Convert x position to frequency (logarithmic)
+        local normalizedX = i / steps
+        local iToFreq = MIN_FREQ * (Euler ^ (freq_log_max * normalizedX))
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Calculate screen position
+        local currentX = x + (normalizedX * width)
+        local currentY = Y_Mid - magY
+        
+        -- Clamp to boundaries
+        currentX = clamp(currentX, x, xMax)
+        currentY = clamp(currentY, yMin, yMax)
+        
+        -- Draw line segment
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, lastY, currentX, currentY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = currentY
+        first = false
+    end
+    
+    -- Ensure curve extends to right edge
+    im.DrawList_AddLine(drawList, lastX, lastY, xMax, lastY, color, thickness)
+end
+
+---Draws a high shelf filter curve
+---@param ctx ImGui_Context
+---@param drawList ImGui_DrawList
+---@param x number X position to start drawing
+---@param y number Y position (center line)
+---@param width number Width of the curve area
+---@param height number Height of the curve area
+---@param freq number Shelf frequency
+---@param q number Q value (slope)
+---@param gain number Gain value in dB
+---@param color number Color in 0xRRGGBBAA format
+---@param thickness number Line thickness
+function DrawHighShelfFilter(ctx, drawList, x, y, width, height, freq, q, gain, color, thickness)
+    -- Set up some constants similar to Pro Q
+    SAMPLE_RATE = 60000
+    MAX_FREQ = 30000
+    MIN_FREQ = 10
+    freq_log_max = math.log(MAX_FREQ / MIN_FREQ)
+    Euler = 2.71828182845904523
+    local Y_Mid = y
+    
+    -- Use a proper Q scaling that provides steeper shelves
+    local MIN_Q = 0.1
+    local MAX_Q = 20
+    -- Power curve for Q makes it more responsive at low values
+    local Q_HS = MIN_Q + (MAX_Q * (q * q))
+    
+    -- Convert normalized gain to actual gain value (-30 to +30 dB)
+    local gainDb = (gain * 2 - 1) * 30
+    local gainFactor = 10^(gainDb/20)
+    
+    -- Calculate filter coefficients
+    svf_hs(freq, Q_HS, gainFactor)
+    
+    -- Helper function to clamp points to bounds
+    local function clamp(value, min, max)
+        return math.min(math.max(value, min), max)
+    end
+    
+    -- Max bounds
+    local xMax = x + width
+    local yMin = y - (height/2)
+    local yMax = y + (height/2)
+    
+    -- Draw using line segments
+    local lastX = x
+    local lastY = Y_Mid
+    local first = true
+    
+    -- Use fixed step size for smoother curves
+    local steps = 100
+    local step = width / steps
+    
+    for i = 0, steps do
+        -- Convert x position to frequency (logarithmic)
+        local normalizedX = i / steps
+        local iToFreq = MIN_FREQ * (MAX_FREQ / MIN_FREQ) ^ normalizedX
+        
+        -- Get magnitude response at this frequency
+        local mag = zdf_magnitude(iToFreq)
+        mag = 20 * math.log(mag, 10)
+        
+        -- Convert magnitude to y position
+        local DB_EQ_RANGE = 60
+        local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
+        local magY = -(m * height - (height/2))
+        
+        -- Calculate screen position
+        local currentX = x + (normalizedX * width)
+        local currentY = Y_Mid - magY
+        
+        -- Clamp to boundaries
+        currentX = clamp(currentX, x, xMax)
+        currentY = clamp(currentY, yMin, yMax)
+        
+        -- Draw line segment
+        if not first then
+            im.DrawList_AddLine(drawList, lastX, lastY, currentX, currentY, color, thickness)
+        end
+        
+        -- Store for next segment
+        lastX = currentX
+        lastY = currentY
+        first = false
+    end
+    
+    -- Ensure curve extends to right edge
+    im.DrawList_AddLine(drawList, lastX, lastY, xMax, lastY, color, thickness)
+end
+

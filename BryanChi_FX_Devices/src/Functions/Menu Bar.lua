@@ -6,7 +6,8 @@ function StoreSettings()
             ctrl_scroll = Ctrl_Scroll,
             proc_gr_native = ProC.GR_NATIVE,
             proq_analyzer = ProQ.Analyzer,
-            USE_MOD_CONTROL_POPUP = USE_MOD_CONTROL_POPUP
+            USE_MOD_CONTROL_POPUP = USE_MOD_CONTROL_POPUP,
+            plugin_type_order = PluginTypeOrder
             --use_systemfont = Use_SystemFont
         }
     )
@@ -77,6 +78,134 @@ end
 function Settings()
 
     if im.BeginMenu(ctx, 'Settings') then
+        local function PluginTypeOrder_DragDrop()
+            im.Text(ctx, "Plugin Type Preference (drag to reorder):")
+            
+            -- Initialize plugin type order if not already set
+            PluginTypeOrder = PluginTypeOrder or {"VST3", "VST", "AU", "CLAP", "JS"}
+            
+            -- Create a layout with indicator on left
+            local startX, startY = im.GetCursorPos(ctx)
+            local indicatorWidth = 30
+            local buttonWidth = 80
+            local childWidth = indicatorWidth + buttonWidth + 10 -- Extra padding
+            
+            -- Draw preference indicator
+            local drawlist = im.GetWindowDrawList(ctx) -- Use window draw list instead of foreground
+            local textColor = 0xAAAAFFBB
+            local lineColor = 0x777777AA
+            
+            -- Convert cursor position to screen coordinates for drawing
+            local screenX, screenY = im.GetCursorScreenPos(ctx)
+            local BottomY = (indicatorWidth * 5)
+            -- Draw the indicator text and lines
+           
+            im.Text(ctx, "Most")
+            im.SetCursorPos(ctx, startX, startY + BottomY-15)
+            im.Text(ctx, "Least")
+            
+            -- Add arrow between most and least using screen coordinates
+            local arrowStartX = screenX + 15
+            local arrowStartY = screenY +20
+            local arrowEndY = screenY + BottomY-15
+            im.DrawList_AddLine(drawlist, arrowStartX, arrowStartY, arrowStartX, arrowEndY, lineColor, 2)
+            
+            -- Add arrowheads using screen coordinates
+            im.DrawList_AddTriangleFilled(drawlist, 
+                arrowStartX, arrowStartY, 
+                arrowStartX - 5, arrowStartY + 8, 
+                arrowStartX + 5, arrowStartY + 8, 
+                textColor)
+            
+            im.DrawList_AddTriangleFilled(drawlist, arrowStartX, arrowEndY, arrowStartX - 5, arrowEndY - 8, arrowStartX + 5, arrowEndY - 8, textColor)
+            
+            -- Position child window next to the indicator
+            im.SetCursorPos(ctx, startX + indicatorWidth, startY)
+            
+            -- Create a child window for the drag area
+            if im.BeginChild(ctx, "PluginTypeOrderArea", buttonWidth + 10, BottomY) then
+                for i = 1, #PluginTypeOrder do
+                    -- Make items dragable
+                    im.PushID(ctx, i)
+                    
+                    -- Get the appropriate color for this plugin type
+                    local pluginType = PluginTypeOrder[i]
+                    local btnColor = nil
+                    
+                    if pluginType == "VST" then
+                        textColor = CustomColorsDefault.FX_Adder_VST or 0x6FB74BFF
+                    elseif pluginType == "VST3" then
+                        textColor = CustomColorsDefault.FX_Adder_VST3 or 0xC3DC5CFF
+                    elseif pluginType == "JS" then
+                        textColor = CustomColorsDefault.FX_Adder_JS or 0x9348A9FF
+                    elseif pluginType == "AU" then
+                        textColor = CustomColorsDefault.FX_Adder_AU or 0x526D97FF
+                    elseif pluginType == "CLAP" then
+                        textColor = CustomColorsDefault.FX_Adder_CLAP or 0xB62424FF
+                    elseif pluginType == "LV2" then
+                        textColor = CustomColorsDefault.FX_Adder_LV2 or 0xFFA500FF
+                    end
+                    
+                    im.PushStyleColor(ctx, im.Col_Text, textColor)
+                    
+                    im.Button(ctx, PluginTypeOrder[i], buttonWidth, 24)
+                    
+                    -- Pop the style colors
+                    im.PopStyleColor(ctx, 1)
+                    
+                    -- Handle drag and drop
+                    if im.BeginDragDropSource(ctx) then
+                        -- Store source index as a string (can't use tables as payload)
+                        im.SetDragDropPayload(ctx, "PLUGIN_TYPE_ORDER", tostring(i))
+                        im.Text(ctx, "Moving " .. PluginTypeOrder[i])
+                        im.EndDragDropSource(ctx)
+                    end
+                    
+                    if im.BeginDragDropTarget(ctx) then
+                        local dropped, payload = im.AcceptDragDropPayload(ctx, "PLUGIN_TYPE_ORDER")
+                        if dropped then
+                            -- Convert string payload back to number
+                            local src_idx = tonumber(payload)
+                            
+                            -- Only modify array if indices are different
+                            if src_idx ~= i then
+                                -- Store the current value being moved
+                                local moving_val = PluginTypeOrder[src_idx]
+                                
+                                -- Direct swap for adjacent items (fixes issue with item right below)
+                                if math.abs(src_idx - i) == 1 then
+                                    -- Simple swap for adjacent items
+                                    PluginTypeOrder[src_idx] = PluginTypeOrder[i]
+                                    PluginTypeOrder[i] = moving_val
+                                else
+                                    -- For non-adjacent items, remove and insert
+                                    table.remove(PluginTypeOrder, src_idx)
+                                    
+                                    -- Calculate the correct insertion point
+                                    local target_idx = i
+                                    if src_idx < i then
+                                        target_idx = i - 1
+                                    end
+                                    
+                                    table.insert(PluginTypeOrder, target_idx, moving_val)
+                                end
+                                
+                                -- Save settings after the change
+                                StoreSettings()
+                            end
+                        end
+                        im.EndDragDropTarget(ctx)
+                    end
+                    
+                    im.PopID(ctx)
+          
+                end
+                im.EndChild(ctx)
+            end
+            
+            -- Reset cursor position after drawing everything
+            im.SetCursorPos(ctx, startX, startY + BottomY + 10)
+        end
         if select(2, im.MenuItem(ctx, 'Style Editor', shoirtcutIn, p_selected, enabledIn)) then
             OpenStyleEditor = toggle(OpenStyleEditor)
         end
@@ -89,6 +218,7 @@ function Settings()
                 Dock_Now = true
             end
         end
+        
         if im.BeginMenu(ctx, "General Behavior") then
             _, Reverse_Scroll = im.Checkbox(ctx, "Reverse Scroll", Reverse_Scroll)
             SL()
@@ -101,12 +231,21 @@ function Settings()
             _, ProQ.Analyzer = im.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
             --_, Use_SystemFont = im.Checkbox(ctx, 'Use System Font', Use_SystemFont)
             _, USE_MOD_CONTROL_POPUP = im.Checkbox(ctx, 'Modulation Control Popup on Mouse Hover', USE_MOD_CONTROL_POPUP)
-            StoreSettings()
+            
+            -- Plugin Type Preference Section
+            im.Separator(ctx)
+         
+            
             im.EndMenu(ctx)
         end
+        im.Separator(ctx)
+
+        PluginTypeOrder_DragDrop()
         if select(2, im.MenuItem(ctx, "Rescan Plugin List")) then
             FX_LIST, CAT = MakeFXFiles()
         end
+        
+        StoreSettings()
 
         MyText('Version : ' .. VersionNumber, font, 0x777777ff, WrapPosX)
         im.EndMenu(ctx)

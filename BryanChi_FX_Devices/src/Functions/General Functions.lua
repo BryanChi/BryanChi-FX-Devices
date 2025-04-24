@@ -761,42 +761,78 @@ end
 ---@param untilwhere? integer
 function RecallInfo(Str, Id, Fx_P, Type, untilwhere)
     if Str then
-
-
-
         local Out, LineChange, ID
         if not Fx_P then
              ID = Id.. ' = ' 
-        else     
+        else
+             -- To avoid confusion between parameters like 3, 13, 23, etc.,
+             -- we should ensure we're matching the exact parameter number
+             -- at the beginning of a line.
              ID = Fx_P .. '%. ' .. Id .. ' = '
-
         end
+        
+        -- Look for the pattern in the string
         local Start, End = Str:find(ID)
-
-
+        
+        -- If we couldn't find the pattern at all, return nil immediately
+        if not Start then
+            -- Debug: uncomment if you need to see missing patterns
+            -- reaper.ShowConsoleMsg("Pattern not found: " .. ID .. "\n")
+            return nil
+        end
+        
+        -- Additional check to ensure we're matching the correct parameter
+        if Fx_P then
+            -- If we're in a line that starts with a parameter number, make sure it's exactly our parameter
+            local lineStart = Str:sub(1, Start):find("\n[^\n]*$") or 0
+            local linePrefix = Str:sub(lineStart + 1, Start)
+            
+            -- Ensure we're at the beginning of a line (after newline or at start)
+            -- and the prefix actually starts with our parameter number
+            if not (linePrefix:match("^%s*" .. Fx_P .. "%.%s+") or linePrefix:match("^" .. Fx_P .. "%.%s+")) then
+                -- Try one more time with pattern that enforces line beginning
+                local exactPattern = "\n" .. Fx_P .. "%. " .. Id .. " = "
+                Start, End = Str:find(exactPattern)
+                if not Start then
+                    return nil
+                end
+            end
+        end
         
         if untilwhere then
-            LineChange = Str:find(untilwhere, Start)
+            LineChange = Str:find(untilwhere, End)
         else
-            LineChange = Str:find('\n', Start)
+            LineChange = Str:find('\n', End)
         end
-        if End and Str and LineChange then
+        
+        -- If LineChange is nil or same as End, find the next newline or use end of string
+        if not LineChange or LineChange <= End then
+            LineChange = Str:find('\n', End + 1)
+            if not LineChange then
+                LineChange = #Str + 1
+            end
+        end
+        
+        if End and LineChange and LineChange > End then
             if Type == 'Num' then
                 Out = tonumber(string.sub(Str, End + 1, LineChange - 1))
             elseif Type == 'Bool' then
-                if string.sub(Str, End + 1, LineChange - 1) == 'true' then Out = true else Out = false end
+                local value = string.sub(Str, End + 1, LineChange - 1)
+                if value == 'true' then Out = true else Out = false end
             else
                 Out = string.sub(Str, End + 1, LineChange - 1)
-
+            end
+            
+            -- Trim any spaces
+            if type(Out) == 'string' then
+                Out = Out:match("^%s*(.-)%s*$")
             end
         end
+        
         if Out == '' then Out = nil end
         if Out == 'true' then Out = true end
         
-        
-
-       return Out
-         
+        return Out
     end
 end
 
@@ -820,25 +856,48 @@ function extractSpecificPrmProperty(Str, Fx_P, Id, Type)
 end
 
 function extract_prm_sections(text, Fx_P)
-
+    -- More precise pattern that matches the exact parameter number
     local start = '-----------------Prm ' ..Fx_P.. '-----------------\n'
+    
+    -- This pattern ensures we're looking for the exact next parameter number
+    local END
+    if Fx_P+1 < 10 then
+        -- For single-digit parameters, we can use a simple pattern
+        END = '-----------------Prm ' ..(Fx_P+1)..'-----------------\n'
+    else
+        -- For double-digit parameters, we need to ensure we're looking for the exact number
+        -- To avoid confusing 3 with 13, 23, etc.
+        END = '-----------------Prm ' ..(Fx_P+1)..'-----------------\n'
+    end
 
-    local END = '-----------------Prm ' ..(Fx_P+1)..'-----------------\n'
-
-    -- Find positions for the exact section
-    local stPos, stEnd = text:find(start, 1 , true )
+    -- Find positions for the exact section using exact match
+    local stPos, stEnd = text:find(start, 1, true)
 
     if not stPos then
         return nil -- If the start is not found, return nil
     end
 
+    -- Use a special case for handling the last parameter
+    if Fx_P == tonumber(RecallGlobInfo(text, 'Param Instance = ', 'Num')) then
+        -- If this is the last parameter, look for the drawings section or end of file
+        local drawingsSection = text:find('========== Drawings ==========', stPos + #start, true)
+        if drawingsSection then
+            return text:sub(stPos, drawingsSection - 1)
+        else
+            return text:sub(stPos) -- Return until end of file
+        end
+    end
 
     local edPos, edEnd = text:find(END, stPos + #start, true)
 
-
     if not edPos then
-        -- If the next Prm is not found, return till the end of the text
-        return text:sub(stPos)
+        -- If the next Prm is not found, try to find the drawings section
+        local drawingsSection = text:find('========== Drawings ==========', stPos + #start, true)
+        if drawingsSection then
+            return text:sub(stPos, drawingsSection - 1)
+        else
+            return text:sub(stPos) -- Return until end of file
+        end
     end
 
     -- Return the exact substring between the start and the end
@@ -1890,7 +1949,7 @@ end
 
 function Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
     ----------------- Keyboard Shortcuts ---------------
-    if not im.IsAnyItemActive(ctx) then
+    if not im.IsAnyItemActive(ctx) and KB_Shortcut then
         for i, v in pairs(KB_Shortcut) do
             if not v:find('+') then --if shortcut has no modifier
                 if im.IsKeyPressed(ctx, AllAvailableKeys[v]) and Mods == 0 then
@@ -2026,6 +2085,9 @@ function Filter_actions(filter_text)
     filter_text = Lead_Trim_ws(filter_text)
     local t = {}
     if filter_text == "" or not filter_text then return t end
+    
+    -- First pass: collect all matching plugins
+    local matches = {}
     for i = 1, #FX_LIST do
         local action = FX_LIST[i]
         local name = action:lower()
@@ -2037,8 +2099,85 @@ function Filter_actions(filter_text)
             end
         end
 
-        if found then t[#t + 1] = action end
+        if found then 
+            local plugin_type = ""
+            -- Determine plugin type
+            if action:find("VST3i:") then
+                plugin_type = "VST3i"
+            elseif action:find("VST3:") then
+                plugin_type = "VST3"
+            elseif action:find("VSTi:") then
+                plugin_type = "VSTi"
+            elseif action:find("VST:") then
+                plugin_type = "VST"
+            elseif action:find("CLAPi:") then
+                plugin_type = "CLAPi"
+            elseif action:find("CLAP:") then
+                plugin_type = "CLAP"
+            elseif action:find("AU:") then
+                plugin_type = "AU"
+            elseif action:find('AUi:') then
+                plugin_type = "AUi"
+            elseif action:find("JS:") then
+                plugin_type = "JS"
+            elseif action:find("LV2:") then
+                plugin_type = "LV2"
+            else
+                plugin_type = "Other"
+            end
+            
+            -- Store the match with its type
+            table.insert(matches, {action = action, type = plugin_type})
+        end
     end
+        
+        
+        -- Second pass: create prioritized type mapping
+        local type_priority = {}
+        
+        -- Get user plugin type preferences or use default
+        local plugin_order = PluginTypeOrder or {"VST3", "VST", "AU", "CLAP", "JS"}
+        
+        -- Simplify matching for plugin priorities
+        local type_map = {
+            ["VST3i"] = "VST3",
+            ["VST3"] = "VST3",
+            ["VSTi"] = "VST",
+            ["VST"] = "VST",
+            ["CLAPi"] = "CLAP",
+            ["CLAP"] = "CLAP",
+            ["AU"] = "AU",
+            ["JS"] = "JS",
+            ["LV2"] = "LV2",
+            ["Other"] = "Other"
+        }
+        
+        -- Set priority based on user preference
+        for priority, plugin_type in ipairs(plugin_order) do
+            type_priority[plugin_type] = priority
+        end
+        
+        -- Handle any missing types with lower priority
+        local max_priority = #plugin_order
+        for type_name in pairs(type_map) do
+            if not type_priority[type_name] then
+                max_priority = max_priority + 1
+                type_priority[type_name] = max_priority
+            end
+        end
+        
+        -- Sort matches by plugin type priority
+        table.sort(matches, function(a, b)
+            local a_priority = type_priority[type_map[a.type]] or 999
+            local b_priority = type_priority[type_map[b.type]] or 999
+            return a_priority < b_priority
+        end)
+        
+        -- Extract the sorted actions
+        for i, match in ipairs(matches) do
+            table.insert(t, match.action)
+        end
+
     return t
 end
 

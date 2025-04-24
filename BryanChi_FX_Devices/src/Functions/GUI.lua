@@ -296,7 +296,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     
     
 
-    r.gmem_write(8, 1+ Get_MidiMod_Ofs(lbl)) -- tells jsfx the curve editor is open ,and so it needs to send back velocity or random 's value'
+    r.gmem_write(8, 1+ Get_MidiMod_Ofs(lbl)) -- tells jsfx the curve editor is open ,and so it needs to send back velocity or random 's values'
 
 
     local function DrawGrid()
@@ -1441,7 +1441,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     fx.Width_Before_Collapse = nil 
                     Anim_Time=nil
                     Long_Or_Short_FX_Idx = nil
-                    msg('comp')
+  
                 end 
 
                 
@@ -1540,7 +1540,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local x, y = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
             local x_ofs = x_offset or 8
-            DrawTextWithSpacing(im.GetForegroundDrawList(ctx), nm, x+x_ofs,y+h-15 , 0xffffffff, 0.67, Font_Andale_Mono_Vertical_13, "vertical_up")
+            DrawTextWithSpacing(im.GetForegroundDrawList(ctx), nm, x+x_ofs,y+h-15 , 0xffffffff, 0.67, Font_Andale_Mono_Vertical_13, "vertical_up", 200)
         end
         if fx.NoWindowBtn then return end 
         if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
@@ -2359,6 +2359,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
         local x = x + (v.X_Offset or 0) + Val_X + ((GR or 0) * (v.X_Offset_VA_GR or 0))
         local y = y + (v.Y_Offset or 0) + Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0))
 
+
         if XY_Pad_Y_Val then 
             Val_Y = v.Y_Offset_VA_BP and (XY_Pad_Y_Val - 0.5)* 2 * ((v.Y_Offset_VA or 0)) or (XY_Pad_Y_Val * (v.Y_Offset_VA or 0))
             y = (v.Y_Offset or 0) + pos[2] + (v.Y_Offset_VA or 0) - Val_Y + ((GR or 0) * (v.Y_Offset_VA_GR or 0)) 
@@ -2510,7 +2511,7 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
             
             local ANGLE_MIN = 3.141592 * (v.Angle_Min or 0.75)
 
-            local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25)
+            local ANGLE_MAX = 3.141592 * (v.Angle_Max or 2.25) + (v.Angle_Max_VA_GR or 0) * (GR or 0)
 
 
             local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
@@ -2524,36 +2525,69 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
             
             if v.Type == 'Knob Pointer' then
                -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
-                local function drawTrianglePointer(triangleWidth)
-                    local triangleSize = (OUT - IN) * 0.6 -- Reduced size for a shorter triangle
-                    local tipX, tipY = x + angle_cos * OUT, y + angle_sin * OUT
-                    local baseX, baseY = x + angle_cos * IN, y + angle_sin * IN
-                    local perpX, perpY = -angle_sin, angle_cos
-                    local WID = triangleWidth or 0.45 -- Width of the triangle base, default to 0.45 if not provided
+               
+               local function Draw_Pointer (angle, angle_cos, angle_sin)
+                    local function drawTrianglePointer(triangleWidth)
+                        local triangleSize = (OUT - IN) * 0.6 -- Reduced size for a shorter triangle
+                        local tipX, tipY = x + angle_cos * OUT, y + angle_sin * OUT
+                        local baseX, baseY = x + angle_cos * IN, y + angle_sin * IN
+                        local perpX, perpY = -angle_sin, angle_cos
+                        local WID = triangleWidth or 0.45 -- Width of the triangle base, default to 0.45 if not provided
+    
+                        local leftX = baseX + perpX * triangleSize * WID
+                        local leftY = baseY + perpY * triangleSize * WID
+                        local rightX = baseX - perpX * triangleSize * WID
+                        local rightY = baseY - perpY * triangleSize * WID
+                        
+                        im.DrawList_AddTriangleFilled(WDL, tipX, tipY, leftX, leftY, rightX, rightY, Clr_VA or v.Clr or 0x999999aa)
+                    end
 
-                    local leftX = baseX + perpX * triangleSize * WID
-                    local leftY = baseY + perpY * triangleSize * WID
-                    local rightX = baseX - perpX * triangleSize * WID
-                    local rightY = baseY - perpY * triangleSize * WID
+                    if not v.Pointer_Type or v.Pointer_Type == 'Line'   then
+                        im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+                    elseif v.Pointer_Type == 'Cursor' then
+                    -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
+                        
+                        local pointerSize = (OUT - IN) * 0.2
+                        local pointerX = x + angle_cos * (OUT - pointerSize*2.5)
+                        local pointerY = y + angle_sin * (OUT - pointerSize*2.5)  
+                        local pointerColor = Clr_VA or v.Clr or 0x999999aa
+                        local pointerAngle = angle + math.pi / 2 -- Adjust angle to point away from the center
+
+                        Draw_A_Cursor_Shape(pointerX, pointerY, pointerSize, pointerColor, pointerAngle, v.Thick or 0.45, v.Shape or 0.45)
+                    elseif v.Pointer_Type == 'Triangle' then
+                        drawTrianglePointer((v.Thick or 0.9) / 2)
+                    elseif v.Pointer_Type == 'Circle' then
+                        if v.Fill then 
+                            im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, v.Clr or 0x999999aa, nil)
+                        else
+                            im.DrawList_AddCircle(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W,  v.Clr or 0x999999aa, nil, Thick)
+                        end
+                    end
+                end
+                if v.Repeat and v.Repeat ~= 0 then 
+                    local rpt = (v.Repeat_VA and v.Repeat_VA ~= 0) and Val * v.Repeat_VA or 1
+                    --local gap = (v.Gap_VA~= 0) and Val * (v.Gap or 1 )* (v.Gap_VA or 1)
                     
-                    im.DrawList_AddTriangleFilled(WDL, tipX, tipY, leftX, leftY, rightX, rightY, Clr_VA or v.Clr or 0x999999aa)
+                    for i = 0, v.Repeat* (rpt ) , math.max(1, 0.01) do 
+
+                        local t = (i/v.Repeat- 0) / (1 - 0)
+                        local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
+                        local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+                        local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
+                        local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
+                        local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
+                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
+
+                        local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat)
+
+                        Draw_Pointer(angle, angle_cos, angle_sin)
+                    end
+                else 
+                    Draw_Pointer(angle, angle_cos, angle_sin)
                 end
 
-                if not v.Pointer_Type or v.Pointer_Type == 'Line'   then
-                    im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
-                elseif v.Pointer_Type == 'Cursor' then
-               -- im.DrawList_AddLine(WDL, x + angle_cos * IN, y + angle_sin * IN, x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick), Clr_VA or v.Clr or 0x999999aa, Thick)
-                    
-                    local pointerSize = (OUT - IN) * 0.2
-                    local pointerX = x + angle_cos * (OUT - pointerSize*2.5)
-                    local pointerY = y + angle_sin * (OUT - pointerSize*2.5)  
-                    local pointerColor = Clr_VA or v.Clr or 0x999999aa
-                    local pointerAngle = angle + math.pi / 2 -- Adjust angle to point away from the center
 
-                    Draw_A_Cursor_Shape(pointerX, pointerY, pointerSize, pointerColor, pointerAngle, v.Thick or 0.45, v.Shape or 0.45)
-                elseif v.Pointer_Type == 'Triangle' then
-                    drawTrianglePointer((v.Thick or 0.9) / 2)
-                end
+
             
             elseif v.Type == 'Knob Range' or v.Type =='Knob Numbers' then
                 local function AddRange(G)
@@ -2588,28 +2622,34 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
                                 end
                             end
                         end
-
-                    elseif not v.Repeat or v.Repeat == 0 then 
-
-
-                        for i = IN, OUT, (1 + (v.Gap or 0)) do
-                            --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN \
-                            local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
-                            if v.Angle_Max_VA and v.Angle_Max_VA~=0 then 
-                                VV = VV * v.Angle_Max_VA
-                            elseif v.Angle_Max_VA and v.Angle_Max_VA== 0 then 
-                                VV = 1
-                            else 
-                                VV = VV
-                            end 
-                            local ANGLE_MAX =  ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV  
-            
-                            -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
-                            im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN)  ,ANGLE_MIN, ANGLE_MAX))
-                            im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
-                            im.DrawList_PathClear(WDL)
-                        end
                     end
+
+
+                    for i = IN, OUT, (1 + (v.Gap or 0)) do
+                        --local ANGLE_MIN = v.Angle_Min_VA and ANGLE_MIN \
+                        local VV = v.Angle_Max_VA_BP and (Val-0.5 )*2 or Val 
+                        if v.Angle_Max_VA and v.Angle_Max_VA~=0 then 
+                            VV = VV * v.Angle_Max_VA
+                        elseif v.Angle_Max_VA and v.Angle_Max_VA== 0 then 
+                            VV = 1
+                        else 
+                            VV = VV
+                        end 
+                        
+                        -- Add gain reduction effect if Angle_Max_VA_GR is set
+                        if v.Angle_Max_VA_GR and v.Angle_Max_VA_GR ~= 0 and GR then
+                            VV =  math.max(( (GR/12) * v.Angle_Max_VA_GR), 0 )
+                        end
+                        
+                        local ANGLE_MAX =  ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * VV  
+
+        
+                        -- local ANGLE_MAX = v.Angle_Max_BP and ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * ((Val-0.5 )*2) or ANGLE_MAX
+                        im.DrawList_PathArcTo(WDL, x, y, i, ANGLE_MIN,SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN)  ,ANGLE_MIN, ANGLE_MAX))
+                        im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, Thick)
+                        im.DrawList_PathClear(WDL)
+                    end
+
                     --[[ for i = ANGLE_MIN, SetMinMax(ANGLE_MIN +(ANGLE_MAX - ANGLE_MIN) * Val,ANGLE_MIN, ANGLE_MAX), (0.01  + (v.Gap or 0) * 0.01) do
                         im.DrawList_PathArcTo(WDL, x, y, OUT + (OUT-IN)/2 , i, SetMinMax( i+ (v.Gap or 0) * 0.01,ANGLE_MIN, ANGLE_MAX))
                         im.DrawList_PathStroke(WDL, Clr_VA or v.Clr or 0x999999aa, nil, (OUT-IN))
@@ -2648,16 +2688,9 @@ function Draw_Attached_Drawings(FP,FX_Idx, pos, Prm_Val, Prm_Type, FxGUID, XY_Pa
                         end
                     end
                 elseif not v.Repeat or v.Repeat == 0 then 
-                        --local t = (Val- 0) / (1 - 0)
-                        -- local angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t
-                        --  local angle_cos, angle_sin = math.cos(angle), math.sin(angle)
+
                         local x1, y1 = x + angle_cos * IN,  y + angle_sin * IN
                         local x2, y2 = x + angle_cos * (OUT - Thick), y + angle_sin * (OUT - Thick)
-                        --[[ local Clr1 = (v.Clr_VA ) and BlendColors(v.Clr or 0xffffffff, v.Clr_VA,  Val) or v.Clr or  0xffffffff
-                        local Clr2 = (v.RPT_Clr_VA ) and BlendColors(v.RPT_Clr or 0xffffffff, v.RPT_Clr_VA ,  Val) or v.RPT_Clr or 0xffffffff
-
-                        local Clr = BlendColors(Clr1 , Clr2, i / v.Repeat) ]]
-
 
                     if v.Fill then 
                         im.DrawList_AddCircleFilled(WDL, x + angle_cos * IN, y + angle_sin * IN -1 , W, v.Clr or 0x999999aa, nil)
@@ -5385,21 +5418,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
     ]]
     TblIdxForSpace = FX_Idx .. tostring(SpaceIsBeforeRackMixer)
     FXGUID_To_Check_If_InLayer = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-    if Trk[TrkID].PreFX[1] then
-        local offset
-        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = 1 else offset = 0 end
-        if SpaceIsBeforeRackMixer == 'End of PreFX' then
-            SpcIsInPre = true
-            if Trk[TrkID].PreFX_Hide then Hide = true end
-            MoveTarget = FX_Idx + 1
-        elseif FX_Idx + 1 - offset <= #Trk[TrkID].PreFX and SpaceIsBeforeRackMixer ~= 'End of PreFX' then
-            SpcIsInPre = true; if Trk[TrkID].PreFX_Hide then Hide = true end
-        end
-    end
-    --[[ if SpaceIsBeforeRackMixer == 'SpcInPost' or SpaceIsBeforeRackMixer == 'SpcInPost 1st spc' then
-        SpcInPost = true
-        if PostFX_LastSpc == 30 then Dvdr.Spc_Hover[TblIdxForSpace] = 30 end
-    end ]]
+   
     local ClrLbl = FX_Idx .. (tostring(SpaceIsBeforeRackMixer) or '')
 
 

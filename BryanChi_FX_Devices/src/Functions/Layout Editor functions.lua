@@ -3444,11 +3444,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                         AddOption('Knob Pointer')
                         AddOption('Knob Range')
-                        AddOption('Knob Circle')
+                        --AddOption('Knob Circle')
                         AddOption('Knob Numbers')
-
                         AddOption('Knob Image')
-
                         AddOption('Gain Reduction Text')
 
 
@@ -3483,8 +3481,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             return im.IsItemActive(ctx)
                         end
 
-                        local BL_Width = { 'Knob Pointer', 'Knob Range',
-                            'Gain Reduction Text' }
+                        local BL_Width = { 'Knob Range', 'Gain Reduction Text' }
                         local BL_Height = { 'Knob Pointer', 'Knob Range', 'Circle',
                             'Circle Filled', 'Knob Circle', 'Knob Circle Filled', 'Knob Image',
                             'Gain Reduction Text' }
@@ -3492,14 +3489,15 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                         local Round = { 'Rect', 'Rect Filled' }
                         local Gap = { 'Circle', 'Circle Filled', 'Knob Range', 'Rect'}
                         local BL_XYGap = { 'Knob Pointer', 'Knob Range', 'Knob Circle', 'Knob Circle Filled', 'Knob Image', 'Knob Numbers' }
+                        local BL_AngleMinMax = {  'Knob Range',  'Knob Circle', 'Knob Circle Filled', 'Knob Image', 'Knob Numbers', 'Knob Pointer' }
                         local RadiusInOut = { 'Knob Pointer', 'Knob Range'}
                         local Radius = { 'Knob Circle', 'Knob Image','Knob Circle Filled' ,'Knob Numbers' } -- this = radius IN
-                        local BL_Repeat = {  'Knob Image', 'Knob Pointer', 'Gain Reduction Text' }
+                        local BL_Repeat = {  'Knob Image', 'Knob Range', 'Gain Reduction Text' }
                         local GR_Text = { 'Gain Reduction Text' }
                         local Fill = {'Circle', 'Knob Circle', 'Rect'}
 
 
-                        local X_Gap_Shown_Name = 'X Gap:'
+                        local X_Gap_Shown_Name = D.Type == 'Knob Range' and 'Angle Gap:' or 'X Gap:'
                         local DefW, DefH
 
                         local WidthLBL, WidthStepSize = 'Width: ', LE.GridSize
@@ -3565,7 +3563,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
 
                         
-                            local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar, Sz)
+                            local function AddVal(Name, defaultV, stepSize, min, max, format, NextRow, WidthSyncBtn, Bipolar, Sz, CrossOut)
                                 local Column = 1
                                 if Name:find('_VA') then Column = 2 end
                                 im.TableSetColumnIndex(ctx, Column)
@@ -3581,7 +3579,9 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
                                 local FORMAT = format =='percent' and  tostring((math.ceil(( D[Name] or defaultV )*100) )..' %%')   or FORMAT
                                 local tweak_Drag, V = im.DragDouble(ctx, '##' .. Name .. LBL, D[Name .. '_GR'] or D[Name] or defaultV, stepSize or LE.GridSize, min or -W, max or W - 10, FORMAT)
-
+                                if CrossOut then 
+                                    Cross_Out()
+                                end
                                 im.PopItemWidth(ctx)
 
                                 if tweak_Drag and not D[Name .. '_GR'] then
@@ -3628,6 +3628,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     if D[Name .. '_GR'] then D.check = true end
                                     Check, D.check = im.Checkbox(ctx, 'Affected by Gain Reduction', D.check)
                                     if Check then
+                                       
                                         if D[Name .. '_GR'] then D[Name .. '_GR'] = nil else D[Name .. '_GR'] = 0 end
                                     end 
 
@@ -3774,14 +3775,26 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     AddVal('Size_Gap_VA', 0, 0.01, -1, 1,'percent'   )
                                 end ]]
                             end
-                            if SetRowName('Angle Min', nil, BL_XYGap) then
+                            if SetRowName('Angle Min', nil, BL_AngleMinMax) then
                                 AddVal('Angle_Min', 0.75, 0.01, 0, 3.14, '%.3f',true)
                                 --AddVal('Angle_Min_VA', nil, 0.01, -1, 1,  '%.3f', true )
 
                             end
-                            if SetRowName('Angle Max', nil, BL_XYGap) then
+                            if SetRowName('Angle Max', nil, BL_AngleMinMax) then
+                                local crossOut
+                                if D.Repeat and D.Repeat ~= 0 then
+                                    crossOut = true
+                                end
                                 AddVal('Angle_Max', 2.25, 0.01, 0, 3.14, '%.3f' )
-                                AddVal('Angle_Max_VA', 1, 0.01, -1, 1,  '%.3f', true , nil , true )
+                                if crossOut then 
+                                    im.BeginDisabled(ctx)
+                                end
+                                AddVal('Angle_Max_VA', 1, 0.01, -1, 1,  '%.3f', true , nil , true , nil, crossOut)
+                                if crossOut then 
+                                    im.EndDisabled(ctx)
+                                end
+                                
+
 
                             end
                             if SetRowName('Radius Inner', nil, RadiusInOut) then
@@ -3821,6 +3834,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                                     if im.Selectable(ctx, 'Line') then D.Pointer_Type = 'Line' end
                                     if im.Selectable(ctx, 'Triangle') then D.Pointer_Type = 'Triangle' end
                                     if im.Selectable(ctx, 'Cursor') then D.Pointer_Type = 'Cursor' end
+                                    if im.Selectable(ctx, 'Circle') then D.Pointer_Type = 'Circle' end
                                     im.EndCombo(ctx)
                                 end
                                 if D.Pointer_Type and  D.Pointer_Type == 'Cursor' then
@@ -4636,7 +4650,7 @@ function Retrieve_Attached_Drawings(Ct, Fx_P, FP)
         d.Angle_Min = RC('Angle Min', 'Num')
         d.Angle_Max = RC('Angle Max', 'Num')
         d.Angle_Max_VA = RC('Angle Max VA', 'Num')
-
+        d.Angle_Max_VA_GR = RC('Angle_Max_VA_GR', 'Num')
         d.Angle_Max_VA_BP = RC('Angle Max VA BP', 'Bool')
         d.Value_Range_Low = RC('Value Range Low', 'Num')
         d.Value_Range_High = RC('Value Range High', 'Num')
@@ -6454,6 +6468,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
             im.PopStyleColor(ctx)
             if op then 
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, FP.Options[op].V_Norm or OptionValues[op])
+                FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
             end
         else
             rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
@@ -7402,7 +7417,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                         for Fx_P = 1, PrmCount or 0, 1 do
 
                             local Ct = extract_prm_sections(Ct, Fx_P)
-
+                            
                             
                             local function L(n)
                                 return Line[n + (40 - 14) * (Fx_P - 1)]
@@ -7415,7 +7430,9 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                             local ID      = FxGUID .. Fx_P
 
                             FP.Name       = RecallInfo(Ct, 'Name', Fx_P)
+
                             FP.Num        = RecallInfo(Ct, 'Num', Fx_P, 'Num')
+
                             FP.Sldr_W     = RecallInfo(Ct, 'Width', Fx_P, 'Num')
                             FP.Type       = RecallInfo(Ct, 'Type', Fx_P)
                             FP.PosX       = RecallInfo(Ct, 'Pos X', Fx_P, 'Num')
@@ -7456,7 +7473,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                             FP.ShowAllChoices       = RecallInfo(Ct, 'ShowAllChoices', Fx_P, 'Bool')
                             FP.Is_Horizontal        = RecallInfo(Ct, 'Is_Horizontal', Fx_P, 'Bool')
                             FP.Spacing              = RecallInfo(Ct, 'Spacing', Fx_P, 'Num')
-                            
+
 
                             for i = 1, FP.Number_of_Conditions or 0 , 1 do 
 
@@ -7856,11 +7873,29 @@ function IsLayoutModified(FxGUID, FX_Name)
     if savedParamCount ~= currentParamCount then
         return true
     end
-    
     -- Check each parameter's properties
     for i = 1, currentParamCount do
+        local function Linked_Prm_Props(currentParam, savedParam)
+            
+            if currentParam.Link and savedParam.Link then
+                local Linked_Prm_Props = {'Name', 'Num', 'CustomLbl', 'PosX', 'PosY',}
+
+                for _, prop in ipairs(Linked_Prm_Props) do
+                    if currentParam[prop] ~= savedParam[prop] then
+                        return true
+                    end
+                end
+                return 'Skip To Next Param'
+            else 
+                return true
+            end
+            
+        end
         local currentParam = current[i]
         local savedParam = saved[i]
+        if Linked_Prm_Props(currentParam, savedParam) == 'Skip To Next Param' then goto Skip end
+
+        local Linked_Prm_Props = {}
         
         -- List of properties to compare
         local paramProps = {
@@ -7967,6 +8002,7 @@ function IsLayoutModified(FxGUID, FX_Name)
                 end
             end
         end
+        ::Skip::
     end
     
     -- Check if all parameters have been deleted
@@ -8173,6 +8209,8 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                 WRITE('Y_Repeat', v.Y_Repeat)
                 WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
                 WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
+                WRITE('Angle_Max_VA_GR', v.Angle_Max_VA_GR)
+                msg(tostring(v.Angle_Max_VA_GR))
                 WRITE('Gap', v.Gap)
                 WRITE('Gap_VA', v.Gap_VA)
                 WRITE('Gap_VA GR', v.Gap_VA_GR)
@@ -8214,7 +8252,6 @@ function Save_Attached_Drawings(FP, file,Fx_P)
         end
     end
 end
-
 ---@param FX_Name string
 ---@param ID string ---TODO this param is not used
 ---@param FxGUID string
@@ -9094,5 +9131,7 @@ function SimpleCombo(ctx, label, current_value, options, width)
     
     return selected_value
 end
+
+
 
 
