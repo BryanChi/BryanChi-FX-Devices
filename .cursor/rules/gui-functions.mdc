@@ -1,0 +1,12 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# GUI Functions Guide
+
+The file [GUI.lua](mdc:BryanChi_FX_Devices/src/Functions/GUI.lua) contains core functions for drawing and managing the FX Devices GUI, including ImGui-based rendering, drag-and-drop logic, and custom widget drawing. It is referenced throughout the project for all GUI-related operations, including FX window layout, parameter controls, and visual feedback for user interactions.
+
+- Use this file for any modifications or references to GUI logic, drawing, or ImGui event handling.
+- Key functions include drag-and-drop arrow drawing, FX window creation, and parameter knob rendering.
+- Always use `im.` for ImGui calls and `r.` for REAPER API calls as per project conventions.

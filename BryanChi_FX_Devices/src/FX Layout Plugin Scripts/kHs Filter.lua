@@ -11,6 +11,8 @@ local Freq = fx[2].V
 local Res = fx[3].V
 fx.Gain = fx[4].V
 fx.FilterType = fx[5].V or 0 -- Default to 0 if not set
+fx.Slope = fx[6].V or 0 -- Default to 0 if not set
+
 ttp(fx[5].V)
 -- Shorthand function for SameLine
 local function SL(offset)
@@ -61,6 +63,9 @@ function ExampleSimpleHighCutDemo(ctx, W, H )
     if fx[5] then
         fx[5].V = fx.FilterType
     end
+    if fx[6] then
+        fx[6].V = fx.Slope
+    end
     
     -- Convert back to normalized value for parameter automation
     -- Logarithmic conversion from actual frequency to normalized value
@@ -105,21 +110,34 @@ function ExampleSimpleHighCutDemo(ctx, W, H )
     
     local filterColor =  0xffffffff
     
+    -- Whether to use stepped mode for slope changes (true) or continuous (false)
+    local useSteppedMode = true
+    
     -- Draw the selected filter type based on normalized value
     if filterTypeIndex >= 1 and filterTypeIndex <2 then -- LP (Low Pass)
         DrawHighCutFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, fx.Slope, filterColor, 2)
     elseif filterTypeIndex >= 2 and filterTypeIndex <3 then -- BP (Bandpass)
-        DrawBandpassFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, filterColor, 2)
+        -- Apply a stronger resonance factor to make the bandpass steeper
+        local enhancedResonance = math.min(fx.Resonance * 1.5, 1.0)  -- Boost resonance but keep it within valid range
+        DrawBandpassFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, enhancedResonance, fx.Slope, filterColor, 2, useSteppedMode)
     elseif filterTypeIndex >= 3 and filterTypeIndex <4 then -- HP (High Pass)
         DrawLowCutFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, fx.Slope, filterColor, 2)
     elseif filterTypeIndex >= 4 and filterTypeIndex <5 then -- Notch
-        DrawNotchFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, filterColor, 2)
+        -- Apply slope to notch width/depth
+        local enhancedResonance = math.min(fx.Resonance * (1 + fx.Slope), 1.0)  -- Slope affects notch Q
+        DrawNotchFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, enhancedResonance, filterColor, 2)
     elseif filterTypeIndex >= 5 and filterTypeIndex <6 then -- Low Shelf
-        DrawLowShelfFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, fx.Gain, filterColor, 2)
+        -- Apply slope to shelf steepness
+        local enhancedResonance = math.min(fx.Resonance * (1 + fx.Slope), 1.0)  -- Slope affects shelf steepness
+        DrawLowShelfFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, enhancedResonance, fx.Gain, filterColor, 2)
     elseif filterTypeIndex >= 6 and filterTypeIndex <7 then -- Peak (Bell)
-        DrawBellFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, fx.Gain, filterColor, 2)
+        -- Apply slope to bell width
+        local enhancedResonance = math.min(fx.Resonance * (1 + fx.Slope), 1.0)  -- Slope affects bell Q/width
+        DrawBellFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, enhancedResonance, fx.Gain, filterColor, 2)
     elseif filterTypeIndex >= 7 and filterTypeIndex <8 then -- High Shelf
-        DrawHighShelfFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, fx.Resonance, fx.Gain, filterColor, 2)
+        -- Apply slope to shelf steepness
+        local enhancedResonance = math.min(fx.Resonance * (1 + fx.Slope), 1.0)  -- Slope affects shelf steepness
+        DrawHighShelfFilter(ctx, drawlist, FX_Win_L, centerY, width, height, fx.Cutoff, enhancedResonance, fx.Gain, filterColor, 2)
     end
     
     im.DrawList_PopClipRect(drawlist)
@@ -134,4 +152,4 @@ function ExampleSimpleHighCutDemo(ctx, W, H )
 
 end
 
-ExampleSimpleHighCutDemo(ctx, 350, 100)
+ExampleSimpleHighCutDemo(ctx, 310, 100)

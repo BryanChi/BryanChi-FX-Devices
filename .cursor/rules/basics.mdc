@@ -13,3 +13,4 @@ alwaysApply: true
 - always use im. instead of reaper.ImGui_
 - always reference [BryanChi_FX Devices.lua](mdc:BryanChi_FX_Devices/BryanChi_FX Devices.lua) [GUI.lua](mdc:Users/b/Library/Application Support/REAPER/Scripts/FX Devices/BryanChi_FX_Devices/src/Functions/GUI.lua) [Layout Editor functions.lua](mdc:Users/b/Library/Application Support/REAPER/Scripts/FX Devices/BryanChi_FX_Devices/src/Functions/Layout Editor functions.lua) [General Functions.Lua](mdc:Users/b/Library/Application Support/REAPER/Scripts/ReaTeam Scripts/FX/BryanChi_FX Devices/Functions/General Functions.Lua) for context.
 - Never format or delete comments or unused codes unless I specified.
+- Never make changes on things I didn't ask for.

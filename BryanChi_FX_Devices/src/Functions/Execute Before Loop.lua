@@ -417,8 +417,9 @@ function Tables_for_Special_FXs()
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner','FXD Band Joiner', 'JS: FXD Band Joiner',
-    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro', 'Transient', 'Sustain'
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro'
     }
+    BlackListFX_Exact = {'Transient', 'Sustain', 'Mid','Side'}
     UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
     'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
     'JS: FXD ReSpectrum', 'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope', 'JS: FXD Band Joiner',
@@ -429,6 +430,14 @@ function Tables_for_Special_FXs()
     'VST3: Pro C 2 FabFilter', 'AU: Pro C 2 FabFilter' }
 end 
 
+function FX_is_in_blacklist (str)
+    if FindStringInTable(BlackListFXs,str ) then 
+        return true
+    end
+    if FindExactStringInTable(BlackListFX_Exact, str ) then 
+        return true
+    end
+end
 
 function Retrieve_User_Settings()
 
@@ -763,14 +772,9 @@ function Retrieve_All_Saved_Data_Of_Project()
                 if not has_Cont_Mod_Amt then FP.Cont_ModAMT = nil end 
             end
             
+            local function Ret_Prm_Mod  (FP,Fx_P)
 
-            -- Iterate through each parameter
-
-            for Fx_P, v in ipairs (FX[FxGUID]) do
-                
-
-                local FP = fx[Fx_P] or {}
-                fx[Fx_P] = FP
+                if not FP.Num and Fx_P == 0 then FP.Num = r.TrackFX_GetParamFromIdent(Track, FX_Idx, ':wet') end
                 FP.ModAMT = FP.ModAMT or {}
                 FP.Cont_ModAMT = FP.Cont_ModAMT or {}
                 
@@ -783,11 +787,16 @@ function Retrieve_All_Saved_Data_Of_Project()
                 RET_ContainerModulation(FP, FxGUID, Track, FX_Idx)
                 RET_MIDIModulation(FP, FxGUID, Fx_P, TRK)
                 RET_MacroModulation(FP, FxGUID, Fx_P, TRK, TrkID)
-                
             end
+            -- Iterate through each parameter
+            FX[FxGUID][0] = FX[FxGUID][0] or {}
+            for Fx_P , v in ipairs(FX[FxGUID]) do
+                local FP = FX[FxGUID][Fx_P]
+                Ret_Prm_Mod  (FP, Fx_P)
+            end
+            Ret_Prm_Mod  (FX[FxGUID][0], 0)
 
-
-end
+        end
         local function RET_SpecialFX(fx, FX_Name, Track, FX_Idx, FxGUID)
             local function RET_RackMixerFX(fx, FX_Name, Track, FX_Idx, FxGUID)
                 if string.find(FX_Name, 'FXD %(Mix%)RackMixer') or string.find(FX_Name, 'FXRack') then
@@ -934,6 +943,7 @@ function attachImagesAndFonts()
     _G['Font_Andale_Mono_Vertical_13'] = im.CreateFont(script_folder .. '/Fonts/AndaleMonoVertical.ttf',  13, im.FontFlags_Bold)
 
     Img = {
+        Reorder = im.CreateImage(CurrentDirectory .. '/src/Images/reorder.png'),
         Undo = im.CreateImage(CurrentDirectory .. '/src/Images/undo.png'),
         Trash  = im.CreateImage(CurrentDirectory .. '/src/Images/trash.png'),
         Pin    = im.CreateImage(CurrentDirectory .. '/src/Images/pin.png'),

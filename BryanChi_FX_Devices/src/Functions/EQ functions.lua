@@ -172,9 +172,55 @@ function svf_bs(freq, q)
 end
 
 function svf_bp(freq, q)
-    nlp = 1;
+    nlp = nlp or 1; -- Use existing nlp value if set, or default to 1
     onepole = 0;
-    _svf_bp(freq, q);
+    
+    -- Set the filter Q based on the input q parameter
+    local filterQ = q
+    if type(q) == "number" and q > 40 then
+        -- If q is actually the number of stages (slope), use a default Q value
+        -- and interpret the passed value as the number of stages
+        filterQ = 0.7  -- Default moderate Q value
+    end
+    
+    -- Configure the primary filter with the specified Q
+    _svf_bp(freq, filterQ);
+    
+    -- Initialize cascade filters based on the nlp value (number of stages)
+    local maxStages = 10
+    local stages = {}
+    
+    -- Create and store the appropriate number of filter stages
+    for i = 0, maxStages-1 do
+        -- Only create stages we'll actually use
+        if i < nlp then
+            stages[i] = svf_single_bp(freq, filterQ)
+        end
+    end
+    
+    -- Store cascade filter coefficients
+    cas0 = stages[0]
+    cas1 = stages[1]
+    cas2 = stages[2]
+    cas3 = stages[3]
+    cas4 = stages[4]
+    cas5 = stages[5]
+    cas6 = stages[6] 
+    cas7 = stages[7]
+    cas8 = stages[8]
+    cas9 = stages[9]
+end
+
+function svf_single_bp(freq, q)
+    g = math.tan(math.pi * freq / SAMPLE_RATE);
+    k = 1.0 / q;
+    a1 = 1.0 / (1.0 + g * (g + k));
+    a2 = g * a1;
+    a3 = g * a2;
+    m0 = 0;
+    m1 = 1 / q;
+    m2 = 0;
+    return a1, a2, a3, m0, m1, m2;
 end
 
 function per_to_q(x, range)
@@ -645,18 +691,17 @@ function zdf_magnitude(freq)
 
     -- Apply two pole (12dB steps)
     if nlp > 0 then m = m * magnitude(freq) end --12
+    if nlp > 1 then m = m * magnitude(freq) end
     if nlp > 2 then m = m * magnitude(freq) end
+    if nlp > 3 then m = m * magnitude(freq) end
     if nlp > 4 then m = m * magnitude(freq) end
+    if nlp > 5 then m = m * magnitude(freq) end
     if nlp > 6 then m = m * magnitude(freq) end
+    if nlp > 7 then m = m * magnitude(freq) end
     if nlp > 8 then m = m * magnitude(freq) end
-    if nlp > 10 then m = m * magnitude(freq) end
-    if nlp > 12 then m = m * magnitude(freq) end
-    if nlp > 14 then m = m * magnitude(freq) end
-    if nlp > 16 then m = m * magnitude(freq) end
-    if nlp > 18 then m = m * magnitude(freq) end --120
+    if nlp > 9 then m = m * magnitude(freq) end --120
 
     -- Apply one pole (6dB)
-
     if onepole == 1 then
         wdcutoff = math.pi * (cutoff / SAMPLE_RATE);
         coff = math.tan(wdcutoff);
@@ -1073,9 +1118,11 @@ end
 ---@param height number Height of the curve area
 ---@param freq number Center frequency
 ---@param q number Q value (bandwidth)
+---@param slope number Slope value (0-1 range, controls filter steepness)
 ---@param color number Color in 0xRRGGBBAA format
 ---@param thickness number Line thickness
-function DrawBandpassFilter(ctx, drawList, x, y, width, height, freq, q, color, thickness)
+---@param stepped boolean Whether to use stepped mode for slope (true) or continuous (false)
+function DrawBandpassFilter(ctx, drawList, x, y, width, height, freq, q, slope, color, thickness, stepped)
     -- Set up some constants similar to Pro Q
     SAMPLE_RATE = 60000
     MAX_FREQ = 30000
@@ -1084,14 +1131,69 @@ function DrawBandpassFilter(ctx, drawList, x, y, width, height, freq, q, color, 
     Euler = 2.71828182845904523
     local Y_Mid = y
     
-    -- Convert normalized Q to actual Q value
+    -- Convert normalized Q to actual Q value with steeper settings
     local MIN_Q = 0.15
-    local MAX_Q = 40
+    local MAX_Q = 80  -- Increased from 40 to 80 for steeper filters
     local Q_LOG_MAX = math.log(MAX_Q / MIN_Q, 5)
+    
+    -- Q directly controls how pointy the peak is
     local Q_BP = MIN_Q * (Euler ^ (Q_LOG_MAX * q))
     
-    -- Calculate filter coefficients
-    svf_bp(freq, Q_BP)
+    -- Apply slope factor - higher slope means more cascaded filters for steeper response
+    local BP_Slope
+    
+    -- If stepped is true, use discrete steps for slope, otherwise use continuous values
+    if stepped then
+      
+        -- Convert slope 0-1 to discrete values 1, 2, 4, 6, 8, 10
+        if slope < 0.2 then
+            BP_Slope = 1
+        elseif slope < 0.4 then
+            BP_Slope = 2
+        elseif slope < 0.6 then
+            BP_Slope = 4
+        elseif slope < 0.8 then
+            BP_Slope = 6
+        elseif slope < 0.99 then
+            BP_Slope = 8
+        else
+            BP_Slope = 10
+        end
+     
+    else
+        -- Continuous mode - smoother transition between slope values
+        BP_Slope = math.max(1, math.floor(slope * 9) + 1) -- Convert slope 0-1 to 1-10 stages, ensuring minimum of 1
+    end
+    
+    -- Configure filter - pass both Q and number of stages
+    _svf_bp(freq, Q_BP) -- Set up the filter coefficients with the correct Q
+    
+    -- Set filter stages based on slope (number of cascaded filters)
+    nlp = BP_Slope
+    
+    -- Create cascade filter stages based on slope
+    local maxStages = 10
+    local stages = {}
+    
+    -- Create and store the appropriate number of filter stages
+    for i = 0, maxStages-1 do
+        -- Only create stages we'll actually use
+        if i < nlp then
+            stages[i] = svf_single_bp(freq, Q_BP)
+        end
+    end
+    
+    -- Store cascade filter coefficients
+    cas0 = stages[0]
+    cas1 = stages[1]
+    cas2 = stages[2]
+    cas3 = stages[3]
+    cas4 = stages[4]
+    cas5 = stages[5]
+    cas6 = stages[6] 
+    cas7 = stages[7]
+    cas8 = stages[8]
+    cas9 = stages[9]
     
     -- Draw the curve
     local lastX = x
@@ -1123,6 +1225,9 @@ function DrawBandpassFilter(ctx, drawList, x, y, width, height, freq, q, color, 
         local m = 1.0 - (((mag / DB_EQ_RANGE) / 2) + 0.5)
         local magY = -(m * height - (height/2))
         
+     
+        
+     
         -- Draw line segment
         local currentX = x + i
         

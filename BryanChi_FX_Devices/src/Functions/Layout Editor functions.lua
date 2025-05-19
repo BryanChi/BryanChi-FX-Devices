@@ -332,7 +332,8 @@ function Lk(FP)
             "Lbl_Clr", "V_Clr", "Lbl_Clr_At_Full", "V_Clr_At_Full", "Invisible", "Type", "V_Round",
             "Style", "V_FontSize", "FontSize", "Font_Italic", "Font_Bold", "Value_Thick", "DragDir", 
             "Image", "ImgAngleMinOfs", "DontRotateImg", "Switch_On_Clr", "GrbClr", "BgClr", "AddArrows", 
-            "ArrowPicFileName", "SwitchType", "SwitchBaseV", "SwitchTargV", "ManualValues", 'Lbl_FONT', 'Val_FONT'
+            "ArrowPicFileName", "SwitchType", "SwitchBaseV", "SwitchTargV", "ManualValues", 'Lbl_FONT', 'Val_FONT',
+            'Lbl_Bold', 'Val_Bold', 'Lbl_Italic', 'Val_Italic'
         }
 
         for _, prop in ipairs(properties) do
@@ -2188,24 +2189,72 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     FX[FxGUID][Itm].ManualValuesFormat = FX[FxGUID][Itm]
                         .ManualValuesFormat or {}
                     if im.Button(ctx, 'Get Current Value##' .. FxGUID .. (Itm or '')) then
-                        local Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP
-                            .Num)
+                        local Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
                         if not tablefind(FP.ManualValues, Val) then
                             table.insert(FX[FxGUID][Itm].ManualValues, Val)
                         end
                     end
                     for i, V in ipairs(FX[FxGUID][Itm].ManualValues) do
-                        im.AlignTextToFramePadding(ctx)
-                        im.Text(ctx, i .. ':' .. (round(V, 2) or 0))
+                        local LN = im.GetTextLineHeight(ctx)
+                        local function ReorderBtn()
+                            local dragButtonSize = LN
+                            if im.ImageButton(ctx, "≡##DragHandle"..i, Img.Reorder, dragButtonSize, dragButtonSize) then
+                                -- Button just for visual, actual drag logic below
+                            end
+                            
+                            -- Handle drag and drop for reordering
+                            if im.BeginDragDropSource(ctx, im.DragDropFlags_None) then
+                                -- Set payload data (the index being dragged)
+                                if im.SetDragDropPayload(ctx, "MANUAL_VALUE_ITEM", tostring(i)) then
+                                    -- Preview what's being dragged
+                                    im.Text(ctx, "Moving item " .. i)
+                                end
+                                im.EndDragDropSource(ctx)
+                            end
+                            
+                            if im.BeginDragDropTarget(ctx) then
+                                local dropped, payload = im.AcceptDragDropPayload(ctx, "MANUAL_VALUE_ITEM")
+
+                                if dropped then
+                                    local sourceIdx = tonumber(payload)
+                                    if sourceIdx and sourceIdx ~= i then
+                                        -- Swap values
+                                        FX[FxGUID][Itm].ManualValues[sourceIdx], FX[FxGUID][Itm].ManualValues[i] = 
+                                            FX[FxGUID][Itm].ManualValues[i], FX[FxGUID][Itm].ManualValues[sourceIdx]
+                                        
+                                        FX[FxGUID][Itm].ManualValuesFormat[sourceIdx], FX[FxGUID][Itm].ManualValuesFormat[i] = 
+                                            FX[FxGUID][Itm].ManualValuesFormat[i], FX[FxGUID][Itm].ManualValuesFormat[sourceIdx]
+                                    end
+                                end
+                                im.EndDragDropTarget(ctx)
+                            end
+                        end
+                        local function ValueBtn()
+                            if im.Button(ctx,(round(V, 2) or 0) ..'##Values'   ) then
+                                local Val = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
+                                FP.ManualValues[i] = Val
+                            end
+                            if im.IsItemHovered(ctx) then
+                                im.BeginTooltip(ctx)
+                                im.Text(ctx, 'Set Value to Current Value')
+                                im.EndTooltip(ctx)
+                            end
+
+                        end
+                        ReorderBtn()
                         SL()
-                        --im.SetNextItemWidth(ctx, -R_ofs)
-                        rv, FX[FxGUID][Itm].ManualValuesFormat[i] = im.InputText(ctx,
-                            '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i,
-                            FX[FxGUID][Itm].ManualValuesFormat[i])
+                        im.AlignTextToFramePadding(ctx)
+                        im.Text(ctx, i)
+                        SL()
+                        ValueBtn()
+                        SL()
+
+                        im.SetNextItemWidth(ctx, -R_ofs)
+                        rv, FX[FxGUID][Itm].ManualValuesFormat[i] = im.InputText(ctx, '##' .. FxGUID .. "Itm=" .. (Itm or '') .. 'i=' .. i, FX[FxGUID][Itm].ManualValuesFormat[i])
                         SL()
                         local LH = im.GetTextLineHeight(ctx)
-                        local rv = im.Button(ctx, '##%', 20, 20) -- bin icon
-                        DrawListButton(WDL, '%', r.ImGui_GetColor(ctx, r.ImGui_Col_Button()), nil, true, icon1_middle, false) -- trash bin
+                        local rv, Clr = TrashIcon(LH, '##Delete Manual Value'..i , nil,_G['Delete Manual Value Icon'..i])
+                        _G['Delete Manual Value Icon'..i] = Clr 
                         if rv then
                             table.remove(FX[FxGUID][Itm].ManualValuesFormat, i)
                             table.remove(FX[FxGUID][Itm].ManualValues, i)
@@ -6352,7 +6401,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
         end
     end
 
-    if LabelOveride then _G[LabelValue] = LabelOveride end
+    if LabelOveride then FP.Current_V_Form = LabelOveride end
 
 
     local MaxTextLength
@@ -6421,15 +6470,28 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
 
 
     if FX[FxGUID][Fx_P].ManualValues then
-        local Vn = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
 
-        for i, V in ipairs(FP.ManualValues) do
-            if Vn == V then _G[LabelValue] = FP.ManualValuesFormat[i] end
+        local Vn = round(FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm), 3)
+        local function Get_Current_Manual_Value()
+            for i, V in ipairs(FP.ManualValues) do
+                
+                local nextV = FP.ManualValues[i+1]
+                local V = round(V, 3)
+
+                if  Vn == V then
+                    return FP.ManualValuesFormat[i]
+                elseif (nextV and Vn > V and Vn < nextV) --[[ or (not nextV and Vn > V) ]]  then
+
+                    return FP.ManualValuesFormat[i+1]
+                end
+            end
         end
+
+        FP.Current_V_Form = Get_Current_Manual_Value()
     else
-        _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
+        _, FP.Current_V_Form = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
     end
-    --_,_G[LabelValue]  = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, WhichPrm)
+    --_,FP.Current_V_Form  = r.TrackFX_GetFormattedParamValue(LT_Track,FX_Idx, WhichPrm)
     local Cx, Cy
     if FP.V_Pos == 'Free' then
         Cx, Cy = im.GetCursorPos(ctx)
@@ -6457,7 +6519,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
         if Width or FX[FxGUID][Fx_P].Combo_W then
             im.SetNextItemWidth(ctx, Width or (FX[FxGUID][Fx_P].Combo_W + (ExtraW or 0)))
         else 
-            local sz = im.CalcTextSize(ctx, LabelOveride or _G[LabelValue])
+            local sz = im.CalcTextSize(ctx, LabelOveride or FP.Current_V_Form)
             im.SetNextItemWidth(ctx, sz+ (ExtraW or 0))
         end
         local rv 
@@ -6471,7 +6533,7 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                 FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
             end
         else
-            rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or _G[LabelValue], im.ComboFlags_NoArrowButton)
+            rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or FP.Current_V_Form, im.ComboFlags_NoArrowButton)
         end
         
         if not FP.DONT_MAKE_EDITABLE and not USED_IN_Layout_Editor then
@@ -6519,23 +6581,24 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                 local rv
 
                 for i = 1, #Options, 1 do
-                    if im.Selectable(ctx, Options[i], i) and WhichPrm ~= nil then
+                    if im.Selectable(ctx, tostring( Options[i]).. '##' .. i, i) and WhichPrm ~= nil then
                         if OptionValues then
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, OptionValues[i])
-                            FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
+                            FP.V = OptionValues[i]-- r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
+
                         else
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm,  (i - 1) / #Options + ((i - 1) / #Options) * 0.1 ) -- + options* 0.05 so the value will be slightly higher than threshold,
                             FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
                         end
                         if FX[FxGUID][Fx_P].ManualValues then
                             if FX[FxGUID][Fx_P].ManualValues[i] then
-                                _G[LabelValue] = FP.ManualValuesFormat[i]
+                                FP.Current_V_Form = FP.ManualValuesFormat[i]
                             end
                         else
-                            _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
+                            _, FP.Current_V_Form = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                         end
                         EndCOMBO(popFont)
-                        return true, _G[LabelValue]
+                        return true, FP.Current_V_Form
                     end
                 end
                 EndCOMBO(popFont)
@@ -6547,9 +6610,9 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                             r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, v.V_Norm)
                             FP.V = r.TrackFX_GetParamNormalized (LT_Track, FX_Idx, WhichPrm)
                             FP.CurrentOps = i
-                            _, _G[LabelValue] = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
+                            _, FP.Current_V_Form = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, WhichPrm)
                             EndCOMBO(popFont)
-                            return true, _G[LabelValue]
+                            return true, FP.Current_V_Form
                         end
                     end
                 end
@@ -6676,8 +6739,10 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
 
     local function Calc_Text_Size_And_Lbl()
         local lbl
-        if FP.V_Pos == 'None' or FP.V_Pos == 'Free' or (FP.Lbl_Pos =='Top' and FP.V_Pos~='Within')then
-            lbl = ' '
+        if FP.Lbl_Pos == 'None' then 
+            lbl = ''
+        elseif FP.V_Pos == 'None' or FP.V_Pos == 'Free' or (FP.Lbl_Pos =='Top' and FP.V_Pos~='Within')then
+            lbl = ''
         elseif FP.V_Pos == 'Within' then
     
             im.PushFont(ctx, _G[V_Font])
@@ -7267,6 +7332,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                     FP.BgClr               = v.BgClr
                     FP.GrbClr              = v.GrbClr
                     FP.Lbl_Pos             = v.Lbl_Pos
+
                     FP.V_Pos               = v.V_Pos
                     FP.Lbl_Clr             = v.Lbl_Clr
                     FP.V_Clr               = v.V_Clr
@@ -7326,8 +7392,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
                     end
 
-                    FP.ManualValues        = v.ManualValues
-                    FP.ManualValuesFormat  = v.ManualValuesFormat
                     FP.Draw                = v.Draw-- *** Explicitly deep copy drawings ***
                     if FP.Draw and #FP.Draw <1 then 
                         FP.Draw = nil
@@ -7345,8 +7409,15 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                     FP.Link = v.Link
 
                 end
-                FX[FxGUID].Draw = T.Draw 
-                SAVED_BG_DRAW = FX.LayEdit ==FxGUID and DeepCopy(T.Draw) or SAVED_BG_DRAW
+
+                  -- Transfer loaded drawings from LO table to FX table
+                  if T and T.Draw then
+                    FX[FxGUID].Draw = T.Draw
+                    SAVED_BG_DRAW = FX.LayEdit ==FxGUID and DeepCopy(T.Draw) 
+                end
+
+                
+
             else  -- retrieving info from saved file
 
                 local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
@@ -7628,7 +7699,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
 
 
                     if Top then
-                        local T = LO[FX_Name]
 
                         local Ct = Content
 
@@ -7636,13 +7706,13 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                         local DrawInst = RecallGlobInfo(Ct, 'Total Number of Drawings = ', 'Num')
 
 
-                        if DrawInst then
-                            if DrawInst > 0 then
-                                T.Draw = T.Draw or {}
-                                T.Draw.Df_EdgeRound = get_aftr_Equal_Num(Line[Top + 1])
-                            end
+                        if DrawInst and DrawInst > 0  then
+
+                            LO[FX_Name].Draw =  {}
+                            LO[FX_Name].Draw.Df_EdgeRound = get_aftr_Equal_Num(Line[Top + 1])
+
                         end
-                        T.Draw = T.Draw or {}
+                        local T = LO[FX_Name]
 
                         for i = 1, DrawInst or 0, 1 do
                            
@@ -7651,7 +7721,7 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                                 return Line[Top + 5 + ((i - 1) * 9) + num]
                             end
                             local ID = FX_Name .. i
-                            T.Draw[i] = T.Draw[i] or {}
+                            T.Draw[i] =  {}
                             local D = T.Draw[i]
 
                             D.Type = RecallInfo(Ct, 'Type', 'D' .. i, Type, untilwhere)
@@ -7660,7 +7730,6 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                             D.T = RecallInfo(Ct, 'Top', 'D' .. i, 'Num')
                             D.B = RecallInfo(Ct, 'Bottom', 'D' .. i, 'Num')
                             D.clr = RecallInfo(Ct, 'Color', 'D' .. i, 'Num')
-                            D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
                             D.Txt = RecallInfo(Ct, 'Text', 'D' .. i)
                             D.BgImgFileName = RecallInfo(Ct, 'ImagePath', 'D' .. i)
                             D.KeepImgRatio = RecallInfo(Ct, 'KeepImgRatio', 'D' .. i, 'Bool')
@@ -7692,6 +7761,8 @@ function RetrieveFXsSavedLayout(Sel_Track_FX_Count, get_from_file)
                                     D.clr[i] = get_aftr_Equal_Num(LN(6))
                                     D.Txt[i] = get_aftr_Equal(LN(7)) ]]
                         end
+                        
+                      
                     end
                 end
                 GetInfo(FxGUID, FX_Idx, nil) -- repeat the same function but get from LO[FX_Name]
@@ -7752,7 +7823,7 @@ function IsLayoutModified(FxGUID, FX_Name)
 
     local function Compare_BG_Drawings()
         -- *** COMPARE GLOBAL BACKGROUND DRAWINGS ***
-        local currentGlobalDraw = current.Draw
+        local currentGlobalDraw = current.Draw and current.Draw[1] or nil
         local savedGlobalDraw = SAVED_BG_DRAW -- Compare against the loaded state
 
         -- 1. Check existence mismatch
@@ -7772,9 +7843,9 @@ function IsLayoutModified(FxGUID, FX_Name)
                 local sDraw = savedGlobalDraw[j] or {}
 
                 local drawProps = { -- Essential properties for background drawings
-                    'Type', 'Left', 'Right', 'Top', 'Bottom', 'Color', 'Text',
-                    'ImagePath', 'KeepImgRatio', 'Font', 'FontSize', 'FontBold',
-                    'FontItalic', 'Fill', 'Repeat', 'RepeatClr', 'XGap', 'YGap',
+                    'Type', 'L', 'R', 'T', 'B', 'clr', 'Txt',
+                    'BgImgFileName', 'KeepImgRatio', 'Font', 'FtSize', 'Font_Bold',
+                    'Font_Italic', 'Fill', 'Repeat', 'RepeatClr', 'XGap', 'YGap',
                     'Gap', 'Thick'
                     -- Add other critical drawing properties as needed
                 }
@@ -7783,8 +7854,8 @@ function IsLayoutModified(FxGUID, FX_Name)
                     local sVal = sDraw[prop]
                         -- Handle nil/false equivalence for boolean 'Fill' and similar flags
                         if prop == 'Fill' or prop == 'KeepImgRatio' or prop == 'FontBold' or prop == 'FontItalic' then
-                        cVal = cVal or false
-                        sVal = sVal or false
+                            cVal = cVal or false
+                            sVal = sVal or false
                         end
                         if cVal ~= sVal then
                         return true -- Found a difference
@@ -7873,6 +7944,7 @@ function IsLayoutModified(FxGUID, FX_Name)
     if savedParamCount ~= currentParamCount then
         return true
     end
+
     -- Check each parameter's properties
     for i = 1, currentParamCount do
         local function Linked_Prm_Props(currentParam, savedParam)
@@ -7914,6 +7986,7 @@ function IsLayoutModified(FxGUID, FX_Name)
         
         for _, prop in ipairs(paramProps) do
             if currentParam[prop] ~= savedParam[prop] then
+               
                 return true
             end
         end
@@ -8210,7 +8283,6 @@ function Save_Attached_Drawings(FP, file,Fx_P)
                 WRITE('Y_Repeat_VA', v.Y_Repeat_VA)
                 WRITE('Y_Repeat_VA GR', v.Y_Repeat_VA_GR)
                 WRITE('Angle_Max_VA_GR', v.Angle_Max_VA_GR)
-                msg(tostring(v.Angle_Max_VA_GR))
                 WRITE('Gap', v.Gap)
                 WRITE('Gap_VA', v.Gap_VA)
                 WRITE('Gap_VA GR', v.Gap_VA_GR)
@@ -8264,6 +8336,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
     local fx = FX[FxGUID]
 
     r.RecursiveCreateDirectory(dir_path, 0)
+    r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, #FX[FxGUID])
 
     local file = io.open(file_path, 'w')
     if file then
@@ -8515,7 +8588,6 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
         file:close()
     end
 
-    r.SetProjExtState(0, 'FX Devices', 'Prm Count' .. FxGUID, #FX[FxGUID])
     --[[ for i, v in pairs (FX[FxGUID]) do
         local Fx_P=i
         local FP = FX[FxGUID][i]

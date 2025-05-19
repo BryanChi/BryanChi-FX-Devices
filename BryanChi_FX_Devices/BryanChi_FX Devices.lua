@@ -40,7 +40,8 @@ r = reaper
 OS = r.GetOS()
 
 if not r.ImGui_GetBuiltinPath then
-    r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window", "MISSING DEPENDENCIES", 0)
+    r.ShowMessageBox("ReaImGui v0.9+ is required.\nPlease install or update it in the next window",
+        "MISSING DEPENDENCIES", 0)
     return r.ReaPack_BrowsePackages('dear imgui')
 end
 
@@ -77,7 +78,7 @@ ctx = im.CreateContext('FX Devices', im.ConfigFlags_DockingEnable)
 Retrieve_All_Info_Needed_Before_Main_Loop()
 r.SetToggleCommandState(0, CommanID, 1)
 
- 
+
 
 
 function Main_Loop()
@@ -103,27 +104,28 @@ function Main_Loop()
     im.PushStyleColor(ctx, im.Col_MenuBarBg, TrkClr or 0x00000000)
     im.PushStyleColor(ctx, im.Col_WindowBg, Window_BG or CustomColorsDefault.Window_BG)
     --------------------------==  BEGIN GUI----------------------------------------------------------------------------
-    local visible, OpenMainWIN = im.Begin(ctx, 'FX Devices', true, im.WindowFlags_NoScrollWithMouse | im.WindowFlags_NoScrollbar | im.WindowFlags_MenuBar | im.WindowFlags_NoCollapse | im.WindowFlags_NoNav)
+    local visible, OpenMainWIN = im.Begin(ctx, 'FX Devices', true,
+        im.WindowFlags_NoScrollWithMouse | im.WindowFlags_NoScrollbar | im.WindowFlags_MenuBar |
+        im.WindowFlags_NoCollapse | im.WindowFlags_NoNav)
     im.PopStyleColor(ctx, 2) -- for menu  bar and window BG
 
     local Viewport = im.GetWindowViewport(ctx)
     VP.w, VP.h     = im.Viewport_GetSize(Viewport)
-    VP.FDL = VP.FDL or im.GetForegroundDrawList(ctx)
-    VP.X, VP.Y = im.GetCursorScreenPos(ctx)
+    VP.FDL         = VP.FDL or im.GetForegroundDrawList(ctx)
+    VP.X, VP.Y     = im.GetCursorScreenPos(ctx)
 
-    GetAllMods( )
+    GetAllMods()
 
 
     if visible and LT_Track and OpenMainWIN then
-
-    
         r.gmem_write(4, 0) -- set jsfx mode to none , telling it user is not making any changes, this prevents bipolar modulation from going back to unipolar by setting modamt from 100~101 back to 0~1
-        Execute_Keyboard_Shortcuts(ctx,KB_Shortcut,Command_ID, Mods)
-        HelperMsg= {}    HelperMsg.Others = {}
+        Execute_Keyboard_Shortcuts(ctx, KB_Shortcut, Command_ID, Mods)
+        HelperMsg = {}
+        HelperMsg.Others = {}
         GetAllInfoNeededEachLoop()
         TREE = BuildFXTree(LT_Track)
         At_Begining_of_Loop()
-        Show_Tooltip_For_Duration(Tooltip.txt, Tooltip.dur, Tooltip.pos )
+        Show_Tooltip_For_Duration(Tooltip.txt, Tooltip.dur, Tooltip.pos)
         POP_STYLE_VAR = Push_Style_Var()
 
         demo.PushStyle()
@@ -141,31 +143,31 @@ function Main_Loop()
         Font = Font_Andale_Mono_13
         im.PushFont(ctx, Font)
 
-        MenuBar ()
+        MenuBar()
 
 
 
         -----------==  Create Macros (Headers)-------------
         Create_Header_For_Track_Modulators__Squared_Modulators()
-        ---------------End Of header----------------------- 
+        ---------------End Of header-----------------------
 
         im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, 3) --StyleVar#1 (Child Frame for all FX Devices)
 
 
-       --[[  local spaceIfPreFX = Add_Btn_To_Drop_On_If_Mouse_Is_At_Left_Edge(Trk[TrkID]) ]]
+        --[[  local spaceIfPreFX = Add_Btn_To_Drop_On_If_Mouse_Is_At_Left_Edge(Trk[TrkID]) ]]
 
         im.PushStyleVar(ctx, im.StyleVar_ChildBorderSize, 0) --  styleVar#2 Child Border size
         im.PushStyleColor(ctx, im.Col_ChildBg, Window_BG or CustomColorsDefault.Window_BG)
 
         Scroll_Main_Window_With_Mouse_Wheel()
-            
+
         MainWin_Flg = im.WindowFlags_HorizontalScrollbar | FX_DeviceWindow_NoScroll
         local MaxX, MaxY = im.GetContentRegionMax(ctx)
         if im.BeginChild(ctx, 'fx devices', MaxX - (PostFX_Width or 0) --[[ - spaceIfPreFX ]], 260, nil, MainWin_Flg) then
-            local X , Y = im.GetCursorScreenPos(ctx)
+            local X, Y = im.GetCursorScreenPos(ctx)
 
             Draw_Parallel_FX_Enclosure(FxGUID)
-            
+
             AddSpacing(2)
 
             CursorStartX = im.GetCursorStartPos(ctx)
@@ -184,18 +186,17 @@ function Main_Loop()
                 _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx) --i used to be i-1
                 local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
                 FXGUID[FX_Idx] = FxGUID
-                if not FxGUID then goto end_of_current_fx end 
+                if not FxGUID then goto end_of_current_fx end
                 FX[FxGUID] = FX[FxGUID] or {}
                 local fx = FX[FxGUID]
 
                 local function Create_FX_Window(FX_Idx)
                     local Parallel
 
-                    if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FX.InLyr[FxGUID] == nil  and FindStringInTable(BlackListFXs, FX_Name) ~= true then
+                    if --[[Normal Window]] (not string.find(FX_Name, 'FXD %(Mix%)RackMixer')) and FX.InLyr[FxGUID] == nil and FX_is_in_blacklist (FX_Name) ~= true then
                         Tab_Collapse_Win = false
 
                         if not tablefind(Trk[TrkID].PostFX, FxGUID) and not FX[FxGUID].InWhichBand then
-
                             Parallel = createFXWindow(FX_Idx)
                         end
                     end
@@ -217,29 +218,25 @@ function Main_Loop()
                 DragFX_ID = DragFX_ID or -1000
 
 
-                local Parallel =  Create_FX_Window(FX_Idx) 
-               
+                local Parallel = Create_FX_Window(FX_Idx)
+
                 AddSpaceBtwnFXs_LAST(FX_Idx, FxGUID)
 
-                SL(nil,0)
-                 ::end_of_current_fx::
-
-                
+                SL(nil, 0)
+                ::end_of_current_fx::
             end --for repeat as many times as FX instances
 
             Pre_FX_Chain(FX_Idx)
             Detect_If_FX_Deleted()
             When_User_Switch_Track()
 
-            if Sel_Track_FX_Count == 0 then AddSpaceBtwnFXs(0, false, true,nil,nil,nil, 300,nil,true)  end
+            if Sel_Track_FX_Count == 0 then AddSpaceBtwnFXs(0, false, true, nil, nil, nil, 300, nil, true) end
 
 
 
 
             im.EndChild(ctx)
             if HoverOnScrollItem then DisableScroll = true end
-
-
         end
         Pos_Devices_R, Pos_Devices_B = im.GetItemRectMax(ctx)
 
@@ -247,8 +244,8 @@ function Main_Loop()
         Payload = tonumber(Payload)
         If_Drag_FX_to_Right_Edge(Payload_Type, Trk[TrkID])
 
-        Post_FX_Chain (Trk[TrkID], Payload_Type)
-        If_FX_Count_Changed__Refresh_Comp_Reduction_Scope() 
+        Post_FX_Chain(Trk[TrkID], Payload_Type)
+        If_FX_Count_Changed__Refresh_Comp_Reduction_Scope()
 
         im.PopStyleColor(ctx)
         im.PopStyleVar(ctx) -- styleVar#2 (Border Size for all fx devices)
@@ -274,8 +271,7 @@ function Main_Loop()
         im.PopStyleVar(ctx, POP_STYLE_VAR)
         im.SetNextWindowSize(ctx, 500, 440, im.Cond_FirstUseEver)
         if LT_Track then FXCountEndLoop = r.TrackFX_GetCount(LT_Track) end
-        
-    end 
+    end
     If_No_LT_Track()
     At_End_Of_Loop()
 
@@ -283,7 +279,7 @@ function Main_Loop()
         im.End(ctx)
     end
 
-    if OpenMainWIN  then
+    if OpenMainWIN then
         PDefer(Main_Loop)
     else --on script close
         At_Script_Close(CommanID)

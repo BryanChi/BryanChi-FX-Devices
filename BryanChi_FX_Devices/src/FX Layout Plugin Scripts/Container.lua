@@ -4,12 +4,15 @@ local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
 local fx = FX[FxGUID]
 if FX_Name == 'Transient' or FX_Name == 'Sustain'  then return end 
+if FX_Name == 'Mid' or FX_Name == 'Side'  then return end 
+
 
 fx.TitleWidth  = 0
 --fx.CustomTitle = fx.Name
 if  Animate_FX_Width ~=FxGUID and not FX[PluginScript.Guid].Width_Before_Collapse then 
     fx.Width =     35 +10
 end
+
 fx.V_Win_Btn_Height = fx.V_Win_Btn_Height or  130 
 fx.Cont_Collapse = fx.Cont_Collapse or 0
 
@@ -29,7 +32,7 @@ local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_
 local WinW = 0 
 local AllW = 0
 local function If_FX_Is_In_Blacklist(FX_Name, blacklist)
-    local blacklist = blacklist or { 'Amplitude Splitter', 'Transient', 'Sustain' }
+    local blacklist = blacklist or { 'Amplitude Splitter', 'Transient', 'Sustain' , 'Mid Side Splitter', 'Mid', 'Side'}
     for _, v in ipairs(blacklist) do
         if FX_Name== v then
             return true
@@ -41,17 +44,14 @@ end
 local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     if Animate_FX_Width ==PluginScript.Guid then return end 
     if  FX_Name:find('FXD Containr Macro') then return end 
-    -- Add the width for parallel Mixer if haven't done so 
-    --[[ if not fx.Added_Parallel_Mixer_Width then
-        fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
-        fx.Added_Parallel_Mixer_Width = true
-    end ]]
-    
+
+    if fx.Width_Before_Collapse then return end 
+
     if FX[PluginScript.Guid].Width_Before_Collapse then return end 
     for I,V in ipairs(PAR_FXs) do
         for ii, vv in ipairs(V) do 
 
-            if ii== 1 and  vv.addr_fxid == X_Id then 
+            if ii== 1 and  vv.addr_fxid == FX_Id then 
                 fx.Width = (fx.Width or 0) + PAR_FX_MIXER_WIN_W + SPACE_BETWEEN_FXS_W
                 fx.Added_Parallel_Mixer_Width = true
             end 
@@ -63,12 +63,12 @@ local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     if not fx or not FxGUID then return end
 
     local W = FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170
-   if If_FX_Is_In_Blacklist(FX_Name, {'Transient', 'Sustain'}) then W = 0 end 
+   if If_FX_Is_In_Blacklist(FX_Name, {'Transient', 'Sustain', 'Mid', 'Side'}) then W = 0 end 
     
     fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
 end
-local function If_Transient_Split_Exists()
-    if FX_Name ~= 'Transient Split' then return end 
+local function If_Transient_Split_Exists(str)
+    if FX_Name ~= str then return end 
 
     local idx = tonumber( select(2, r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.0')))
     if idx then 
@@ -77,16 +77,17 @@ local function If_Transient_Split_Exists()
         if Nm:find('FXD Containr Macro') then 
             idx = tonumber( select(2, r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.1')))
         end
-        SL()
+        SL(nil, 0)
         im.SetCursorPosY(ctx, 0)
         createFXWindow(idx)
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, idx)
-        Add_Width(nil, FxGUID, idx, 'Transient Split')
+        Add_Width(nil, FxGUID, idx, str)
         return true
     end
-   
 end
-
+if DragFX_Arrow_StartX  then
+    DragFX_Arrow_EndX, DragFX_Arrow_EndY = im.GetItemRectMin(ctx)
+end
 
 
 
@@ -300,14 +301,8 @@ local function titleBar()
     --if not fx.Collapse then
         local W = 33
         SyncWetValues(FX_Idx)
-        local x, y = im.GetCursorPos(ctx)
+        local x, y = im.GetCursorScreenPos(ctx)
         
-        -- Get the window draw list instead of foreground draw list
-        local WDL = im.GetWindowDrawList(ctx)
-        
-        -- Draw background FIRST
-        im.DrawList_AddRectFilled(WDL, x, y, x+W, y + 220, ThemeClr('Accent_Clr'), 5)
-
         local Pad_L = fx.Collapse and 3 or 6
         -- Position other elements AFTER drawing the icon
         im.SetCursorPosX(ctx, Pad_L)
@@ -842,6 +837,9 @@ function AddTitleBgClr ()
     im.DrawList_AddLine(WDL, x+W + Pad , y , x+W + Pad, y+999,  ThemeClr('Accent_Clr_Dark'))
 
 end
+local function Draw_Arrow_If_Dragging(X, Y)
+
+end
 
 
 local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
@@ -876,8 +874,17 @@ end
 
 local function DndFXtoContainer_TARGET(action_type)
     -- Only push style color for ADD action
-    if action_type == 'ADD' then
+    --[[ if action_type == 'ADD' then
         im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
+    end ]]
+    local function Draw_Arrow_If_Dragging()
+        local sX , sY = DragFX_Arrow_StartX, DragFX_Arrow_StartY
+        local eX , eY = DragFX_Arrow_EndX, DragFX_Arrow_EndY
+        local P = 13 
+        im.DrawList_AddLine(Glob.FDL, sX, sY , sX, sY-P, 0xFFFFFFFF, 2)
+        im.DrawList_AddLine(Glob.FDL, sX, sY - P, eX, sY - P, 0xFFFFFFFF, 2)
+        local coords = {startX = eX, startY = sY-P, endX = eX, endY = sY}
+        DrawArrow(coords, 0xFFFFFFFF, 2, 8, nil, Glob.FDL)
     end
 
     
@@ -887,10 +894,10 @@ local function DndFXtoContainer_TARGET(action_type)
         local payload_type = action_type == 'ADD' and 'DND ADD FX' or 'FX_Drag'
         local dropped, payload = im.AcceptDragDropPayload(ctx, payload_type)
         im.EndDragDropTarget(ctx)
-
+        Draw_Arrow_If_Dragging()
         -- Highlight only for MOVE action
         if action_type == 'MOVE' then
-            Highlight_Itm(WDL, 0xffffff33)
+            Highlight_Itm(WDL, nil, 0xffffff33)
 
         end
         
@@ -928,9 +935,9 @@ local function DndFXtoContainer_TARGET(action_type)
     end
     
     -- Pop style color for ADD action
-    if action_type == 'ADD' then
+  --[[   if action_type == 'ADD' then
         im.PopStyleColor(ctx)
-    end
+    end ]]
 end
 
 
@@ -952,6 +959,7 @@ local function Render_Collapsed ( v ,  CollapseXPos , FX_Id, CollapseYPos,i ,GUI
         im.PushStyleVar(ctx, im.StyleVar_ItemSpacing,1 , -3)
 
         FX[GUID] = FX[GUID]  or {}
+
         local Click = AddWindowBtn (GUID, FX_Id, 170, true , true , true ) 
 
         
@@ -1013,14 +1021,17 @@ local function Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
         SL()
         --Add_FX_Btn_Ypos = im.GetCursorPosY(ctx) + 24
         --im.SetCursorPosY(ctx,tonumber( CollapseYPos)  )
-
-         createFXWindow(fx.Sel_Preview)
+        
+        createFXWindow(fx.Sel_Preview)
         --if Hv then PreviewW = Hv end 
 
         if fx.Sel_Preview then 
             local guid = r.TrackFX_GetFXGUID(LT_Track,fx.Sel_Preview)
-            fx.Width = 50 + 155 + (FX[guid].Width or 170) + 10
-
+            -- Only update width if we have a preview FX
+            if guid then
+                local preview_width = FX[guid].Width or 170
+                fx.Width = 210 + preview_width  -- Base width (210) + preview FX width
+            end
         end
     end
 end
@@ -1096,7 +1107,7 @@ local function Main(TB, X, Y)
                                 im.SetCursorPosY(ctx, Top_Spacing)
                             
                                 if If_FX_Is_In_Blacklist(FX_Name) then  return  end
-                                if FX_Name:find('Amplitude Splitter') then  return  end
+                                if FX_Name:find('Amplitude Splitter') or FX_Name:find('Mid Side Splitterter') then  return  end
                                 local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
                                 SL(nil,0)
                             
@@ -1113,7 +1124,7 @@ local function Main(TB, X, Y)
                             if If_FX_Is_In_Blacklist(FX_Name) then 
                                 return 
                             end
-                            if FX_Name:find('Amplitude Splitter') then  return  end
+                            if FX_Name:find('Amplitude Splitter')or FX_Name:find('Mid Side Splitter') then  return  end
                             if not Parallel or i == #TB    then 
 
                                 local Wid = AddSpaceBtwnFXs(FX_Id_next, nil, nil, nil, nil, nil, nil, FX_Id,nil, SpaceClr)
@@ -1269,7 +1280,8 @@ end
 
 macroPage(TB)
 im.Dummy(ctx, 5,10)
-if If_Transient_Split_Exists() then return end 
+if If_Transient_Split_Exists('Transient Split') then return end 
+if If_Transient_Split_Exists('Mid Side Splitter') then return end 
 
 If_Container_Is_Empty()
 Main(TB , X, Y)

@@ -852,7 +852,23 @@ function If_FX_Is_BandSplitter(FX_Idx, FX_Name)
             end
         end
 
+        local function Put_Fxs_Inside_Into_Container()
+            local track = LT_Track
+            local fx_idx = Find_FxID_By_GUID(PluginScript.Guid)
+            if not fx_idx then return end
+            -- Get the parent container by checking if this FX has a container index
+            local parent_container = tonumber(  select(2, r.TrackFX_GetNamedConfigParm(track, fx_idx, "parent_container")))
+            if parent_container then
+                local rv, Name = r.TrackFX_GetNamedConfigParm(track, fx_idx, "renamed_name")
+                if Name == "Band Split" then
+                    return parent_container
+                end
+            end
 
+        
+        end
+
+        Put_Fxs_Inside_Into_Container()
         if not IsLBtnHeld then FX[FxGUID].StartCount = nil end
 
 

@@ -1915,7 +1915,7 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
             if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
                 DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
             end
-            Dvdr.Clr[ClrLbl or ''], Dvdr.Width[TblIdxForSpace or ''] = nil, 0
+            Dvdr.Width[TblIdxForSpace or ''] = 0
             if SpcIsInPre then
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
                     table.insert(Trk[TrkID].PreFX, FxID)
@@ -2155,7 +2155,6 @@ function AddFX_Menu(FX_Idx)
         --DndAddFX_SRC("FXD Saike BandSplitter")
 
         Dvdr.Spc_Hover[TblIdxForSpace] = Dvdr_Hvr_W
-        --Dvdr.Clr[ClrLbl] = 0x999999ff
 
         if IsLBtnClicked then FX_Idx_OpenedPopup = nil end
 
@@ -2168,8 +2167,6 @@ function AddFX_Menu(FX_Idx)
             CloseAddFX_Popup = nil
         end
         r.ImGui_EndPopup(ctx)
-    else
-        Dvdr.Clr[ClrLbl or ''] = 0x131313ff
     end
 
 end

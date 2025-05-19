@@ -448,7 +448,7 @@ function BuildFXTree(tr)
 
                 -- Add blacklist check at the start
                 local function IsBlacklistedFX()
-                    local BlackListFXs = { 'Amplitude Splitter', 'Transient', 'Sustain' }
+                    local BlackListFXs = { 'Amplitude Splitter', 'Transient', 'Sustain', 'Mid', 'Side', 'Mid Side Split' }
                     local _, Name = r.TrackFX_GetNamedConfigParm(tr, tree_items[i].addr_fxid, 'renamed_name')
                    
                     for I, blocked_name in ipairs(BlackListFXs) do
@@ -1235,6 +1235,7 @@ end
 ---@param FxGUID string
 function SaveDrawings(FX_Idx, FxGUID)
     local dir_path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts')
+    local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     local FX_Name = ChangeFX_Name(FX_Name)
 
     local file_path = ConcatPath(dir_path, FX_Name .. '.ini')
@@ -1292,6 +1293,7 @@ function SaveDrawings(FX_Idx, FxGUID)
 
             file:write('\n')
         end
+        file:close()
     end
 end
 
@@ -1886,7 +1888,7 @@ function DndAddFX_SRC(fx)
     end
 end
 
-function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDinPost, FxGUID_Container)
+function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, FxGUID_Container)
     --if not DND_ADD_FX then return  end
     im.PushStyleColor(ctx, im.Col_DragDropTarget, 0)
     if im.BeginDragDropTarget(ctx) then
@@ -1901,32 +1903,7 @@ function DndAddFXfromBrowser_TARGET(Dest, ClrLbl, SpaceIsBeforeRackMixer, SpcIDi
             local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
             local _, nm = r.TrackFX_GetFXName(LT_Track, FX_Idx)
 
-            --if in layer
-            if FX.InLyr[FXGUID_To_Check_If_InLayer] == FXGUID_RackMixer and SpaceIsBeforeRackMixer == false or AddLastSPCinRack == true then
-                DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
-            end
-            Dvdr.Clr[ClrLbl or ''], Dvdr.Width[TblIdxForSpace or ''] = nil, 0
-            if SpcIsInPre then
-                if SpaceIsBeforeRackMixer == 'End of PreFX' then
-                    table.insert(Trk[TrkID].PreFX, FxID)
-                else
-                    table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
-                end
-                for i, v in pairs(Trk[TrkID].PreFX) do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                        true)
-                end
-            elseif SpcInPost then
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-                table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
-                -- InsertToPost_Src = FX_Idx + offset+2
-                for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
-                end
-            elseif SpaceIsBeforeRackMixer == 'SpcInBS' then
-                FX[FxGUID_Container] = FX[FxGUID_Container] or {}
-                DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx, Dest + 1)
-            end
+            Dvdr.Width[TblIdxForSpace or ''] = 0
         end
         im.EndDragDropTarget(ctx)
     end
@@ -2211,7 +2188,7 @@ end
 
 
 
-function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX)
+function FilterBox(FX_Idx, SpcType, FxGUID_Container, ParallelFX)
     ---@type integer|nil, boolean|nil
     local FX_Idx_For_AddFX, close
     if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
@@ -2233,42 +2210,17 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     local function InsertFX(Name)
         local FX_Idx = FX_Idx
         --- CLICK INSERT
-        if SpaceIsBeforeRackMixer == 'End of PreFX' then FX_Idx = FX_Idx + 1 end
 
         r.TrackFX_AddByName(LT_Track, Name, false, -1000 - FX_Idx)
-
         -- if Inserted into Layer
         local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
 
-        if FX.InLyr[FxGUID] == FXGUID_RackMixer and FX.InLyr[FxGUID] then
-            DropFXtoLayerNoMove(FXGUID_RackMixer, LyrID, FX_Idx)
-        end
-        if SpaceIsBeforeRackMixer == 'SpcInBS' then
+        if SpcType == 'SpcInBS' then
             DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
         end
-        if SpcIsInPre then
-            local inspos = FX_Idx + 1
-            if SpaceIsBeforeRackMixer == 'End of PreFX' then
-                table.insert(Trk[TrkID].PreFX, FxID)
-            else
-                table.insert(Trk[TrkID].PreFX, FX_Idx + 1, FxID)
-            end
-            for i, v in pairs(Trk[TrkID].PreFX) do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PreFX ' .. i, v,
-                    true)
-            end
-        elseif SpcInPost then
-            if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
-            table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
-            -- InsertToPost_Src = FX_Idx + offset+2
-            for i = 1, #Trk[TrkID].PostFX + 1, 1 do
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: PostFX ' .. i, Trk[TrkID].PostFX[i] or '', true)
-            end
-        elseif ParallelFX then 
-            r.TrackFX_SetNamedConfigParm( LT_Track, FX_Idx, 'parallel', '1' )
-        end
 
-        local HideFX = {'Container', 'Transient', 'Sustain'}
+
+        local HideFX = {'Container', 'Transient', 'Sustain', 'Mid', 'Side'}
 
         r.TrackFX_Show(LT_Track, FX_Idx , 2)
         local FXCount = r.TrackFX_GetCount(LT_Track)
@@ -2413,7 +2365,7 @@ function FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcI
     return close
 end
 
-function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX)
+function AddFX_Menu(FX_Idx , SpcType, FxGUID_Container, ParallelFX)
 
     local function DrawFxChains(tbl, path)
         local extension = ".RfxChain"
@@ -2470,6 +2422,7 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
     im.PushStyleColor(ctx, im.Col_Border, 0xffffffff)
     if im.BeginPopup(ctx, 'Btwn FX Windows' .. FX_Idx) then
         local AddedFX
+
         im.SeparatorText(ctx, "PLUGINS")
         for i = 1, #CAT do
 
@@ -2561,14 +2514,15 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
             r.gmem_attach('AmplitudeSplitter')
             table.insert(AddFX.Name, 'FXD - Amplitude Splitter')
             table.insert(AddFX.Pos, FX_Idx)
-        else
+        elseif im.Selectable(ctx, 'Mid Side Splitter') then
+            table.insert(AddFX.Name, 'FXD Mid Side Splitter')
+            table.insert(AddFX.Pos, FX_Idx)
 
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
         --DndAddFX_SRC("FXD Saike BandSplitter")
 
         Dvdr.Spc_Hover[TblIdxForSpace] = Dvdr_Hvr_W
-        --Dvdr.Clr[ClrLbl] = 0x999999ff
 
         if IsLBtnClicked then FX_Idx_OpenedPopup = nil end
 
@@ -2576,11 +2530,18 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
         im.SeparatorText(ctx, "Search")
 
-        if FilterBox(FX_Idx, LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, SpcIsInPre, SpcInPost, SpcIDinPost, ParallelFX) then
+        if FilterBox(FX_Idx, SpaceIsBeforeRackMixer, FxGUID_Container, ParallelFX) then
             AddedFX = true
             im.CloseCurrentPopup(ctx)
         end -- Add FX Window
 
+        if AddedFX and ParallelFX then
+            TREE = BuildFXTree(LT_Track)
+            --[[ local FxGUID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+
+            local Fx_Idx = Find_FxID_By_GUID(FxGUID) ]]
+            r.TrackFX_SetNamedConfigParm(LT_Track, FX_Idx, 'parallel', '1')
+        end
         if CloseAddFX_Popup then
             im.CloseCurrentPopup(ctx)
             CloseAddFX_Popup = nil
@@ -2588,8 +2549,6 @@ function AddFX_Menu(FX_Idx ,LyrID, SpaceIsBeforeRackMixer, FxGUID_Container, Spc
 
 
         im.EndPopup(ctx)
-    else
-        Dvdr.Clr[ClrLbl or ''] = 0x131313ff
     end
     
     im.PopStyleColor(ctx)
@@ -3002,12 +2961,13 @@ function At_Begining_of_Loop()
             if MovFX.Parallel then 
 
                 if tonumber(MovFX.Parallel) then -- if type is number / if user drags fx to the root of parallel fx
-                    -- Set the FX Being Dragged into not parallel
+                    -- Set the FX Being Dragged into not parallel'
+
                     r.TrackFX_SetNamedConfigParm( LT_Track, MovFX.ToPos[i] , 'parallel', '0' ) 
                     --r.TrackFX_SetNamedConfigParm( LT_Track, tonumber(MovFX.Parallel + (MovFX.scale or 1)), 'parallel', '1' )
                 else
 
-                    --r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i] - (MovFX.scale or 1), 'parallel', '1' )
+                   r.TrackFX_SetNamedConfigParm( LT_Track,  MovFX.ToPos[i] --[[ - (MovFX.scale or 1) ]], 'parallel', '1' )
                 end
             
             end
@@ -3016,7 +2976,7 @@ function At_Begining_of_Loop()
 
 
        -- r.Undo_EndBlock(MovFX.Lbl[i] or (UndoLbl or 'Move' .. 'FX'), 0)
-        MovFX = { FromPos = {}, ToPos = {}, Lbl = {}, Copy = {} , FromFxID = {} }
+        MovFX = { ToPos = {}, FromPos = {}, Lbl = {}, Copy = {}, FromFxID = {}, Parallel = nil }
         NeedCopyFX = nil
         DropPos = nil
 
@@ -3632,3 +3592,37 @@ local function SaveDefaultValues(FX_Idx, FX_Name)
         im.CloseCurrentPopup(ctx)
     end
 end
+
+
+-- Function to convert a string into a number based on letter positions
+-- @param str string The input string to convert
+-- @return number|nil The converted number, or nil if input is invalid
+function stringToAlphabetPosition(str)
+    if type(str) ~= "string" then
+        return nil
+    end
+    
+    local result = 0
+    local multiplier = 1
+    
+    -- Process the string from right to left
+    for i = #str, 1, -1 do
+        local char = string.lower(string.sub(str, i, i))
+        
+        -- Check if character is a letter
+        if string.match(char, "[a-z]") then
+            -- Convert letter to number (a=1, b=2, etc.)
+            local value = string.byte(char) - string.byte("a") + 1
+            result = result + (value * multiplier)
+            multiplier = multiplier * 100  -- Use 100 as multiplier to separate digits
+        elseif string.match(char, "%d") then
+            -- If it's a number, add it directly
+            local value = tonumber(char)
+            result = result + (value * multiplier)
+            multiplier = multiplier * 10
+        end
+    end
+    
+    return result
+end
+

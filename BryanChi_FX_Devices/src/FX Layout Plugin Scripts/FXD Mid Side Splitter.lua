@@ -40,28 +40,46 @@ local track = LT_Track
 local Wet_Dry_Drag_Height = -2
 local Transient_Color = 0xFF6632AA
 local Sustain_Color = 0xFF66FFAA
-local GMEM_NAME = "FXD_Amplitude_Splitter"
-local GMEM_TRANSIENT = 2100  -- Gmem address for transient signal level
-local GMEM_SUSTAIN = 2101    -- Gmem address for sustain signal level
-local GMEM_ACTIVE_FLAG = 10  -- Gmem address for plugin active flag
+local GMEM_NAME = "FXD_MidSide_Splitter"
+
+-- Calculate gmem offset based on FX GUID
+local GMEM_MAX = 8000  -- Maximum valid gmem offset (will be multiplied by 1000 in JSFX)
+local gmem_offset = 0
+if type(stringToAlphabetPosition) == "function" then
+    -- Get the initial offset and ensure it's within valid range
+    local raw_offset = stringToAlphabetPosition(FxGUID) or 0
+    -- Use modulo to wrap around if the number is too large
+    gmem_offset = (raw_offset % GMEM_MAX)  -- Keep within 0-8000 range
+end
+
+-- Get the actual gmem offset from the JSFX
+local jsfx_offset = r.TrackFX_GetParamNormalized(track, FX_Idx, 1) * GMEM_MAX
+local actual_offset = math.floor(jsfx_offset * 1000)  -- Convert to actual gmem address
+
+local GMEM_TRANSIENT = actual_offset + 2100  -- Gmem address for mid signal level
+local GMEM_SUSTAIN = actual_offset + 2101    -- Gmem address for side signal level
+local GMEM_ACTIVE_FLAG = actual_offset + 10  -- Gmem address for plugin active flag
+
+-- Set the gmem offset in the JSFX (normalized to 0-1 range)
+r.TrackFX_SetParamNormalized(track, FX_Idx, 1, gmem_offset / GMEM_MAX)
 
 -- Persistent variables for display
-local FXD_transient_level = 0
-local FXD_sustain_level = 0
+local FXD_mid_level = 0
+local FXD_side_level = 0
 local FXD_gmem_attached = false
 local FXD_last_update_time = 0
 
 -- Color transitions (minimal smoothing since JSFX is already handling most of it)
-local FXD_color_transient = 0
-local FXD_color_sustain = 0
+local FXD_color_mid = 0
+local FXD_color_side = 0
 local COLOR_SMOOTHING = 0.7 -- Gentler smoothing, just to avoid any potential jitter
 
 
 -- Button colors - updated to match FX Devices theme
-local TRANSIENT_BASE = {0, 0, 0, 0.2}  -- Darker blue base
-local TRANSIENT_GLOW = {1.0, 0.4, 0.2, 1.0}    -- Brighter orange-red glow
-local SUSTAIN_BASE = {0, 0, 0, 0.2}     -- Much darker green base
-local SUSTAIN_GLOW = {0.4, 1.0, 0.7, 1.0}      -- Much brighter green/yellow glow
+local MID_BASE = {0, 0, 0, 0.2}  -- Darker blue base
+local MID_GLOW = {1.0, 0.8, 0.1, 0.8}    -- Yellowish glow with 80% opacity
+local SIDE_BASE = {0, 0, 0, 0.2}     -- Much darker green base
+local SIDE_GLOW = {0.4, 1.0, 0.7, 0.8}      -- Much brighter green/yellow glow with 80% opacity
 
 
 -- Apply a non-linear curve to make the response more natural
@@ -328,7 +346,7 @@ local function DrawRadialButton(label, width, height, base_color, glow_color, in
     local center_y = btn_min_y + btn_height * 0.5
     
     -- Determine radius of the button (use smaller dimension)
-    local radius = math.min(btn_width, btn_height) * 0.5
+    local radius = math.min(btn_width, btn_height) * 0.8
     
     -- Adjust color based on hover/active state
     local color_multiplier = 1.0
@@ -368,7 +386,7 @@ local function DrawRadialButton(label, width, height, base_color, glow_color, in
         end
         
         -- Increase alpha for inner circles
-        local a = math.min(1.0, base_a + (1.0 - base_a) * circle_intensity * 1.2)
+        local a = math.min(0.3, base_a + (0.85 - base_a) * circle_intensity * 1.2)
         
         local circle_color = im.ColorConvertDouble4ToU32(r, g, b, a)
         im.DrawList_AddCircleFilled(draw_list, center_x, center_y, circle_radius, circle_color)
@@ -392,7 +410,7 @@ local function DrawRadialButton(label, width, height, base_color, glow_color, in
     -- Calculate scaled text position
 
     local scaled_text_w = text_w * text_scale
-    local text_x = center_x - (scaled_text_w *( label == 'Transient' and 0.57 or  0.5))  -- Center horizontally
+    local text_x = center_x - (scaled_text_w *( label == 'Mid' and 0.57 or  0.5))  -- Center horizontally
     local text_y = btn_min_y + text_padding_top -- Position near the top edge
     
   
@@ -476,7 +494,7 @@ end
 
 
 -- Function to draw the signal buttons
-function DrawTransientSustainButtons(button_width, button_height, transient_guid, sustain_guid)
+function DrawTransientSustainButtons(button_width, button_height, mid_guid, side_guid)
     button_width = button_width or 120
     button_height = button_height or 80
     local spacing = 10  -- Space between buttons
@@ -489,8 +507,8 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
     
     -- First check/create containers to ensure we have GUIDs
 
-    local transient_idx = find_container_in_tree(TREE, transient_guid)
-    local sustain_idx = find_container_in_tree(TREE, sustain_guid)
+    local mid_idx = find_container_in_tree(TREE, mid_guid)
+    local side_idx = find_container_in_tree(TREE, side_guid)
     
     -- Update signal levels (throttled to reduce CPU usage)
     local current_time = r.time_precise()
@@ -509,17 +527,17 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
             new_sustain = math.max(0, math.min(1, new_sustain))
             
             -- Apply small amount of smoothing to avoid any potential jitter
-            FXD_transient_level = new_transient
-            FXD_sustain_level = new_sustain
+            FXD_mid_level = new_transient
+            FXD_side_level = new_sustain
         else
             -- If JSFX not active, gradually fade out
-            FXD_transient_level = FXD_transient_level * 0.95
-            FXD_sustain_level = FXD_sustain_level * 0.95
+            FXD_mid_level = FXD_mid_level * 0.95
+            FXD_side_level = FXD_side_level * 0.95
         end
         
         -- Apply minimal smoothing to color values to minimize any potential jitter
-        FXD_color_transient = FXD_color_transient * COLOR_SMOOTHING + FXD_transient_level * (1 - COLOR_SMOOTHING)
-        FXD_color_sustain = FXD_color_sustain * COLOR_SMOOTHING + FXD_sustain_level * (1 - COLOR_SMOOTHING)
+        FXD_color_mid = FXD_color_mid * COLOR_SMOOTHING + FXD_mid_level * (1 - COLOR_SMOOTHING)
+        FXD_color_side = FXD_color_side * COLOR_SMOOTHING + FXD_side_level * (1 - COLOR_SMOOTHING)
         
         FXD_last_update_time = current_time
     end
@@ -538,14 +556,14 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
     
     -- Transient Button
     -- Apply non-linear scaling for visual appeal using the smoothed color value
-    local color_level = apply_response_curve(FXD_color_transient) * 2.5
+    local color_level = apply_response_curve(FXD_color_mid) * 2.5
     
 
     local Trans_Btn_scrnPos = { im.GetCursorScreenPos(ctx)}
 
-    local transient_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Transient", single_button_width, button_height, TRANSIENT_BASE, TRANSIENT_GLOW, color_level, transient_guid, transient_idx )
+    local transient_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Mid", single_button_width, button_height, MID_BASE, MID_GLOW, color_level, mid_guid, mid_idx )
     -- Use ThemeClr for sustain if available
-    local sustain_glow = SUSTAIN_GLOW
+    local sustain_glow = SIDE_GLOW
     if ThemeClr then
         local accent = ThemeClr('Accent_Clr')
         -- Convert packed color to RGBA (0-1 range)
@@ -554,25 +572,25 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
     
     -- Add drag-drop handling for transient button
         
-    HandleContainerDragDrop("Transient", transient_guid, transient_idx, Transient_Color)
+    HandleContainerDragDrop("Mid", mid_guid, mid_idx, Transient_Color)
     local Sldr_posX , Sldr_posY = im.GetCursorPos(ctx)
-    AddContainerWetDrySlider(transient_guid, transient_idx, Sldr_posX, Sldr_posY-5, single_button_width, Wet_Dry_Drag_Height, true)
+    AddContainerWetDrySlider(mid_guid, mid_idx, Sldr_posX, Sldr_posY-5, single_button_width, Wet_Dry_Drag_Height, true)
     local R, B = im.GetItemRectMax(ctx)
-    HighlightSelectedItem( nil , fx.ChosenContainer == 'Transient' and  Transient_Color or  OutlineClr, 0, Trans_Btn_scrnPos[1], Trans_Btn_scrnPos[2], R-1, B, nil,nil, 1,1,nil,nil,nil, 1)
+    HighlightSelectedItem( nil , fx.ChosenContainer == 'Mid' and  Transient_Color or  OutlineClr, 0, Trans_Btn_scrnPos[1], Trans_Btn_scrnPos[2], R-1, B, nil,nil, 1,1,nil,nil,nil, 1)
 
     
     AddSpacing(25)
     local Sldr_scr_pos= {im.GetCursorScreenPos(ctx)}
     local Sldr_posX , Sldr_posY = im.GetCursorPos(ctx)
-    AddContainerWetDrySlider(sustain_guid, sustain_idx, Sldr_posX, Sldr_posY-10, single_button_width, Wet_Dry_Drag_Height, nil)
+    AddContainerWetDrySlider(side_guid, side_idx, Sldr_posX, Sldr_posY-10, single_button_width, Wet_Dry_Drag_Height, nil)
     -- Sustain button with radial effect
-    local sustain_color_level = apply_response_curve(FXD_color_sustain) * 2.0
-    local sustain_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Sustain", single_button_width, button_height, SUSTAIN_BASE, sustain_glow ,sustain_color_level, sustain_guid, sustain_idx )
+    local sustain_color_level = apply_response_curve(FXD_color_side) * 2.0
+    local sustain_clicked, is_hovered, is_active, draw_list, btn_min_x, btn_min_y, btn_max_x, btn_max_y = DrawRadialButton( "Side", single_button_width, button_height, SIDE_BASE, sustain_glow ,sustain_color_level, side_guid, side_idx )
     local R, B = im.GetItemRectMax(ctx)
-    HighlightSelectedItem(nil , fx.ChosenContainer == 'Sustain' and  Sustain_Color or  OutlineClr ,0 , Sldr_scr_pos[1], Sldr_scr_pos[2]-10, R-2, B, nil,nil, 1,1,nil,nil,nil, 1)
+    HighlightSelectedItem(nil , fx.ChosenContainer == 'Side' and  Sustain_Color or  OutlineClr ,0 , Sldr_scr_pos[1], Sldr_scr_pos[2]-10, R-2, B, nil,nil, 1,1,nil,nil,nil, 1)
     -- Add drag-drop handling for sustain button
  
-    HandleContainerDragDrop("Sustain", sustain_guid, sustain_idx, Sustain_Color)
+    HandleContainerDragDrop("Side", side_guid, side_idx, Sustain_Color)
  
     im.PopStyleVar(ctx)
 
@@ -670,9 +688,9 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
 
         -- Get the correct container GUID based on selection
         local container_guid = nil
-        if fx.ChosenContainer == "Transient" then
+        if fx.ChosenContainer == "Mid" then
             container_guid = FX[FxGUID].TransientContainer
-        elseif fx.ChosenContainer == "Sustain" then
+        elseif fx.ChosenContainer == "Side" then
             container_guid = FX[FxGUID].SustainContainer
         end
         
@@ -696,9 +714,9 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
         
         local enclosure_start_x, enclosure_start_y = nil, nil
         local tint_color = nil
-        if fx.ChosenContainer == "Transient" then
+        if fx.ChosenContainer == "Mid" then
             tint_color = Change_Clr_A(Transient_Color, -0.5)
-        elseif fx.ChosenContainer == "Sustain" then
+        elseif fx.ChosenContainer == "Side" then
             tint_color = Change_Clr_A(Sustain_Color,-0.5)
         end
         -- Iterate through the FX in the container
@@ -747,9 +765,9 @@ function DrawTransientSustainButtons(button_width, button_height, transient_guid
         if enclosure_start_x and enclosure_start_y and enclosure_end_x and enclosure_end_y then
             local _, container_name = r.TrackFX_GetFXName(track, container_idx)
             local enclosure_color = 0xFF66AAFF
-            if fx.ChosenContainer == "Transient" then
+            if fx.ChosenContainer == "Mid" then
                 enclosure_color = Transient_Color
-            elseif fx.ChosenContainer == "Sustain" then
+            elseif fx.ChosenContainer == "Side" then
                 enclosure_color = Sustain_Color
             end
             
@@ -788,7 +806,7 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx, glo
     if im.BeginDragDropTarget(ctx) then
 
 
-
+        
         -- Get the button's rectangle for visual highlighting
         local draw_list = im.GetWindowDrawList(ctx)
         local min_x, min_y = im.GetItemRectMin(ctx)
@@ -808,6 +826,7 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx, glo
             im.DrawList_AddLine(Glob.FDL, sX, sY - P, eX, sY - P, 0xFFFFFFFF, 2)
             local arrowCoords = {eX, sY-P, eX, eY - 2}
             DrawArrow(arrowCoords, 0xFFFFFFFF, 2, 8, nil, Glob.FDL)
+
         end
         -- Try both payload types - one at a time
         local dropped_add, payload_add = im.AcceptDragDropPayload(ctx, 'DND ADD FX')
@@ -817,6 +836,7 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx, glo
             if track and container_guid then
                 
                 if container_idx >= 0 then
+
                   
                     -- Calculate the FX_Id for insertion inside the container
                     -- This follows the pattern seen in Container.lua
@@ -841,7 +861,6 @@ function HandleContainerDragDrop(button_type, container_guid, container_idx, glo
                     end
                     BuildFXTree(track)
                     is_valid_target = true
-
                 end
             end
         end
@@ -866,7 +885,7 @@ function MoveFX_BetweenContainers_Away(container_idx)
     if next_idx1 then
         local _, fx_name = r.TrackFX_GetFXName(track, next_idx1)
         local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx1, "renamed_name")
-        if not (rv and renamed_name == "Transient") then
+        if not (rv and renamed_name == "Mid") then
             MovFX.FromPos[1] = next_idx1
             MovFX.Lbl[1] = fx_name
             MovFX.ToPos[1] = next_idx3
@@ -878,7 +897,7 @@ function MoveFX_BetweenContainers_Away(container_idx)
     if next_idx2 then
         local _, fx_name = r.TrackFX_GetFXName(track, next_idx2)
         local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx2, "renamed_name")
-        if not (rv and renamed_name == "Sustain") and not MovFX.FromPos[1] then
+        if not (rv and renamed_name == "Side") and not MovFX.FromPos[1] then
             table.insert(MovFX.FromPos, next_idx2)
             table.insert(MovFX.Lbl, fx_name)
             table.insert(MovFX.ToPos, FX_Idx)
@@ -891,29 +910,24 @@ end
 function DetectOrCreateSplitterContainers(fx_idx, fxguid)
 
     -- Try to load existing container GUIDs first
-    local transient_guid, sustain_guid = LoadContainerGUIDsFromTrack(track, fxguid)
+    local mid_guid, side_guid = LoadContainerGUIDsFromTrack(track, fxguid)
     
     -- If we have both GUIDs and they're valid, we can return early
-    if transient_guid and sustain_guid then
+    if mid_guid and side_guid then
         -- Verify the GUIDs still exist in the track
 
         local next_idx1= GetNextAndPreviousFXID_NEW(fx_idx)
         local guid1 = r.TrackFX_GetFXGUID(track, next_idx1)
     
-        local transient_exists = guid1 == transient_guid and true or nil
+        local transient_exists = guid1 == mid_guid and true or nil
 
         local next_idx2= GetNextAndPreviousFXID_NEW(next_idx1)
         local guid2 = r.TrackFX_GetFXGUID(track, next_idx2)
-        local sustain_exists = guid2 == sustain_guid and true or nil
+        local sustain_exists = guid2 == side_guid and true or nil
 
         
         if transient_exists and sustain_exists then
-            return true, transient_guid, sustain_guid
-        --[[ else 
-            local transient_guid = find_container_in_tree(TREE, guid1)
-            
-
-            local sustain_guid = find_container_in_tree(TREE, guid2) ]]
+            return true, mid_guid, side_guid
         end
         
     end
@@ -938,15 +952,15 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
     
     -- Check if the containers exist - look carefully for exact match
     if next_idx1  then
-        -- Check specifically for container named "Transient"
+        -- Check specifically for container named "Mid"
         local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx1, "renamed_name")
-        if rv and renamed_name == "Transient" then
+        if rv and renamed_name == "Mid" then
             local guid1 = r.TrackFX_GetFXGUID(track, next_idx1)
             if guid1 then
                
                 has_transient = true
                 transient_idx = next_idx1
-                transient_guid = guid1
+                mid_guid = guid1
                 FX[guid1] = FX[guid1] or {}
                 FX[guid1].IsContainer = true
                 FX[guid1].HideContainer = true
@@ -956,17 +970,17 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
             local container_idx = r.TrackFX_AddByName(track, "Container", false, -1)
             if container_idx >= 0 then
                 r.TrackFX_Show(track, container_idx, 2)  -- Hide the FX window (2 = hide)
-                r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Transient")
+                r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Mid")
                 transient_idx = container_idx
-                transient_guid = r.TrackFX_GetFXGUID(track, container_idx)
-                if transient_guid then
+                mid_guid = r.TrackFX_GetFXGUID(track, container_idx)
+                if mid_guid then
                     -- Set up container properties
-                    FX[transient_guid] = FX[transient_guid] or {}
-                    FX[transient_guid].IsContainer = true
-                    FX[transient_guid].HideContainer = true
-                    FX[transient_guid].Idx = container_idx
+                    FX[mid_guid] = FX[mid_guid] or {}
+                    FX[mid_guid].IsContainer = true
+                    FX[mid_guid].HideContainer = true
+                    FX[mid_guid].Idx = container_idx
                     
-                    -- Set input pins for transient (1,2)
+                    -- Set input pins for mid (1,2)
                     r.TrackFX_SetPinMappings(track, container_idx, 0, 0, 1, 0)  -- input L
                     r.TrackFX_SetPinMappings(track, container_idx, 0, 1, 2, 0)  -- input R
                     
@@ -974,7 +988,7 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
                     if container_idx ~= next_idx1 then
                         r.TrackFX_CopyToTrack(track, container_idx, track, next_idx1, true)
                         transient_idx = next_idx1
-                        transient_guid = r.TrackFX_GetFXGUID(track, next_idx1)
+                        mid_guid = r.TrackFX_GetFXGUID(track, next_idx1)
                         r.TrackFX_Show(track, next_idx1, 2)  -- Hide the FX window after moving
                     end ]]
                     
@@ -985,37 +999,37 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
 
             if next_idx2 then
             
-                -- Check specifically for container named "Sustain"
+                -- Check specifically for container named "Side"
                 local rv, renamed_name = r.TrackFX_GetNamedConfigParm(track, next_idx2, "renamed_name")
-                if rv and renamed_name == "Sustain" then
+                if rv and renamed_name == "Side" then
                     local guid2 = r.TrackFX_GetFXGUID(track, next_idx2)
                     if guid2 then
                         has_sustain = true
                         sustain_idx = next_idx2
-                        sustain_guid = guid2
+                        side_guid = guid2
                         FX[guid2] = FX[guid2] or {}
                         FX[guid2].IsContainer = true
                         FX[guid2].HideContainer = true
                     end
                 end
                 
-                -- Create Sustain container if needed
+                -- Create Side container if needed
                 if not has_sustain then
                     local container_idx = r.TrackFX_AddByName(track, "Container", false, -1)
                     if container_idx >= 0 then
                         r.TrackFX_Show(track, container_idx, 2)  -- Hide the FX window (2 = hide)
-                        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Sustain")
+                        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Side")
                         r.TrackFX_SetNamedConfigParm(track, container_idx, "parallel", "1")
                         sustain_idx = container_idx
-                        sustain_guid = r.TrackFX_GetFXGUID(track, container_idx)
-                        if sustain_guid then
+                        side_guid = r.TrackFX_GetFXGUID(track, container_idx)
+                        if side_guid then
                             -- Set up container properties
-                            FX[sustain_guid] = FX[sustain_guid] or {}
-                            FX[sustain_guid].IsContainer = true
-                            FX[sustain_guid].HideContainer = true
-                            FX[sustain_guid].Idx = container_idx
+                            FX[side_guid] = FX[side_guid] or {}
+                            FX[side_guid].IsContainer = true
+                            FX[side_guid].HideContainer = true
+                            FX[side_guid].Idx = container_idx
                             
-                            -- Set input pins for sustain (3,4)
+                            -- Set input pins for side (3,4)
                             r.TrackFX_SetPinMappings(track, container_idx, 0, 0, 4, 0)  -- input L
                             r.TrackFX_SetPinMappings(track, container_idx, 0, 1, 8, 0)  -- input R
                             
@@ -1036,8 +1050,8 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
             if has_transient and has_sustain then
                 FX[fxguid] = FX[fxguid] or {}
                 FX[fxguid].ContainersCreated = true
-                FX[fxguid].TransientContainer = transient_guid
-                FX[fxguid].SustainContainer = sustain_guid
+                FX[fxguid].TransientContainer = mid_guid
+                FX[fxguid].SustainContainer = side_guid
                 SaveContainerGUIDsToTrack(track, fxguid)
             end
         end
@@ -1054,16 +1068,17 @@ function DetectOrCreateSplitterContainers(fx_idx, fxguid)
     
     -- After checking for existing containers, create them if they don't exist
 
-    -- Create Transient container if needed
+    -- Create Mid container if needed
     
 
 
     
     
-    return has_transient and has_sustain, transient_guid, sustain_guid
+    return has_transient and has_sustain, mid_guid, side_guid
 end
 
-function Put_All_In_Container_AmpSplit(fx_idx)
+function Put_All_In_Container_MidSide(fx_idx)
+    if fx.DonePuttingInContainer then return end 
 
     -- Function to check if Amplitude Splitter is in a container and create one if needed
     local track = LT_Track
@@ -1074,23 +1089,23 @@ function Put_All_In_Container_AmpSplit(fx_idx)
     local parent_container = tonumber(  select(2, r.TrackFX_GetNamedConfigParm(track, fx_idx, "parent_container")))
     if parent_container then
         local rv, Name = r.TrackFX_GetNamedConfigParm(track, fx_idx, "renamed_name")
-        if Name == "Transient Split" then
+        if Name == "Mid Side Split" then
             return parent_container
         end
     end
     -- If not in a container, in one and move the Amplitude Splitter into it
     if not parent_container   then
         
-        msg('no parent container')
+
         -- Create a new container
         local container_idx = r.TrackFX_AddByName(track, "Container", false, -1000 -fx_idx)
         
-        -- Rename the container to "Transient Split"
-        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Transient Split")
+        -- Rename the container to "Mid/Side Split"
+        r.TrackFX_SetNamedConfigParm(track, container_idx, "renamed_name", "Mid Side Split")
         
         -- Get the GUIDs we need
-        local transient_guid = FX[FxGUID].TransientContainer
-        local sustain_guid = FX[FxGUID].SustainContainer
+        local mid_guid = FX[FxGUID].TransientContainer
+        local side_guid = FX[FxGUID].SustainContainer
         
         -- Move the Amplitude Splitter into the container at position 0
         local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
@@ -1107,20 +1122,20 @@ function Put_All_In_Container_AmpSplit(fx_idx)
         
         for i = 0, r.TrackFX_GetCount(track) - 1 do
             local guid = r.TrackFX_GetFXGUID(track, i)
-            if guid == transient_guid then
+            if guid == mid_guid then
                 transient_idx = i
-            elseif guid == sustain_guid then
+            elseif guid == side_guid then
                 sustain_idx = i
             end
         end
         
-        -- Move the Transient container into the new container at position 1
+        -- Move the Mid container into the new container at position 1
         if transient_idx >= 0 then
             local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 2)
             r.TrackFX_CopyToTrack(track, transient_idx, track, insert_pos, true)
         end
         
-        -- Move the Sustain container into the new container at position 2
+        -- Move the Side container into the new container at position 2
 
         local insert_pos = TrackFX_GetInsertPositionInContainer(container_idx, 3)
         r.TrackFX_CopyToTrack(track, sustain_idx-1, track, insert_pos, true)
@@ -1141,12 +1156,12 @@ function SaveContainerGUIDsToTrack(track, fxguid)
     local fx_data = FX[fxguid]
     if not fx_data then return end
     
-    -- Save Transient container GUID
+    -- Save Mid container GUID
     if fx_data.TransientContainer then
         r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_TransientContainer', fx_data.TransientContainer, true)
     end
     
-    -- Save Sustain container GUID
+    -- Save Side container GUID
     if fx_data.SustainContainer then
         r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_SustainContainer', fx_data.SustainContainer, true)
     end
@@ -1158,33 +1173,34 @@ function LoadContainerGUIDsFromTrack(track, fxguid)
     
     FX[fxguid] = FX[fxguid] or {}
     
-    -- Load Transient container GUID
-    local rv, transient_guid = r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_TransientContainer', '', false)
-    if rv and transient_guid ~= '' then
-        FX[fxguid].TransientContainer = transient_guid
+    -- Load Mid container GUID
+    local rv, mid_guid = r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_TransientContainer', '', false)
+    if rv and mid_guid ~= '' then
+        FX[fxguid].TransientContainer = mid_guid
     end
     
-    -- Load Sustain container GUID
-    local rv, sustain_guid = r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_SustainContainer', '', false)
-    if rv and sustain_guid ~= '' then
-        FX[fxguid].SustainContainer = sustain_guid
+    -- Load Side container GUID
+    local rv, side_guid = r.GetSetMediaTrackInfo_String(track, 'P_EXT: AmplitudeSplitter_' .. fxguid .. '_SustainContainer', '', false)
+    if rv and side_guid ~= '' then
+        FX[fxguid].SustainContainer = side_guid
     end
     
     return FX[fxguid].TransientContainer, FX[fxguid].SustainContainer
 end
 
-local _, transient_guid, sustain_guid = DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
+local _, mid_guid, side_guid = DetectOrCreateSplitterContainers(FX_Idx, FxGUID)
 im.PushFont(ctx, Font_Andale_Mono_11)
-DrawTransientSustainButtons(Button_Width, Button_Height,  transient_guid, sustain_guid)
+DrawTransientSustainButtons(Button_Width, Button_Height,  mid_guid, side_guid)
 im.PopFont(ctx)
 
 if FX_Adder_Idx then 
     if fx.MenuPosition then
         im.SetNextWindowPos(ctx, fx.MenuPosition.x, fx.MenuPosition.y)
     end
-AddFX_Menu(FX_Adder_Idx)  end
+    AddFX_Menu(FX_Adder_Idx)
+end
 --MoveFX_BetweenContainers_Away(FX_Idx)
-Put_All_In_Container_AmpSplit(FX_Idx)
+Put_All_In_Container_MidSide(FX_Idx)
 
 -- Add this in your container plugin script or where you display containers:
 function ShouldShowContainer(fxguid)
