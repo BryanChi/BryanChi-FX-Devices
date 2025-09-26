@@ -1081,7 +1081,6 @@ function Put_All_In_Container_AmpSplit(fx_idx)
     -- If not in a container, in one and move the Amplitude Splitter into it
     if not parent_container   then
         
-        msg('no parent container')
         -- Create a new container
         local container_idx = r.TrackFX_AddByName(track, "Container", false, -1000 -fx_idx)
         

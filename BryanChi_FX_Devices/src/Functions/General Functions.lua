@@ -2479,12 +2479,7 @@ function AddFX_Menu(FX_Idx , SpcType, FxGUID_Container, ParallelFX)
         end
         TRACK = r.GetSelectedTrack(0, 0)
 
-        if im.Selectable(ctx, "VIDEO PROCESSOR") then
-            r.TrackFX_AddByName(TRACK, "Video processor", false, -1000 - FX_Idx)
-            AddedFX = true
-            LAST_USED_FX = "Video processor"
-        end
-        DndAddFX_SRC("Video processor")
+
         if LAST_USED_FX then
            
             if im.Selectable(ctx, "RECENT: " .. LAST_USED_FX) then
@@ -2764,6 +2759,7 @@ function At_Begining_of_Loop()
 
     local function If_Need_Add_FX ()
         for i, v in ipairs(AddFX.Name) do
+            if not v or v == '' then return end 
             if v:find('FXD Gain Reduction Scope') then
                 local FxGUID = ProC.GainSc_FXGUID
     

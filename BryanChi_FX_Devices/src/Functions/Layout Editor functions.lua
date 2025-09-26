@@ -5108,6 +5108,17 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
             if focused_window == "FX Devices" then
                 r.JS_Window_SetFocus(hwnd)
                 AdjustParamWheel(LT_Track, FX_Idx, P_Num)
+                -- Wheel adjustment helper (hover-only)
+                if im.IsItemHovered(ctx) and HelperMsg and HelperMsg.Others and not HelperMsg._wheel_added then
+                    if Ctrl_Scroll then
+                        table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Value')
+                        table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Fine Adjust')
+                    else
+                        table.insert(HelperMsg.Others, 'Ctrl + Mouse Wheel: Adjust Value')
+                        table.insert(HelperMsg.Others, 'Ctrl+Shift + Mouse Wheel: Fine Adjust')
+                    end
+                    HelperMsg._wheel_added = true
+                end
             end
         end 
 
@@ -5756,6 +5767,21 @@ function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
     end
 
     Create_Button()
+    -- XY Pad hover help and double-click reset
+    local PosL, PosT = im.GetItemRectMin(ctx)
+    local PosR, PosB = im.GetItemRectMax(ctx)
+    if im.IsItemHovered(ctx) then
+        HelperMsg.Need_Add_Mouse_Icon = 'L'
+        HelperMsg.L = 'Drag to set X/Y'
+        if HelperMsg.Others then
+            table.insert(HelperMsg.Others, 'Double-click: Reset X and Y to default')
+        end
+    end
+    -- Double-click to reset both X (FP.Num) and Y (P_Num_Y) to their defaults
+    if im.IsMouseHoveringRect(ctx, PosL, PosT, PosR, PosB) and im.IsMouseDoubleClicked(ctx, 0) then
+        Set_Prm_To_Default(FX_Idx, FP)
+        Set_Prm_To_Default(FX_Idx, { Num = P_Num_Y })
+    end
     Draw_Value_Circle()
     Drag_to_Set_value()
     MakeItemEditable(FxGUID, Fx_P, Width, 'XY_Pad', CurX, CurY)
@@ -5976,6 +6002,25 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
     im.BeginGroup(ctx)
     MakeSlider()
+
+    -- Helper hints while hovering the slider control (no behavior changes)
+    if im.IsItemHovered(ctx) then
+        if HelperMsg.Others then
+            if Vertical ~= 'Vert' then
+                table.insert(HelperMsg.Others, 'Double-click: Reset to default')
+            end
+            if not HelperMsg._wheel_added then
+                if Ctrl_Scroll then
+                    table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Value')
+                    table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Fine Adjust')
+                else
+                    table.insert(HelperMsg.Others, 'Ctrl + Mouse Wheel: Adjust Value')
+                    table.insert(HelperMsg.Others, 'Ctrl+Shift + Mouse Wheel: Fine Adjust')
+                end
+                HelperMsg._wheel_added = true
+            end
+        end
+    end
 
     
 
@@ -6532,8 +6577,22 @@ function AddCombo(ctx, FxGUID, Fx_P, FX_Idx, USED_IN_Layout_Editor)
                 r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, WhichPrm, FP.Options[op].V_Norm or OptionValues[op])
                 FP.V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, WhichPrm)
             end
+            -- Hover help for selection shown as buttons
+            if HelperMsg and im.IsItemHovered(ctx) and not HelperMsg._selection_added then
+                HelperMsg.Need_Add_Mouse_Icon = 'L'
+                HelperMsg.L = 'Click: Choose Option'
+                HelperMsg.Need_separator = true
+                HelperMsg._selection_added = true
+            end
         else
             rv = im.BeginCombo(ctx, '## ' .. tostring(Label), LabelOveride or FP.Current_V_Form, im.ComboFlags_NoArrowButton)
+            -- Hover help for selection combo preview
+            if HelperMsg and im.IsItemHovered(ctx) and not HelperMsg._selection_added then
+                HelperMsg.Need_Add_Mouse_Icon = 'L'
+                HelperMsg.L = 'Click: Open Choices'
+                HelperMsg.Need_separator = true
+                HelperMsg._selection_added = true
+            end
         end
         
         if not FP.DONT_MAKE_EDITABLE and not USED_IN_Layout_Editor then
@@ -6828,6 +6887,18 @@ function AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
 
 
 
+    -- Hover help for switch controls
+    if im.IsItemHovered(ctx) and HelperMsg and not HelperMsg._switch_added then
+        HelperMsg.Need_Add_Mouse_Icon = 'L'
+        if FP.SwitchType == 'Momentary' then
+            HelperMsg.L = 'Hold: Momentary On'
+        else
+            HelperMsg.L = 'Click: Toggle On/Off'
+        end
+        HelperMsg.Need_separator = true
+        HelperMsg._switch_added = true
+    end
+
     if im.IsItemClicked(ctx, 0) then
         if FP.SwitchType == 'Momentary' then
             FP.V = FP.SwitchTargV
@@ -7035,6 +7106,44 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local is_active = im.IsItemActive(ctx)
     local is_hovered = im.IsItemHovered(ctx)
     If_V_Pos_Is_Only_When_Active(FP, is_active, Format_P_V)
+    -- Hover help on Drag controls
+    if is_hovered then
+        if FX[FxGUID].Morph_Value_Edit or Mods == Alt + Ctrl then
+            -- Morph A/B quick edit hover help on Drag controls
+            HelperMsg.Need_Add_Mouse_Icon = 'L'
+            HelperMsg.L = 'Set Morph A'
+            HelperMsg.R = 'Set Morph B'
+            HelperMsg.Need_separator = true
+            if HelperMsg.Others then
+                table.insert(HelperMsg.Others, 'Ctrl+Alt: Morph A/B Quick Edit')
+            end
+        else
+            -- Standard drag interaction help
+            if HelperMsg then
+                HelperMsg.Need_Add_Mouse_Icon = 'L'
+                HelperMsg.L = 'Drag: Adjust Value'
+                HelperMsg.Need_separator = true
+                if HelperMsg.Others then
+                    table.insert(HelperMsg.Others, 'Shift: Fine Adjust')
+                end
+            end
+            -- Also show wheel adjustment hints (behavior handled elsewhere)
+            if HelperMsg and HelperMsg.Others and not HelperMsg._wheel_added then
+                if Ctrl_Scroll then
+                    table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Value')
+                    table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Fine Adjust')
+                else
+                    table.insert(HelperMsg.Others, 'Ctrl + Mouse Wheel: Adjust Value')
+                    table.insert(HelperMsg.Others, 'Ctrl+Shift + Mouse Wheel: Fine Adjust')
+                end
+                HelperMsg._wheel_added = true
+            end
+            -- General tip for Morph A/B quick edit
+            if HelperMsg and HelperMsg.Others then
+                table.insert(HelperMsg.Others, 'Ctrl+Alt: Quick Edit Morph A/B')
+            end
+        end
+    end
 
     --[[ if is_active == true then Knob_Active = true end
     if Knob_Active == true then

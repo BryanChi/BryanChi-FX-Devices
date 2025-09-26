@@ -783,6 +783,7 @@ local function  macroPage(TB)
             if Set_Modulator_Type(mc, I, 'LFO' , fx.DIY_FxGUID, FxGUID) =='LFO' then 
                 Mc.NeedSendAllCoord = true 
             end
+            Set_Modulator_Type(mc, I, 'Envelope' , fx.DIY_FxGUID, FxGUID)
             Set_Modulator_Type(mc, I, 'Step' , fx.DIY_FxGUID, FxGUID)
             Set_Modulator_Type(mc, I, 'Follower' , fx.DIY_FxGUID, FxGUID)
             Set_Modulator_Type(mc, I, 'XY' , fx.DIY_FxGUID, FxGUID)
@@ -1107,7 +1108,7 @@ local function Main(TB, X, Y)
                                 im.SetCursorPosY(ctx, Top_Spacing)
                             
                                 if If_FX_Is_In_Blacklist(FX_Name) then  return  end
-                                if FX_Name:find('Amplitude Splitter') or FX_Name:find('Mid Side Splitterter') then  return  end
+                                if FX_Name:find('Amplitude Splitter') or FX_Name:find('Mid Side Split') then  return  end
                                 local Wid = AddSpaceBtwnFXs(FX_Id, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, SpcIDinPost, FxGUID_Container, AdditionalWidth,nil,nil, SpaceClr)
                                 SL(nil,0)
                             
@@ -1251,8 +1252,11 @@ local function Main(TB, X, Y)
            im.DrawList_AddRect(WDL, l, Y, l+ (fx.Width_Collapse or 27), Y + 220, bracketColor)
         end 
     end
-    Enclose_With_Brackets()
-
+    
+    -- Skip drawing enclosure brackets for split types
+    if not (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split')) then
+        Enclose_With_Brackets()
+    end
 
     --im.DrawList_AddRectFilled(WDL, 0, 0 , 0 + 15 , 165, 0xfffffff)
 

@@ -389,7 +389,7 @@ function Colors()
 
     Array = {}
 
-    for a = 1, 8, 1 do
+    for a = 1, 24, 1 do
         table.insert(EightColors.LowSat, HSV(0.08 * (a - 1), 0.25, 0.33, 0.25))
         table.insert(EightColors.LowMidSat, HSV(0.08 * (a - 1), 0.25, 0.33, 0.5))
         table.insert(EightColors.MidSat, HSV(0.08 * (a - 1), 0.5, 0.5, 0.5))
@@ -499,6 +499,8 @@ function Retrieve_All_Saved_Data_Of_Project()
             for i = 1, (AutoPrmCount or 0) + 1, 1 do
                 TRK.AutoPrms[i] = RC('Auto Mod' .. i, 'str')
             end
+            -- Load whether velocity modulation should affect note velocity for this track
+            TRK.Velo_Mod_Affect_Velocity = RC('Velo_Mod_Affect_Velocity', 'bool')
         end
         
         local function RET_ModulatorSettings()

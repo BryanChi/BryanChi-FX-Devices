@@ -65,6 +65,50 @@ function Get_XY_PAD_SLIDERS_FOR_X(M)(
   M == 8 ? ( Slider40; )
   );
 
+// Map a normalized control to common musical periods in beats
+// Periods in beats: 1/16, 1/8, 1/4, 1/2, 1 bar, 2 bars, 4 bars (assuming 4/4 => 4 beats per bar)
+function LFO_Select_PeriodBeats(norm)(
+  idx = floor(norm * 6 + 0.5);
+  idx < 0 ? (idx = 0);
+  idx > 6 ? (idx = 6);
+  idx == 0 ? (0.25)
+  : idx == 1 ? (0.5)
+  : idx == 2 ? (1)
+  : idx == 3 ? (2)
+  : idx == 4 ? (4)
+  : idx == 5 ? (8)
+  : (16);
+);
+
+// Snap an arbitrary period (in beats) to nearest musical division from the list above
+function LFO_Snap_PeriodBeats(p)(
+  p <= 0 ? (p = 1;);
+  best = 0.25; bestDiff = abs(p - 0.25);
+  cand = 0.5;  diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  cand = 1;    diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  cand = 2;    diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  cand = 4;    diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  cand = 8;    diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  cand = 16;   diff = abs(p - cand); diff < bestDiff ? (best = cand; bestDiff = diff;);
+  best;
+);
+
+// Map normalized [0..1] to discrete musical periods from 2 bars down to 1/128 note (4/4 assumed)
+function LFO_PeriodBeats_From_Norm(norm)(
+  norm < 0 ? (norm = 0;);
+  norm > 1 ? (norm = 1;);
+  idx = floor(norm * 8 + 0.5); // 9 steps (0..8)
+  idx == 0 ? (8)        // 2 bars
+  : idx == 1 ? (4)      // 1 bar
+  : idx == 2 ? (2)      // 1/2
+  : idx == 3 ? (1)      // 1/4
+  : idx == 4 ? (0.5)    // 1/8
+  : idx == 5 ? (0.25)   // 1/16
+  : idx == 6 ? (0.125)  // 1/32
+  : idx == 7 ? (0.0625) // 1/64
+  : (0.03125);          // 1/128
+);
+
 
 
 
@@ -75,13 +119,22 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
     ofs = TB_ofs +  LFO_Max_Num_Of_Pts * 3 * (LFO_Num-1);  // 70000 + 50 * 3 * (LFO_Num-1)
     XYC_ofs = LFO_Max_Num_Of_Pts; // = 50
   ):( 
-    ofs = TB_ofs + Midi_Mod_Curve_Ofs 
-  );  // =  1000 for velocity,  11000  for random
+    ofs = TB_ofs + Midi_Mod_Curve_Ofs;  // =  1000 for velocity,  11000  for random
+    XYC_ofs = Curve_Prop_Ofs; // = 10 for MIDI mods (X/Y/Curve separation)
+  );
   out = -999;
   rpt = Velo_ModAmt[ofs]; // this is how many points there are in the curve 
 
 
   rpt> 1 ? (  //for every point 
+    // Boundary handling: exact node values at ends
+    v <= Velo_ModAmt[ofs+1] ? (
+      out = Velo_ModAmt[ofs + 1 + XYC_ofs];
+      out;
+    ) : v >= Velo_ModAmt[ofs + rpt] ? (
+      out = Velo_ModAmt[ofs + rpt + XYC_ofs];
+      out;
+    ) : (
     i = 1;
     while( out==-999 && i <= rpt)(  
 
@@ -97,7 +150,7 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
       nY = Velo_ModAmt[ofs + i + 1 + XYC_ofs ];
       C = Velo_ModAmt[ofs + i + (XYC_ofs*2) ];
 
-      v > X && v <= nX? ( // if v is between two points on x axis
+      v >= X && v < nX? ( // inclusive left boundary; exclusive right boundary
         // out  =  Y + (nY-Y) * (v-Y);
         out =  Y + (nY-Y) * ( (v-X) * (1/(nX-X)));
         C!= 0 ? (
@@ -117,6 +170,7 @@ function Calculate_Midi_Mod(v , TB_ofs, LFO_Num) local (rpt, out, X, nX, Y, nY ,
 
     );
     out!= -999 ? (  out;);
+    );
 
   ):(v;); // if theres no curve 
 );
@@ -245,7 +299,7 @@ function SaveAllModulatorInfo()(
 
     file_var(0,this.type);
     file_var(0, this.LFO_Spd);
-    file_var(0, this.LFO_Len);
+    //file_var(0, this.LFO_Len);
     file_var(0, this.LFO_Gain);
 
     file_var(0, this.Legato);
@@ -394,12 +448,12 @@ function CalculateLFO() local (rpt, out, X, nX, Y, nY , ofs, C) (
     y2 = LFO[Y_idx+1];
   
 
-    p=this.CurrentPos/4;
+    p=this.CurrentPos/this.LFO_Len;
     s = (x2 - x1)  ; // s for segment
     x1_howMuch  =  (x2-p) / s ;
     x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
 
-    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+    x1*this.LFO_Len < this.CurrentPos && x2*this.LFO_Len > this.CurrentPos ? (
       this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
 
     ):x1< p && x2==0?(    // if playhead is beyond last node
@@ -413,7 +467,7 @@ function CalculateLFO() local (rpt, out, X, nX, Y, nY , ofs, C) (
 function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
 
   this.bp += beat_per_block * this.LFO_Spd;
-  this.CurrentPos =  min( this.bp ,this.Lfo_Len );
+  this.CurrentPos =  min( this.bp ,this.LFO_Len );
 
 
   
@@ -435,14 +489,14 @@ function CalculateLFO_Rel() local(S, Rpt, PlayPos,  )(
     );
   
 
-    p=this.CurrentPos/4;
+    p=this.CurrentPos/this.LFO_Len;
     s = (x2 - x1)  ; // s for segment
     x1_howMuch  =  (x2-p) / s ;
     x2_HowMuch =   (s - (x2-p)) / s ; // (x1-(x1-p))/s;
 
  
 
-    x1*4 < this.CurrentPos && x2*4 > this.CurrentPos ? (
+    x1*this.LFO_Len < this.CurrentPos && x2*this.LFO_Len > this.CurrentPos ? (
       this.out =  ((y1*x1_howMuch) +(y2*x2_HowMuch) )  *this.LFO_Gain;
 
     ):x1< p && x2==0?(    // if playhead is beyond last node
@@ -468,26 +522,6 @@ function SAVE_XY_PAD_INFO() local (i)(
   );
 );
 
-function DoMidiTriggeredActions()(
-  this.EnvOrLoop == 1 ? (
-      this.bp += beat_per_block * this.LFO_Spd;
-      this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
-      //this.CalculateLFO();
-      this.Rel_Type==3 ? ( this.Rel_V = -999;);
-      this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
-
-  );
-);
-function DoMidi_Release()(
-  this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
-    //this.CalculateLFO_Rel();
-    this.bp += beat_per_block * this.LFO_Spd;
-    this.CurrentPos =  min( this.bp ,this.Lfo_Len )  ;
-
-    this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
-
-  );
-);
 
 
 function SetBpTo0 (midinote) local (highestNote )(
@@ -523,8 +557,8 @@ function SetBPToRel_Node()local (Rel_pos, Rel_V, idx) (
   
 
     idx = Gap*7 + LFO_Max_Num_Of_Pts * 3 * (this.Macro-1);
-    //Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * 4;
-    Rel_pos = 4 * Velo_ModAmt[idx + this.Rel_Node] ; 
+    //Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * this.LFO_Len;
+    Rel_pos = this.LFO_Len * Velo_ModAmt[idx + this.Rel_Node] ; 
 
     this.CurrentPos< Rel_pos? ( // if 'playhead' hasn't reached the release node 
       this.Rel_Type==3 ? (    // if it's no jump 
@@ -552,18 +586,43 @@ function SetBPToRel_Node_All()(
 );
 
 function LFO_Calc_Play_Pos ()(
-  play_state == 1 ? ( // if playing
+  // Ensure sane values
+  this.LFO_Len <= 0 ? (this.LFO_Len = 4;);
+  // Scale musical period by length (4=1 bar baseline)
+  per = this.LFO_PeriodBeats * (this.LFO_Len / 4);
+  per <= 0 ? (per = 1;);
 
-    this.bp += beat_per_block * this.LFO_Spd;
-    this.CurrentPos =  fmod(this.bp + beat_per_block * this.LFO_Spd , this.Lfo_Len);
-
-  ): play_state != 1  ? (   // if not playing
-    this.bp =  beat_position * this.LFO_Spd ;
-    this.CurrentPos = fmod(this.bp + beat_per_block * this.LFO_Spd, this.Lfo_Len);
+  play_state == 1 || play_state == 5 ? (
+    // advance by transport beats, convert to phase by period, then to beats within length
+    this.bp += beat_per_block; // bp in beats
+    phase = fmod(this.bp, per) / per; // 0..1
+    this.CurrentPos = phase * this.LFO_Len;
+  ) : (
+    // stopped/paused: derive from current transport beat position
+    this.bp = beat_position; // beats
+    phase = fmod(this.bp, per) / per; // 0..1
+    this.CurrentPos = phase * this.LFO_Len;
   );
-  
+
   this.CurrentPos;
 
+);
+function DoMidiTriggeredActions()(
+  this.EnvOrLoop == 1 ? (
+      this.CurrentPos = this.LFO_Calc_Play_Pos();
+      this.Rel_Type==3 ? ( this.Rel_V = -999;);
+      this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
+      this.Out *= this.LFO_Gain;
+
+  );
+);
+function DoMidi_Release()(
+  this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
+    this.CurrentPos = this.LFO_Calc_Play_Pos();
+    this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
+    this.Out *= this.LFO_Gain;
+
+  );
 );
 
 
@@ -579,78 +638,6 @@ function SetMacroAttribute( x , y )
     Macro==8?(Mc8.FOL_Gain = y);
 );
 
-function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
-(
-  BipolarRange = 0;
-  MR = ModRange;
-  
-  ModRange> 100 ? (     // if it's bipolar 
-    BipolarRange = (ModRange- 100) ; 
-    MR = (ModRange- 100) * 2;
-  );
-  
-
-
-  this.type =='step'?(
-    this.CurrentPos = (beat_position * this.SEQ_DNom) % this.SEQ_Leng ;
-    this.out = SEQ[this.CurrentPos+1+64*(this.Macro-1)]  ;
-    
-
-
-  ):this.type =='env'?(
-
-    this.masr_set_risetime(this.atk);
-    this.masr_set_falltime(this.rel);
-    this.out =  this.masr_do(midiamp);
-    //trkGUID_Num === gmem[2]? (gmem[this.EnvToImGui] = this.masr_do(midiamp));
-
-
-
-  ):this.type =='Fol' ? ( // if macro  is Follower 
-  
-    this.out = this.FOL_out*this.FOL_Gain  ;
-
-  ):this.type=='LFO'    ?( // if type is LFO
-    this.LFO_Gain_Auto != 0 ? ( 
-      this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
-    );
-    this.LFO_Spd_Auto!= 0 ? (
-      this.LFO_Spd = max(pow( slider(Automate+this.LFO_Spd_Auto)*128 , 0.5), 0.125) ; // 0.5 is how exponential it is
-    );
-    this.EnvOrLoop == 0 ? (
-      
-      this.CurrentPos = this.LFO_Calc_Play_Pos ();
-      this.Out = Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
-      //this.CalculateLFO( );
-    
-    );
-  ):this.type =='Rdm' ? ( // if type is random
-    this.Rdm_time = this.Rdm_time + 1 * (samplesblock/64) ; 
-    this.Rdm_time > this.RDM_Interval  ? (
-
-      rand(100) < this.RDM_Chance ? (
-      this.Rdm_Next_Out = rand(1); //create next point 
-      );
-
-
-      this.Rdm_Smooth == 0 ?(
-        this.Rdm_Next_Out!= 0 ? ( this.Out = this.Rdm_Next_Out); //set current output to next point
-      );
-      this.Rdm_time = 0;
-    );
-    this.Rdm_Smooth != 0   ? (// if there's smooth, and next point is created
-      Rdm_Smooth =  10 - this.Rdm_Smooth*0.99 /10;
-      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) *  min ((this.Rdm_time/this.RDM_Interval) * Rdm_Smooth, 1  );
-
-    );
-  ):(   //if type is macro
-    this.Out = (this.Slider )   
-  );
-    
-
-
-
-);
 
 
 function SetTypeTo (T)
@@ -658,24 +645,56 @@ function SetTypeTo (T)
   Macro = gmem[5];
   Macro==1?(Mc1.type=T); 
   Macro==2?(Mc2.type=T);
-  Macro==3?(Mc3.Type=T);
-  Macro==4?(Mc4.Type=T);
-  Macro==5?(Mc5.Type=T);
-  Macro==6?(Mc6.Type=T);
-  Macro==7?(Mc7.Type=T);
-  Macro==8?(Mc8.Type=T);
+  Macro==3?(Mc3.type=T);
+  Macro==4?(Mc4.type=T);
+  Macro==5?(Mc5.type=T);
+  Macro==6?(Mc6.type=T);
+  Macro==7?(Mc7.type=T);
+  Macro==8?(Mc8.type=T);
+  Macro==9?(Mc9.type=T);
+  Macro==10?(Mc10.type=T);
+  Macro==11?(Mc11.type=T);
+  Macro==12?(Mc12.type=T);
+  Macro==13?(Mc13.type=T);
+  Macro==14?(Mc14.type=T);
+  Macro==15?(Mc15.type=T);
+  Macro==16?(Mc16.type=T);
+  Macro==17?(Mc17.type=T);
+  Macro==18?(Mc18.type=T);
+  Macro==19?(Mc19.type=T);
+  Macro==20?(Mc20.type=T);
+  Macro==21?(Mc21.type=T);
+  Macro==22?(Mc22.type=T);
+  Macro==23?(Mc23.type=T);
+  Macro==24?(Mc24.type=T);
 );
 
 function Check_Macro_Type (Macro)
 (
   Macro==1?(Mc1.type;):(
   Macro==2)?(Mc2.type;):(
-  Macro==3)?(Mc3.Type;):(
-  Macro==4)?(Mc4.Type;):(
-  Macro==5)?(Mc5.Type;):(
-  Macro==6)?(Mc6.Type;):(
-  Macro==7)?(Mc7.Type;):(
-  Macro==8)?(Mc8.Type;);
+  Macro==3)?(Mc3.type;):(
+  Macro==4)?(Mc4.type;):(
+  Macro==5)?(Mc5.type;):(
+  Macro==6)?(Mc6.type;):(
+  Macro==7)?(Mc7.type;):(
+  Macro==8)?(Mc8.type;):(
+  Macro==9)?(Mc9.type;):(
+  Macro==10)?(Mc10.type;):(
+  Macro==11)?(Mc11.type;):(
+  Macro==12)?(Mc12.type;):(
+  Macro==13)?(Mc13.type;):(
+  Macro==14)?(Mc14.type;):(
+  Macro==15)?(Mc15.type;):(
+  Macro==16)?(Mc16.type;):(
+  Macro==17)?(Mc17.type;):(
+  Macro==18)?(Mc18.type;):(
+  Macro==19)?(Mc19.type;):(
+  Macro==20)?(Mc20.type;):(
+  Macro==21)?(Mc21.type;):(
+  Macro==22)?(Mc22.type;):(
+  Macro==23)?(Mc23.type;):(
+  Macro==24)?(Mc24.type;);
 );
 
 function Check_If_Bipolar(ModAmt)
@@ -707,7 +726,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   total = 0 ;
   Bi_ofs= 0;
 
-  loop ( 8, 
+  loop ( 24, 
     ID = 1000 * (M-1) + i ;
     ModAmt[ID] != 0 ? (
       ModAMT[ID]> 99 ? (     // if it's bipolar 
@@ -745,7 +764,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
 
   KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
   KeyTrk2_ModAmt[i] != 0 ? (total+= KeyTrk2_ModAmt[i]* (KTrk2) );
-  KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk2) );
+  KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk3) );
 
 
 
@@ -753,6 +772,110 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   total *127 ; 
 );
 
+function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
+(
+  BipolarRange = 0;
+  MR = ModRange;
+  
+  ModRange> 100 ? (     // if it's bipolar 
+    BipolarRange = (ModRange- 100) ; 
+    MR = (ModRange- 100) * 2;
+  );
+  
+
+
+  this.type =='step'?(
+    // Unified params: Param1=Length, Param2=Denominator
+    this.Param1 = slider(59 + (this.Macro-1)*4 + 0);
+    this.Param2 = slider(59 + (this.Macro-1)*4 + 1);
+    this.SEQ_Leng = max(2, floor(2 + this.Param1 * 62));
+    _idx = floor(this.Param2 * 6 + 0.5);
+    _idx < 0 ? (_idx = 0); _idx > 6 ? (_idx = 6);
+    _dn = _idx == 0 ? 0.125 : _idx == 1 ? 0.25 : _idx == 2 ? 0.5 : _idx == 3 ? 1 : _idx == 4 ? 2 : _idx == 5 ? 4 : 8;
+    this.SEQ_DNom = _dn;
+    this.CurrentPos = (beat_position * this.SEQ_DNom) % this.SEQ_Leng ;
+    this.out = SEQ[this.CurrentPos+1+64*(this.Macro-1)]  ;
+    
+
+
+  ):this.type =='env'?(
+
+    // meta-mod removed: envelope attack/release follow direct parameters only
+    this.masr_set_risetime(this.atk);
+    this.masr_set_falltime(this.rel);
+    this.out =  this.masr_do(midiamp);
+    //trkGUID_Num === gmem[2]? (gmem[this.EnvToImGui] = this.masr_do(midiamp));
+
+
+
+  ):this.type =='Fol' ? ( // if macro  is Follower 
+  
+    // meta-mod removed: follower gain follows direct parameter only
+    this.out = this.FOL_out*this.FOL_Gain  ;
+
+  ):this.type=='LFO'    ?( // if type is LFO
+    // New unified mapping: Param2=Length, Param3=Gain, Param4=Speed (normalized)
+    // Mod N Param M index = 3 + (N-1)*4 + (M-1)
+    this.Param2 = slider(3 + (this.Macro-1)*4 + 1); // length
+    this.Param3 = slider(3 + (this.Macro-1)*4 + 2); // gain
+    this.Param4 = slider(3 + (this.Macro-1)*4 + 3); // speed (normalized)
+    this.LFO_Len_Sldr   = this.Param2;
+    this.LFO_Gain_Sldr  = this.Param3;
+    this.LFO_Spd_Norm   = this.Param4;
+    // Period uses Param4 only; no triplet/dotted/free/continuous modes
+    this.LFO_PeriodBeats = LFO_PeriodBeats_From_Norm(this.LFO_Spd_Norm);
+    this.LFO_Spd = 1 / max(this.LFO_PeriodBeats, 0.000001);
+    // Map length slider [0..1] -> discrete [1..8]
+    _len = floor(1 + (this.LFO_Len_Sldr * 7) + 0.5);
+    _len < 1 ? (_len = 1);
+    _len > 8 ? (_len = 8);
+    this.LFO_Len = _len;
+    this.LFO_Gain = this.LFO_Gain_Sldr; // 0% should mute output; default handled elsewhere
+    this.LFO_Gain_Auto != 0 ? ( 
+      this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
+    );
+    // meta-mod removed: LFO gain follows direct parameter/automation only
+    this.EnvOrLoop == 0 ? (
+      // ensure LFO_Len sane and tick playhead via helper
+      this.LFO_Len <= 0 ? (this.LFO_Len = 4;);
+      this.CurrentPos = this.LFO_Calc_Play_Pos ();
+      this.Out = Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
+      this.Out *= this.LFO_Gain;
+    );
+  ):this.type =='Rdm' ? ( // if type is random
+    this.Rdm_time = this.Rdm_time + 1 * (samplesblock/64) ; 
+    // Unified params: Param1=Interval, Param2=Smooth, Param3=Chance
+    this.Param1 = slider(59 + (this.Macro-1)*4 + 0);
+    this.Param2 = slider(59 + (this.Macro-1)*4 + 1);
+    this.Param3 = slider(59 + (this.Macro-1)*4 + 2);
+    this.RDM_Interval = max(1, floor(1 + this.Param1 * 499));
+    this.Rdm_Smooth = floor(this.Param2 * 100 + 0.5);
+    this.RDM_Chance = floor(this.Param3 * 100 + 0.5);
+    this.Rdm_time > this.RDM_Interval  ? (
+
+      rand(100) < this.RDM_Chance ? (
+      this.Rdm_Next_Out = rand(1); //create next point 
+      );
+
+
+      this.Rdm_Smooth == 0 ?(
+        this.Rdm_Next_Out!= 0 ? ( this.Out = this.Rdm_Next_Out); //set current output to next point
+      );
+      this.Rdm_time = 0;
+    );
+    this.Rdm_Smooth != 0   ? (// if there's smooth, and next point is created
+      Rdm_Smooth =  10 - this.Rdm_Smooth*0.99 /10;
+      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) *  min ((this.Rdm_time/this.RDM_Interval) * Rdm_Smooth, 1  );
+
+    );
+  ):(   //if type is macro
+    this.Out = (this.Slider )   
+  );
+    
+
+
+
+);
 
 
 function BLOCK__PresetMorph() (
@@ -917,29 +1040,109 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==7?(Mc7.FOL_Gain = gmem[9];);
       Macro==8?(Mc8.FOL_Gain = gmem[9];);
     );
-    mode == 12?(  // if user is tweaking lfo speed
+    mode == 12?(  // if user is tweaking lfo speed (normalized selector 0..1)
     ABCSPD = 13311;
       SetTypeTo('LFO');
       Macro = gmem[5];
-      Macro==1?(Mc1.LFO_Spd = gmem[9];); 
-      Macro==2?(Mc2.LFO_Spd = gmem[9];); 
-      Macro==3?(Mc3.LFO_Spd = gmem[9];);
-      Macro==4?(Mc4.LFO_Spd = gmem[9];);
-      Macro==5?(Mc5.LFO_Spd = gmem[9];);
-      Macro==6?(Mc6.LFO_Spd = gmem[9];);
-      Macro==7?(Mc7.LFO_Spd = gmem[9];);
-      Macro==8?(Mc8.LFO_Spd = gmem[9];);
+      Macro==1?(Mc1.LFO_Spd_Norm = gmem[9]; Mc1.LFO_Spd_Norm_Set = 1;); 
+      Macro==2?(Mc2.LFO_Spd_Norm = gmem[9]; Mc2.LFO_Spd_Norm_Set = 1;); 
+      Macro==3?(Mc3.LFO_Spd_Norm = gmem[9]; Mc3.LFO_Spd_Norm_Set = 1;);
+      Macro==4?(Mc4.LFO_Spd_Norm = gmem[9]; Mc4.LFO_Spd_Norm_Set = 1;);
+      Macro==5?(Mc5.LFO_Spd_Norm = gmem[9]; Mc5.LFO_Spd_Norm_Set = 1;);
+      Macro==6?(Mc6.LFO_Spd_Norm = gmem[9]; Mc6.LFO_Spd_Norm_Set = 1;);
+      Macro==7?(Mc7.LFO_Spd_Norm = gmem[9]; Mc7.LFO_Spd_Norm_Set = 1;);
+      Macro==8?(Mc8.LFO_Spd_Norm = gmem[9]; Mc8.LFO_Spd_Norm_Set = 1;);
+    );
+    mode == 30?( // continuous period in beats override (from Shift-drag)
+      SetTypeTo('LFO');
+      Macro = gmem[5];
+      v = gmem[9];
+      Macro==1?(Mc1.LFO_PeriodCont = v; Mc1.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==2?(Mc2.LFO_PeriodCont = v; Mc2.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==3?(Mc3.LFO_PeriodCont = v; Mc3.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==4?(Mc4.LFO_PeriodCont = v; Mc4.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==5?(Mc5.LFO_PeriodCont = v; Mc5.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==6?(Mc6.LFO_PeriodCont = v; Mc6.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==7?(Mc7.LFO_PeriodCont = v; Mc7.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+      Macro==8?(Mc8.LFO_PeriodCont = v; Mc8.LFO_PeriodCont_Set = v > 0 ? 1 : 0;);
+    );
+    // 31 Triplet, 32 Dotted, 33 Free period (beats from ms)
+    mode == 31 ? (
+      Macro = gmem[5]; v = gmem[9];
+      Macro==1?(Mc1.LFO_Trip = v;);
+      Macro==2?(Mc2.LFO_Trip = v;);
+      Macro==3?(Mc3.LFO_Trip = v;);
+      Macro==4?(Mc4.LFO_Trip = v;);
+      Macro==5?(Mc5.LFO_Trip = v;);
+      Macro==6?(Mc6.LFO_Trip = v;);
+      Macro==7?(Mc7.LFO_Trip = v;);
+      Macro==8?(Mc8.LFO_Trip = v;);
+    );
+    mode == 32 ? (
+      Macro = gmem[5]; v = gmem[9];
+      Macro==1?(Mc1.LFO_Dot = v;);
+      Macro==2?(Mc2.LFO_Dot = v;);
+      Macro==3?(Mc3.LFO_Dot = v;);
+      Macro==4?(Mc4.LFO_Dot = v;);
+      Macro==5?(Mc5.LFO_Dot = v;);
+      Macro==6?(Mc6.LFO_Dot = v;);
+      Macro==7?(Mc7.LFO_Dot = v;);
+      Macro==8?(Mc8.LFO_Dot = v;);
+    );
+    mode == 33 ? (
+      // free period in beats from UI (ms converted to beats); -1 clears
+      Macro = gmem[5]; v = gmem[9];
+      Macro==1?(Mc1.LFO_FreeBeats = v;);
+      Macro==2?(Mc2.LFO_FreeBeats = v;);
+      Macro==3?(Mc3.LFO_FreeBeats = v;);
+      Macro==4?(Mc4.LFO_FreeBeats = v;);
+      Macro==5?(Mc5.LFO_FreeBeats = v;);
+      Macro==6?(Mc6.LFO_FreeBeats = v;);
+      Macro==7?(Mc7.LFO_FreeBeats = v;);
+      Macro==8?(Mc8.LFO_FreeBeats = v;);
     );
     mode == 13?( //if user is adjusting LFO Length
       SetTypeTo('LFO');
-      Macro==1?(Mc1.LFO_Len = gmem[9];); 
-      Macro==2?(Mc2.LFO_Len = gmem[9];); 
-      Macro==3?(Mc3.LFO_Len = gmem[9];);
-      Macro==4?(Mc4.LFO_Len = gmem[9];);
-      Macro==5?(Mc5.LFO_Len = gmem[9];);
-      Macro==6?(Mc6.LFO_Len = gmem[9];);
-      Macro==7?(Mc7.LFO_Len = gmem[9];);
-      Macro==8?(Mc8.LFO_Len = gmem[9];);
+      Macro==1?(
+        Mc1.LFO_Len = gmem[9];
+        Mc1.LFO_Len <= 0 ? (Mc1.LFO_Len = 4;);
+        Mc1.bp = fmod(Mc1.bp, Mc1.LFO_Len);
+      ); 
+      Macro==2?(
+        Mc2.LFO_Len = gmem[9];
+        Mc2.LFO_Len <= 0 ? (Mc2.LFO_Len = 4;);
+        Mc2.bp = fmod(Mc2.bp, Mc2.LFO_Len);
+      ); 
+      Macro==3?(
+        Mc3.LFO_Len = gmem[9];
+        Mc3.LFO_Len <= 0 ? (Mc3.LFO_Len = 4;);
+        Mc3.bp = fmod(Mc3.bp, Mc3.LFO_Len);
+      );
+      Macro==4?(
+        Mc4.LFO_Len = gmem[9];
+        Mc4.LFO_Len <= 0 ? (Mc4.LFO_Len = 4;);
+        Mc4.bp = fmod(Mc4.bp, Mc4.LFO_Len);
+      );
+      Macro==5?(
+        Mc5.LFO_Len = gmem[9];
+        Mc5.LFO_Len <= 0 ? (Mc5.LFO_Len = 4;);
+        Mc5.bp = fmod(Mc5.bp, Mc5.LFO_Len);
+      );
+      Macro==6?(
+        Mc6.LFO_Len = gmem[9];
+        Mc6.LFO_Len <= 0 ? (Mc6.LFO_Len = 4;);
+        Mc6.bp = fmod(Mc6.bp, Mc6.LFO_Len);
+      );
+      Macro==7?(
+        Mc7.LFO_Len = gmem[9];
+        Mc7.LFO_Len <= 0 ? (Mc7.LFO_Len = 4;);
+        Mc7.bp = fmod(Mc7.bp, Mc7.LFO_Len);
+      );
+      Macro==8?(
+        Mc8.LFO_Len = gmem[9];
+        Mc8.LFO_Len <= 0 ? (Mc8.LFO_Len = 4;);
+        Mc8.bp = fmod(Mc8.bp, Mc8.LFO_Len);
+      );
     );
     mode == 14?(   // if user is adjusting LFO Gain
       SetTypeTo('LFO');
@@ -1049,6 +1252,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==8?(Mc8.Legato = gmem[9]);
 
     );
+    // meta-mod removed: no CC registration for modulator parameters
     mode == 22 ? ( // if user is setting note filter 
       Macro==1?(Mc1.LowestNote = gmem[9]); 
       Macro==2?(Mc2.LowestNote = gmem[9]); 
@@ -1160,6 +1364,22 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
     Mc6.DoMidiTriggeredActions();
     Mc7.DoMidiTriggeredActions();
     Mc8.DoMidiTriggeredActions();
+    Mc9.DoMidiTriggeredActions();
+    Mc10.DoMidiTriggeredActions();
+    Mc11.DoMidiTriggeredActions();
+    Mc12.DoMidiTriggeredActions();
+    Mc13.DoMidiTriggeredActions();
+    Mc14.DoMidiTriggeredActions();
+    Mc15.DoMidiTriggeredActions();
+    Mc16.DoMidiTriggeredActions();
+    Mc17.DoMidiTriggeredActions();
+    Mc18.DoMidiTriggeredActions();
+    Mc19.DoMidiTriggeredActions();
+    Mc20.DoMidiTriggeredActions();
+    Mc21.DoMidiTriggeredActions();
+    Mc22.DoMidiTriggeredActions();
+    Mc23.DoMidiTriggeredActions();
+    Mc24.DoMidiTriggeredActions();
   ):(
     Mc1.DoMidi_Release();
     Mc2.DoMidi_Release();
@@ -1169,6 +1389,22 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
     Mc6.DoMidi_Release();
     Mc7.DoMidi_Release();
     Mc8.DoMidi_Release();
+    Mc9.DoMidi_Release();
+    Mc10.DoMidi_Release();
+    Mc11.DoMidi_Release();
+    Mc12.DoMidi_Release();
+    Mc13.DoMidi_Release();
+    Mc14.DoMidi_Release();
+    Mc15.DoMidi_Release();
+    Mc16.DoMidi_Release();
+    Mc17.DoMidi_Release();
+    Mc18.DoMidi_Release();
+    Mc19.DoMidi_Release();
+    Mc20.DoMidi_Release();
+    Mc21.DoMidi_Release();
+    Mc22.DoMidi_Release();
+    Mc23.DoMidi_Release();
+    Mc24.DoMidi_Release();
 
   );
 );
@@ -1184,6 +1420,22 @@ function BLOCK__Calculate_All_Modulators()(
   Mc6.CalculatMacroAmt();
   Mc7.CalculatMacroAmt();
   Mc8.CalculatMacroAmt();
+  Mc9.CalculatMacroAmt();
+  Mc10.CalculatMacroAmt();
+  Mc11.CalculatMacroAmt();
+  Mc12.CalculatMacroAmt();
+  Mc13.CalculatMacroAmt();
+  Mc14.CalculatMacroAmt();
+  Mc15.CalculatMacroAmt();
+  Mc16.CalculatMacroAmt();
+  Mc17.CalculatMacroAmt();
+  Mc18.CalculatMacroAmt();
+  Mc19.CalculatMacroAmt();
+  Mc20.CalculatMacroAmt();
+  Mc21.CalculatMacroAmt();
+  Mc22.CalculatMacroAmt();
+  Mc23.CalculatMacroAmt();
+  Mc24.CalculatMacroAmt();
   
 
   McOut[1] = Mc1.Out;
@@ -1194,6 +1446,22 @@ function BLOCK__Calculate_All_Modulators()(
   McOut[6] = Mc6.Out;
   McOut[7] = Mc7.Out;
   McOut[8] = Mc8.Out;
+  McOut[9] = Mc9.Out;
+  McOut[10] = Mc10.Out;
+  McOut[11] = Mc11.Out;
+  McOut[12] = Mc12.Out;
+  McOut[13] = Mc13.Out;
+  McOut[14] = Mc14.Out;
+  McOut[15] = Mc15.Out;
+  McOut[16] = Mc16.Out;
+  McOut[17] = Mc17.Out;
+  McOut[18] = Mc18.Out;
+  McOut[19] = Mc19.Out;
+  McOut[20] = Mc20.Out;
+  McOut[21] = Mc21.Out;
+  McOut[22] = Mc22.Out;
+  McOut[23] = Mc23.Out;
+  McOut[24] = Mc24.Out;
 );
 
 function BLOCK__Send_All_Midi_Info_To_Corresponding_Prms()(
@@ -1218,6 +1486,22 @@ function BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num)(
     Mc6.SendInfoBackToImGui();
     Mc7.SendInfoBackToImGui();
     Mc8.SendInfoBackToImGui();
+    Mc9.SendInfoBackToImGui();
+    Mc10.SendInfoBackToImGui();
+    Mc11.SendInfoBackToImGui();
+    Mc12.SendInfoBackToImGui();
+    Mc13.SendInfoBackToImGui();
+    Mc14.SendInfoBackToImGui();
+    Mc15.SendInfoBackToImGui();
+    Mc16.SendInfoBackToImGui();
+    Mc17.SendInfoBackToImGui();
+    Mc18.SendInfoBackToImGui();
+    Mc19.SendInfoBackToImGui();
+    Mc20.SendInfoBackToImGui();
+    Mc21.SendInfoBackToImGui();
+    Mc22.SendInfoBackToImGui();
+    Mc23.SendInfoBackToImGui();
+    Mc24.SendInfoBackToImGui();
   );
 );
 
@@ -1244,6 +1528,22 @@ function SAMPLE__DO_FOLLOWER()(
   Mc6.DoFollower();
   Mc7.DoFollower();
   Mc8.DoFollower();
+  Mc9.DoFollower();
+  Mc10.DoFollower();
+  Mc11.DoFollower();
+  Mc12.DoFollower();
+  Mc13.DoFollower();
+  Mc14.DoFollower();
+  Mc15.DoFollower();
+  Mc16.DoFollower();
+  Mc17.DoFollower();
+  Mc18.DoFollower();
+  Mc19.DoFollower();
+  Mc20.DoFollower();
+  Mc21.DoFollower();
+  Mc22.DoFollower();
+  Mc23.DoFollower();
+  Mc24.DoFollower();
 
   );
 
@@ -1272,7 +1572,7 @@ function SERIALIZE__Prm_Mod_Range_AND_Orig_Values() local (i) (
 function SERIALIZE__Save_LFO() local (i, Pt_Count, p )(
 
   i = 0 ; 
-  loop(8, 
+  loop(24, 
     file_var(0, LFO_Ofs[ (LFO_Max_Num_Of_Pts * 3) * i ]);
     Pt_Count = LFO_Ofs[ (LFO_Max_Num_Of_Pts * 3) * i ] ; //570000 + (50*3) * i
       //file_mem(0, LFO_Ofs[ (LFO_Max_Num_Of_Pts * 3) * i ], Pt_Count ) ;
@@ -1326,4 +1626,37 @@ function SERIALIZE__Mod_Curves() local (i, P)(
   );
   
 );
+
+function BLOCK__Send_ModParam_CCs() local (m, baseCC, cc, out, lenIdx, gainIdx, spdIdx, lenNorm, gainNorm, spdNorm) (
+  // Deterministic CC mapping per user spec: Mod N Param M => CC = 4*(N-1)+M
+  // Bus 16 (index 15), Channel 15 (index 14)
+  m = 1;
+  while (m <= 24) (
+    baseCC = 4 * (m - 1);
+    // Param1: macro output
+    cc = baseCC + 1;
+    out = McOut[m] * 127;
+    midisend(15 /*bus 16*/, $xB0 | 14 /*chan 15*/, cc, min(max(out,0),127));
+    // Param2..4: use internal sliders for the modulator m only when type is LFO
+    // We always emit, host side link presence decides whether it affects params
+    lenIdx = 3 + (m-1)*4 + 1;
+    gainIdx = 3 + (m-1)*4 + 2;
+    spdIdx = 3 + (m-1)*4 + 3;
+    lenNorm = slider(lenIdx);
+    gainNorm = slider(gainIdx);
+    spdNorm = slider(spdIdx);
+    cc = baseCC + 2; midisend(15, $xB0 | 14, cc, min(max(gainNorm * 127,0),127));
+    cc = baseCC + 3; midisend(15, $xB0 | 14, cc, min(max(lenNorm * 127,0),127));
+    cc = baseCC + 4; midisend(15, $xB0 | 14, cc, min(max(spdNorm * 127,0),127));
+    m += 1;
+  );
+);
+
+@block
+// ... existing code ...
+  BLOCK__Calculate_All_Modulators();
+  BLOCK__Send_ModParam_CCs();
+  BLOCK__Send_All_Midi_Info_To_Corresponding_Prms();
+  BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num);
+// ... existing code ...
 

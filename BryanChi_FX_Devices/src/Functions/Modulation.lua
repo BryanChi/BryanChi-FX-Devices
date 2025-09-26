@@ -18,10 +18,30 @@ function Get_MidiMod_Ofs(lbl)
     return ofs
 end
 
+function Get_Env_Shape_From_File(filename)
+    if filename then
+        local file = io.open(ConcatPath(CurrentDirectory, 'src', 'Envelope Shapes', filename), 'r')
+        if file then
+            local L = get_lines(ConcatPath(CurrentDirectory, 'src', 'Envelope Shapes', filename))
+            local content = file:read("a+")
+            local Count = get_aftr_Equal_Num(L[1])
+            local Node = {}
+            for i = 1, Count or 0, 1 do
+                Node[i] = {}
+                Node[i][1] = RecallGlobInfo(content, i..'.x = ', 'Num')
+                Node[i][2] = RecallGlobInfo(content, i..'.y = ', 'Num')
+                Node[i][3] = RecallGlobInfo(content, i..'.Curve = ', 'Num')
+            end
+            if Node[1] then return Node end
+        end
+    end
+end
+
 function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
     --r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
     r.gmem_write(499, 1) -- tells jsfx to get all points info    
     r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
+    r.gmem_write(13, #PtsTB) -- tells how many points there are in the curve so JSFX can use them
     if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
     local limit = IsLFO and #PtsTB or 10 
     local start = IsLFO and 500 or 20 
@@ -135,7 +155,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
             end
         else 
             local MOD = McroV
-            if M.Type == 'env' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
+            if M.Type == 'env' or M.Type == 'envelope' or M.Type == 'Envelope' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
                 if FX[FxGUID].parent then 
                     r.gmem_attach('ContainerMacro')
                 else
@@ -257,9 +277,11 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
     if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
     if --[[Assign Mod]] (AssigningMacro or AssigningMidiMod) and RC then
 
-        _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation','', false)
+        local key_vbm = 'P_EXT: FX' .. tostring(FxGUID or '') .. 'Prm' .. tostring(Fx_P or '') .. 'Value before modulation'
+        _, ValBeforeMod = r.GetSetMediaTrackInfo_String(LT_Track, key_vbm, '', false)
         if not ValBeforeMod or ValBeforeMod == '' then
-            r.GetSetMediaTrackInfo_String(LT_Track,'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FX[FxGUID][Fx_P].V, true)
+            local initV = FX[FxGUID] and FX[FxGUID][Fx_P] and FX[FxGUID][Fx_P].V
+            r.GetSetMediaTrackInfo_String(LT_Track, key_vbm, tostring(initV or p_value or 0), true)
         end
 
 
@@ -272,8 +294,8 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
             FX[FxGUID][Fx_P].ModAMT = FX[FxGUID][Fx_P].ModAMT or {}
             Trk[TrkID].ModPrmInst = (Trk[TrkID].ModPrmInst or 0) + 1
             FX[FxGUID][Fx_P].WhichCC = Trk[TrkID].ModPrmInst
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'WhichCC' .. P_Num, FP.WhichCC, true)
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ModPrmInst', Trk[TrkID].ModPrmInst, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. tostring(FxGUID or '') .. 'WhichCC' .. tostring(P_Num or ''), tostring(FP.WhichCC or 0), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: ModPrmInst', tostring(Trk[TrkID].ModPrmInst or 0), true)
 
             Trk.Prm.Assign = Trk[TrkID].ModPrmInst
         elseif FP.WhichMODs and string.find(FP.WhichMODs, tostring(AssigningMacro)) == nil then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
@@ -283,7 +305,7 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
 
 
 
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Linked to which Mods',FP.WhichMODs, true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. tostring(FxGUID or '') .. 'Prm' .. tostring(Fx_P or '') .. 'Linked to which Mods', tostring(FP.WhichMODs or ''), true)
 
 
         r.gmem_write(6, CC)
@@ -345,8 +367,42 @@ end
 ---@param Sldr_Width number
 ---@param Type "Knob"|"Vert"
 function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width, Type, trigger)
-    local FP = FX[FxGUID][Fx_P]
-    local CC = FP.WhichCC
+    -- Determine if this call is for modulator parameters first to avoid nil indexing
+    local IsModulatorParam = (Type == 'ModParam' or Type == 'LFO-Param')
+    local FP
+    local CC
+    if IsModulatorParam then
+        FX[FxGUID] = FX[FxGUID] or {}
+        FX[FxGUID][Fx_P] = FX[FxGUID][Fx_P] or {}
+        FP = FX[FxGUID][Fx_P]
+        FP.ModBipolar = FP.ModBipolar or {}
+        FP.ModAMT = FP.ModAMT or {}
+        FP.Num = P_Num
+        -- Deterministic CC mapping for Modulator Parameters:
+        -- For Mod N Param M (M=1..4), CC = 4*(N-1) + M, on bus 15 (16th), chan 14 (15th)
+        local MacroIndex = math.floor((P_Num - 2) / 4) + 1
+        if MacroIndex < 1 then MacroIndex = 1 end
+        local ParamIndexWithinMod = ((P_Num - 2) % 4) + 1
+        CC = 4 * (MacroIndex - 1) + ParamIndexWithinMod
+        Trk.Prm.Assign = CC
+        FP.WhichCC = CC
+        if not FX_Idx or FX_Idx < 0 then
+            local function FindMacrosFXIdx()
+                local cnt = r.TrackFX_GetCount(LT_Track)
+                for idx = 0, cnt-1, 1 do
+                    local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+                    if name and name:find('FXD Macros') then return idx end
+                end
+            end
+            FX_Idx = FindMacrosFXIdx() or FX_Idx
+        end
+       
+    else
+        if FX[FxGUID] and FX[FxGUID][Fx_P] then
+            FP = FX[FxGUID][Fx_P]
+            CC = FP.WhichCC
+        end
+    end
     local RC = im.IsItemClicked(ctx, 1)
     r.gmem_attach('ParamValues')
     local Vertical = Type == 'Vert' and 'Vert' 
@@ -356,6 +412,22 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
     --if trigger == 'No Item Trigger' then RC = im.IsMouseClicked(ctx, 1) end 
     local RC = trigger == 'No Item Trigger' and im.IsMouseClicked(ctx, 1) or RC
 
+    -- (Modulator-param initialization moved above to avoid nil FP)
+
+    -- For modulator parameters, link immediately on right-click so range editing is available
+    if IsModulatorParam and RC and AssigningMacro then
+        local CC = Trk.Prm.Assign
+        if CC then
+            local link_bus = 15
+            local link_chan = 14
+            local baseline = p_value
+            ParameterMIDILink(FX_Idx, P_Num, 1, nil, link_bus, link_chan, 176, CC, baseline)
+            PM.TimeNow = r.time_precise()
+            r.gmem_write(7, CC)
+            r.gmem_write(JSFX.P_ORIG_V + CC, p_value)
+        end
+    end
+
     if AssigningMacro then
         local PosL, PosT = im.GetItemRectMin(ctx)
         local PosR, PosB = im.GetItemRectMax(ctx)
@@ -363,14 +435,22 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, EightColors.bgWhenAsgnMod[AssigningMacro] or 0xffff33ff)
     end
     if --[[Link CC back when mouse is up]] Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
-
-        if FP.WhichCC  then
-            local CC = FP.WhichCC 
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Value before modulation', FP.V, true)
+    msg('nasjd')
+        if FP and Trk.Prm.Assign then
+            local CC = Trk.Prm.Assign
+            local extKey = 'P_EXT: FX' .. tostring(FxGUID or '') .. 'Prm' .. tostring(Fx_P or '') .. 'Value before modulation'
+            local extVal = tostring(FP.V or p_value or 0)
+            r.GetSetMediaTrackInfo_String(LT_Track, extKey, extVal, true)
             r.gmem_write(7, CC) --tells jsfx to retrieve P value
             PM.TimeNow = r.time_precise()
             r.gmem_write(JSFX.P_ORIG_V + CC, p_value)
-            ParameterMIDILink(FX_Idx, P_Num, 1, nil, 15, 16, 176, CC, nil)
+            local link_bus = IsModulatorParam and 15 or 15
+            local link_chan = IsModulatorParam and 14 or 16
+            msg('IsModulatorParam = ' .. tostring(IsModulatorParam))
+            msg('link_bus = ' .. tostring(link_bus))
+            msg('link_chan = ' .. tostring(link_chan))
+            local baseline = IsModulatorParam and p_value or nil
+            ParameterMIDILink(FX_Idx, P_Num, 1, nil, link_bus, link_chan, 176, CC, baseline)
         end
     end
     local function Mouse_Interaction_When_Theres_Mod_Assigned()
@@ -503,6 +583,10 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             if AssigningMidiMod     == 'Velocity' then jsfx_ofs = JSFX.Velo_Mod
             elseif AssigningMidiMod == 'Random' then  jsfx_ofs = JSFX.Random1
             elseif AssigningMidiMod == 'KeyTrack' then jsfx_ofs = JSFX.KeyTrack1
+            elseif AssigningMidiMod == 'Random 2' then jsfx_ofs = JSFX.Random2
+            elseif AssigningMidiMod == 'Random 3' then jsfx_ofs = JSFX.Random3
+            elseif AssigningMidiMod == 'KeyTrack 2' then jsfx_ofs = JSFX.KeyTrack2
+            elseif AssigningMidiMod == 'KeyTrack 3' then jsfx_ofs = JSFX.KeyTrack3
             end
 
             Save_to_Trk('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. AssigningMidiMod , FP.ModAMT[M]  )
@@ -889,6 +973,19 @@ local function get_Global_Shapes()
     end
     return Shapes
 end
+
+local function get_Global_Env_Shapes()
+    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'Envelope Shapes'))
+    local Shapes = {}
+    for i, v in ipairs(F) do
+        local Shape = Get_Env_Shape_From_File(v)
+        if Shape then
+            Shape.Name = tostring(v):sub(0, -5)
+            table.insert(Shapes, Shape)
+        end
+    end
+    return Shapes
+end
 function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
 
     r.gmem_attach('ContainerMacro')
@@ -1062,59 +1159,118 @@ end
 function Save_Shape_To_Project(Mc)
     local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
 
-    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count',
-        (HowManySavedShapes or 0) + 1)
+    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', tostring((HowManySavedShapes or 0) + 1))
 
 
     local I = (HowManySavedShapes or 0) + 1
-    for i, v in ipairs(Mc.Node) do
+    for i, v in ipairs(Mc.Node or {}) do
         if i == 1 then
-            r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ',
-                #Mc.Node)
+            r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ', tostring(#Mc.Node or 0))
         end
-        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ',
-            v.x)
-        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ',
-            v.y)
-
-        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
-            '.ctrlX = ', v.ctrlX or '')
-        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i ..
-            '.ctrlY = ', v.ctrlY or '')
+        local vx = (type(v) == 'table') and (v.x or v[1]) or v
+        local vy = (type(v) == 'table') and (v.y or v[2]) or nil
+        local vcx = (type(v) == 'table') and (v.ctrlX) or nil
+        local vcy = (type(v) == 'table') and (v.ctrlY) or nil
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ', tostring(vx or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ', tostring(vy or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', tostring(vcx or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', tostring(vcy or ''))
     end
 end
 
 function Save_Shape_To_Track(Mc)
     local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
     if HowManySavedShapes then
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count',
-            (HowManySavedShapes or 0) + 1, true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', tostring((HowManySavedShapes or 0) + 1), true)
     else
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', 1, true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', tostring(1), true)
     end
     local I = (HowManySavedShapes or 0) + 1
-    for i, v in ipairs(Mc.Node) do
+    for i, v in ipairs(Mc.Node or {}) do
         if i == 1 then
-            r.GetSetMediaTrackInfo_String(LT_Track,
-                'P_EXT: Shape' .. I .. 'LFO Node Count = ', #Mc.Node, true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'LFO Node Count = ', tostring(#Mc.Node or 0), true)
         end
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
-            'Node ' .. i .. 'x = ', v.x, true)
-        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I ..
-            'Node ' .. i .. 'y = ', v.y, true)
-
-        r.GetSetMediaTrackInfo_String(LT_Track,
-            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '', true)
-        r.GetSetMediaTrackInfo_String(LT_Track,
-            'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '', true)
+        local vx = (type(v) == 'table') and (v.x or v[1]) or v
+        local vy = (type(v) == 'table') and (v.y or v[2]) or nil
+        local vcx = (type(v) == 'table') and (v.ctrlX) or nil
+        local vcy = (type(v) == 'table') and (v.ctrlY) or nil
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. 'x = ', tostring(vx or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. 'y = ', tostring(vy or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', tostring(vcx or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', tostring(vcy or ''), true)
     end
+end
+
+function Save_Shape_To_Project_WithName(Mc, shapeName)
+    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+    r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', tostring((HowManySavedShapes or 0) + 1))
+    local I = (HowManySavedShapes or 0) + 1
+    for i, v in ipairs(Mc.Node or {}) do
+        if i == 1 then
+            r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ', tostring(#Mc.Node or 0))
+        end
+        local vx = (type(v) == 'table') and (v.x or v[1]) or v
+        local vy = (type(v) == 'table') and (v.y or v[2]) or nil
+        local vcx = (type(v) == 'table') and (v.ctrlX) or nil
+        local vcy = (type(v) == 'table') and (v.ctrlY) or nil
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ', tostring(vx or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ', tostring(vy or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', tostring(vcx or ''))
+        r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', tostring(vcy or ''))
+    end
+    r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. ' Name', tostring(shapeName or ''))
+end
+
+function Save_Shape_To_Track_WithName(Mc, shapeName)
+    local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+    if HowManySavedShapes then
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', tostring((HowManySavedShapes or 0) + 1), true)
+    else
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', tostring(1), true)
+    end
+    local I = (HowManySavedShapes or 0) + 1
+    for i, v in ipairs(Mc.Node or {}) do
+        if i == 1 then
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'LFO Node Count = ', tostring(#Mc.Node or 0), true)
+        end
+        local vx = (type(v) == 'table') and (v.x or v[1]) or v
+        local vy = (type(v) == 'table') and (v.y or v[2]) or nil
+        local vcx = (type(v) == 'table') and (v.ctrlX) or nil
+        local vcy = (type(v) == 'table') and (v.ctrlY) or nil
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. 'x = ', tostring(vx or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. 'y = ', tostring(vy or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', tostring(vcx or ''), true)
+        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', tostring(vcy or ''), true)
+    end
+    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Shape' .. I .. ' Name', tostring(shapeName or ''), true)
+end
+
+function Save_Shape_To_Global_ByName(Mc, shapeName)
+    if not shapeName or shapeName == '' then return end
+    local folder = (Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and 'Envelope Shapes' or 'LFO Shapes'
+    local path = ConcatPath(CurrentDirectory, 'src', folder)
+    r.RecursiveCreateDirectory(path, 0)
+    local file_path = ConcatPath(path, shapeName .. '.ini')
+    local file = io.open(file_path, 'w')
+    if not file then return end
+    for i, v in ipairs(Mc.Node or {}) do
+        if i == 1 then file:write('Total Number Of Nodes = ', #Mc.Node, '\n') end
+        local x = v[1] or v.x
+        local y = v[2] or v.y
+        local curve = v[3] or v.Curve
+        file:write(i, '.x = ', x or 0, '\n')
+        file:write(i, '.y = ', y or 0, '\n')
+        if curve then file:write(i, '.Curve = ', curve, '\n') end
+        file:write('\n')
+    end
+    file:close()
 end
 
 function Save_LFO_Dialog (Macro, x, y , Mc, FxGUID)
 
-    local WinTitle = Macro 
+    local WinTitle = 'FXGUID = '.. (FxGUID or '').. 'Macro = '.. Macro 
     if FxGUID then -- if it's a container's LFO
-        WinTitle = Macro..FxGUID 
+        --[[ WinTitle = Macro..FxGUID  ]]
         x, y = im.GetWindowPos(ctx)
         local sz = im.GetWindowSize(ctx)
         y = y + 50
@@ -1141,7 +1297,9 @@ function Save_LFO_Dialog (Macro, x, y , Mc, FxGUID)
             im.Button(ctx, 'Global (Enter)')
             if im.IsItemClicked(ctx) or ( im.IsKeyPressed(ctx, im.Key_Enter) and Mods == 0) then
                 local LFO_Name = buf
-                local path = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
+                local folder = (Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and 'Envelope Shapes' or 'LFO Shapes'
+                local path = ConcatPath(CurrentDirectory, 'src', folder)
+                r.RecursiveCreateDirectory(path, 0)
                 local file_path = ConcatPath(path, LFO_Name .. '.ini')
                 local file = io.open(file_path, 'w')
 
@@ -1208,7 +1366,7 @@ end
 
 function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
     local x , y  = im.GetCursorScreenPos(ctx)
-    local Shapes = get_Global_Shapes()
+    local Shapes = ((Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and get_Global_Env_Shapes() or get_Global_Shapes())
     local Box_Sz = 50
     im.SetNextWindowPos(ctx, x - (Box_Sz)+18 , y -LFO_Box_Size- #Shapes * Box_Sz/2 )
     if im.BeginPopup(ctx, 'Small Shape Select'..macronum..FxGUID) then 
@@ -1216,7 +1374,7 @@ function LFO_Small_Shape_Selector(Mc, fx, macronum,FxGUID)
             LFO.NodeBeforePreview = Mc.Node
         end
         local AnyShapeHovered
-        local Shapes = get_Global_Shapes()
+        local Shapes = ((Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and get_Global_Env_Shapes() or get_Global_Shapes())
         for i, v in pairs(Shapes) do
             local W = Box_Sz 
             local H = Box_Sz
@@ -1318,9 +1476,10 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'..i .. 'Type', Type, true)
         end
         
-            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' then AddMacroJSFX() end
+            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' or Type == 'Envelope' then AddMacroJSFX() end
         local JSFX_Type = {
             LFO = 12,
+            Envelope = 12,
             Follower = 9,
             Step = 6,
             Macro = 5,
@@ -1328,8 +1487,75 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             XY = 28,
         }
         r.gmem_write(2,  ContainerID or PM.DIY_TrkID[TrkID])
+        -- When initializing LFO, ensure a non-zero speed is provided so JSFX doesn't set speed to 0
+        if Type == 'LFO' then
+            -- Default musical speed to 1 bar (4 beats)
+            local speed_norm = 1/8 -- idx=1 => 1 bar; norm = idx/8
+            Mc.LFO_spd = speed_norm
+            r.gmem_write(9, Mc.LFO_spd)
+        end
         r.gmem_write(4, JSFX_Type[Type]) -- tells jsfx macro type
         r.gmem_write(5, i) -- tells jsfx which macro
+
+        -- If selecting Envelope, force LFO to Envelope mode (use LFO envelope instead of JSFX env)
+        if Type == 'Envelope' then
+            if ContainerID then
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 1, true)
+            else
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 1, true)
+            end
+            Mc.LFO_Env_or_Loop = 'Envelope'
+            -- Also notify JSFX to switch LFO to Envelope mode
+            r.gmem_write(4, 18)
+            r.gmem_write(5, i)
+            r.gmem_write(9, 1)
+        elseif Type == 'LFO' then
+            -- Ensure LFO defaults to Loop mode to avoid confusion
+            if ContainerID then
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 0, true)
+            else
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 0, true)
+            end
+            Mc.LFO_Env_or_Loop = 'Loop'
+            r.gmem_write(4, 18)
+            r.gmem_write(5, i)
+            r.gmem_write(9, 0)
+
+            -- Also set sane defaults for LFO params so output isn't muted
+            -- Param indices are 0-based: base = 2 + (macro-1)*4; Param2=base+1 (Length), Param3=base+2 (Gain), Param4=base+3 (Speed)
+            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+            if MacFxGUID then
+                local function FindFxIdxByGUID(guid)
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                    end
+                end
+                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                local base = 2 + (i - 1) * 4
+                local lenIdx  = base + 1 -- Param2
+                local gainIdx = base + 2 -- Param3
+                local spdIdx  = base + 3 -- Param4
+               --[[  -- Default length = 4 → normalized (4-1)/7
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, (4-1)/7)
+                -- Default LFO gain to 1 so output is audible
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, 1)
+                -- Default LFO speed to 1 bar (idx=1 of 9 → norm = 1/8)
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, 1/8) ]]
+            end
+
+            -- Ensure JSFX recognizes type change immediately via both speed and length modes
+            r.gmem_write(2,  ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(5, i)
+--[[             -- Clear continuous override and set musical division
+            r.gmem_write(4, 30) -- clear period continuous flag
+            r.gmem_write(9, 0)
+            r.gmem_write(5, i)
+            r.gmem_write(9, Mc.LFO_spd or (1/8))
+            r.gmem_write(4, 12) -- set musical speed
+            r.gmem_write(9, Mc.LFO_leng or 4)
+            r.gmem_write(4, 13) -- length tweak to finalize initialization ]]
+        end
         return Type
 
     end
@@ -1410,7 +1636,7 @@ end
 
 
 function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
-    if Mc.Type ~= 'LFO' then return end 
+    if Mc.Type ~= 'LFO' and Mc.Type ~= 'Envelope' and Mc.Type ~= 'envelope' then return end 
     local Macro = i
     local Ident = 'FXGUID = '.. (FxGUID or '').. 'Macro = '.. Macro
     local fx = FX[FxGUID]
@@ -1432,11 +1658,13 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             r.gmem_attach('ContainerMacro')
             r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
         else 
-            r.gmem_attach( 'ParamValues')
+            r.gmem_attach('ParamValues')
+            r.gmem_write(2, PM.DIY_TrkID[TrkID]) -- ensure jsfx handles this track's macro
         end
-        r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
+        -- Order matters: write target + value first, then trigger mode
         r.gmem_write(5, i)    -- Tells jsfx which macro
         r.gmem_write(gmem or 9, V)
+        r.gmem_write(4, mode) -- trigger processing after data is set
         if StrName then
             if IsContainer then 
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID.. 'Mod '.. Macro .. StrName, V, true)
@@ -1482,7 +1710,26 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
     local BG_txt_Indent = IsContainer and 5 or 30
     local BG_txt_Sz = IsContainer and 20 or 30
     local BG_txt_Ofs_Y = IsContainer and H/4 or nil
-    Add_BG_Text_For_Modulator('LFO', BG_txt_Indent ,BG_txt_Sz, BG_txt_Ofs_Y)
+    local BG_txt = (Mc.Type == 'Envelope' or Mc.Type == 'envelope') and 'Env' or 'LFO'
+    Add_BG_Text_For_Modulator(BG_txt, BG_txt_Indent ,BG_txt_Sz, BG_txt_Ofs_Y)
+    do
+        local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
+        local div = Mc.LFO_leng or (LFO and LFO.Def and LFO.Def.Len) or 4
+        if div and div > 1 then
+            local WDL = WDL or im.GetWindowDrawList(ctx)
+            local totalW = R - L
+            for d = 1, div - 1, 1 do
+                local X = L + totalW * (d / div)
+                local seg, gap = 4, 3
+                local y = T
+                while y < B do
+                    local y2 = math.min(y + seg, B)
+                    im.DrawList_AddLine(WDL, X, y, X, y2, 0xffffff44, 1)
+                    y = y2 + gap
+                end
+            end
+        end
+    end
     IF_CONTIAINER_SEND_RIGHT_CLICK_INFO()
     local w, h = im.GetItemRectSize(ctx)
     local L, T = im.GetItemRectMin(ctx)
@@ -1494,12 +1741,6 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
     if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
         im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
-    elseif rv and Mods == 0 then
-        if LFO.Pin == TrkID .. 'Macro = ' .. Macro then
-            LFO.Pin = nil
-        else
-            LFO.Pin = TrkID .. 'Macro = ' .. Macro
-        end
     end
 
     local function DrawShape(Node, L, W, H, T, Clr)
@@ -1553,6 +1794,45 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
         for i, v in ipairs( Mc.Node) do 
             Draw_Curve (WDL, Mc.Node, i , L, L+w, T+h, w, h, 1 , EightColors.LFO[Macro], 2)
         end
+        -- If gain < 1, overlay a dotted line of the scaled curve
+        local gain = Mc.LFO_Gain or 1
+        if gain < 0.999 then
+            local zoom = (Mc and (Mc.Zoom or 1)) or 1
+            local PtSz = 1
+            local ofs = PtSz/2
+            local function map_u(u)
+                local c = 0.5
+                return ((u - c) * zoom + c)
+            end
+            local function draw_dotted_segment(x1, y1, x2, y2)
+                draw_dotted_line(x1, y1, x2, y2, Change_Clr_A(EightColors.LFO[Macro], -0.35), 4, 3)
+            end
+            for i, v in ipairs(Mc.Node) do
+                local x1 = L + map_u(v[1]) * w + ofs
+                local y1 = (T+h) - (v[2] * gain) * h + ofs
+                if Mc.Node[i+1] then
+                    local n = Mc.Node[i+1]
+                    local x2 = L + map_u(n[1]) * w + ofs
+                    local y2 = (T+h) - (n[2] * gain) * h + ofs
+                    if not v[3] then
+                        draw_dotted_segment(x1, y1, x2, y2)
+                    else
+                        -- Curve interpolation preview with simple subdivision
+                        local steps = 24
+                        local lastx, lasty = x1, y1
+                        for s = 1, steps do
+                            local t = s/steps
+                            local y_lin = (v[2] + (n[2]-v[2]) * t)
+                            local y_curve = GetCurveValue(y_lin, v[3], math.min(v[2], n[2]), math.max(v[2], n[2]), math.min(v[2], n[2]), math.max(v[2], n[2]))
+                            local px = x1 + (x2 - x1) * t
+                            local py = (T+h) - (y_curve * gain) * h + ofs
+                            draw_dotted_segment(lastx, lasty, px, py)
+                            lastx, lasty = px, py
+                        end
+                    end
+                end
+            end
+        end
     end
     if rv and not LFO_DragDir and Mods == 0 then
         im.OpenPopup(ctx, 'LFO Shape Select')
@@ -1561,21 +1841,80 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
 
 
-    local    function open_LFO_Win(Track, Macro, IsContainer, pos,  mc, FxGUID)
+    local function open_LFO_Win(Track, Macro, IsContainer, pos,  mc, FxGUID)
+        local asFloating = (LFO and LFO.FloatingOpen and LFO.FloatingOpen[Ident]) and true or false
         if not IsContainer then 
-            if LFO.EditWinOpen then return end 
+            if LFO.EditWinOpen and not asFloating then return end 
         end
         local tweaking
         local LFOWindowW
         local HdrPosL = IsContainer and pos[1] or HdrPosL
         local Mc = mc or Mc
         
-        -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
-        im.SetNextWindowPos(ctx, HdrPosL, IsContainer and pos[2] - 385 or VP.Y - 385)
-        local WinLbl = (IsContainer and 'Container' or '')..'LFO Shape Edit Window' .. Macro .. (FxGUID or '')
+        -- Keep window content-fit but enforce a reasonable minimum size; avoids bottom empty space
+        local baseCurveW = LFO.Win and LFO.Win.w or 360
+        local curveLen = (Mc.LFO_leng or (LFO.Def and LFO.Def.Len) or 4)
+        local fixedW = math.max(520, baseCurveW + baseCurveW * ((curveLen - 4) / 4) + 60)
+        local minH = 340
+        -- Lock width to fixedW plus room for shape selector; set height large enough to avoid scrollbars
+        local selectorW = 180
+        local popupW = fixedW + selectorW + 16
+        local baseH = 20 + (LFO and LFO.Win and LFO.Win.h) or 300 
+        local neededH = math.max(minH, baseH + 85)
+        im.SetNextWindowSizeConstraints(ctx, popupW, neededH, popupW, 100000)
+        if not asFloating then
+            im.SetNextWindowPos(ctx, HdrPosL, IsContainer and pos[2] - 385 or VP.Y - 385)
+        end
+        local PopupLbl = (IsContainer and 'Container' or '')..'LFO Popup' .. Macro .. (FxGUID or '')
 
-        if im.Begin(ctx, WinLbl, true, im.WindowFlags_NoDecoration + im.WindowFlags_AlwaysAutoResize) then
-            
+        local drawingPopup = false
+        local drawingFloating = false
+        local winOpen = true
+
+        if asFloating then
+            local flags = im.WindowFlags_NoDocking | im.WindowFlags_NoCollapse | im.WindowFlags_NoResize
+            winOpen, LFO.FloatingOpen[Ident] = im.Begin(ctx, 'LFO Editor '.. Macro .. (FxGUID or ''), LFO.FloatingOpen[Ident], flags)
+            drawingFloating = true
+            if not winOpen then
+                -- user closed the window
+                LFO.FloatingOpen[Ident] = nil
+                LFO.EditWinOpen = nil
+                im.End(ctx)
+                return
+            end
+        else
+            if im.BeginPopup(ctx, PopupLbl) then
+                drawingPopup = true
+            end
+        end
+
+        if drawingPopup or drawingFloating then
+            -- Update window rect each frame for outside-click detection
+            local wx, wy = im.GetWindowPos(ctx)
+            local ww, wh = im.GetWindowSize(ctx)
+            LFO.WinRect = LFO.WinRect or {}
+            LFO.WinRect[Ident] = { wx, wy, wx + ww, wy + wh }
+
+            -- Begin left child for main controls
+            local availW = im.GetContentRegionAvail(ctx)
+            local totalW = availW
+            local rightW = 200
+            local leftW = math.max(10, totalW - rightW - 12)
+            im.BeginChild(ctx, '##LFO_Main_'..Macro, leftW, 0, 0, im.WindowFlags_NoScrollWithMouse)
+
+            -- Close on Esc (end child before closing popup)
+            if im.IsKeyPressed(ctx, im.Key_Escape) then
+                LFO.WinHovered = nil; LFO.HvringWin = nil; LFO.Tweaking = nil
+                im.EndChild(ctx)
+                if drawingPopup then
+                    im.CloseCurrentPopup(ctx)
+                    im.EndPopup(ctx)
+                else
+                    if LFO.FloatingOpen then LFO.FloatingOpen[Ident] = nil end
+                    im.End(ctx)
+                end
+                return
+            end
             
             local Node = Mc.Node
             local function ConverCtrlNodeY(lastY, Y)
@@ -1716,27 +2055,115 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
             local function EXEC_Top_Buttons()
                 
-                LFO.Pin = PinIcon(LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz, 'LFO window pin' .. Macro, 0x00000000, ClrTint)
+                local function ExpandToWindow()
+                    local rv = im.ImageButton(ctx, '## expand' .. Macro, Img.expand, BtnSz, BtnSz)
+                    TooltipUI("Open as window", im.HoveredFlags_Stationary)
+                    if rv then
+                        LFO.FloatingOpen = LFO.FloatingOpen or {}
+                        LFO.FloatingOpen[Ident] = true
+                        if not asFloating then
+                            im.CloseCurrentPopup(ctx)
+                        end
+                    end
+                end
+
+                ExpandToWindow()
                 SL()
+                -- Pin icon removed
                 Copy()
                 local WDL = im.GetWindowDrawList(ctx)
                 SL()
                 Paste()
                 SL()
-                im.SetNextItemWidth(ctx, 100)
-                Env_Or_Loop()
+                -- Removed Env/Loop dropdown; show a small label instead
+                if Mc.Type == 'Envelope' or Mc.Type == 'envelope' then
+                    im.Text(ctx, 'Envelope')
+                    SL()
+                    im.SetNextItemWidth(ctx, 120)
+                    local shown = (Mc.Rel_Type == 'Custom Release - No Jump') and 'Custom No Jump' or Mc.Rel_Type or 'Latch'
+                    if im.BeginCombo(ctx, '## ReleaseType' .. Macro, shown) then
+                        tweaking = Ident
+                        if im.Selectable(ctx, 'Latch', Mc.Rel_Type == 'Latch') then
+                            Mc.Rel_Type = 'Latch'
+                            ChangeLFO(19, 0, nil, 'LFO_Release_Type')
+                        end
+                        if im.Selectable(ctx, 'Custom Release', Mc.Rel_Type == 'Custom Release') then
+                            Mc.Rel_Type = 'Custom Release'
+                            ChangeLFO(19, 2, nil, 'LFO_Release_Type')
+                        end
+                        if im.Selectable(ctx, 'Custom Release - No Jump', Mc.Rel_Type == 'Custom Release - No Jump') then
+                            Mc.Rel_Type = 'Custom Release - No Jump'
+                            ChangeLFO(19, 3, nil, 'LFO_Release_Type')
+                        end
+                        im.EndCombo(ctx)
+                    end
+                else
+                    im.Text(ctx, 'LFO')
+                    SL()
+                    -- Inline Length (to the right of 'LFO')
+                    im.Text(ctx, 'Length:')
+                    SL()
+                    im.SetNextItemWidth(ctx, 70)
+                    local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                    if MacFxGUID2 then
+                        local function FindFxIdxByGUID2(guid)
+                            local cnt = r.TrackFX_GetCount(LT_Track)
+                            for idx = 0, cnt-1, 1 do
+                                if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                            end
+                        end
+                        local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                        local P_Num_Len = 2 + (Macro - 1) * 4 + 1    -- param 2
+                        local cur_len_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len)
+                        local cur_len_discrete = math.floor(1 + cur_len_norm * 7 + 0.5)
+                        local rv_len_top, newLenTop = im.SliderInt(ctx, '##LFO_Len_Top'..Macro..(FxGUID or ''), cur_len_discrete, 1, 8)
+                        if rv_len_top then
+                            local new_norm = (newLenTop - 1) / 7
+                            r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len, new_norm)
+                            Mc.LFO_leng = newLenTop
+                        end
+                        -- Allow other modulators to modulate Length
+                        do
+                            local pv = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len)
+                            MakeModulationPossible(MacFxGUID2, P_Num_Len, MacFxIdx2, P_Num_Len, pv, 70, 'ModParam')
+                        end
+                    end
+                    SL()
+                    -- Inline Gain bind: Param3=Gain
+                    im.Text(ctx, 'Gain:')
+                    SL()
+                    im.SetNextItemWidth(ctx, 80)
+                    local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                    if MacFxGUID2 then
+                        local function FindFxIdxByGUID2(guid)
+                            local cnt = r.TrackFX_GetCount(LT_Track)
+                            for idx = 0, cnt-1, 1 do
+                                if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                            end
+                        end
+                        local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                        local P_Num_Gain = 2 + (Macro - 1) * 4 + 2    -- param3
+                        local gain_value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain)
+                        local rv_gain, new_gain = im.SliderDouble(ctx, '##LFO_Gain_Top'..Macro..(FxGUID or ''), gain_value, 0, 1, '%.2f')
+                        if rv_gain then
+                            r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain, new_gain)
+                        end
+                        -- Allow other modulators to modulate Gain (using a vertical style so range drag is vertical)
+                        do
+                            local pv = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain)
+                            MakeModulationPossible(MacFxGUID2, P_Num_Gain, MacFxIdx2, P_Num_Gain, pv, 80, 'ModParam')
+                        end
+                    end
+                end
                 SL(nil, 30)
                 Save_Shape()
-                SL()
-            
-                Shape_Preset()
             end
             
             local function LFO_Release_Node ()
 
 
                 if not Mc.Rel_Type then return end 
-                if  Mc.LFO_Env_or_Loop ~= 'Envelope'  then return end
+                if  Mc.Type ~= 'Envelope'  then return end
                 if Mc.Rel_Type:find('Custom Release') then 
                         im.Spacing(ctx)
 
@@ -1750,114 +2177,217 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
             EXEC_Top_Buttons()
             LFO_Release_Node ()
+            
+            -- (Length/Gain moved inline next to 'LFO' above)
 
-            local CurveEditor_Win_W = LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4
+            local CurveEditor_Win_W = (LFO.Win.w + LFO.Win.w * ((Mc.LFO_leng or LFO.Def.Len)-4)/4)
 
 
 
             local node, tweaking = CurveEditor(CurveEditor_Win_W , LFO.Win.h , Mc.Node, 'LFO'..Macro, Mc, IsContainer and true )
             Mc.Node = node 
             LFO.Tweaking = tweaking and Ident or LFO.Tweaking
+            -- Overlay cues on top of curve editor
+            do
+                -- Prefer using the curve editor rect published by CurveEditor to avoid item changes shifting
+                local edL, edT, edR, edB
+                if LFO and LFO.CurveRect and LFO.CurveRect[Macro] then
+                    edL, edT, edR, edB = table.unpack(LFO.CurveRect[Macro])
+                else
+                    edL, edT = im.GetItemRectMin(ctx)
+                    local edW, edH = im.GetItemRectSize(ctx)
+                    edR, edB = edL + edW, edT + edH
+                end
+                local edW, edH = edR - edL, edB - edT
+                local WDL_cur = im.GetWindowDrawList(ctx)
+                -- Show bold 'Preview' while hovering a shape (temporary preview)
+                if LFO.AnyShapeHovered and not LFO.NewShapeChosen then
+                    local label = 'Preview'
+                    local pushedFont
+                    if im.ValidatePtr(Impact, 'ImGui_Font*') then
+                        -- Attach a large Impact font dynamically at 30px if needed
+                        if not im.ValidatePtr(Impact_30, 'ImGui_Font*') then
+                            Attach_New_Font_On_Next_Frame('Impact', 30)
+                        end
+                        if im.ValidatePtr(Impact_30, 'ImGui_Font*') then im.PushFont(ctx, Impact_30) pushedFont = true end
+                    elseif im.ValidatePtr(Arial_30, 'ImGui_Font*') then
+                        im.PushFont(ctx, Arial_30) pushedFont = true
+                    end
+                    local tw, th = im.CalcTextSize(ctx, label)
+                    local tx = edL + (edW - tw) * 0.5
+                    local ty = edT + (edH - th) * 0.5
+                    local shadow = 0x000000cc
+                    im.DrawList_AddText(WDL_cur, tx+1, ty, shadow, label)
+                    im.DrawList_AddText(WDL_cur, tx-1, ty, shadow, label)
+                    im.DrawList_AddText(WDL_cur, tx, ty+1, shadow, label)
+                    im.DrawList_AddText(WDL_cur, tx, ty-1, shadow, label)
+                    im.DrawList_AddText(WDL_cur, tx, ty, 0xffffffff, label)
+                    if pushedFont then im.PopFont(ctx) end
+                end
+                -- Full-rect flash animation when a shape is applied by click
+                if LFO.ShapeChangeAnimStart then
+                    local elapsed = r.time_precise() - (LFO.ShapeChangeAnimStart or 0)
+                    local dur = 0.6
+                    if elapsed < dur then
+                        local k = 1 - (elapsed / dur)
+                        local alpha = 0.25 * k
+                        local col = im.ColorConvertDouble4ToU32(1, 1, 1, alpha)
+                        im.DrawList_AddRectFilled(WDL_cur, edL, edT, edL + edW, edT + edH, col)
+                    else
+                        LFO.ShapeChangeAnimStart = nil
+                    end
+                end
+            end
          
 
-            --im.SetCursorPos(ctx, 10, LFO.Win.h + 55)
             im.AlignTextToFramePadding(ctx)
             im.Text(ctx, 'Speed:')
             SL()
-            im.SetNextItemWidth(ctx, 50)
-            local rv, V = im.DragDouble(ctx, '##Speed'..(FxGUID or ''), Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
-            if im.IsItemActive(ctx) or im.IsWindowAppearing(ctx) then
-                ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
+            -- Single unified musical selector mapped to Mod N Param 4
+            local labels = { '2 bars', '1 bar', '1/2', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128' }
+            local periods = { 8, 4, 2, 1, 0.5, 0.25, 0.125, 0.0625, 0.03125 }
+            -- Ensure JSFX type/state for LFO so playback runs
+            if not Mc._LFO_TypeEnsured then
+                Mc._LFO_TypeEnsured = true
+                ChangeLFO(18, 0, nil, 'LFO_Env_or_Loop')
+                ChangeLFO(30, 0, 9, 'LFO Period Continuous')
+                local normInit = (Mc.LFO_spd_idx or 1) / (#labels-1)
+                ChangeLFO(12, normInit, 9, 'LFO Speed')
+            end
+            Mc.LFO_spd_idx = math.max(0, math.min(Mc.LFO_spd_idx or 1, #labels-1))
+            -- Mode toggle: Musical vs Free
+            Mc.LFO_snap = Mc.LFO_snap ~= false -- default true (musical)
+            local snapLbl = Mc.LFO_snap and 'Musical' or 'Free'
+            if im.SmallButton(ctx, snapLbl) then
+                Mc.LFO_snap = not Mc.LFO_snap
+            end
+            SL()
 
-                LFO.Tweaking = Ident
-                Mc.LFO_spd = V
-            end
-            if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                im.OpenPopup(ctx, '##LFO Speed menu' .. Macro)
-            end
-           
-            if im.BeginPopup(ctx, '##LFO Speed menu' .. Macro) then
-                LFO.Tweaking = Ident
-                if im.Selectable(ctx, 'Add Parameter to Envelope', false) then
-                    AutomateModPrm(Macro, 'LFO Speed', 17, 'LFO ' .. Macro .. ' Speed')
-                    r.TrackList_AdjustWindows(false)
-                    r.UpdateArrange()
+            im.PushStyleColor(ctx, im.Col_FrameBgActive, 0x333333ff)
+            if Mc.LFO_snap then
+                -- Musical with triplet/dotted options
+                im.SetNextItemWidth(ctx, 140)
+                local changedIdx, idx = im.SliderInt(ctx, '##LFO_SpeedDiv'..Macro..(FxGUID or ''), Mc.LFO_spd_idx, 0, #labels-1, labels[(Mc.LFO_spd_idx or 0)+1])
+                if changedIdx then Mc.LFO_spd_idx = idx end
+                SL()
+                -- Triplet / Dotted toggles (mutually exclusive)
+                local wasTrip = Mc.LFO_triplet and 1 or 0
+                local clickedTrip = im.Checkbox(ctx, 'Triplet', wasTrip == 1)
+                if clickedTrip then
+                    Mc.LFO_triplet = not Mc.LFO_triplet
+                    if Mc.LFO_triplet then Mc.LFO_dotted = false end
+                end
+                SL()
+                local wasDot = Mc.LFO_dotted and 1 or 0
+                local clickedDot = im.Checkbox(ctx, 'Dotted', wasDot == 1)
+                if clickedDot then
+                    Mc.LFO_dotted = not Mc.LFO_dotted
+                    if Mc.LFO_dotted then Mc.LFO_triplet = false end
                 end
 
-                im.EndPopup(ctx)
-            end
-            if Mods == Alt and im.IsItemActivated(ctx) then Mc.LFO_spd = 1 end
-            if im.IsItemHovered(ctx) then
-                if im.IsKeyPressed(ctx, im.Key_DownArrow, false) then
-                    Mc.LFO_spd = (Mc.LFO_spd or 1) / 2
-                    ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
-                elseif im.IsKeyPressed(ctx, im.Key_UpArrow, false) then
-                    Mc.LFO_spd = (Mc.LFO_spd or 1) * 2
-                    ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
+                -- Compute effective period and map to nearest discrete index for Param4
+                local basePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
+                local mult = 1
+                if Mc.LFO_triplet then mult = (2/3) end
+                if Mc.LFO_dotted then mult = (3/2) end
+                local targetPer = basePer * mult
+                -- find nearest discrete period index
+                local nearestIdx, bestDiff = 0, math.huge
+                for iP, per in ipairs(periods) do
+                    local d = math.abs(per - targetPer)
+                    if d < bestDiff then bestDiff = d; nearestIdx = iP-1 end
                 end
-            end
-            SL(nil, 30)
-
-
-            ---- Add Length slider
-            im.Text(ctx, 'Length:')
-            SL()
-            im.SetNextItemWidth(ctx, 80)
-            local LengthBefore = Mc.LFO_leng
-            rv, Mc.LFO_leng = im.SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length'..(FxGUID or ''), Mc.LFO_leng or LFO.Def.Len, 1, 8)
-            if im.IsItemActive(ctx) then
-                LFO.Tweaking = Ident
-                ChangeLFO(13, Mc.LFO_leng or LFO.Def.Len, 9, 'LFO Length')
-            end
-            if im.IsItemEdited(ctx) then
-                local Change = Mc.LFO_leng - LengthBefore
-
-                for i, v in ipairs(Mc.Node) do
-
-                    Mc.Node[i][1] = Mc.Node[i][1] / ((LengthBefore + Change) / LengthBefore)
-
-                end
-                LengthBefore = Mc.LFO_leng
-            end
-
-
-            ------ Add LFO Gain
-            SL()
-            im.Text(ctx, 'Gain')
-            SL()
-            im.SetNextItemWidth(ctx, 80)
-            local ShownV = math.floor((Mc.LFO_Gain or 0) * 100)
-
-            -- check if prm has been assigned automation
-            local AutoPrmIdx = tablefind(Trk[TrkID].AutoPrms, 'Mod' .. Macro .. 'LFO Gain')
-
-
-            rv, Mc.LFO_Gain = im.DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain',
-                Mc.LFO_Gain or 1, 0.01, 0, 1, ShownV .. '%%')
-            if im.IsItemActive(ctx) then
-                tweaking = Ident
-                ChangeLFO(14, Mc.LFO_Gain, 9, 'LFO Gain')
-                if AutoPrmIdx then
-                    r.TrackFX_SetParamNormalized(LT_Track, 0, 15 + AutoPrmIdx, Mc.LFO_Gain)
+                local norm = nearestIdx / (#labels-1)
+                local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                if MacFxGUID2 then
+                    local function FindFxIdxByGUID2(guid)
+                        local cnt = r.TrackFX_GetCount(LT_Track)
+                        for idx2 = 0, cnt-1, 1 do
+                            if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
+                        end
+                    end
+                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    local base = 2 + (Macro - 1) * 4
+                    local P_Num_Spd = base + 3 -- Param4
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, norm)
                 end
             else
-                if AutoPrmIdx then
-                    Mc.LFO_Gain = r.TrackFX_GetParamNormalized(LT_Track, 0, 15 + AutoPrmIdx)
+                -- Free: ms input -> beats -> nearest discrete Param4
+                im.SetNextItemWidth(ctx, 140)
+                local bpm = r.Master_GetTempo()
+                local secPerBeat = 60 / math.max(1, bpm)
+                local cur_ms
+                do
+                    local basePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
+                    cur_ms = math.floor(basePer * secPerBeat * 1000 + 0.5)
+                end
+                local rv_ms, ms = im.DragInt(ctx, '##LFO_FreeMs'..Macro..(FxGUID or ''), Mc.LFO_free_ms or cur_ms, 1, 1, 60000, '%d ms')
+                if rv_ms then Mc.LFO_free_ms = ms end
+                local beats = (Mc.LFO_free_ms or cur_ms) / 1000 / secPerBeat
+                local nearestIdx, bestDiff = 0, math.huge
+                for iP, per in ipairs(periods) do
+                    local d = math.abs(per - beats)
+                    if d < bestDiff then bestDiff = d; nearestIdx = iP-1 end
+                end
+                local norm = nearestIdx / (#labels-1)
+                local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                if MacFxGUID2 then
+                    local function FindFxIdxByGUID2(guid)
+                        local cnt = r.TrackFX_GetCount(LT_Track)
+                        for idx2 = 0, cnt-1, 1 do
+                            if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
+                        end
+                    end
+                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    local base = 2 + (Macro - 1) * 4
+                    local P_Num_Spd = base + 3 -- Param4
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, norm)
                 end
             end
-            if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                im.OpenPopup(ctx, '##LFO Gain menu' .. Macro)
-            end
-            if im.BeginPopup(ctx, '##LFO Gain menu' .. Macro) then
-                tweaking = Ident
-                if im.Selectable(ctx, 'Add Parameter to Envelope', false) then
-                    AutomateModPrm(Macro, 'LFO Gain', 16, 'LFO ' .. Macro .. ' Gain')
-                    r.TrackList_AdjustWindows(false)
-                    r.UpdateArrange()
-                end
+            im.PopStyleColor(ctx)
 
-                im.EndPopup(ctx)
+            -- Allow other modulators to modulate Speed (Param4)
+            do
+                local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                if MacFxGUID2 then
+                    local function FindFxIdxByGUID2(guid)
+                        local cnt = r.TrackFX_GetCount(LT_Track)
+                        for idx2 = 0, cnt-1, 1 do
+                            if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
+                        end
+                    end
+                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    local base = 2 + (Macro - 1) * 4
+                    local P_Num_Spd = base + 3 -- Param4
+                    local pv = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd)
+                    MakeModulationPossible(MacFxGUID2, P_Num_Spd, MacFxIdx2, P_Num_Spd, pv, 140, 'ModParam')
+                end
             end
+            
+            if Mods == Alt and im.IsItemActivated(ctx) then
+                Mc.LFO_spd_idx = 1 -- reset to 1 bar
+                local norm = (Mc.LFO_spd_idx) / (#labels-1)
+                local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                if MacFxGUID2 then
+                    local function FindFxIdxByGUID2(guid)
+                        local cnt = r.TrackFX_GetCount(LT_Track)
+                        for idx2 = 0, cnt-1, 1 do
+                            if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
+                        end
+                    end
+                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    local base = 2 + (Macro - 1) * 4
+                    local P_Num_Spd = base + 3 -- Param4
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, norm)
+                end
+                -- Ensure JSFX macro type is LFO after reset as well
+                ChangeLFO(30, 0, 9, 'LFO Period Continuous')
+                ChangeLFO(12, 0, 9, 'LFO Speed')
+            end
+
+            SL(nil, 30)
+            -- mod line indicated by AddDrag/DrawModLines
+            -- meta-mod assignment now uses standard AddDrag behavior (no per-control right-drag)
 
 
 
@@ -1874,15 +2404,317 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 LFO.HvringWin = Ident
                 Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)
 
+                -- Shift + mouse wheel to zoom horizontally
+                if Mods == Shift and Wheel_V ~= 0 then
+                    Mc.Zoom = Mc.Zoom or 1
+                    local zstep = 1 + (Wheel_V > 0 and 0.1 or -0.1)
+                    Mc.Zoom = SetMinMax(Mc.Zoom * zstep, 1, 4)
+                    Wheel_V = 0 -- consume wheel so default handlers don't use it
+                end
+
             else
                 LFO.HvringWin = nil
                 LFO.DontOpenNextFrame = true -- it's needed so the open_LFO_Win function doesn't get called twice when user 'unhover' the lfo window
 
             end
-            LFOWindowW = im.GetWindowWidth(ctx)
-            LFO_WIN_POS = {im.GetWindowPos(ctx)}
+            -- End left child
+            im.EndChild(ctx)
 
-            im.End(ctx)
+            -- Right child: embedded shape selector (with tabs)
+            im.SameLine(ctx)
+            -- Match the height of main content region
+            local _, mainTopY = im.GetItemRectMin(ctx)
+            local popupMinX, popupMinY = im.GetWindowPos(ctx)
+            local _, popupH = im.GetWindowSize(ctx)
+            local shapesH = popupH - (mainTopY - popupMinY) - 10
+            if im.BeginChild(ctx, '##LFO_Shapes_'..Macro, rightW, shapesH, 0) then 
+                if im.IsWindowAppearing(ctx) then
+                    LFO.NodeBeforePreview = Mc.Node
+                end
+                if not im.ValidatePtr(ShapeFilter, 'ImGui_TextFilter*') then
+                    ShapeFilter = im.CreateTextFilter(Shape_Filter_Txt)
+                end
+                local WDL = im.GetWindowDrawList(ctx)
+                local W, H = 90, 45
+                local anyHoveredThisFrame = false
+                local function file_exists(path)
+                    local f = io.open(path, 'r')
+                    if f then f:close() return true end
+                    return false
+                end
+                local function DrawShapesInSelector(Shapes)
+                    local AnyShapeHovered
+                    if im.BeginTable(ctx, '##shapesTable'..Macro, 2, im.TableFlags_SizingFixedFit) then
+                    for i, v in ipairs(Shapes) do
+                        if im.TextFilter_PassFilter(ShapeFilter, v.Name) then
+                                im.TableNextColumn(ctx)
+                                im.BeginGroup(ctx)
+                                -- Darker preview box background
+                                im.PushStyleColor(ctx, im.Col_Button, 0x222222ff)
+                                im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x2d2d2dff)
+                                im.PushStyleColor(ctx, im.Col_ButtonActive, 0x353535ff)
+                                local clicked = im.Button(ctx, '##shape' .. (v.Name or i) .. i, W, H)
+                                if v.Name and im.BeginDragDropSource(ctx) then
+                                    LFO.SuppressShapeClick = true
+                                    im.SetDragDropPayload(ctx, 'LFO_SHAPE_NAME', v.Name)
+                                    im.Text(ctx, v.Name)
+                                    im.EndDragDropSource(ctx)
+                                end
+                                if im.BeginDragDropTarget(ctx) then
+                                    local accepted, payload = im.AcceptDragDropPayload(ctx, 'LFO_SHAPE_NAME')
+                                    if accepted and payload and v.Name then
+                                        local srcName = tostring(payload)
+                                        if srcName ~= v.Name then
+                                            LFO.ShapeOrder = LFO.ShapeOrder or {}
+                                            local srcIdx
+                                            for oi, onm in ipairs(LFO.ShapeOrder) do if onm == srcName then srcIdx = oi break end end
+                                            if srcIdx then table.remove(LFO.ShapeOrder, srcIdx) end
+                                            table.insert(LFO.ShapeOrder, i, srcName)
+                                            local basePath = ConcatPath(CurrentDirectory, 'src', (Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and 'Envelope Shapes' or 'LFO Shapes')
+                                            local ordw = io.open(ConcatPath(basePath, '_order.txt'), 'w')
+                                            if ordw then for _,name in ipairs(LFO.ShapeOrder) do ordw:write(name, '\n') end ordw:close() end
+                                        end
+                                    end
+                                    im.EndDragDropTarget(ctx)
+                                end
+                                if clicked and not LFO.SuppressShapeClick then
+                                    Mc.Node = v
+                                    LFO.NewShapeChosen = v
+                                    LFO.ShapeChangeAnimStart = r.time_precise()
+                                end
+                                im.PopStyleColor(ctx, 3)
+                            if im.IsItemHovered(ctx) then
+                                Mc.Node = v
+                                AnyShapeHovered = true
+                                LFO.AnyShapeHovered = true
+                                Update_Info_To_Jsfx(Mc.Node, 'LFO'..Macro , true, Macro, true)
+                            end
+                                local Ls2, Ts2 = im.GetItemRectMin(ctx)
+                                local w2, h2 = im.GetItemRectSize(ctx)
+                                im.DrawList_AddRect(WDL, Ls2, Ts2, Ls2 + w2, Ts2 + h2, 0xffffff66)
+                            local thick = 4
+                                for ii, V in ipairs(v) do
+                                    local w = w2 - thick
+                                    local h = h2 - thick
+                                    Draw_Curve(WDL, v, ii, Ls2, Ls2 + w, Ts2 + h, w, h, 3, 0xffffffff, thick/2)
+                                end
+                                -- editable name field directly under box (tight spacing)
+                                LFO.ShapeNameBuf = LFO.ShapeNameBuf or {}
+                                local key = (v.Name or tostring(i)) .. '_' .. tostring(i)
+                                LFO.ShapeNameBuf[key] = LFO.ShapeNameBuf[key] or (v.Name or tostring(i))
+                                im.PushStyleVar(ctx, im.StyleVar_ItemSpacing, 4, 2)
+                                im.SetNextItemWidth(ctx, W)
+                                local changed, newName = im.InputText(ctx, '##shapeName'..key, LFO.ShapeNameBuf[key])
+                                if changed then LFO.ShapeNameBuf[key] = newName end
+                                -- Commit rename on edit completion (Enter/tab/unfocus)
+                                if im.IsItemDeactivatedAfterEdit(ctx) then
+                                    local oldName = v.Name or tostring(i)
+                                    local basePath = ConcatPath(CurrentDirectory, 'src', (Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and 'Envelope Shapes' or 'LFO Shapes')
+                                    local oldPath = ConcatPath(basePath, oldName .. '.ini')
+                                    local newPath = ConcatPath(basePath, (LFO.ShapeNameBuf[key] or '') .. '.ini')
+                                    local newTrim = (LFO.ShapeNameBuf[key] or ''):gsub('^%s*(.-)%s*$', '%1')
+                                    if newTrim ~= '' and oldName ~= newTrim and file_exists(oldPath) and not file_exists(newPath) then
+                                        os.rename(oldPath, newPath)
+                                        v.Name = newTrim
+                                        LFO.ShapeNameBuf[key] = newTrim
+                                        -- update persisted draw order if present
+                                        if LFO.ShapeOrder then
+                                            for oi, onm in ipairs(LFO.ShapeOrder) do
+                                                if onm == oldName then LFO.ShapeOrder[oi] = newTrim break end
+                                            end
+                                            local ordw = io.open(ConcatPath(basePath, '_order.txt'), 'w')
+                                            if ordw then for _,name in ipairs(LFO.ShapeOrder) do ordw:write(name, '\n') end ordw:close() end
+                                        end
+                                    end
+                                end
+                                im.PopStyleVar(ctx)
+                                -- delete button region at top-right of the box
+                                local gL, gT = Ls2, Ts2
+                                if im.IsMouseHoveringRect(ctx, gL + W - 10, gT, gL + W, gT + 10) then
+                                    SL(W - 8)
+                                    if TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
+                                        im.OpenPopup(ctx, 'Delete shape prompt' .. i)
+                                        im.SetNextWindowPos(ctx, gL + W - 60, gT + 10)
+                                    end
+                                end
+                                im.EndGroup(ctx)
+                        end
+                        if im.BeginPopupModal(ctx, 'Delete shape prompt' .. i, true, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then
+                            im.Text(ctx, 'Confirm deleting this shape:')
+                            if im.Button(ctx, 'yes') or im.IsKeyPressed(ctx, im.Key_Y) or im.IsKeyPressed(ctx, im.Key_Enter) then
+                                LFO.DeleteShape = i
+                                im.CloseCurrentPopup(ctx)
+                            end
+                            SL()
+                            if im.Button(ctx, 'No') or im.IsKeyPressed(ctx, im.Key_N) or im.IsKeyPressed(ctx, im.Key_Escape) then
+                                im.CloseCurrentPopup(ctx)
+                            end
+                            im.EndPopup(ctx)
+                        end
+                    end
+                        im.EndTable(ctx)
+                    end
+                    if LFO.SuppressShapeClick and im.IsMouseReleased(ctx, 0) then LFO.SuppressShapeClick = false end
+                    return AnyShapeHovered
+                end
+
+                -- Header row: Tab bar (left) and Save controls within shapes area
+                local function DrawSaveControlsEmbed(scope)
+                    LFO.ShapeSaveBuf = LFO.ShapeSaveBuf or {}
+                    local key = 'embed_'..scope..'_'..tostring(Macro)
+                    LFO.ShapeSaveBuf[key] = LFO.ShapeSaveBuf[key] or ''
+                    local avail = im.GetContentRegionAvail(ctx)
+                    local saveBtnW = 18
+                    local inputW = math.max(50, (avail or 180) - saveBtnW - 8)
+                    im.SetNextItemWidth(ctx, inputW)
+                    local _, txt = im.InputTextWithHint(ctx, '##shpname_'..key, 'enter shape name', LFO.ShapeSaveBuf[key])
+                    if txt ~= nil then LFO.ShapeSaveBuf[key] = txt end
+                    im.SameLine(ctx)
+                    local nameTrim = (LFO.ShapeSaveBuf[key] or ''):gsub('^%s*(.-)%s*$', '%1')
+                    -- For Project/Track allow empty name; for Global require name
+                    local disable = (scope == 'Global' and nameTrim == '') and true or false
+                    if disable then im.BeginDisabled(ctx) end
+                    if im.ImageButton(ctx, '##save_shape_embed_' .. scope .. '_' .. Macro, Img.Save, 14, 14) then
+                        if scope == 'Global' then
+                            Save_Shape_To_Global_ByName(Mc, nameTrim)
+                            LFO.ShapeSaveBuf[key] = ''
+                        elseif scope == 'Project' then
+                            Save_Shape_To_Project_WithName(Mc, nameTrim ~= '' and nameTrim or nil)
+                            LFO.ShapeSaveBuf[key] = ''
+                        elseif scope == 'Track' then
+                            Save_Shape_To_Track_WithName(Mc, nameTrim ~= '' and nameTrim or nil)
+                            LFO.ShapeSaveBuf[key] = ''
+                        end
+                    end
+                    if disable then im.EndDisabled(ctx) end
+                end
+                if im.BeginTable(ctx, '##shapeHeader'..Macro, 2, im.TableFlags_SizingStretchProp) then
+                    if im.TableSetupColumn then
+                        im.TableSetupColumn(ctx, 'tabs', im.TableColumnFlags_WidthStretch)
+                        im.TableSetupColumn(ctx, 'spacer', im.TableColumnFlags_WidthFixed, 1)
+                    end
+                    im.TableNextRow(ctx)
+                    im.TableSetColumnIndex(ctx, 0)
+                    if im.BeginTabBar(ctx, 'shape select tab bar') then
+                        -- Global tab
+                        if im.BeginTabItem(ctx, 'Global') then
+                            DrawSaveControlsEmbed('Global')
+                            local Shapes = {}
+                            local basePath = ConcatPath(CurrentDirectory, 'src', (Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and 'Envelope Shapes' or 'LFO Shapes')
+                            local F = scandir(basePath)
+                            for i, v in ipairs(F) do
+                                local Shape = ((Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope')) and Get_Env_Shape_From_File or Get_LFO_Shape_From_File)(v)
+                                if Shape then
+                                    Shape.Name = tostring(v):sub(0, -5)
+                                    table.insert(Shapes, Shape)
+                                end
+                            end
+                            if not LFO.ShapeOrder then
+                                local ordr = {}
+                                local ordf = io.open(ConcatPath(basePath, '_order.txt'), 'r')
+                                if ordf then
+                                    for line in ordf:lines() do if line and line ~= '' then table.insert(ordr, line) end end
+                                    ordf:close()
+                                end
+                                if #ordr == 0 then for _,sh in ipairs(Shapes) do if sh.Name then table.insert(ordr, sh.Name) end end end
+                                LFO.ShapeOrder = ordr
+                            end
+                            local byName, included = {}, {}
+                            for _,sh in ipairs(Shapes) do if sh.Name then byName[sh.Name] = sh end end
+                            local OrderedShapes = {}
+                            for _,nm in ipairs(LFO.ShapeOrder) do local sh = byName[nm]; if sh then table.insert(OrderedShapes, sh) included[nm] = true end end
+                            for _,sh in ipairs(Shapes) do if sh.Name and not included[sh.Name] then table.insert(OrderedShapes, sh) table.insert(LFO.ShapeOrder, sh.Name) end end
+                            anyHoveredThisFrame = DrawShapesInSelector(OrderedShapes) or anyHoveredThisFrame
+                            im.EndTabItem(ctx)
+                        end
+                        -- Project tab
+                        if im.BeginTabItem(ctx, 'Project') then
+                            DrawSaveControlsEmbed('Project')
+                            local Shapes = {}
+                            local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+                            for I = 1, HowManySavedShapes or 0, 1 do
+                                local Shape = {}
+                                    local Ct = getProjSavedInfo('LFO Shape' .. I .. 'Node Count = ')
+                                for i = 1, Ct or 1, 1 do
+                                    Shape[i] = Shape[i] or {}
+                                    Shape[i].x = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'x = ')
+                                    Shape[i].y = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'y = ')
+                                    Shape[i].ctrlX = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
+                                    Shape[i].ctrlY = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
+                                    -- normalize numeric indices for drawing
+                                    Shape[i][1] = tonumber(Shape[i].x) or Shape[i][1] or 0
+                                    Shape[i][2] = tonumber(Shape[i].y) or Shape[i][2] or 0
+                                end
+                                -- read saved name for project shape slot
+                                local nm = getProjSavedInfo('LFO Shape' .. I .. ' Name', 'str')
+                                if nm and Shape[1] then Shape.Name = nm end
+                                if Shape[1] then table.insert(Shapes, Shape) end
+                            end
+                            anyHoveredThisFrame = DrawShapesInSelector(Shapes) or anyHoveredThisFrame
+                            im.EndTabItem(ctx)
+                        end
+                        -- Track tab
+                        if im.BeginTabItem(ctx, 'Track') then
+                            DrawSaveControlsEmbed('Track')
+                            local Shapes = {}
+                            local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+                            for I = 1, HowManySavedShapes or 0, 1 do
+                                local Shape = {}
+                                    local Ct = GetTrkSavedInfo('Shape' .. I .. 'LFO Node Count = ')
+                                for i = 1, Ct or 1, 1 do
+                                    Shape[i] = Shape[i] or {}
+                                        Shape[i].x = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. ' x') or GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'x = ')
+                                        Shape[i].y = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. ' y') or GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'y = ')
+                                        Shape[i].ctrlX = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
+                                        Shape[i].ctrlY = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
+                                        -- normalize numeric indices for drawing
+                                        Shape[i][1] = tonumber(Shape[i].x) or Shape[i][1] or 0
+                                        Shape[i][2] = tonumber(Shape[i].y) or Shape[i][2] or 0
+                                    end
+                                    -- read saved name for track shape slot
+                                    local nm = GetTrkSavedInfo('Shape' .. I .. ' Name', LT_Track, 'str')
+                                    if nm and Shape[1] then Shape.Name = nm end
+                                    if Shape[1] then table.insert(Shapes, Shape) end
+                                end
+                            anyHoveredThisFrame = DrawShapesInSelector(Shapes) or anyHoveredThisFrame
+                            im.EndTabItem(ctx)
+                        end
+                        im.EndTabBar(ctx)
+                    end
+                    im.EndTable(ctx)
+                end
+                -- Save controls now drawn per-tab above shapes
+                -- Revert preview when unhovering all shapes; keep only on click
+                if LFO.AnyShapeHovered and not anyHoveredThisFrame then
+                    if LFO.NewShapeChosen then
+                        Mc.Node = LFO.NewShapeChosen
+                    else
+                        Mc.Node = LFO.NodeBeforePreview
+                    end
+                    LFO.NodeBeforePreview = Mc.Node
+                    LFO.AnyShapeHovered = nil
+                    LFO.NewShapeChosen = nil
+                end
+                im.EndChild(ctx)
+            end
+            -- Close only on outside-click; ignore clicks on empty space inside the popup
+            if drawingPopup then
+                if not LFO.Tweaking then 
+                    if im.IsMouseClicked(ctx, 0) and not im.IsAnyItemActive(ctx) then
+                        -- If the current popup (including its children) is not hovered, treat as outside click
+                        if not im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
+                            LFO.WinHovered = nil; LFO.HvringWin = nil; LFO.Tweaking = nil
+                            im.CloseCurrentPopup(ctx)
+                            im.EndPopup(ctx)
+                            return
+                        end
+                    end
+                end
+                im.EndPopup(ctx)
+            else
+                -- floating window
+                im.End(ctx)
+            end
         end
 
 
@@ -1893,10 +2725,10 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             end
             im.SetNextWindowSizeConstraints(ctx, 220, 150, 240, 700)
             if im.Begin(ctx, 'Shape Selection Popup', true, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
-                local W, H = 150, 75
+                local W, H = 160, 80
                 local function DrawShapesInSelector(Shapes)
                     local AnyShapeHovered
-                    for i, v in pairs(Shapes) do
+                    for i, v in ipairs(Shapes) do
                         --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
 
                         if im.TextFilter_PassFilter(ShapeFilter, v.Name) then
@@ -1913,9 +2745,34 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                                 end
                             end
 
-                            if im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) then
+                            local clicked = im.Button(ctx, '##' .. (v.Name or i) .. i, W, H)
+                            if v.Name and im.BeginDragDropSource(ctx) then
+                                LFO.SuppressShapeClick = true
+                                im.SetDragDropPayload(ctx, 'LFO_SHAPE_NAME', v.Name)
+                                im.Text(ctx, v.Name)
+                                im.EndDragDropSource(ctx)
+                            end
+                            if im.BeginDragDropTarget(ctx) then
+                                local accepted, payload = im.AcceptDragDropPayload(ctx, 'LFO_SHAPE_NAME')
+                                if accepted and payload and v.Name then
+                                    local srcName = tostring(payload)
+                                    if srcName ~= v.Name then
+                                        LFO.ShapeOrder = LFO.ShapeOrder or {}
+                                        local srcIdx
+                                        for oi, onm in ipairs(LFO.ShapeOrder) do if onm == srcName then srcIdx = oi break end end
+                                        if srcIdx then table.remove(LFO.ShapeOrder, srcIdx) end
+                                        table.insert(LFO.ShapeOrder, i, srcName)
+                                        local basePath = ConcatPath(CurrentDirectory, 'src', 'LFO Shapes')
+                                        local ordw = io.open(ConcatPath(basePath, '_order.txt'), 'w')
+                                        if ordw then for _,name in ipairs(LFO.ShapeOrder) do ordw:write(name, '\n') end ordw:close() end
+                                    end
+                                end
+                                im.EndDragDropTarget(ctx)
+                            end
+                            if clicked and not LFO.SuppressShapeClick then
                                 Mc.Node = v
                                 LFO.NewShapeChosen = v
+                                LFO.ShapeChangeAnimStart = r.time_precise()
                             end
                             if im.IsItemHovered(ctx) then
                                 Mc.Node = v
@@ -1964,6 +2821,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                     end
 
 
+                    if LFO.SuppressShapeClick and im.IsMouseReleased(ctx, 0) then LFO.SuppressShapeClick = false end
                     return AnyShapeHovered
                 end
 
@@ -2109,25 +2967,24 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
 
                     if LFO.DeleteShape then
                         local Count = getProjSavedInfo('LFO Saved Shape Count')
-                        r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', Count - 1)
+                        r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', tostring((Count or 1) - 1))
                         table.remove(Shapes, LFO.DeleteShape)
 
                         for I, V in ipairs(Shapes) do -- do for every shape
                             for i, v in ipairs(V) do  --- do for every node
                                 if i == 1 then
-                                    r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                        'Node Count = ', #V)
+                                    r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node Count = ', tostring(#V))
                                 end
 
-                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                    'Node ' .. i .. 'x = ', v.x or '')
-                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                    'Node ' .. i .. 'y = ', v.y or '')
+                                local vx = (type(v) == 'table') and (v.x or v[1]) or v
+                                local vy = (type(v) == 'table') and (v.y or v[2]) or nil
+                                local vcx = (type(v) == 'table') and (v.ctrlX) or nil
+                                local vcy = (type(v) == 'table') and (v.ctrlY) or nil
 
-                                r.SetProjExtState(0, 'FX Devices',
-                                    'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '')
-                                r.SetProjExtState(0, 'FX Devices',
-                                    'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '')
+                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'x = ', tostring(vx or ''))
+                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. 'y = ', tostring(vy or ''))
+                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', tostring(vcx or ''))
+                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', tostring(vcy or ''))
                             end
                         end
                         LFO.DeleteShape = nil
@@ -2136,1287 +2993,56 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                     DrawShapesInSelector(Shapes)
                 end
 
-                if im.ImageButton(ctx, '## save' .. Macro, Img.Save, 12, 12, nil, nil, nil, nil, ClrBG, ClrTint) then
-                    if LFO.OpenedTab == 'Global' then
-                        LFO.OpenSaveDialog = Macro
-                    elseif LFO.OpenedTab == 'Project' then
-                        Save_Shape_To_Project(Mc)
-                    elseif LFO.OpenedTab == 'Track' then
-                        Save_Shape_To_Track(Mc)
-                    end
-                end
-                SL()
-                im.AlignTextToFramePadding(ctx)
-
-
-                if im.BeginTabBar(ctx, 'shape select tab bar') then
-                    if im.BeginTabItem(ctx, 'Global') then
-                        Global_Shapes()
-                        LFO.OpenedTab = 'Global'
-                        im.EndTabItem(ctx)
-                    end
-
-                    if im.BeginTabItem(ctx, 'Project') then
-                        Proj_Shapes()
-                        LFO.OpenedTab = 'Project'
-                        im.EndTabItem(ctx)
-                    end
-
-                    if im.BeginTabItem(ctx, 'Track') then
-                        Track_Shapes()
-                        LFO.OpenedTab = 'Track'
-                        im.EndTabItem(ctx)
-                    end
-
-                    im.EndTabBar(ctx)
-                end
-
-                if im.IsWindowHovered(ctx, im.FocusedFlags_RootAndChildWindows) then
-                    LFO.HoveringShapeWin = Ident
-                else
-                    LFO.HoveringShapeWin = nil
-                end
-                im.End(ctx)
-            end
-        end
-
-        return tweaking, All_Coord
-    end
-
-    local HvrOnBtn = im.IsItemHovered(ctx)
-
-    local function Open_LFO_WIN_If_Hover()
-
-        local PinID = TrkID .. 'Macro = ' .. Macro
-        --[[ if HvrOnBtn and IsContainer then 
-            r.TrackFX_GetFXGUID(Track, FX[FxGUID].parent)
-        end ]]
-
-        if HvrOnBtn or LFO.HvringWin == Ident or LFO.Tweaking == Ident or LFO.Pin == PinID or LFO.OpenSaveDialog == Ident or LFO.HoveringShapeWin == Ident then
-            LFO.notHvrTime = 0
-            LFO.Tweaking = open_LFO_Win(Track, Macro, IsContainer, PosForWin,Mc, FxGUID)
-            LFO.WinHovered = Ident
-        end
-    end
-
-
-    Open_LFO_WIN_If_Hover()
-    --- open window for 10 more frames after mouse left window or btn
-    if LFO.WinHovered == Ident and not HvrOnBtn and not LFO.HvringWin and not LFO.Tweaking and not LFO.DontOpenNextFrame then
-        LFO.notHvrTime = LFO.notHvrTime + 1
-
-        if LFO.notHvrTime > 0 and LFO.notHvrTime < 10 then
-            open_LFO_Win(Track, Macro,IsContainer, PosForWin, Mc,FxGUID)
-        else
-            LFO.notHvrTime = 0
-            LFO.WinHovered = nil
-        end
-    end
-    LFO.DontOpenNextFrame = nil
-
-
-
-
-
-    if not IsLBtnHeld then
-        LFO_DragDir = nil
-        LFO_MsX_Start, LFO_MsY_Start = nil
-    end
-
-
-
-
-    Save_LFO_Dialog (Macro, L, T - LFO.DummyH, Mc)
-
-end
-
-
-function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
-    if Mc.Type ~= 'LFO' then return end 
-    local Macro = i
-    local Ident = 'FXGUID = '.. (FxGUID or '').. 'Macro = '.. Macro
-    local fx = FX[FxGUID]
-    if IsContainer then 
-        r.gmem_attach('ContainerMacro')
-    end
-    --[[ local function ChangeLFO(mode, V, gmem, StrName)
-        
-        r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
-        r.gmem_write(5, i)    -- Tells jsfx which macro
-        r.gmem_write(gmem or 9, V)
-        if StrName then
-            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. Macro .. StrName, V, true)
-        end
-    end ]]
-    local function ChangeLFO(mode, V, gmem, StrName, IsContainer, fx)
-
-        if IsContainer then 
-            r.gmem_attach('ContainerMacro')
-            r.gmem_write(2, fx.DIY_FxGUID) -- tells jsfx which container macro, so multiple instances of container macros won't affect each other
-        end
-        r.gmem_write(4, mode) -- tells jsfx user is adjusting LFO Freq
-        r.gmem_write(5, i)    -- Tells jsfx which macro
-        r.gmem_write(gmem or 9, V)
-        if StrName then
-            if IsContainer then 
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID.. 'Mod '.. Macro .. StrName, V, true)
-            else
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. Macro .. StrName, V, true)
-            end
-        end
-    end
-    local function SaveLFO(StrName, V)
-        if StrName then
-            if IsContainer then
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID.. 'Mod '.. Macro .. StrName, V, true)
-            else
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. Macro .. StrName, V, true)
-            end
-        end
-    end
-
-    local function IF_CONTIAINER_SEND_RIGHT_CLICK_INFO()
-        if not IsContainer then return end
-        if im.IsItemHovered(ctx,im.HoveredFlags_RectOnly) and IsRBtnClicked then 
-            Mc.TweakingKnob=  2 
-        end 
-    end
-    local Width = W 
-    local H    = H or Width/3
-    local MOD  = math.abs(SetMinMax((r.gmem_read(100 + i) or 0) / 127, -1, 1))
-
-    LFO.DummyH = LFO.Win.h + 20
-    --LFO.DummyW  =  ( LFO.Win.w + 30) * ((Mc.LFO_leng or LFO.Def.Len)/4 )
-    Mc.Freq    = Mc.Freq or 1
-    Mc.Gain    = Mc.Gain or 5
-    if not IsContainer then 
-    im.TableSetColumnIndex(ctx, (MacroNums[i] - 1) * 2)
-    end
-    --[[  IsMacroSlidersEdited, I.Val = im.SliderDouble(ctx, i .. '##LFO', I.Val, Slider1Min or 0,
-    Slider1Max or 1) ]]
-    local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
-
-
-    --local W = (VP.w - 10) / 12 - 3 -- old W 
-    local rv = im.InvisibleButton(ctx, '##LFO Button' .. i ..(FxGUID or ''), W, H)
-    local BG_txt_Indent = IsContainer and 5 or 30
-    local BG_txt_Sz = IsContainer and 20 or 30
-    local BG_txt_Ofs_Y = IsContainer and H/4 or nil
-    Add_BG_Text_For_Modulator('LFO', BG_txt_Indent ,BG_txt_Sz, BG_txt_Ofs_Y)
-    IF_CONTIAINER_SEND_RIGHT_CLICK_INFO()
-    local w, h = im.GetItemRectSize(ctx)
-    local L, T = im.GetItemRectMin(ctx)
-    local WDL = im.GetWindowDrawList(ctx)
-    local X_range = (LFO.Win.w) * ((Mc.LFO_leng or LFO.Def.Len) / 4)
-
-    im.DrawList_AddRect(WDL, L, T , L + w , T + h, 0xFFFFFF22)
-
-
-    if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-        im.OpenPopup(ctx, 'Macro' .. i .. 'Menu')
-    elseif rv and Mods == 0 then
-        if LFO.Pin == TrkID .. 'Macro = ' .. Macro then
-            LFO.Pin = nil
-        else
-            LFO.Pin = TrkID .. 'Macro = ' .. Macro
-        end
-    end
-
-    local function DrawShape(Node, L, W, H, T, Clr)
-        if Node then
-            for i, v in ipairs(Node) do
-                local W, H = W or w, H or h
+                -- Header row: Tab bar (left) and Save button (right)
                 
-
-                local N = Node
-                local L = L or HdrPosL
-                local h = LFO.DummyH
-                local lastX = N[math.max(i - 1, 1)].x * W + L
-                local lastY = T + H - (-N[math.max(i - 1, 1)].y + 1) * H
-
-                local x = N[i].x * W + L
-                local y = T + H - (-N[math.min(i, #Node)].y + 1) * H
-
-                local CtrlX = (N[i].ctrlX or ((N[math.max(i - 1, 1)].x + N[i].x) / 2)) * W + L
-                local CtrlY = T + H - (-(N[i].ctrlY or ((N[math.max(i - 1, 1)].y + N[i].y) / 2)) + 1) * H
-
-                local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, x, y)
-
-                for i, v in ipairs(PtsX) do
-                    if i > 1 and PtsX[i] <= L + W then -- >1 because you need two points to draw a line
-                        im.DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i], Clr or EightColors.LFO[Macro])
-                    end
-                end
-            end
-        end
-    end
-
-    --WhenRightClickOnModulators(Macro)
-    local G = 1 -- Gap between Drawing Coord values retrieved from jsfx
-
-    -- Draw Tiny Playhead
-    if IsContainer then 
-        r.gmem_attach('ContainerMacro')
-    else 
-        r.gmem_attach('ParamValues')
-    end
-    --r.gmem_attach('ParamValues')
-
-    local PlayPos = L + r.gmem_read(108 + i) / 4 * w / ((Mc.LFO_leng or LFO.Def.Len) / 4)
-    im.DrawList_AddLine(WDL, PlayPos, T, PlayPos, T + h, EightColors.LFO[Macro], 1)
-    im.DrawList_AddCircleFilled(WDL, PlayPos, T + h - MOD * h , 3, EightColors.LFO[Macro])
-    DrawLFOShape(Mc.Node, L, W, H, T,  nil, 3,nil, i )
-    
-    
-
-    if rv and not LFO_DragDir and Mods == 0 then
-        im.OpenPopup(ctx, 'LFO Shape Select')
-        --im.SetNextWindowSize(ctx, LFO.Win.w  , LFO.Win.h+200)
-    end
-
-
-
-    local    function open_LFO_Win(Track, Macro, IsContainer, pos,  mc, FxGUID)
-        if not IsContainer then 
-            if LFO.EditWinOpen then return end 
-        end
-        local tweaking
-        local LFOWindowW
-        local HdrPosL = IsContainer and pos[1] or HdrPosL
-        local Mc = mc or Mc
-        
-        -- im.SetNextWindowSize(ctx, LFO.Win.w +20 , LFO.Win.h + 50)
-        im.SetNextWindowPos(ctx, HdrPosL, IsContainer and pos[2] - 385 or VP.Y - 385)
-        local WinLbl = (IsContainer and 'Container' or '')..'LFO Shape Edit Window' .. Macro .. (FxGUID or '')
-
-        if im.Begin(ctx, WinLbl, true, im.WindowFlags_NoDecoration + im.WindowFlags_AlwaysAutoResize) then
-            
-            
-            local Node = Mc.Node
-            local function ConverCtrlNodeY(lastY, Y)
-                local Range = (math.max(lastY, Y) - math.min(lastY, Y))
-                local NormV = (math.min(lastY, Y) + Range - Y) / Range
-                local Bipolar = -1 + (NormV) * 2
-                return NormV
-            end
-            local BtnSz = 11
-
-
-
-            --Mc.Node = Mc.Node or { x = {} , ctrlX = {}, y = {}  , ctrlY = {}}
-            --[[ if not Node[i].x then
-                table.insert(Node.x, L)
-                table.insert(Node.x, L + 400)
-                table.insert(Node.y, T + h / 2)
-                table.insert(Node.y, T + h / 2)
-            end ]]
-
-
-            local function Env_Or_Loop()
-                if im.BeginCombo(ctx, '## Env_Or_Loop' .. Macro, Mc.LFO_Env_or_Loop or 'Loop') then
-                    if im.Selectable(ctx, 'Loop', p_1selected, flagsIn, size_wIn, size_hIn) then
-                        Mc.LFO_Env_or_Loop = 'Loop'
-                        ChangeLFO(18, 0, nil, 'LFO_Env_or_Loop') -- value is 0 because loop is default
-                    end
-                    if im.Selectable(ctx, 'Envelope (MIDI)', p_2selected, flagsIn, size_wIn, size_hIn) then
-                        Mc.LFO_Env_or_Loop = 'Envelope'
-                        ChangeLFO(18, 1, nil, 'LFO_Env_or_Loop') -- 1 for envelope
-                    end
-                    tweaking = Ident
-                    im.EndCombo(ctx)
-                end
-
-                if Mc.LFO_Env_or_Loop == 'Envelope' then
-                    SL()
-                    im.SetNextItemWidth(ctx, 120)
-                    local ShownName
-                    if Mc.Rel_Type == 'Custom Release - No Jump' then ShownName = 'Custom No Jump' end
-                    if im.BeginCombo(ctx, '## ReleaseType' .. Macro, ShownName or Mc.Rel_Type or 'Latch') then
-                        tweaking = Ident
-                        if im.Selectable(ctx, 'Latch', p_1selected, flagsIn, size_wIn, size_hIn) then
-                            Mc.Rel_Type = 'Latch'
-                            ChangeLFO(19, 0, nil, 'LFO_Release_Type') -- 1 for latch
+                    if im.BeginTabBar(ctx, 'shape select tab bar') then
+                        if im.BeginTabItem(ctx, 'Global') then
+                            Global_Shapes()
+                            LFO.OpenedTab = 'Global'
+                            im.EndTabItem(ctx)
                         end
-                        QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
-                        --[[ if im.Selectable( ctx, 'Simple Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then
-                            Mc.Rel_Type = 'Simple Release'
-                            ChangeLFO(19, 1 , nil, 'LFO_Release_Type') -- 1 for Simple release
-                        end   ]]
-                        if im.Selectable(ctx, 'Custom Release', p_1selected, flagsIn, size_wIn, size_hIn) then
-                            Mc.Rel_Type = 'Custom Release'
-                            ChangeLFO(19, 2, nil, 'LFO_Release_Type') -- 2 for Custom release
+                        if im.BeginTabItem(ctx, 'Project') then
+                            Proj_Shapes()
+                            LFO.OpenedTab = 'Project'
+                            im.EndTabItem(ctx)
                         end
-                        QuestionHelpHint('Jump to release node when midi note is released')
-
-                        if im.Selectable(ctx, 'Custom Release - No Jump', p_1selected, flagsIn, size_wIn, size_hIn) then
-                            Mc.Rel_Type = 'Custom Release - No Jump'
-                            ChangeLFO(19, 3, nil, 'LFO_Release_Type') -- 3 for Custom release no jump
+                        if im.BeginTabItem(ctx, 'Track') then
+                            Track_Shapes()
+                            LFO.OpenedTab = 'Track'
+                            im.EndTabItem(ctx)
                         end
-                        QuestionHelpHint(
-                            'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released')
-
-                        if im.Checkbox(ctx, 'Legato', Mc.LFO_Legato) then
-                            Mc.LFO_Legato = toggle(Mc.LFO_Legato)
-                            local v = Mc.LFO_Legato and 1 or 0
-                            ChangeLFO(21, v, nil, 'LFO_Legato')
-                        end
-                        im.SetNextItemWidth(ctx, 80)
-                        local rv, low =  im.InputInt(ctx, 'Note Filter Low ', Mc.LowNoteFilter, 1 )  
-                        if rv then 
-                            Mc.LowNoteFilter = low 
-                            ChangeLFO(22, low, 9, 'Note Filter Low')
-                        end 
-
-                        im.SetNextItemWidth(ctx, 80)
-                        local rv, hi = im.InputInt(ctx, 'Note Filter High ', Mc.HighNoteFilter or 127 , 1  )  
-                        if rv then 
-                            ChangeLFO(22, hi, 10, 'Note Filter High')
-                            
-                            Mc.HighNoteFilter = hi
-                        end 
-
-                        im.EndCombo(ctx)
+                        im.EndTabBar(ctx)
                     end
-                end
-            end
-
-            local function Copy()
-                local rv = im.Button(ctx, '## copy', 17, 17)
-                DrawListButton(WDL, "0", 0x00000000, false, true, icon1_middle, false)
-                TooltipUI("Copy LFO", im.HoveredFlags_Stationary)
-                if rv then
-                    LFO.Clipboard = {}
+                    -- Save controls row for popup: input with hint + save button
                     
-                    for i, v in ipairs(Mc.Node) do
-                        LFO.Clipboard[i] =  {}
-                        LFO.Clipboard[i][1] = v[1]
-                        LFO.Clipboard[i][2] = v[2]
-                        LFO.Clipboard[i][3] = v[3]
-
-                    end
-                end
-            end
-            local function Paste()
-                if not LFO.Clipboard then im.BeginDisabled(ctx) end
-                --local rv = im.ImageButton(ctx, '## paste' .. Macro, Img.Paste, BtnSz, BtnSz, nil, nil, nil, nil, ClrBG, ClrTint)
-                local rv = im.Button(ctx, '## paste', 17, 17)
-                DrawListButton(WDL, "1", 0x00000000, false, true, icon1_middle, false)
-                TooltipUI("Paste LFO", im.HoveredFlags_Stationary)
-                if rv then
-                    Mc.Node = LFO.Clipboard
-                    --[[ for i, v in ipairs(LFO.Clipboard) do
-                        Mc.Node[i] = Mc.Node[i] or {}
-                        Mc.Node[i].x = v.x
-                        Mc.Node[i].y = v.y
-                    end ]]
-                end
-                if not LFO.Clipboard then im.EndDisabled(ctx) end
-            end
-            local function Save_Shape()
-                local rv = im.ImageButton(ctx, '## save' .. Macro, Img.Save, BtnSz, BtnSz, nil, nil, nil, nil,ClrBG,ClrTint)
-                TooltipUI("Save LFO shape as preset", im.HoveredFlags_Stationary)
-                if rv then
-                    LFO.OpenSaveDialog = Ident
-                end
-            end
-            local function Shape_Preset()
-                local rv = im.ImageButton(ctx, '## shape Preset' .. Macro, Img.Sine, BtnSz * 2, BtnSz, nil, nil, nil, nil, 0xffffff00, ClrTint)
-                TooltipUI("Open Shape preset window", im.HoveredFlags_Stationary)
-                if rv then
-                    if LFO.OpenShapeSelect then LFO.OpenShapeSelect = nil else LFO.OpenShapeSelect = Macro end
-                end
-                if LFO.OpenShapeSelect then Highlight_Itm(WDL, 0xffffff55) end
-            end
-
-            local function EXEC_Top_Buttons()
-                
-                LFO.Pin = PinIcon(LFO.Pin, TrkID .. 'Macro = ' .. Macro, BtnSz, 'LFO window pin' .. Macro, 0x00000000, ClrTint)
-                SL()
-                Copy()
-                local WDL = im.GetWindowDrawList(ctx)
-                SL()
-                Paste()
-                SL()
-                im.SetNextItemWidth(ctx, 100)
-                Env_Or_Loop()
-                SL(nil, 30)
-                Save_Shape()
-                SL()
-            
-                Shape_Preset()
-            end
-
-
-
-            EXEC_Top_Buttons()
---[[ 
-            im.Dummy(ctx, 10, 30)
-
-            SL() ]]
-
-            im.Dummy(ctx, (LFO.Win.w) * ((Mc.LFO_leng or LFO.Def.Len) / 4), LFO.DummyH)
-            --local old_Win_T, old_Win_B = VP.y - 320, VP.y - 20
-            local NodeSz = 15
-            local w, h = im.GetItemRectSize(ctx)
-            LFO.Def.DummyW = (LFO.Win.w) * (LFO.Def.Len / 4)
-            LFO.DummyW = w
-            local L, T = im.GetItemRectMin(ctx)
-            local Win_T, Win_B = T, T + h -- 7 is prob the window padding
-            local Win_L = L
-            im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff22)
-            SL()
-            im.Dummy(ctx, 10, 10)
-            DrawLFOShape(Node, L, w, h, T, 0xffffff99, 4, SaveAllCoord, i )
-
-
-            LFO.Win.L, LFO.Win.R = L, L + X_range
-            local LineClr, CtClr = 0xffffff99, 0xffffff44
-
-            Mc.Node = Mc.Node or
-                { { x = 0, y = 0 }, { x = 1, y = 1 } } -- create two default tables for first and last point
-            local Node = Mc.Node
-
-
-            local function GetNormV(i)
-                local NormX = (Node[i].x - HdrPosL) / LFO.Win.w
-                local NormY = (Win_B - Node[i].y) / h -- i think 3 is the window padding
-                return NormX, NormY
-            end
-
-            local function Save_All_LFO_Info(Node)
-                for i, v in ipairs(Node) do
-                    if v.ctrlX then
-                        SaveLFO('Node' .. i .. 'Ctrl X', Node[i].ctrlX)
-                        SaveLFO('Node' .. i .. 'Ctrl Y', Node[i].ctrlY)
-                    end
-
-                    SaveLFO('Node ' .. i .. ' X', Node[i].x)
-                    SaveLFO('Node ' .. i .. ' Y', Node[i].y)
-                    SaveLFO('Total Number of Nodes', #Node)
-                end
-            end
-
-            local Mc = Mc
-
-            Mc.NodeNeedConvert = Mc.NodeNeedConvert or nil
-
-
-            if not im.IsAnyItemHovered(ctx) and LBtnDC then -- Add new node if double click
-                local x, y = im.GetMousePos(ctx)
-                local InsertPos
-                local x = (x - L) / LFO.DummyW
-                local y = (y - T) / LFO.DummyH
-
-
-                for i = 1, #Node, 1 do
-                    if i ~= #Node then
-                        if Node[i].x < x and Node[i + 1].x > x then InsertPos = i + 1 end
-                    elseif not InsertPos then
-                        if Node[1].x > x then
-                            InsertPos = 1 -- if it's before the first node
-                            --[[ table.insert(Node.ctrlX, InsertPos, HdrPosL + (x-HdrPosL)/2)
-                            table.insert(Node.ctrlY, InsertPos, y) ]]
-                        elseif Node[i].x < x then
-                            InsertPos = i + 1
-                        elseif Node[i].x > x then
-                            InsertPos = i
-                        end
-                    end
-                end
-
-                table.insert(Node, InsertPos, {
-                    x = SetMinMax(x, 0, 1),
-                    y = SetMinMax(y, 0, 1),
-                })
-
-                Save_All_LFO_Info(Node)
-            end
-
-
-            local function AddNode(x, y, ID)
-                local w, h = 15, 15
-                InvisiBtn(ctx, x, y, '##Node' .. ID, 15)
-                local Hvred
-                local w, h = im.GetItemRectSize(ctx)
-                local L, T = im.GetItemRectMin(ctx)
-
-                local function ClampCtrlNode(ID)
-                    Node[ID] = Node[ID] or {}
-
-                    if Node[ID].ctrlX then
-                        local lastX = Node[ID - 1].x or 0
-                        local lastY, Y = Node[ID - 1].y or Node[ID].y, Node[ID].y
-
-
-                        -- Segment Before the tweaking point
-                        if Node[ID].ctrlX and Node[ID].ctrlY then
-                            Node[ID].ctrlX = SetMinMax(Node[ID].ctrlX, lastX, Node[ID].x)
-                            Node[ID].ctrlY = SetMinMax(Node[ID].ctrlY, math.min(lastY, Y),
-                                math.max(lastY, Y))
-
-                            SaveLFO('Node' .. ID .. 'Ctrl X', Node[ID].ctrlX)
-                            SaveLFO('Node' .. ID .. 'Ctrl Y', Node[ID].ctrlY)
-                        end
-                    end
-                end
-                function findRelNode()
-                    for i, v in ipairs(Mc.Node) do
-                        if v.Rel == true then return i end
-                    end
-                end
-
-                if (Mc.Rel_Type or ''):find('Custom Release') then
-                    if not findRelNode() then
-                        Node[#Mc.Node].Rel = true
-                        ChangeLFO(20, #Mc.Node, nil, 'LFO_Rel_Node')
-                    end
-
-                    if im.IsItemClicked(ctx, 1) and Mods == Alt then
-                        Mc.Node[findRelNode() or 1].Rel = nil
-                        Mc.Node[ID].Rel = true
-                        ChangeLFO(20, ID, nil, 'LFO_Rel_Node')
-                    end
-                    if Mc.Node[ID].Rel then
-                        local L = L + NodeSz / 2
-                        im.DrawList_AddCircle(WDL, L, T + NodeSz / 2, 6, 0xffffffaa)
-                        im.DrawList_AddLine(WDL, L, Win_T, L, Win_B, 0xffffff55, 3)
-                        im.DrawList_AddText(WDL, math.min(L, Win_L + LFO.DummyW - 50), Win_T,
-                            0xffffffaa, 'Release')
-                    end
-                end
-
-
-
-                if im.IsItemHovered(ctx) then
-                    LineClr, CtClr = 0xffffffbb, 0xffffff88
-                    HoverNode = ID
-                    Hvred = true
-                end
-
-                if MouseClosestNode == ID and im.IsKeyPressed(ctx, im.Key_X, false) then
-                    DraggingNode = ID
-                    tweaking = Ident
-                elseif im.IsKeyReleased(ctx, im.Key_X) then
-                    DraggingNode = nil
-                end
-
-                -- if moving node
-                if (im.IsItemActive(ctx) and Mods == 0) or DraggingNode == ID then
-                    tweaking = Ident
-                    HideCursorTillMouseUp(nil, im.Key_X)
-                    HideCursorTillMouseUp(0)
-                    HoverNode = ID
-                    Send_All_Coord(All_Coord)
-
-                    local lastX = Node[math.max(ID - 1, 1)].x
-                    local nextX = Node[math.min(ID + 1, #Node)].x
-                    if ID == 1 then lastX = 0 end
-                    if ID == #Node then nextX = 1 end
-
-                    local MsX, MsY = GetMouseDelta(0, im.Key_X)
-                    local MsX = MsX / LFO.DummyW
-                    local MsY = MsY / LFO.DummyH
-
-
-                    Node[ID].x = SetMinMax(Node[ID].x + MsX, lastX, nextX)
-                    Node[ID].y = SetMinMax(Node[ID].y + MsY, 0, 1)
-
-
-                    if ID == 1 then
-                        ClampCtrlNode(ID - 1)
-                    end
-
-                    ClampCtrlNode(ID)
-                    ClampCtrlNode(math.min(ID + 1, #Node))
-
-
-                    --[[ ChangeLFO(13, NormX, 9, 'Node '..ID..' X')
-                    ChangeLFO(13, NormY, 10, 'Node '..ID..' Y')
-                    ChangeLFO(13, ID, 11)   -- tells jsfx which node user is adjusting
-                    ChangeLFO(13, #Node.x, 12, 'Total Number of Nodes' ) ]]
-                    local NormX, NormY = GetNormV(ID)
-
-                    SaveLFO('Node ' .. ID .. ' X', Node[ID].x)
-                    SaveLFO('Node ' .. ID .. ' Y', Node[ID].y)
-                    SaveLFO('Total Number of Nodes', #Node)
-
-
-                    if ID ~= #Node then
-                        local this, next = Node[ID].x, Node[ID + 1].x or 1
-                        Node[ID + 1].ctrlX = SetMinMax(Node[ID + 1].ctrlX or (this + next) / 2, this, next)
-                        if Node[ID + 1].ctrlX == (this + next) / 2 then Node[ID + 1].ctrlX = nil end
-                    end
-
-                    im.ResetMouseDragDelta(ctx)
-                elseif im.IsItemClicked(ctx) and Mods == Alt then
-                    LFO.DeleteNode = ID
-                end
-
-
-                im.DrawList_AddCircle(WDL, L + NodeSz / 2, T + NodeSz / 2, 5, LineClr)
-                im.DrawList_AddCircleFilled(WDL, L + NodeSz / 2, T + NodeSz / 2, 3, CtClr)
-                return Hvred
-            end
-            local Node = Mc.Node
-
-
-
-            local FDL = im.GetForegroundDrawList(ctx)
-            --table.sort(Node.x, function(k1, k2) return k1 < k2 end)
-            local AnyNodeHovered
-            if im.IsKeyReleased(ctx, im.Key_C) or LBtnRel then
-                DraggingLFOctrl = nil
-                Save_All_LFO_Info(Node)
-            end
-
-            All_Coord = { X = {}, Y = {} }
-
-            if LFO.DeleteNode then
-                table.remove(Mc.Node, LFO.DeleteNode)
-                Mc.NeedSendAllCoord = true
-                Save_All_LFO_Info(Node)
-                LFO.DeleteNode = nil
-            end
-
-
-            local PlayPosX = L + r.gmem_read(108 + i) / 4 * LFO.Win.w
-
-            local N = i
-            local CurrentPlayPos
-            local function Add_All_Points_To_All_Coord_Table()
-                for i, v in ipairs(PtsX) do
-                    if i > 1 then -- >1 because you need two points to draw a line
-                        local n = math.min(i + 1, #PtsX)
-
-                        if PlayPosX > PtsX[i - 1] and PlayPosX < PtsX[i] then
-                            CurrentPlayPos = i
-                        end
-                        im.DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i], 0xffffffff)
-                    end
-                    ----- things below don't need >1 because jsfx needs all points to draw lines
-                    --- normalize values
-                    local NormX = (PtsX[i] - HdrPosL) / LFO.Win.w
-                    local NormY = (Win_B - PtsY[i]) / (LFO.DummyH) -- i think 3 is the window padding
-
-                    table.insert(All_Coord.X, NormX or 0)
-                    table.insert(All_Coord.Y, NormY or 0)
-                end
-            end
-
-            for i = 1, #Mc.Node, 1 do --- Rpt for every node
-                local last = math.max(i - 1, 1)
-                local lastX, lastY = L + (Node[last].x or 0) * LFO.DummyW,
-                    T + (Node[last].y or Node[i].y) * LFO.DummyH
-                local X, Y = L + Node[i].x * LFO.DummyW, T + Node[i].y * LFO.DummyH
-
-
-
-
-                if AddNode(X - 15 / 2, Y - 15 / 2, i) then AnyNodeHovered = true end
-                local CtrlX, CtrlY = L + (Node[i].ctrlX or (Node[last].x + Node[i].x) / 2) * LFO.DummyW,
-                    T + (Node[i].ctrlY or (Node[last].y + Node[i].y) / 2) * LFO.DummyH
-
-
-                -- Control Node
-                if (im.IsMouseHoveringRect(ctx, lastX, Win_T, X, Win_B) or DraggingLFOctrl == i) then
-                    local Sz = LFO.CtrlNodeSz
-
-                    ---- Draw Node
-                    if not DraggingLFOctrl or DraggingLFOctrl == i then
-                        if not HoverNode and not DraggingNode then
-                            im.DrawList_AddBezierQuadratic(WDL, lastX, lastY, CtrlX, CtrlY, X, Y,
-                                0xffffff44, 7)
-                            im.DrawList_AddCircle(WDL, CtrlX, CtrlY, Sz, LineClr)
-                            --im.DrawList_AddText(FDL, CtrlX, CtrlY, 0xffffffff, i)
-                        end
-                    end
-
-                    InvisiBtn(ctx, CtrlX - Sz / 2, CtrlY - Sz / 2, '##Ctrl Node' .. i, Sz)
-                    if im.IsKeyPressed(ctx, im.Key_C, false) or im.IsItemActivated(ctx) then
-                        DraggingLFOctrl = i
-                    end
-
-                    if im.IsItemHovered(ctx) then
-                        im.DrawList_AddCircle(WDL, CtrlX, CtrlY, Sz + 2, LineClr)
-                    end
-                end
-
-                -- decide which node is mouse closest to
-                local Range = X - lastX
-                if im.IsMouseHoveringRect(ctx, lastX, Win_T, lastX + Range / 2, Win_B) and not tweaking and not DraggingNode then
-                    im.DrawList_AddCircle(WDL, lastX, lastY, LFO.NodeSz + 2, LineClr)
-                    MouseClosestNode = last
-                elseif im.IsMouseHoveringRect(ctx, lastX + Range / 2, Win_T, X, Win_B) and not tweaking and not DraggingNode then
-                    im.DrawList_AddCircle(WDL, X, Y, LFO.NodeSz + 2, LineClr)
-
-                    MouseClosestNode = i
-                end
-
-                --- changing control point
-                if DraggingLFOctrl == i then
-                    tweaking           = Ident
-                    local Dx, Dy       = GetMouseDelta(0, im.Key_C)
-                    local Dx, Dy       = Dx / LFO.DummyW, Dy / LFO.DummyH
-                    local CtrlX, CtrlY = Node[i].ctrlX or (Node[last].x + Node[i].x) / 2,
-                        Node[i].ctrlY or (Node[last].y + Node[i].y) / 2
-
-                    Node[i].ctrlX      = SetMinMax(CtrlX + Dx, Node[last].x, Node[i].x)
-                    Node[i].ctrlY      = SetMinMax(CtrlY + Dy, math.min(Node[last].y, Node[i].y),
-                        math.max(Node[last].y, Node[i].y))
-
-                    SaveLFO('Node' .. i .. 'Ctrl X', Node[i].ctrlX)
-                    SaveLFO('Node' .. i .. 'Ctrl Y', Node[i].ctrlY)
-                    Send_All_Coord(All_Coord)
-                end
-
-
-
-
-
-                if (Mc.LFO_Gain or 1) ~= 1 then
-                    local B = T + LFO.DummyH
-                    local y = -Node[i].y + 1
-                    local Y = B - y * LFO.DummyH * Mc.LFO_Gain
-                    local lastY = B - (-(Node[last].y or Node[i].y) + 1) * LFO.DummyH * Mc.LFO_Gain
-                    local CtrlY = B -
-                        (-(Node[i].ctrlY or (Node[last].y + Node[i].y) / 2) + 1) * LFO.DummyH *
-                        Mc.LFO_Gain
-                    local PtsX = {}
-                    local PtsY = {}
-                    local PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
-
-                    for i = 1, #PtsX, 2 do
-                        if i > 1 then -- >1 because you need two points to draw a line
-                            im.DrawList_AddLine(WDL, PtsX[i - 1], PtsY[i - 1], PtsX[i], PtsY[i], 0xffffffff)
-                        end
-
-                    end
-                end
-
-                PtsX = {}
-                PtsY = {}
-
-                PtsX, PtsY = Curve_3pt_Bezier(lastX, lastY, CtrlX, CtrlY, X, Y)
-                Add_All_Points_To_All_Coord_Table()
-
-                if Wheel_V ~= 0 then Sqr = (Sqr or 0) + Wheel_V / 100 end
-
-
-                --im.DrawList_AddLine(FDL, p.x, p.y, 0xffffffff)
-
-
-
-
-                function Send_All_Coord(All_Coord)
-                    for i, v in ipairs(All_Coord.X) do
-                        r.gmem_write(4, 15) -- mode 15 tells jsfx to retrieve all coordinates
-                        r.gmem_write(5, Macro)
-                        r.gmem_write(6, #Mc.Node * 11)
-                        r.gmem_write(1000 + i, v)
-                        r.gmem_write(2000 + i, All_Coord.Y[i])
-                    end
-                end
-
-                if CurrentPlayPos and (Mc.LFO_spd or 1) >= 2 then
-                    for i = 1, CurrentPlayPos, 1 do
-                        local pos = CurrentPlayPos - 1
-                        local L = math.max(pos - i, 1)
-                        --if PtsX[pos] > PtsX[i] -30  then  -- if playhead is 60 pixels right to current point
-                        im.DrawList_AddLine(FDL, PtsX[L + 1], PtsY[L + 1], PtsX[L], PtsY[L], 0xffffff88, 7 - 7 * (i * 0.1))
-                        -- end
-                        --im.DrawList_AddText(FDL, PtsX[i] ,PtsY[i], 0xffffffff, i)
-
-
-                        -- calculate how far X and last x
-                        local Ly, Lx
-
-                        testTB = {}
-
-                        for i = 0, (PlayPosX - PtsX[pos]), (PlayPosX - PtsX[pos]) / 4 do
-                            local n = math.min(pos + 1, #PtsX)
-                            local x2 = PtsX[pos] + i
-                            local y2 = PtsY[pos] +
-                                (PtsY[CurrentPlayPos] - PtsY[pos]) * (i / (PtsX[n] - PtsX[pos]))
-
-                            im.DrawList_AddLine(FDL, Lx or x2, Ly or y2, x2, y2, Change_Clr_A(0xffffff00, (i / (PlayPosX - PtsX[pos])) * 0.3), 7)
-                            
-                            Ly = y2
-                            Lx = x2
-
-                            table.insert(testTB, (i / (PlayPosX - PtsX[pos])))
-                        end
-                    end
-                end
-
-
-
-                r.gmem_write(6, #Node * 11)
-
-                --im.DrawList_AddBezierQuadratic(FDL, lastX, lastY, CtrlX, CtrlY, v, Y, 0xffffffff, 3)
-            end
-            if (Mc.LFO_spd or 1) < 2 then
-                --DrawLFOvalueTrail(Mc, PlayPosX, Win_B - MOD * LFO.DummyH, Macro)
-            end
-
-
-            for i, v in ipairs(All_Coord.X) do
-                r.gmem_write(1000 + i, v)
-                r.gmem_write(2000 + i, All_Coord.Y[i])
-            end
-
-
-            if DraggingLFOctrl then
-                HideCursorTillMouseUp(nil, im.Key_C)
-                HideCursorTillMouseUp(0)
-            end
-
-
-            if not AnyNodeHovered then HoverNode = nil end
-
-
-            --im.DrawList_PathStroke(FDL, 0xffffffff, nil, 2)
-
-            --- Draw Playhead
-
-            im.DrawList_AddLine(WDL, PlayPosX, Win_T, PlayPosX, Win_B, 0xffffff99, 4)
-            im.DrawList_AddCircleFilled(WDL, PlayPosX, Win_B - MOD * LFO.DummyH, 5, 0xffffffcc)
-
-            --- Draw animated Trail for modulated value
-            --[[ Mc.LFO_Trail = Mc.LFO_Trail or {}
-            table.insert(Mc.LFO_Trail , Win_B - MOD * LFO.DummyH)
-            if # Mc.LFO_Trail > 100 then table.remove(Mc.LFO_Trail, 1) end
-            for i, v in ipairs( Mc.LFO_Trail) do
-
-            end ]]
-
-
-            if Mc.NeedSendAllCoord then
-                Send_All_Coord(All_Coord)
-                Mc.NeedSendAllCoord = nil
-            end
-
-            -- Draw Grid
-
-            local function DrawGridLine_V(division)
-                local Pad_L = 0
-                for i = 0, division, 1 do
-                    local W = (X_range / division)
-                    local R = L + X_range
-                    local X = Pad_L + L + W * i
-                    im.DrawList_AddLine(WDL, X, Win_T, X, Win_B, 0xffffff55, 2)
-                end
-            end
-            DrawGridLine_V(Mc.LFO_leng or LFO.Def.Len)
-
-
-            im.SetCursorPos(ctx, 10, LFO.Win.h + 55)
-            im.AlignTextToFramePadding(ctx)
-            im.Text(ctx, 'Speed:')
-            SL()
-            im.SetNextItemWidth(ctx, 50)
-            local rv, V = im.DragDouble(ctx, '##Speed'..(FxGUID or ''), Mc.LFO_spd or 1, 0.05, 0.125, 128, 'x %.3f')
-            if im.IsItemActive(ctx) or im.IsWindowAppearing(ctx) then
-                ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
-                tweaking = Ident
-                Mc.LFO_spd = V
-            end
-            if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                im.OpenPopup(ctx, '##LFO Speed menu' .. Macro)
-            end
-           
-            if im.BeginPopup(ctx, '##LFO Speed menu' .. Macro) then
-                tweaking = Ident
-                if im.Selectable(ctx, 'Add Parameter to Envelope', false) then
-                    AutomateModPrm(Macro, 'LFO Speed', 17, 'LFO ' .. Macro .. ' Speed')
-                    r.TrackList_AdjustWindows(false)
-                    r.UpdateArrange()
-                end
-
-                im.EndPopup(ctx)
-            end
-            if Mods == Alt and im.IsItemActivated(ctx) then Mc.LFO_spd = 1 end
-            if im.IsItemHovered(ctx) then
-                if im.IsKeyPressed(ctx, im.Key_DownArrow, false) then
-                    Mc.LFO_spd = (Mc.LFO_spd or 1) / 2
-                    ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
-                elseif im.IsKeyPressed(ctx, im.Key_UpArrow, false) then
-                    Mc.LFO_spd = (Mc.LFO_spd or 1) * 2
-                    ChangeLFO(12, Mc.LFO_spd or 1, 9, 'LFO Speed')
-                end
-            end
-            SL(nil, 30)
-
-
-            ---- Add Length slider
-            im.Text(ctx, 'Length:')
-            SL()
-            im.SetNextItemWidth(ctx, 80)
-            local LengthBefore = Mc.LFO_leng
-            rv, Mc.LFO_leng = im.SliderInt(ctx, '##' .. 'Macro' .. i .. 'LFO Length'..(FxGUID or ''), Mc.LFO_leng or LFO.Def.Len, 1, 8)
-            if im.IsItemActive(ctx) then
-                tweaking = Ident
-                ChangeLFO(13, Mc.LFO_leng or LFO.Def.Len, 9, 'LFO Length')
-            end
-            if im.IsItemEdited(ctx) then
-                local Change = Mc.LFO_leng - LengthBefore
-
-                for i, v in ipairs(Node) do
-                    Node[i].x = Node[i].x / ((LengthBefore + Change) / LengthBefore)
-                    if Node[i].ctrlX then
-                        Node[i].ctrlX = Node[i].ctrlX / ((LengthBefore + Change) / LengthBefore)
-                    end
-                end
-                LengthBefore = Mc.LFO_leng
-            end
-
-
-            ------ Add LFO Gain
-            SL()
-            im.Text(ctx, 'Gain')
-            SL()
-            im.SetNextItemWidth(ctx, 80)
-            local ShownV = math.floor((Mc.LFO_Gain or 0) * 100)
-
-            -- check if prm has been assigned automation
-            local AutoPrmIdx = tablefind(Trk[TrkID].AutoPrms, 'Mod' .. Macro .. 'LFO Gain')
-
-
-            rv, Mc.LFO_Gain = im.DragDouble(ctx, '##' .. 'Macro' .. i .. 'LFO Gain',
-                Mc.LFO_Gain or 1, 0.01, 0, 1, ShownV .. '%%')
-            if im.IsItemActive(ctx) then
-                tweaking = Ident
-                ChangeLFO(14, Mc.LFO_Gain, 9, 'LFO Gain')
-                if AutoPrmIdx then
-                    r.TrackFX_SetParamNormalized(LT_Track, 0, 15 + AutoPrmIdx, Mc.LFO_Gain)
-                end
-            else
-                if AutoPrmIdx then
-                    Mc.LFO_Gain = r.TrackFX_GetParamNormalized(LT_Track, 0, 15 + AutoPrmIdx)
-                end
-            end
-            if im.IsItemClicked(ctx, 1) and Mods == Ctrl then
-                im.OpenPopup(ctx, '##LFO Gain menu' .. Macro)
-            end
-            if im.BeginPopup(ctx, '##LFO Gain menu' .. Macro) then
-                tweaking = Ident
-                if im.Selectable(ctx, 'Add Parameter to Envelope', false) then
-                    AutomateModPrm(Macro, 'LFO Gain', 16, 'LFO ' .. Macro .. ' Gain')
-                    r.TrackList_AdjustWindows(false)
-                    r.UpdateArrange()
-                end
-
-                im.EndPopup(ctx)
-            end
-
-
-
-            if Mc.Changing_Rel_Node then
-                Mc.Rel_Node = Mc.Changing_Rel_Node
-                ChangeLFO(20, Mc.Rel_Node, nil, 'LFO_Rel_Node')
-                Mc.Changing_Rel_Node = nil
-            end
-
-
-
-            if im.IsWindowHovered(ctx, im.HoveredFlags_RootAndChildWindows) then
-                LFO.WinHovered = Ident -- this one doesn't get cleared after unhovering, to inform script which one to stay open
-                LFO.HvringWin = Ident
-            else
-                LFO.HvringWin = nil
-                LFO.DontOpenNextFrame = true -- it's needed so the open_LFO_Win function doesn't get called twice when user 'unhover' the lfo window
-            end
-
-            if im.IsWindowAppearing(ctx) then
-                Save_All_LFO_Info(Node)
-            end
-            if im.IsWindowAppearing(ctx) then
-                Send_All_Coord(All_Coord)
-            end
-            LFOWindowW = im.GetWindowWidth(ctx)
-            LFO_WIN_POS = {im.GetWindowPos(ctx)}
-
-            im.End(ctx)
-        end
-
-
-        if LFO.OpenShapeSelect == Macro then
-            im.SetNextWindowPos(ctx, LFO_WIN_POS[1] + LFOWindowW  , T - LFO.DummyH - 200)
-            if not im.ValidatePtr(ShapeFilter, "ImGui_TextFilter*") then
-                ShapeFilter = im.CreateTextFilter(Shape_Filter_Txt)
-            end
-            im.SetNextWindowSizeConstraints(ctx, 220, 150, 240, 700)
-            if im.Begin(ctx, 'Shape Selection Popup', true, im.WindowFlags_NoTitleBar|im.WindowFlags_AlwaysAutoResize) then
-                local W, H = 150, 75
-                local function DrawShapesInSelector(Shapes)
-                    local AnyShapeHovered
-                    for i, v in pairs(Shapes) do
-                        --InvisiBtn(ctx, nil,nil, 'Shape'..i,  W, H)
-
-                        if im.TextFilter_PassFilter(ShapeFilter, v.Name) then
-                            im.Text(ctx, v.Name or i)
-
-                            --im.SetCursorPosX( ctx, - 15 )
-                            local L, T = im.GetItemRectMin(ctx)
-                            if im.IsMouseHoveringRect(ctx, L, T, L + 200, T + 10) then
-                                SL(W - 8)
-
-                                if TrashIcon(8, 'delete' .. (v.Name or i), 0xffffff00) then
-                                    im.OpenPopup(ctx, 'Delete shape prompt' .. i)
-                                    im.SetNextWindowPos(ctx, L, T)
-                                end
-                            end
-
-                            if im.Button(ctx, '##' .. (v.Name or i) .. i, W, H) then
-                                Mc.Node = v
-                                LFO.NewShapeChosen = v
-                            end
-                            if im.IsItemHovered(ctx) then
-                                Mc.Node = v
-                                AnyShapeHovered = true
-                                LFO.AnyShapeHovered = true
-                                Send_All_Coord(All_Coord)
-                            end
-                            local L, T = im.GetItemRectMin(ctx)
-                            local w, h = im.GetItemRectSize(ctx)
-                            im.DrawList_AddRectFilled(WDL, L, T, L + w, T + h, 0xffffff33)
-                            im.DrawList_AddRect(WDL, L, T, L + w, T + h, 0xffffff66)
-
-                            DrawShape(v, L, w, h, T, 0xffffffaa)
-                        end
-                        if im.BeginPopupModal(ctx, 'Delete shape prompt' .. i, true, im.WindowFlags_NoTitleBar|im.WindowFlags_NoResize|im.WindowFlags_AlwaysAutoResize) then
-                            im.Text(ctx, 'Confirm deleting this shape:')
-                            if im.Button(ctx, 'yes') or im.IsKeyPressed(ctx, im.Key_Y) or im.IsKeyPressed(ctx, im.Key_Enter) then
-                                LFO.DeleteShape = i
-                                im.CloseCurrentPopup(ctx)
-                            end
-                            SL()
-                            if im.Button(ctx, 'No') or im.IsKeyPressed(ctx, im.Key_N) or im.IsKeyPressed(ctx, im.Key_Escape) then
-                                im.CloseCurrentPopup(ctx)
-                            end
-                            im.EndPopup(ctx)
-                        end
-                    end
-                    if LFO.AnyShapeHovered then     -- if any shape was hovered
-                        if not AnyShapeHovered then -- if 'unhovered'
-                            if LFO.NewShapeChosen then
-                                local V = LFO.NewShapeChosen
-                                Mc.Node = V                     ---keep newly selected shape
-                            else
-                                Mc.Node = LFO.NodeBeforePreview -- restore original shape
-                                NeedSendAllGmemLater = Macro
-                            end
-                            LFO.NodeBeforePreview = Mc.Node
-                            LFO.AnyShapeHovered = nil
-                            LFO.NewShapeChosen = nil
-                        end
-                    end
-
-
-                    return AnyShapeHovered
-                end
-
-                if NeedSendAllGmemLater == Macro then
-                    timer = (timer or 0) + 1
-                    if timer == 2 then
-                        Send_All_Coord(All_Coord)
-                        NeedSendAllGmemLater = nil
-                        timer = nil
-                    end
-                end
-
-                local function Global_Shapes()
-                    if im.IsWindowAppearing(ctx) then
-                        LFO.NodeBeforePreview = Mc.Node
-                    end
-
-                    Shapes = {}
-
-
-
-                    local F = scandir(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes'))
-
-
-                    for i, v in ipairs(F) do
-                        local Shape = Get_LFO_Shape_From_File(v)
-                        if Shape then
-                            Shape.Name = tostring(v):sub(0, -5)
-                            table.insert(Shapes, Shape)
-                        end
-                    end
-
-
-                    if LFO.DeleteShape then
-                        os.remove(ConcatPath(CurrentDirectory, 'src', 'LFO Shapes',
-                            Shapes[LFO.DeleteShape].Name .. '.ini'))
-                        table.remove(Shapes, LFO.DeleteShape)
-                        LFO.DeleteShape = nil
-                    end
-
-                    if im.TextFilter_Draw(ShapeFilter, ctx, '##PrmFilterTxt', -1) then
-                        Shape_Filter_Txt = im.TextFilter_Get(ShapeFilter)
-                        im.TextFilter_Set(ShapeFilter, Shape_Filter_Txt)
-                    end
-
-
-
-
-                    AnyShapeHovered = DrawShapesInSelector(Shapes)
-
-
-
-
-
-
-
-
-
-
-                    if im.IsWindowFocused(ctx) and im.IsKeyPressed(ctx, im.Key_Escape) then
-                        im.CloseCurrentPopup(ctx)
-                        LFO.OpenShapeSelect = nil
-                    end
-                end
-
-
-
-                
-
-                local function Track_Shapes()
-                    local Shapes = {}
-                    local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
-
-
-                    for I = 1, HowManySavedShapes or 0, 1 do
-                        local Shape = {}
-                        local Ct = GetTrkSavedInfo('Shape' .. I .. 'LFO Node Count = ')
-
-                        for i = 1, Ct or 1, 1 do
-                            Shape[i] = Shape[i] or {}
-                            Shape[i].x = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'x = ')
-                            Shape[i].y = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'y = ')
-                            Shape[i].ctrlX = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
-                            Shape[i].ctrlY = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
-                        end
-                        if Shape[1] then
-                            table.insert(Shapes, Shape)
-                        end
-                    end
-
-                    if LFO.DeleteShape then
-                        local Count = GetTrkSavedInfo('LFO Saved Shape Count')
-                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: LFO Saved Shape Count', Count - 1,
-                            true)
-                        table.remove(Shapes, LFO.DeleteShape)
-
-                        for I, V in ipairs(Shapes) do -- do for every shape
-                            for i, v in ipairs(V) do  --- do for every node
-                                if i == 1 then
-                                    r.GetSetMediaTrackInfo_String(LT_Track,
-                                        'P_EXT: Shape' .. I .. 'LFO Node Count = ', #V, true)
-                                end
-
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Shape' .. I .. 'Node ' .. i .. 'x = ', v.x or '', true)
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Shape' .. I .. 'Node ' .. i .. 'y = ', v.y or '', true)
-
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '',
-                                    true)
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '',
-                                    true)
+                        LFO.ShapeSaveBuf = LFO.ShapeSaveBuf or {}
+                        local key = 'popup_'..tostring(Macro)
+                        LFO.ShapeSaveBuf[key] = LFO.ShapeSaveBuf[key] or ''
+                        local avail = im.GetContentRegionAvail(ctx)
+                        local saveBtnW = 18
+                        local inputW = math.max(50, (avail or 200) - saveBtnW - 8)
+                        im.SetNextItemWidth(ctx, inputW)
+                        local _, txt = im.InputTextWithHint(ctx, '##shpname_'..key, 'enter shape name', LFO.ShapeSaveBuf[key])
+                        if txt ~= nil then LFO.ShapeSaveBuf[key] = txt end
+                        im.SameLine(ctx)
+                        local nameTrim = (LFO.ShapeSaveBuf[key] or ''):gsub('^%s*(.-)%s*$', '%1')
+                        local disable = (LFO.OpenedTab == 'Global' and nameTrim == '') and true or false
+                        if disable then im.BeginDisabled(ctx) end
+                        if im.ImageButton(ctx, '##save_shape_popup' .. Macro, Img.Save, 14, 14) then
+                            if LFO.OpenedTab == 'Global' then
+                                Save_Shape_To_Global_ByName(Mc, nameTrim)
+                                LFO.ShapeSaveBuf[key] = ''
+                            elseif LFO.OpenedTab == 'Project' then
+                                Save_Shape_To_Project_WithName(Mc, nameTrim ~= '' and nameTrim or nil)
+                                LFO.ShapeSaveBuf[key] = ''
+                            elseif LFO.OpenedTab == 'Track' then
+                                Save_Shape_To_Track_WithName(Mc, nameTrim ~= '' and nameTrim or nil)
+                                LFO.ShapeSaveBuf[key] = ''
                             end
                         end
-                        LFO.DeleteShape = nil
-                    end
+                        if disable then im.EndDisabled(ctx) end
+                    
 
-                    DrawShapesInSelector(Shapes)
-                end
-                local function Proj_Shapes()
-                    local Shapes = {}
-                    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
-
-                    for I = 1, HowManySavedShapes or 0, 1 do
-                        local Shape = {}
-                        local Ct = getProjSavedInfo('LFO Shape' .. I .. 'Node Count = ')
-                        for i = 1, Ct or 1, 1 do
-                            Shape[i] = Shape[i] or {}
-                            Shape[i].x = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'x = ')
-                            Shape[i].y = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'y = ')
-                            Shape[i].ctrlX = getProjSavedInfo('LFO Shape' .. I ..
-                                'Node ' .. i .. '.ctrlX = ')
-                            Shape[i].ctrlY = getProjSavedInfo('LFO Shape' .. I ..
-                                'Node ' .. i .. '.ctrlY = ')
-                        end
-                        if Shape[1] then
-                            table.insert(Shapes, Shape)
-                        end
-                    end
-
-                    if LFO.DeleteShape then
-                        local Count = getProjSavedInfo('LFO Saved Shape Count')
-                        r.SetProjExtState(0, 'FX Devices', 'LFO Saved Shape Count', Count - 1)
-                        table.remove(Shapes, LFO.DeleteShape)
-
-                        for I, V in ipairs(Shapes) do -- do for every shape
-                            for i, v in ipairs(V) do  --- do for every node
-                                if i == 1 then
-                                    r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                        'Node Count = ', #V)
-                                end
-
-                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                    'Node ' .. i .. 'x = ', v.x or '')
-                                r.SetProjExtState(0, 'FX Devices', 'LFO Shape' .. I ..
-                                    'Node ' .. i .. 'y = ', v.y or '')
-
-                                r.SetProjExtState(0, 'FX Devices',
-                                    'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ', v.ctrlX or '')
-                                r.SetProjExtState(0, 'FX Devices',
-                                    'LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ', v.ctrlY or '')
-                            end
-                        end
-                        LFO.DeleteShape = nil
-                    end
-
-                    DrawShapesInSelector(Shapes)
-                end
-
-                if im.ImageButton(ctx, '## save' .. Macro, Img.Save, 12, 12, nil, nil, nil, nil, ClrBG, ClrTint) then
-                    if LFO.OpenedTab == 'Global' then
-                        LFO.OpenSaveDialog = Macro
-                    elseif LFO.OpenedTab == 'Project' then
-                        Save_Shape_To_Project(Mc)
-                    elseif LFO.OpenedTab == 'Track' then
-                        Save_Shape_To_Track(Mc)
-                    end
-                end
-                SL()
-                im.AlignTextToFramePadding(ctx)
-
-
-                if im.BeginTabBar(ctx, 'shape select tab bar') then
-                    if im.BeginTabItem(ctx, 'Global') then
-                        Global_Shapes()
-                        LFO.OpenedTab = 'Global'
-                        im.EndTabItem(ctx)
-                    end
-
-                    if im.BeginTabItem(ctx, 'Project') then
-                        Proj_Shapes()
-                        LFO.OpenedTab = 'Project'
-                        im.EndTabItem(ctx)
-                    end
-
-                    if im.BeginTabItem(ctx, 'Track') then
-                        Track_Shapes()
-                        LFO.OpenedTab = 'Track'
-                        im.EndTabItem(ctx)
-                    end
-
-                    im.EndTabBar(ctx)
-                end
 
                 if im.IsWindowHovered(ctx, im.FocusedFlags_RootAndChildWindows) then
                     LFO.HoveringShapeWin = Ident
@@ -3427,39 +3053,46 @@ function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             end
         end
 
+
         return tweaking, All_Coord
     end
 
     local HvrOnBtn = im.IsItemHovered(ctx)
 
-    local function Open_LFO_WIN_If_Hover()
+    local function Open_LFO_WIN_If_Clicked()
 
         local PinID = TrkID .. 'Macro = ' .. Macro
         --[[ if HvrOnBtn and IsContainer then 
             r.TrackFX_GetFXGUID(Track, FX[FxGUID].parent)
         end ]]
 
-        if HvrOnBtn or LFO.HvringWin == Ident or LFO.Tweaking == Ident or LFO.Pin == PinID or LFO.OpenSaveDialog == Ident or LFO.HoveringShapeWin == Ident then
-            LFO.notHvrTime = 0
-            LFO.Tweaking = open_LFO_Win(Track, Macro, IsContainer, PosForWin,Mc, FxGUID)
+        -- Popup label must match inside open_LFO_Win
+        local PopupLbl = (IsContainer and 'Container' or '')..'LFO Popup' .. Macro .. (FxGUID or '')
+
+        -- Open popup when clicking the modulator
+        if rv and not (LFO.SuppressOpenFrames and LFO.SuppressOpenFrames > 0) then
+            if LFO.WinHovered == Ident then
+                -- Close if already open
+                LFO.WinHovered = nil
+                im.CloseCurrentPopup(ctx)
+            else
             LFO.WinHovered = Ident
+                im.OpenPopup(ctx, PopupLbl)
+                LFO.JustOpened = true
         end
+    end
+        -- Cooldown to prevent immediate reopen after an outside click close
+        if LFO.SuppressOpenFrames and LFO.SuppressOpenFrames > 0 then
+            LFO.SuppressOpenFrames = LFO.SuppressOpenFrames - 1
+        end
+
+        -- Keep open if already opened and conditions are met
+            LFO.Tweaking = open_LFO_Win(Track, Macro, IsContainer, PosForWin,Mc, FxGUID)
     end
 
 
-    Open_LFO_WIN_If_Hover()
-    --- open window for 10 more frames after mouse left window or btn
-    if LFO.WinHovered == Ident and not HvrOnBtn and not LFO.HvringWin and not LFO.Tweaking and not LFO.DontOpenNextFrame then
-        LFO.notHvrTime = LFO.notHvrTime + 1
-
-        if LFO.notHvrTime > 0 and LFO.notHvrTime < 10 then
-            open_LFO_Win(Track, Macro,IsContainer, PosForWin, Mc,FxGUID)
-        else
-            LFO.notHvrTime = 0
-            LFO.WinHovered = nil
-        end
-    end
-    LFO.DontOpenNextFrame = nil
+    Open_LFO_WIN_If_Clicked()
+    -- (legacy close logic removed; using rect-based close below)
 
 
 
@@ -3476,13 +3109,24 @@ function LFO_BOX(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
     Save_LFO_Dialog (Macro, L, T - LFO.DummyH, Mc)
 
 end
+
+
 
 function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
     if Mc.Type ~= 'XY' then return end 
+    IsContainer = IsContainer or false
+    TB = TB or 'Track'
     if IsContainer then 
         r.gmem_attach('ContainerMacro')
     end 
-    local Macro_FXid = TB =='Track' and 0 or TB[1].addr_fxid
+    local Macro_FXid
+    if TB == 'Track' then
+        Macro_FXid = 0
+    elseif type(TB) == 'table' and TB[1] and TB[1].addr_fxid then
+        Macro_FXid = TB[1].addr_fxid
+    else
+        Macro_FXid = 0
+    end
 
     
     --local W = (VP.w - 10) / 12 - 3 -- old W 
@@ -3648,7 +3292,15 @@ function MacroKnob(mc, i, Size , TB, IsContainer, FxGUID)
 
     if mc.Type =='Macro' and ( TB and TB[1]  or TB =='Track') then 
         mc.Val = mc.Val 
-        local Macro_FXid = TB =='Track' and 0 or TB[1].addr_fxid
+        local function FindMacrosFXIdx()
+            local cnt = r.TrackFX_GetCount(LT_Track)
+            for idx = 0, cnt-1, 1 do
+                local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+                if name and name:find('FXD Macros') then return idx end
+            end
+            return 0
+        end
+        local Macro_FXid = TB =='Track' and FindMacrosFXIdx() or TB[1].addr_fxid
         local FxGUID = FxGUID or TrkID
         local fx = FX[FxGUID] or Trk[TrkID]
 
@@ -3659,7 +3311,8 @@ function MacroKnob(mc, i, Size , TB, IsContainer, FxGUID)
                 im.DrawList_AddRectFilled(im.GetWindowDrawList(ctx), x , y , x+ MACRO_SZ[1], y + MACRO_SZ[2], ThemeClr('Track_Modulator_Individual_BG'))
             end
             local ii = IsContainer and I or i
-            local v = r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, i)
+            local Param1Idx = 2 + (i - 1) * 4
+            local v = r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, Param1Idx)
             mc.TweakingKnob , mc.Val , mc.center = AddKnob_Simple(ctx , FxGUID..'Macro'..i,  mc.Val or v, Size, -1, ThemeClr('Track_Modulator_Knob'), EightColors.LFO[ii], EightColors.LFO[ii] , EightColors.Bright_HighSat[ii])
             if im.IsItemHovered(ctx) then 
                 fx.HvrMacro =  i
@@ -3674,8 +3327,9 @@ function MacroKnob(mc, i, Size , TB, IsContainer, FxGUID)
             end
 
             if mc.TweakingKnob == 1  then 
-                local I = IsContainer and i or i-1
-                r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, I, mc.Val)
+
+
+                r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, Param1Idx, mc.Val)
             end
         end
 
@@ -3804,7 +3458,11 @@ end
 
 
 function Create_Header_For_Track_Modulators__Squared_Modulators()
-    MacroNums = { 1, 2, 3, 4, 5, 6, 7, 8, }
+    local SavedCt = (Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8
+    SavedCt = tonumber(SavedCt) or 8
+    local MaxCt = math.min(math.max(SavedCt, 8), 24)
+    MacroNums = {}
+    for n = 1, MaxCt, 1 do MacroNums[#MacroNums+1] = n end
     Trk[TrkID] = Trk[TrkID] or {}
     Trk[TrkID].Mod = Trk[TrkID].Mod or {}
     if not Trk[TrkID].ShowMOD then return end
@@ -3844,6 +3502,8 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         if im.IsItemHovered(ctx) then 
             HelperMsg.R = 'Set as Modulation Source'
             HelperMsg.Ctrl_R = 'Change Modulation Type'
+            HelperMsg.Alt_R = 'Set to Bipolar'
+            HelperMsg.Need_separator = true
 
         end
     end
@@ -3857,6 +3517,10 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         im.Spacing(ctx)
         SL( ) im.Text(ctx, 'Affects Velocity Output :') SL()
         _, Trk[TrkID].Velo_Mod_Affect_Velocity = im.Checkbox(ctx, '##Affect velocity output', Trk[TrkID].Velo_Mod_Affect_Velocity)
+        if im.IsItemClicked(ctx) then 
+            Save_to_Trk('Velo_Mod_Affect_Velocity', Trk[TrkID].Velo_Mod_Affect_Velocity)
+            r.TrackFX_SetParamNormalized(LT_Track, 0, 41, Trk[TrkID].Velo_Mod_Affect_Velocity and 0 or 1)
+        end 
     end
 
     local function Show_Midi_Modulations(lbl)
@@ -3884,6 +3548,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             Velo_Mod_Affect_Actual_Velocity_Option(lbl, T[lbl..'Curve'])
             local x, y = im.GetCursorScreenPos(ctx)
             T[lbl..'Curve']  = CurveEditor(CurveEditorSz,CurveEditorSz,  T[lbl..'Curve'], lbl  )
+            im.Dummy(ctx, 1,1)
             im.EndPopup(ctx)
             
         end
@@ -3894,6 +3559,15 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         local X, Y =  im.GetCursorPos(ctx)
         im.SetCursorPos(ctx, X , Y + 1 )
 
+        if Trk[TrkID].ShowExtraMidiMods  then 
+            for lbl, enabled in pairs(Trk[TrkID].ShowExtraMidiMods) do
+                if enabled then
+                    SL()
+                    Show_Midi_Modulations(lbl)
+                end
+            end
+        end
+
         --[[ if im.InvisibleButton(ctx, 'add more modulator', LineHeight, LineHeight) then 
 
         end
@@ -3903,21 +3577,48 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
 
         im.PushFont(ctx, Arial_14)
         im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
-        im.Button(ctx, ' +'..'##Add modulator btn', sz, sz)
+        if im.Button(ctx, ' +'..'##Add modulator btn', sz, sz) then 
+            im.OpenPopup(ctx, 'AddMoreModulatorsPopup')
+
+        end
         im.PopStyleColor(ctx)
         im.PopFont(ctx) 
         local clr = im.IsItemHovered(ctx) and 0xffffff99 or  0xffffff55
-
-
-
-
-
-
+        Trk[TrkID].ShowExtraMidiMods = Trk[TrkID].ShowExtraMidiMods or {}
         HighlightSelectedItem(nil, clr, nil,nil,nil,nil,nil,nil,nil)
+
+        if im.BeginPopup(ctx, 'AddMoreModulatorsPopup', im.WindowFlags_AlwaysAutoResize) then
+            local extraLabels = {'Random 2', 'Random 3', 'KeyTrack 2', 'KeyTrack 3'}
+            for _, lbl in ipairs(extraLabels) do
+                local selected = Trk[TrkID].ShowExtraMidiMods[lbl] == true
+                if im.Selectable(ctx, lbl, selected) then
+                    Trk[TrkID].ShowExtraMidiMods[lbl] = true
+
+                end
+            end
+            im.Separator(ctx)
+            local ModCt = (Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8
+            ModCt = tonumber(ModCt) or 8
+            local canAdd = ModCt < 24
+            if im.Selectable(ctx, '4 more modulators', false, canAdd and 0 or im.SelectableFlags_Disabled) then
+                local newCt = math.min(ModCt + 4, 24)
+                Trk[TrkID].ModulatorCount = newCt
+                if Save_to_Trk then Save_to_Trk('Modulator Count', newCt) end
+            end
+            im.EndPopup(ctx)
+        end
+
+        
+
+
+
+
         
     end
 
-    for i= 1 , 8, 1 do 
+    local ModCt = math.min((Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8, 24)
+    ModCt = math.max(ModCt, 8)
+    for i= 1 , ModCt, 1 do 
 
         local I = i
         Trk[TrkID].Mod[I] = Trk[TrkID].Mod[I] or {}
@@ -3925,7 +3626,9 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         mc.Num = mc.Num or i
         local FxGUID = TrkID
         mc.TweakingKnob = nil
-        mc.Type = mc.Type or r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'.. I .. 'Type', '', false) or 'Macro'
+        local _, savedType = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'.. I .. 'Type', '', false)
+        if savedType == '' then savedType = nil end
+        mc.Type = mc.Type or savedType or 'Macro'
         local Macro = i
         --[[  if not mc.Type then 
             _, mc.Type = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. I .. 'Type', '', false)
@@ -4283,9 +3986,9 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                 if im.Selectable(ctx, 'Automate', false) then
                     AddMacroJSFX()
                     -- Show Envelope for Morph Slider
-                    local env = r.GetFXEnvelope(LT_Track, 0, i - 1, false)    -- Check if envelope is on
+                    local env = r.GetFXEnvelope(LT_Track, 0, (i <= 8 and (i - 1) or (42 + (i - 9))), false)    -- Check if envelope is on
                     if env == nil then                                        -- Envelope is off
-                        local env = r.GetFXEnvelope(LT_Track, 0, i - 1, true) -- true = Create envelope
+                        local env = r.GetFXEnvelope(LT_Track, 0, (i <= 8 and (i - 1) or (42 + (i - 9))), true) -- true = Create envelope
                     else                                                      -- Envelope is on
                         local rv, EnvelopeStateChunk = r.GetEnvelopeStateChunk(env, "", false)
                         if string.find(EnvelopeStateChunk, "VIS 1") then      -- VIS 1 = visible, VIS 0 = invisible
@@ -4296,7 +3999,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                             r.SetEnvelopeStateChunk(env, EnvelopeStateChunk, false)
                         end
                     end
-                    SetPrmAlias(LT_TrackNum, 1, i, Mc.Name or ('Macro' .. i)) -- Change parameter name to alias
+                    SetPrmAlias(LT_TrackNum, 1, (i <= 8 and i or (43 + (i - 9))), Mc.Name or ('Macro' .. i)) -- Change parameter name to alias
                     r.TrackList_AdjustWindows(false)
                     r.UpdateArrange()
                 end
@@ -4305,24 +4008,21 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
 
             Set_Modulator_Type(mc, i, 'LFO')
             Set_Modulator_Type(mc, i, 'Follower')
+            Set_Modulator_Type(mc, i, 'Envelope')
             Set_Modulator_Type(mc, i, 'Step')
             Set_Modulator_Type(mc, i, 'Macro')
             Set_Modulator_Type(mc, i, 'Random')
             Set_Modulator_Type(mc, i, 'XY')
-           -- SetTypeToEnv(mc, i)
-            --SetTypeToStepSEQ(mc, i)
-
             im.EndPopup(ctx)
         end
     end
 
     SL()
-    Add_More_Modulators_Button()
-    SL()
     Show_Midi_Modulations('Velocity')
     Show_Midi_Modulations('Random')
     Show_Midi_Modulations('KeyTrack')
-
+    SL()
+    Add_More_Modulators_Button()
 
     im.PopStyleColor(ctx , 2 ) -- for child bg and border
     im.PopStyleVar(ctx, 2) -- for child border size

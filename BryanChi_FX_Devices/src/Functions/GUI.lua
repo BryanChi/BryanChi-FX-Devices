@@ -258,15 +258,19 @@ function Draw_Single_Curve(nX, X, nY, Y, curve , thick , lineClr, ofs)
         end
     end
 end
-function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick)
+function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick, zoom, center)
     local lineClr = lineClr or 0xffffff99
     local v = PtsTB[i]
     if not v or type(v)~= 'table' then return end 
-
-    local X, Y = L+v[1]* W , B - v[2]*H 
+    local zoom = zoom or 1
+    local center = center or 0.5
+    local function map_u(u)
+        return ((u - center) * zoom + 0.5)
+    end
+    local X, Y = L + map_u(v[1]) * W , B - v[2] * H 
     if PtsTB[i+1] then 
         local n = PtsTB[i+1]
-        local nX , nY = L + n[1] * W ,  B - n[2] * H 
+        local nX , nY = L + map_u(n[1]) * W ,  B - n[2] * H 
         local DtX, DtY
         local ofs = PtSz/2
         local x1, y1, x2, y2 = X+ofs, Y+ofs , nX+ofs ,  nY+ofs
@@ -296,6 +300,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     
     
 
+    r.gmem_attach(gmem_space)
     r.gmem_write(8, 1+ Get_MidiMod_Ofs(lbl)) -- tells jsfx the curve editor is open ,and so it needs to send back velocity or random 's values'
 
 
@@ -303,16 +308,32 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         local x, y = im.GetCursorScreenPos(ctx)
         local P = PtSz/2 
         local L , R = x + P , x + W - P
-        local W = W - P
-        local Gd = IsLFO and Mc.LFO_leng or LFO.Def.Len
+        local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
+        local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
+        local innerW = (W - P)
+        local Gd = (IsLFO and (Mc and Mc.LFO_leng)) or (LFO and LFO.Def and LFO.Def.Len) or 4
+        Gd = tonumber(Gd) or 4
        
 
         local  Clr1 , Clr2 = 0xffffff55 , 0xffffff22
-        draw_dotted_line(L + W/2 ,y, L+W/2 , y+H, Clr1, 3, 2)-- center x axis
+        -- Center vertical line (only for non-LFO editors)
+        if not IsLFO then
+            draw_dotted_line(L + W/2 ,y, L+W/2 , y+H, Clr1, 3, 2)
+        end
         draw_dotted_line(L  ,y + H/2 , R , y+H/2, Clr1, 3, 2)-- center y axis
 
-        draw_dotted_line(L + W/4 ,y, L+W/4 , y+H, Clr2, 3, 2)-- 4/1 x axis
-        draw_dotted_line(L +W - W/4 ,y, L+W - W/4, y+H, Clr2, 3, 2)-- 4/3 x axis
+        -- Vertical grid lines based on LFO length (always Gd-1 lines)
+        if IsLFO and Gd >= 1 then
+            for i = 1, Gd - 1, 1 do
+                local t = i / Gd
+                local xLine = L + (((t - center) * zoom) + 0.5) * innerW
+                draw_dotted_line(xLine, y, xLine, y + H, Clr2, 3, 2)
+            end
+        else
+            -- Fallback quarter lines when not LFO
+            draw_dotted_line(L + W/4 ,y, L+W/4 , y+H, Clr2, 3, 2)
+            draw_dotted_line(L +W - W/4 ,y, L+W - W/4, y+H, Clr2, 3, 2)
+        end
 
         draw_dotted_line(L  ,y + H/4 , R , y+H/4, Clr2, 3, 2)-- center y axis
         draw_dotted_line(L  ,y + H - H/4 , R , y+H -H/4, Clr2, 3, 2)-- center y axis
@@ -320,9 +341,9 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
 
         im.DrawList_AddLine(WDL, L , y , L , y+H , 0xffffff33, 2)
-        im.DrawList_AddLine(WDL,R, y , R , y+H , 0xffffff33, 2)
-        im.DrawList_AddLine(WDL,L, y , R , y , 0xffffff33, 2)
-        im.DrawList_AddLine(WDL,L, y+H , R , y+H , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL, L+W, y , L+W , y+H , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL, L, y , L+W , y , 0xffffff33, 2)
+        im.DrawList_AddLine(WDL, L, y+H , L+W , y+H , 0xffffff33, 2)
 
 
     end
@@ -352,7 +373,12 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             return B- y * (H + PtSz /2 )
         end
         local function ConvertScreenX(x)
-            return  L + x * (W  + PtSz/2)
+            local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
+            local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
+            local function map_u(u)
+                return ((u - center) * zoom + 0.5)
+            end
+            return  L + map_u(x) * (W) + PtSz/2
         end
         if NoteOnVel > -1  then 
             if NoteOnVel >= X and NoteOnVel <= nX then 
@@ -421,8 +447,74 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     local CursorPosEndX, CursorPosEndY = im.GetCursorPos(ctx)
 
     im.SetCursorPos(ctx, x + Pad/2 , y + Pad/2 )
+    -- Constrain all drawings to the curve editor rect
+    local ClipL, ClipT = im.GetCursorScreenPos(ctx)
+    local ClipR, ClipB = ClipL + W, ClipT + H
+    im.DrawList_PushClipRect(WDL, ClipL, ClipT, ClipR, ClipB, true)
+    -- Expose curve editor rect for overlays (e.g., LFO preview/animation)
+    if IsLFO and Macro then
+        LFO = LFO or {}
+        LFO.CurveRect = LFO.CurveRect or {}
+        LFO.CurveRect[Macro] = { ClipL, ClipT, ClipR, ClipB }
+    end
     DrawGrid()
+    -- Always show outline of editor regardless of zoom
+    im.DrawList_AddRect(WDL, ClipL, ClipT, ClipR, ClipB, 0xffffff33, 0, nil, 2)
     local ClickOnBG = im.Dummy(ctx, W, H)
+    -- Shift+wheel zoom handling (apply then consume)
+    -- Help: Modulation curve editor background
+    if im.IsItemHovered(ctx) then
+        if HelperMsg.Others then
+            table.insert(HelperMsg.Others, 'Double-click: Add Point')
+            if IsLFO then
+                table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Zoom')
+            end
+        end
+    end
+    -- Shift+wheel zoom handling (zoom towards mouse)
+    if IsLFO and (Mods == Shift) and Wheel_V ~= 0 then
+        Mc.Zoom = Mc.Zoom or 1
+        Mc.ZoomCenter = Mc.ZoomCenter or 0.5
+        local Lz, Tz = im.GetItemRectMin(ctx); local Rz, Bz = im.GetItemRectMax(ctx)
+        local Wz = Rz - Lz
+        local mx, _ = im.GetMousePos(ctx)
+        local xNorm = SetMinMax((mx - Lz) / math.max(1, Wz), 0, 1)
+        local zOld = Mc.Zoom
+        local zNew = SetMinMax(zOld * (Wheel_V > 0 and 1.1 or 0.9), 1, 4)
+        if zNew ~= zOld then
+            local cOld = Mc.ZoomCenter
+            local uUnderMouse = cOld + (xNorm - 0.5) / zOld
+            local cNew = uUnderMouse - (xNorm - 0.5) / zNew
+            local minC = 1 / (2 * zNew)
+            local maxC = 1 - minC
+            Mc.ZoomCenter = SetMinMax(cNew, minC, maxC)
+            Mc.Zoom = zNew
+        end
+        Wheel_V = 0
+    end
+    -- Horizontal pan with wheel when zoomed
+    if IsLFO and (Mc and (Mc.Zoom or 1) or 1) > 1 and Wheel_H and Wheel_H ~= 0 and im.IsItemHovered(ctx) then
+        Mc.Zoom = Mc.Zoom or 1
+        Mc.ZoomCenter = Mc.ZoomCenter or 0.5
+        local minC = 1 / (2 * Mc.Zoom)
+        local maxC = 1 - minC
+        Mc.ZoomCenter = SetMinMax(Mc.ZoomCenter + (Wheel_H * 0.05) / Mc.Zoom, minC, maxC)
+        Wheel_H = 0
+    end
+    -- Middle-click drag to pan when zoomed
+    if IsLFO and (Mc and (Mc.Zoom or 1) or 1) > 1 and im.IsItemHovered(ctx) and im.IsMouseDown(ctx, 2) then
+        local dx, _ = im.GetMouseDelta(ctx)
+        if dx and dx ~= 0 then
+            Mc.Zoom = Mc.Zoom or 1
+            Mc.ZoomCenter = Mc.ZoomCenter or 0.5
+            local Lz, _ = im.GetItemRectMin(ctx); local Rz, _ = im.GetItemRectMax(ctx)
+            local Wz = Rz - Lz
+            local minC = 1 / (2 * Mc.Zoom)
+            local maxC = 1 - minC
+            Mc.ZoomCenter = SetMinMax(Mc.ZoomCenter - (dx / math.max(1, Wz)) / Mc.Zoom, minC, maxC)
+            im.ResetMouseDragDelta(ctx)
+        end
+    end
     local AddPt = (LBtnDC and im.IsItemClicked(ctx)) and true
     local L, T = im.GetItemRectMin(ctx)
     local R, B = im.GetItemRectMax(ctx)
@@ -438,11 +530,12 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
     local Hvr_Pt , Hvr_Ctrl_Pt
     local W , H = W - PtSz , H - PtSz
-    if im.IsWindowAppearing (ctx) --[[ or im.IsItemHovered(ctx) ]] then 
-        Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
-    end
+
+    r.gmem_attach(gmem_space)
+    Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
     local TWEAKING 
     local function LFO_Add_Release_Node_If_None()
+        if not Mc then return end 
         if not Mc.Rel_Type then return end 
         if not  Mc.Rel_Type:find('Custom Release') then return end 
         local found 
@@ -455,17 +548,109 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     end
 
     LFO_Add_Release_Node_If_None()
+    local HoverSeg = {}
+    -- per-node snap state for LFO editing
+    Mc = Mc or MacroTB
+    if IsLFO then Mc.SnapStates = Mc.SnapStates or {} end
+    local NodeHovered, NodeActive = {}, {}
     for i, v in ipairs( PtsTB) do 
         
-        local X, Y = L+v[1]* W , B - v[2]*H 
+        local zoom = (IsLFO and ( (Mc.Zoom or 1) )) or 1
+        local center = (IsLFO and ( (Mc.ZoomCenter or 0.5) )) or 0.5
+
+        local function map_u(u)
+            return ((u - center) * zoom + 0.5)
+        end
+        local X, Y = L + map_u(v[1]) * W , B - v[2]*H 
         im.SetCursorScreenPos(ctx, X, Y )
-        local DtX, DtY, Tweaking = RoundBtn(PtSz, PtSz, i, 0xffffffff, 0xffffffff, PtSz/3)
+        local rv = im.InvisibleButton(ctx, '##LFO_Pt'..(lbl or '')..i, PtSz, PtSz)
+        local Tweaking = im.IsItemActive(ctx)
+        local DtX, DtY = 0, 0
+        if Tweaking then DtX, DtY = im.GetMouseDragDelta(ctx) end
         if Tweaking then TWEAKING = true end  
         local lX = i>1 and PtsTB[i-1][1] or 0 
         local nX = i<#PtsTB and PtsTB[i+1][1] or 1
         local nY = i<#PtsTB and PtsTB[i+1][2] or v[2]
-        v[1] = DtX and SetMinMax(v[1]+DtX/W , lX , nX)   or v[1]
-        v[2] = DtY and SetMinMax(v[2]-DtY/H , 0, 1)   or v[2]
+        local prevNormX, prevNormY = v[1], v[2]
+        if DtX then
+            local zoomed_u    = map_u(v[1])
+            local zoomed_lX   = map_u(lX)
+            local zoomed_nX   = map_u(nX)
+            local new_zoomed  = SetMinMax(zoomed_u + DtX / W, zoomed_lX, zoomed_nX)
+            -- optional snapping for LFO nodes (hold Shift to disable)
+            if IsLFO and Mods ~= Shift then
+                local Gd = (Mc and Mc.LFO_leng) or (LFO and LFO.Def and LFO.Def.Len) or 4
+                Gd = tonumber(Gd) or 4
+                local snap = Mc.SnapStates[i] or {}
+                local new_px = L + new_zoomed * W
+                local factor = 0.7
+                local tol = 8 * factor
+                local release = 12 * factor
+                -- find nearest grid in zoomed space
+                local nearest_px, nearest_zoomed
+                for gi = 0, Gd, 1 do
+                    local u = gi / Gd
+                    local gz = map_u(u)
+                    local gpx = L + gz * W
+                    local d = math.abs(new_px - gpx)
+                    if not nearest_px or d < math.abs(new_px - nearest_px) then
+                        nearest_px = gpx; nearest_zoomed = gz
+                    end
+                end
+                if snap.active_x then
+                    if math.abs(new_px - (snap.target_x_px or 0)) <= release then
+                        new_zoomed = snap.target_x_zoomed or new_zoomed
+                    else
+                        snap.active_x = nil; snap.target_x_px = nil; snap.target_x_zoomed = nil
+                    end
+                else
+                    if nearest_px and math.abs(new_px - nearest_px) <= tol then
+                        snap.active_x = true
+                        snap.target_x_px = nearest_px
+                        snap.target_x_zoomed = nearest_zoomed
+                        new_zoomed = nearest_zoomed
+                    end
+                end
+                Mc.SnapStates[i] = snap
+            end
+            -- convert back to normalized 0..1 after applying zoom space delta (respect current center)
+            v[1] = ((new_zoomed - 0.5) / zoom) + center
+        end
+        if DtY then
+            local new_v2 = SetMinMax(v[2]-DtY/H , 0, 1)
+            if IsLFO and Mods ~= Shift then
+                local snap = Mc.SnapStates[i] or {}
+                local factor = 0.7
+                local tol = 8 * factor
+                local release = 12 * factor
+                local yGrids = {0, 0.25, 0.5, 0.75, 1}
+                local new_px = B - new_v2 * H
+                local nearest_px, nearest_v
+                for _,yg in ipairs(yGrids) do
+                    local gpx = B - yg * H
+                    local d = math.abs(new_px - gpx)
+                    if not nearest_px or d < math.abs(new_px - nearest_px) then
+                        nearest_px = gpx; nearest_v = yg
+                    end
+                end
+                if snap.active_y then
+                    if math.abs(new_px - (snap.target_y_px or 0)) <= release then
+                        new_v2 = snap.target_y_val or new_v2
+                    else
+                        snap.active_y = nil; snap.target_y_px = nil; snap.target_y_val = nil
+                    end
+                else
+                    if nearest_px and math.abs(new_px - nearest_px) <= tol then
+                        snap.active_y = true
+                        snap.target_y_px = nearest_px
+                        snap.target_y_val = nearest_v
+                        new_v2 = nearest_v
+                    end
+                end
+                Mc.SnapStates[i] = snap
+            end
+            v[2] = new_v2
+        end
         if i == 1 then 
             v[1] = 0
         elseif i == #PtsTB then 
@@ -473,6 +658,19 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         end
 
         Hvr_Pt = im.IsItemHovered(ctx) and true  
+        NodeHovered[i] = im.IsItemHovered(ctx) or false
+        NodeActive[i] = Tweaking or false
+        -- Help: Node handle hover actions
+        if im.IsItemHovered(ctx) then
+            HelperMsg.Need_Add_Mouse_Icon = 'L'
+            HelperMsg.L = 'Drag to Move Point'
+            if #PtsTB > 2 then
+                HelperMsg.Alt_L = 'Delete Point'
+            end
+            if HelperMsg.Others then
+                table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Segment Curvature')
+            end
+        end
         
         local function Send_gmem(Pt , mode )
             r.gmem_attach(gmem_space)
@@ -487,7 +685,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
          
             if mX > X and mX < L+ nX *W then 
 
-                if Wheel_V and Wheel_V~=0 then 
+                if Wheel_V and Wheel_V~=0 and not (IsLFO and Mods == Shift) then 
                     v[3] =  (v[3] or 0 ) 
                     v[3] = v[3]+ Wheel_V /10
                     if v[3] < 1 and v[3] > -1 then
@@ -566,7 +764,8 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         local function Draw_Playhead_If_LFO()
             if not IsLFO then return end 
             local MOD  = math.abs(SetMinMax((r.gmem_read(100 + Macro) or 0) / 127, -1, 1))
-            local PlayPos = L + PtSz/2 + r.gmem_read(108 + Macro) / 4 * W / ((Mc.LFO_leng or LFO.Def.Len) / 4)
+            local zoom = (Mc and (Mc.Zoom or 1) or 1)
+            local PlayPos = L + PtSz/2 + r.gmem_read(108 + Macro) / 4 * (W * zoom) / ((Mc.LFO_leng or LFO.Def.Len) / 4)
             local H = H 
             local T = T + PtSz/2
             local X = PlayPos 
@@ -637,6 +836,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         end 
 
         local function LFO_Release_Node ()
+            if not Mc then return end 
             if not Mc.Rel_Type then return end 
             if  Mc.LFO_Env_or_Loop ~= 'Envelope'  then return end
             if Mc.Rel_Type:find('Custom Release') then 
@@ -691,18 +891,65 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         
         
         local HoverOnCurve =   Wheel_To_Adjust_Curve()
-        local thick = HoverOnCurve and 6 or 4
-        Draw_Curve (WDL,PtsTB, i, L, R, B, W, H, PtSz , lineClr , thick)
+        HoverSeg[i] = not not HoverOnCurve
         Draw_Playhead_If_LFO()
         Show_Played_Notes_Velocity(v[1] , nX, v[2] , nY,L, B, W, H, v[3], i)
         Send_gmem_If_Drag_Node()
+        if Tweaking and ((DtX ~= 0) or (DtY ~= 0)) then
+            local movedX = math.abs((v[1] or 0) - (prevNormX or 0)) > 0
+            local movedY = math.abs((v[2] or 0) - (prevNormY or 0)) > 0
+            if movedX or movedY then
+                im.ResetMouseDragDelta(ctx, 0)
+            end
+        end
         Delete_Node_If_Alt_Click()
         AddPoint_If_DoubleClick ()
         LFO_Release_Node ()
         
     end
+    -- Draw all segments after all node positions are updated to avoid one-frame lag
+    do
+        local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
+        local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
+        for i = 1, #PtsTB do
+            local thick = HoverSeg[i] and 6 or 4
+            Draw_Curve(WDL, PtsTB, i, L, R, B, W, H, PtSz, lineClr, thick, zoom, center)
+        end
+    end
+    -- Draw nodes after segments so they are synchronized with lines
+    do
+        local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
+        local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
+        local function map_u(u)
+            return ((u - center) * zoom + 0.5)
+        end
+        for i, v in ipairs(PtsTB) do
+            local Xn, Yn = L + map_u(v[1]) * W , B - v[2]*H
+            local cx, cy = Xn + PtSz/2, Yn + PtSz/2
+            local isActive = NodeActive[i]
+            local isHovered = NodeHovered[i]
+            local baseRad = PtSz/2
+            local rad = baseRad + (isActive and 1 or (isHovered and 0.5 or 0))
+            local fill = isActive and (getClr and getClr(im.Col_ButtonActive) or 0xffc080ff)
+                        or (isHovered and (getClr and getClr(im.Col_ButtonHovered) or 0xffffffff)
+                        or (getClr and getClr(im.Col_Button) or 0xffefefff))
+            -- Use a consistent grey outline for all states
+            local outline = 0x999999ff
+            local thick = isActive and 3 or (isHovered and 2 or 1.5)
+            im.DrawList_AddCircleFilled(WDL, cx, cy, rad, fill)
+            im.DrawList_AddCircle(WDL, cx, cy, rad, outline, nil, thick)
+            if isActive or isHovered then
+                local pct = math.floor((v[2] or 0) * 100 + 0.5)
+                local label = tostring(pct) .. '%'
+                local tx, ty = cx + rad + 4, cy - rad - 4
+                im.DrawList_AddText(WDL, tx + 1, ty + 1, 0x000000aa, label)
+                im.DrawList_AddText(WDL, tx, ty, 0xffffffff, label)
+            end
+        end
+    end
     
     SaveCurve()
+    im.DrawList_PopClipRect(WDL)
     im.SetCursorPos(ctx, CursorPosEndX, CursorPosEndY)
 
     return PtsTB , TWEAKING
@@ -1241,6 +1488,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     local isContainer = orig_Name == 'Container' and true
     local Cont_Clr = isContainer and Calculate_Color_Based_On_Nesting_Level(fx.nestingLevel)
 
+    -- If the container has no FX inside, use a neutral gray color for its folder icon/highlight
+    if isContainer then
+        local _, cnt = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'container_count')
+        if tonumber(cnt or 0) == 0 then
+            Cont_Clr = 0x777777ff -- gray
+        end
+    end
+
     local function Marquee_Selection (LC, RC)
         Trk[TrkID].Sel_FX = Trk[TrkID].Sel_FX or {}
         local Sel_FX = Trk[TrkID].Sel_FX
@@ -1640,6 +1895,9 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         HelperMsg.Alt_R = 'Collapse All'
         HelperMsg.Ctrl_R = 'Open Menu'
         HelperMsg.Need_separator = true 
+        if HelperMsg.Others then
+            table.insert(HelperMsg.Others, 'Ctrl+Shift+Right Click: Open Layout Editor')
+        end
     end
 
 
@@ -3134,6 +3392,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 ifHvr = true
                 BgClrA = DefClr_A_Hvr
                 BgClrB = DefClr_B_Hvr
+                -- Help: Morph control hover actions
+                HelperMsg.Ctrl_R = 'Open Morphing menu'
             else
                 BgClr = im.GetStyleColor(ctx, im.Col_FrameBg)
                 BgClrA = DefClr_A
@@ -3832,6 +4092,14 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local FillClr= rv and 0xffffff33
                                     local L, T, R, B, w, h = HighlightSelectedItem(FillClr, 0xffffff77, 0, nil,nil,nil,nil, nil, nil , 1,1, 'GetItemRect', nil, nil, 2) 
                                     local scale = v[1].addr_fxid> 0x2000000 and V.scale or 1 
+                                    if rv then
+                                        local DL = WDL or Glob.FDL or im.GetWindowDrawList(ctx)
+                                        if rv == V.addr_fxid then
+                                            im.DrawList_AddLine(DL, L, T, R, T, 0xffffffaa, 3)
+                                        else
+                                            im.DrawList_AddLine(DL, L, B, R, B, 0xffffffaa, 3)
+                                        end
+                                    end
                                     if clickBtn and Mods == 0 then 
 
                                         im.OpenPopup(ctx, 'Btwn FX Windows' .. V.addr_fxid + scale)
@@ -3939,12 +4207,37 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
                             im.EndGroup(ctx)
+                            -- While hovering the FX item area, hint Alt+Left Click to delete this FX
+                            if im.IsItemHovered(ctx) then 
+                                HelperMsg.Alt_L = 'Delete FX'
+                            end
+                            if im.IsItemHovered(ctx) and Mods == Alt then
+                                -- Visual caution outline when holding Alt to indicate deletion shortcut
+                                local l, t = im.GetItemRectMin(ctx)
+                                local r, b = im.GetItemRectMax(ctx)
+                                local DL = WDL or Glob.FDL or im.GetWindowDrawList(ctx)
+                                im.DrawList_AddRect(DL, l, t, r, b, 0xff6666aa, 2)
+                            end
                             Delete_If_Alt_Click()
                             
 
 
                             local rv =   Allow_FX_Drop_On_Item() 
                             if rv then 
+                                -- Draw insertion preview on this FX item while dragging
+                                local l, t = im.GetItemRectMin(ctx)
+                                local r, b = im.GetItemRectMax(ctx)
+                                local DL = WDL or Glob.FDL or im.GetWindowDrawList(ctx)
+                                -- subtle hover fill to indicate drop target
+                                im.DrawList_AddRectFilled(DL, l, t, r, b, 0xffffff22)
+                                local scale = V.scale or 1
+                                if rv == V.addr_fxid then
+                                    -- insert before: draw a line at the top edge
+                                    im.DrawList_AddLine(DL, l, t, r, t, 0xffffff77, 2)
+                                elseif rv == V.addr_fxid + scale then
+                                    -- insert after: draw a line at the bottom edge
+                                    im.DrawList_AddLine(DL, l, b, r, b, 0xffffff77, 2)
+                                end
                                 v[1].Create_Insert_FX_Preview = rv 
                             elseif v[1].Create_Insert_FX_Preview==V.addr_fxid and not Hover_Insert_FX_Preview then 
                                 v[1].Create_Insert_FX_Preview = nil 
@@ -4768,6 +5061,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 if not v.Is_On then 
                                     Highlight_Itm(WDL, 0x00000044)
                                 end
+                                -- Hover help for switch virtual buttons
+                                if HelperMsg and im.IsItemHovered(ctx) and not HelperMsg._switch_added then
+                                    HelperMsg.Need_Add_Mouse_Icon = 'L'
+                                    HelperMsg.L = 'Click: Toggle On/Off'
+                                    HelperMsg.Need_separator = true
+                                    HelperMsg._switch_added = true
+                                end
                             elseif  v.Type =='Selection' then 
 
                                 im.BeginGroup(ctx)
@@ -4777,7 +5077,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     im.SetNextItemWidth(ctx, v.Sldr_W or 150) 
                                 end
                                 local flg = v.AddArrows and im.ComboFlags_NoArrowButton
-                                if im.BeginCombo(ctx, '##'.. lbl, v.Chosen or '', flg) then 
+                                local opened = im.BeginCombo(ctx, '##'.. lbl, v.Chosen or '', flg)
+                                -- Hover help for selection combo preview
+                                if HelperMsg and im.IsItemHovered(ctx) and not HelperMsg._selection_added then
+                                    HelperMsg.Need_Add_Mouse_Icon = 'L'
+                                    HelperMsg.L = 'Click: Open Choices'
+                                    HelperMsg.Need_separator = true
+                                    HelperMsg._selection_added = true
+                                end
+                                if opened then 
                                     for i , V in ipairs(v.Choices)do 
                                         if im.Selectable(ctx,(V.ChoiceName or '')..'##' ) then 
                                             v.Chosen = V.ChoiceName
@@ -4792,6 +5100,13 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                             elseif v.Type =='Selection Btns' then 
                                 RenderChoiceButtons(v)
+                                -- Hover help for selection shown as buttons
+                                if HelperMsg and im.IsItemHovered(ctx) and not HelperMsg._selection_added then
+                                    HelperMsg.Need_Add_Mouse_Icon = 'L'
+                                    HelperMsg.L = 'Click: Choose Option'
+                                    HelperMsg.Need_separator = true
+                                    HelperMsg._selection_added = true
+                                end
                             end
                             if v.Btn_Clr then 
                                 im.PopStyleColor(ctx,6)
@@ -5039,6 +5354,34 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             --Draw_Attached_Drawings(FP,FX_Idx, pos, p_value)
                             Item_Interaction()
                             Double_Click_To_Reset_Value()
+
+                            -- Show contextual help for parameter interactions while hovered
+                            if im.IsItemHovered(ctx) then
+                                -- Right-click actions on parameter controls
+                                HelperMsg.R = 'Select as Link Source'
+                                HelperMsg.Shift_R = 'Toggle Parameter Link'
+                                HelperMsg.Ctrl_R = 'Open Parameter Menu'
+                                HelperMsg.Need_separator = true
+
+                                -- Additional notes
+                                if HelperMsg.Others then
+                                    table.insert(HelperMsg.Others, 'Double-click: Reset to default')
+                                    -- Mouse wheel adjustment hints (behavior handled elsewhere)
+                                    if not HelperMsg._wheel_added then
+                                        if Ctrl_Scroll then
+                                            table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Value')
+                                            table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Fine Adjust')
+                                        else
+                                            table.insert(HelperMsg.Others, 'Ctrl + Mouse Wheel: Adjust Value')
+                                            table.insert(HelperMsg.Others, 'Ctrl+Shift + Mouse Wheel: Fine Adjust')
+                                        end
+                                        HelperMsg._wheel_added = true
+                                    end
+                                    if FP.Deletable then
+                                        table.insert(HelperMsg.Others, 'Alt+Double-click: Remove Parameter')
+                                    end
+                                end
+                            end
 
 
                         end
@@ -6573,7 +6916,7 @@ function Show_Helper_Message()
         local sz = 18
 
 
-        local function Set_Help_Text(img, msg, modifier, modifier_str)
+        local function Set_Help_Text(img, msg, modifier, modifier_str, dbl)
             if not msg then  return end
             local function AddImg(img)
                 local x , y = im.GetCursorScreenPos(ctx)
@@ -6587,6 +6930,7 @@ function Show_Helper_Message()
             if modifier then    
                 if HelperMsg.Need_Add_Mouse_Icon then 
                     AddImg(Img['Mouse'..HelperMsg.Need_Add_Mouse_Icon])
+                    if dbl then MyText('x2') SL() end
                 end 
                 MyText('+') SL()
                 MyText( modifier)
@@ -6599,6 +6943,7 @@ function Show_Helper_Message()
             
             if img then 
                 AddImg(img)
+                if dbl then MyText('x2') SL() end
             end
             
             MyText(': '.. msg)
@@ -6606,7 +6951,13 @@ function Show_Helper_Message()
 
             
         end
-        Set_Help_Text(Img.MouseL, HelperMsg.L)
+        -- Detect double-click in L/R primary messages
+        local L_msg, L_dbl = HelperMsg.L, false
+        if type(L_msg) == 'string' then
+            local m = L_msg:match('^%s*Double%-click:%s*(.*)')
+            if m then L_msg, L_dbl = m, true end
+        end
+        Set_Help_Text(Img.MouseL, L_msg, nil, nil, L_dbl)
         Set_Help_Text(nil, HelperMsg.Ctrl_L, 'Ctrl')
         Set_Help_Text(nil, HelperMsg.Alt_L, 'Alt')
         Set_Help_Text(nil, HelperMsg.Shift_L, 'Shift')
@@ -6615,7 +6966,12 @@ function Show_Helper_Message()
             MyText('  |  ')
             SL()
         end
-        Set_Help_Text(Img.MouseR, HelperMsg.R)
+        local R_msg, R_dbl = HelperMsg.R, false
+        if type(R_msg) == 'string' then
+            local m = R_msg:match('^%s*Double%-click:%s*(.*)')
+            if m then R_msg, R_dbl = m, true end
+        end
+        Set_Help_Text(Img.MouseR, R_msg, nil, nil, R_dbl)
 
         Set_Help_Text(nil, HelperMsg.Ctrl_R, 'Ctrl')
         Set_Help_Text(nil, HelperMsg.Alt_R, 'Alt')
@@ -6630,8 +6986,31 @@ function Show_Helper_Message()
 
 
 
+        -- Render other hints; detect Double-click and Alt+Double-click patterns
         for i, v in ipairs(HelperMsg.Others) do 
-            MyText(v)
+            if type(v) == 'string' then
+                local msg = v
+                local mod
+                -- Match patterns like 'Alt+Double-click: Message'
+                local modPart, rest = v:match('^%s*([%w]+)%+Double%-click:%s*(.*)')
+                if modPart and rest then
+                    mod = modPart
+                    msg = rest
+                    -- Use left mouse icon doubled by default
+                    Set_Help_Text(Img.MouseL, msg, mod, nil, true)
+                else
+                    -- Match plain 'Double-click: Message'
+                    local plain = v:match('^%s*Double%-click:%s*(.*)')
+                    if plain and #plain > 0 then
+                        Set_Help_Text(Img.MouseL, plain, nil, nil, true)
+                    else
+                        MyText(v)
+                    end
+                end
+            else
+                -- Fallback for non-string entries
+                MyText(tostring(v))
+            end
         end
 
 

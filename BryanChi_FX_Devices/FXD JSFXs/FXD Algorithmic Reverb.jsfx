@@ -1,0 +1,736 @@
+noindex: true
+
+desc:FXD Algorithmic Reverb (Material, Dimensions, Positions, Modulation)
+options:gmem=FXD_ARV
+// hhahaha
+// Algorithm: Schroeder-style late tail (4 combs -> 2 allpass) + geometric early reflections
+// - Material controls HF damping and RT60 via Sabine approximation
+// - Room dimensions set early reflection tap times and scale late tail delays
+// - Mic and Source positions inside the room shape ER times and direct/reverb balance
+// - Modulation increases delay-time wandering in the late tail
+
+slider1:mat=0<0,11,1{Wood,Plastic,Metal,Drywall,Stone/Marble,Carpet,Glass,Brick,Concrete,Curtains,AcousticPanel,Trees/Foliage}>Material
+slider2:room_len_m=8<2,50,0.1>Room Length (m)
+slider3:room_wid_m=6<2,50,0.1>Room Width (m)
+slider4:room_hgt_m=3<2,20,0.1>Room Height (m)
+slider5:mic_x=0.5<0,1,0.001>Mic X (0..1)
+slider6:mic_y=0.5<0,1,0.001>Mic Y (0..1)
+slider7:mic_z=1<0,1,0.001>Mic Z (0..1)
+slider8:src_x=0.5<0,1,0.001>Src X (0..1)
+slider9:src_y=0.5<0,1,0.001>Src Y (0..1)
+slider10:src_z=0.5<0,1,0.001>Src Z (0..1)
+slider11:mod_amt=0<0,1,0.001>Clean - Modulated
+
+in_pin:Input L
+in_pin:Input R
+out_pin:Output L
+out_pin:Output R
+slider12:mix=0.3<0,1,0.001>Wet Mix
+slider13:density=1<0,1,0.001>Density
+slider14:dry=1<0,1,0.001>Dry Mix
+slider15:mic_facing_deg=0<0,360,1>Mic Facing (deg)
+
+@init
+// gmem telemetry for GUI particles (uses gmemname header)
+gmem_base = 0; // use fixed base for now
+arv_stamp = 0;
+arv_in = 0; arv_er = 0; arv_late = 0;
+arv_smooth_c = 0.001;
+// constants
+pi = 3.141592653589793;
+speed_of_sound = 343; // m/s
+// numeric epsilons (avoid scientific notation)
+tiny_eps = 0.000000000000000000000001; // 1e-24
+rms_init = 0.000001;                    // 1e-6
+rms_eps  = 0.000000001;                 // 1e-9
+
+// allocate delay buffers (single heap segmented)
+max_delay_s = 1.0; // allow larger spaces without artifacts
+max_delay_spl = ceil(srate*max_delay_s + 8);
+
+// layout: input pre-diff AP per ch + 6 comb per ch + 3 allpass per ch + pre-delay per ch + early reflection buffer per ch + sparse diffuser AP (4 per ch)
+seg_len = max_delay_spl;
+bufL1 = 0;              bufR1 = bufL1 + seg_len;
+bufL2 = bufR1 + seg_len; bufR2 = bufL2 + seg_len;
+bufL3 = bufR2 + seg_len; bufR3 = bufL3 + seg_len;
+bufL4 = bufR3 + seg_len; bufR4 = bufL4 + seg_len;
+bufL5 = bufR4 + seg_len; bufR5 = bufL5 + seg_len;
+bufL6 = bufR5 + seg_len; bufR6 = bufL6 + seg_len;
+apL1  = bufR6 + seg_len; apR1  = apL1  + seg_len;
+apL2  = apR1  + seg_len; apR2  = apL2  + seg_len;
+apL3  = apR2  + seg_len; apR3  = apL3  + seg_len;
+prL   = apR3  + seg_len; prR   = prL   + seg_len;
+erL   = prR   + seg_len; erR   = erL   + seg_len; // for early-ref taps
+apInL = erR   + seg_len; apInR = apInL + seg_len; // input pre-diffusion
+
+// sparse echo diffuser buffers (four-stage AP per channel)
+spApL1 = apInR + seg_len; spApR1 = spApL1 + seg_len;
+spApL2 = spApR1 + seg_len; spApR2 = spApL2 + seg_len;
+spApL3 = spApR2 + seg_len; spApR3 = spApL3 + seg_len;
+spApL4 = spApR3 + seg_len; spApR4 = spApL4 + seg_len;
+
+mem_top = spApR4 + seg_len; // just for reference
+
+// indices
+wL1 = wR1 = wL2 = wR2 = wL3 = wR3 = wL4 = wR4 = 0;
+wapL1 = wapR1 = wapL2 = wapR2 = 0;
+werL = werR = 0;
+// sparse diffuser indices
+wspL1 = wspR1 = wspL2 = wspR2 = wspL3 = wspR3 = wspL4 = wspR4 = 0;
+
+// default derived parameters
+rt60_s = 1.5;
+hf_damp = 0.6; // 0..1 one-pole LP coefficient in feedback path
+
+// fixed base delays (seconds) scaled by room size (Schroeder-ish, incommensurate)
+base_d1 = 0.0313; base_d2 = 0.0359; base_d3 = 0.0407; base_d4 = 0.0437; base_d5 = 0.0503; base_d6 = 0.0567;
+ap1_time = 0.005; ap2_time = 0.0017; ap3_time = 0.0133;
+ap_in_time = 0.003; ap_in_g = 0.70;
+
+// allpass feedback
+ap_g = 0.70;
+// sparse diffuser allpass feedback (set per room size)
+sp_ap_g = 0.65;
+
+// LFO states (unused but kept for bound updates)
+lfo1_ph = 0; lfo2_ph = 0; lfo_rate1 = 0.20; lfo_rate2 = 0.31;
+// Modulation for lush mode (ap3 only)
+lfo3L_ph = 0; lfo3R_ph = 0;
+modN_L = 0; modN_R = 0;
+
+// static micro-random offsets to break periodic alignment (seconds)
+function randc()
+(
+  rand(1) - 0.5;
+);
+off_scale = 0.001; // +/-1 ms max default
+comb_off1L = off_scale * randc(); comb_off1R = off_scale * randc();
+comb_off2L = off_scale * randc(); comb_off2R = off_scale * randc();
+comb_off3L = off_scale * randc(); comb_off3R = off_scale * randc();
+comb_off4L = off_scale * randc(); comb_off4R = off_scale * randc();
+comb_off5L = off_scale * randc(); comb_off5R = off_scale * randc();
+comb_off6L = off_scale * randc(); comb_off6R = off_scale * randc();
+ap3_offL = 0.0005 * randc(); ap3_offR = 0.0005 * randc();
+// sparse echo small stereo skew
+sp_offL = 0.0008 * randc(); sp_offR = 0.0008 * randc();
+
+// utility
+function clamp(x, lo, hi)
+(
+  x < lo ? lo : x > hi ? hi : x;
+);
+
+function frac(x)
+(
+  x - floor(x);
+);
+
+// tiny add-sub to prevent denormals in long feedback paths
+function flush_denorm(x)
+(
+  x = x + tiny_eps;
+  x = x - tiny_eps;
+  x;
+);
+
+// fractional delay read with linear interpolation
+function frac_read(buf, maxlen, widx, delay_spl)
+  local(rpos, rpos0, rpos1, a, x0, x1)
+(
+  rpos = widx - delay_spl;
+  rpos < 0 ? rpos += maxlen;
+  rpos0 = floor(rpos);
+  a = rpos - rpos0;
+  rpos1 = rpos0 + 1; rpos1 >= maxlen ? rpos1 -= maxlen;
+  x0 = buf[rpos0];
+  x1 = buf[rpos1];
+  x0 + a*(x1 - x0);
+);
+
+// one-pole lowpass towards x with coefficient c (0..1)
+function onepole_lp(prev, x, c)
+(
+  prev + c * (x - prev);
+);
+
+// Map material slider to broadband absorption alpha (approximate, 0..1)
+function get_alpha_from_mat(m)
+(
+  m == 0 ? ( // Wood (avg)
+    0.10
+  ) : m == 1 ? ( // Plastic (smooth)
+    0.03
+  ) : m == 2 ? ( // Metal
+    0.02
+  ) : m == 3 ? ( // Drywall (painted gypsum)
+    0.05
+  ) : m == 4 ? ( // Stone/Marble (very reflective)
+    0.02
+  ) : m == 5 ? ( // Carpet (heavy on concrete) — high HF absorption
+    0.30
+  ) : m == 6 ? ( // Glass (window panes)
+    0.07
+  ) : m == 7 ? ( // Brick (common)
+    0.03
+  ) : m == 8 ? ( // Concrete (poured, painted)
+    0.02
+  ) : m == 9 ? ( // Curtains (heavy drapes)
+    0.35
+  ) : m == 10 ? ( // Acoustic Panel (broadband)
+    0.60
+  ) : m == 11 ? ( // Trees/Foliage (diffusive, moderate absorb)
+    0.20
+  ) : 0.05;
+);
+
+// Set 4-band absorption coefficients for current material (LF, LM, HM, HF)
+// Bands defined by crossovers at 250 Hz, 1000 Hz, 4000 Hz
+function set_band_alphas_for_mat(m)
+(
+  m == 0 ? (
+    // Wood
+    alpha_b0 = 0.08; alpha_b1 = 0.10; alpha_b2 = 0.12; alpha_b3 = 0.14;
+  ) : m == 1 ? (
+    // Plastic
+    alpha_b0 = 0.02; alpha_b1 = 0.03; alpha_b2 = 0.04; alpha_b3 = 0.05;
+  ) : m == 2 ? (
+    // Metal
+    alpha_b0 = 0.01; alpha_b1 = 0.01; alpha_b2 = 0.02; alpha_b3 = 0.03;
+  ) : m == 3 ? (
+    // Drywall
+    alpha_b0 = 0.04; alpha_b1 = 0.05; alpha_b2 = 0.06; alpha_b3 = 0.08;
+  ) : m == 4 ? (
+    // Stone/Marble
+    alpha_b0 = 0.01; alpha_b1 = 0.01; alpha_b2 = 0.01; alpha_b3 = 0.02;
+  ) : m == 5 ? (
+    // Carpet (heavy)
+    alpha_b0 = 0.02; alpha_b1 = 0.12; alpha_b2 = 0.40; alpha_b3 = 0.65;
+  ) : m == 6 ? (
+    // Glass
+    alpha_b0 = 0.03; alpha_b1 = 0.04; alpha_b2 = 0.03; alpha_b3 = 0.02;
+  ) : m == 7 ? (
+    // Brick
+    alpha_b0 = 0.02; alpha_b1 = 0.03; alpha_b2 = 0.04; alpha_b3 = 0.05;
+  ) : m == 8 ? (
+    // Concrete
+    alpha_b0 = 0.01; alpha_b1 = 0.02; alpha_b2 = 0.02; alpha_b3 = 0.03;
+  ) : m == 9 ? (
+    // Curtains (heavy)
+    alpha_b0 = 0.05; alpha_b1 = 0.20; alpha_b2 = 0.50; alpha_b3 = 0.65;
+  ) : m == 10 ? (
+    // Acoustic Panel (broadband)
+    alpha_b0 = 0.30; alpha_b1 = 0.60; alpha_b2 = 0.70; alpha_b3 = 0.60;
+  ) : (
+    // Trees/Foliage or default
+    alpha_b0 = 0.10; alpha_b1 = 0.20; alpha_b2 = 0.30; alpha_b3 = 0.20;
+  );
+);
+
+// equal-power pan from vector (vx,vy) relative to mic facing vector (fx,fy)
+function pan_from_vec(vx, vy, fx, fy)
+  local(ang_norm)
+(
+  ang_norm = atan2(vy, vx) - atan2(fy, fx);
+  while(ang_norm >  pi)
+  (
+    ang_norm -= 2*pi;
+  );
+  while(ang_norm < -pi)
+  (
+    ang_norm += 2*pi;
+  );
+  clamp(ang_norm / (pi/2), -1, 1);
+);
+
+// compute Sabine RT60 and HF damping from material and dimensions
+function update_acoustics()
+  local(alpha, area, vol, A, T, Dmean, scale, Lx, Ly, Lz, Lmax, mfp_m)
+(
+  // material absorption (broadband average, rough)
+  alpha = get_alpha_from_mat(mat);
+  set_band_alphas_for_mat(mat);
+
+  // geometry
+  area = 2*(room_len_m*room_wid_m + room_wid_m*room_hgt_m + room_len_m*room_hgt_m);
+  vol  = room_len_m*room_wid_m*room_hgt_m;
+  A = max(0.0001, alpha*area);
+  T = 0.161 * vol / A;
+  rt60_s = clamp(T, 0.2, 10.0);
+
+  // map absorption to HF damping (more absorption -> stronger HF loss)
+  hf_damp = clamp(0.35 + alpha*4.0, 0.35, 0.95);
+
+  // scale delay network by mean dimension (normalize at 10 m)
+  Dmean = (room_len_m + room_wid_m + room_hgt_m) / 3;
+  scale = clamp(Dmean / 10, 0.6, 1.8);
+  d1_s = base_d1 * scale; d2_s = base_d2 * scale; d3_s = base_d3 * scale; d4_s = base_d4 * scale; d5_s = base_d5 * scale; d6_s = base_d6 * scale;
+  ap1_s = ap1_time * scale; ap2_s = ap2_time * scale; ap3_s = ap3_time * scale;
+  mean_dim = Dmean; // store globally for modulation scaling
+
+  // pre-input diffusion scales with room size (larger room => more diffusion)
+  ap_in_time = clamp(0.0015 + 0.00025*Dmean, 0.001, 0.010);
+  ap_in_g    = clamp(0.60 + 0.02*Dmean, 0.60, 0.85);
+
+  // sparse diffuser parameters scale with room size
+  sp_ap1_s = clamp(0.004 + 0.0006*Dmean, 0.004, 0.050);
+  sp_ap2_s = clamp(0.007 + 0.0012*Dmean, 0.006, 0.080);
+  sp_ap3_s = clamp(0.010 + 0.0016*Dmean, 0.008, 0.100);
+  sp_ap4_s = clamp(0.014 + 0.0022*Dmean, 0.010, 0.120);
+  sp_ap_g  = clamp(0.55 + 0.03*Dmean, 0.55, 0.85);
+
+  // physically grounded sparse echo timing
+  Lx = room_len_m; Ly = room_wid_m; Lz = room_hgt_m;
+  Lmax = (Lx > Ly ? (Lx > Lz ? Lx : Lz) : (Ly > Lz ? Ly : Lz));
+  ballistic_s = clamp(Lmax / speed_of_sound, 0.005, 0.500); // first large-scale traversal
+  mfp_m = (4 * vol) / max(0.0001, area); // mean free path 4V/S
+  mfp_s = clamp(mfp_m / speed_of_sound, 0.003, 0.300);
+
+  // global single-bounce reflectivity for sparse echo gain shaping
+  refl1 = (1 - alpha);
+
+  // compute comb feedback gains for target RT60
+  // g = 10^(-3*delay/RT60)
+  g1 = exp(log(10) * (-3 * d1_s / rt60_s));
+  g2 = exp(log(10) * (-3 * d2_s / rt60_s));
+  g3 = exp(log(10) * (-3 * d3_s / rt60_s));
+  g4 = exp(log(10) * (-3 * d4_s / rt60_s));
+  g5 = exp(log(10) * (-3 * d5_s / rt60_s));
+  g6 = exp(log(10) * (-3 * d6_s / rt60_s));
+
+  // 4-band RT60 and per-band gains
+  T_b0 = clamp(0.161 * vol / max(0.0001, alpha_b0*area), 0.2, 10.0);
+  T_b1 = clamp(0.161 * vol / max(0.0001, alpha_b1*area), 0.2, 10.0);
+  T_b2 = clamp(0.161 * vol / max(0.0001, alpha_b2*area), 0.2, 10.0);
+  T_b3 = clamp(0.161 * vol / max(0.0001, alpha_b3*area), 0.2, 10.0);
+
+  g1_b0 = exp(log(10) * (-3 * d1_s / T_b0)); g1_b1 = exp(log(10) * (-3 * d1_s / T_b1)); g1_b2 = exp(log(10) * (-3 * d1_s / T_b2)); g1_b3 = exp(log(10) * (-3 * d1_s / T_b3));
+  g2_b0 = exp(log(10) * (-3 * d2_s / T_b0)); g2_b1 = exp(log(10) * (-3 * d2_s / T_b1)); g2_b2 = exp(log(10) * (-3 * d2_s / T_b2)); g2_b3 = exp(log(10) * (-3 * d2_s / T_b3));
+  g3_b0 = exp(log(10) * (-3 * d3_s / T_b0)); g3_b1 = exp(log(10) * (-3 * d3_s / T_b1)); g3_b2 = exp(log(10) * (-3 * d3_s / T_b2)); g3_b3 = exp(log(10) * (-3 * d3_s / T_b3));
+  g4_b0 = exp(log(10) * (-3 * d4_s / T_b0)); g4_b1 = exp(log(10) * (-3 * d4_s / T_b1)); g4_b2 = exp(log(10) * (-3 * d4_s / T_b2)); g4_b3 = exp(log(10) * (-3 * d4_s / T_b3));
+  g5_b0 = exp(log(10) * (-3 * d5_s / T_b0)); g5_b1 = exp(log(10) * (-3 * d5_s / T_b1)); g5_b2 = exp(log(10) * (-3 * d5_s / T_b2)); g5_b3 = exp(log(10) * (-3 * d5_s / T_b3));
+  g6_b0 = exp(log(10) * (-3 * d6_s / T_b0)); g6_b1 = exp(log(10) * (-3 * d6_s / T_b1)); g6_b2 = exp(log(10) * (-3 * d6_s / T_b2)); g6_b3 = exp(log(10) * (-3 * d6_s / T_b3));
+
+  // clamp HF-band feedback for reflective materials to prevent zingy ringing
+  hf_cap = (alpha < 0.06 ? 0.78 : 0.85);
+  g1_b3 = min(g1_b3, hf_cap);
+  g2_b3 = min(g2_b3, hf_cap);
+  g3_b3 = min(g3_b3, hf_cap);
+  g4_b3 = min(g4_b3, hf_cap);
+  g5_b3 = min(g5_b3, hf_cap);
+  g6_b3 = min(g6_b3, hf_cap);
+
+  // crossover one-pole coefficients for 300/1200/4800 Hz
+  lp1_c = 1 - exp(((-2)*pi*300)/srate);
+  lp2_c = 1 - exp(((-2)*pi*1200)/srate);
+  lp3_c = 1 - exp(((-2)*pi*4800)/srate);
+  // material-dependent HF smoothing coefficient (reflective -> more smoothing)
+  hf_smooth_c = clamp(0.02 + (0.12 * (0.10 - alpha) / 0.10), 0.02, 0.14);
+);
+
+// compute ER taps and field gains using mic/src positions (first-order image sources)
+function update_positions()
+  local(Lx,Ly,Lz, sx,sy,sz, mx,my,mz, alpha, diag, d0, dn,
+        ix0,ix1,iy0,iy1,iz0,iz1, dx,dy,dz, dist,
+        r1, norm, fx, fy, pan_dir, pan_er0, pan_er1, pan_er2, pan_er3, pan_er4, pan_er5, th_rad, cosf, sinf)
+(
+  Lx = room_len_m; Ly = room_wid_m; Lz = room_hgt_m;
+  sx = clamp(src_x,0,1) * Lx;
+  sy = clamp(src_y,0,1) * Ly;
+  sz = clamp(src_z,0,1) * Lz;
+  mx = clamp(mic_x,0,1) * Lx;
+  my = clamp(mic_y,0,1) * Ly;
+  mz = clamp(mic_z,0,1) * Lz;
+
+  // material absorption (same alpha as acoustics)
+  alpha = get_alpha_from_mat(mat);
+
+  // direct distance
+  dx = sx - mx; dy = sy - my; dz = sz - mz;
+  d0 = sqrt(dx*dx + dy*dy + dz*dz) + 0.000001;
+  diag = sqrt(Lx*Lx + Ly*Ly + Lz*Lz) + 0.000001;
+  dn = clamp(d0 / diag, 0, 1);
+
+  // Map distance to field gains
+  direct_gain = 1.0 - 0.7*dn;
+  er_gain = 0.20 + 0.60*dn;
+  late_gain = 0.35 + 0.50*dn;
+
+  // reflection coefficient per bounce
+  r1 = (1 - alpha);
+
+  // mic facing unit vector projected on XY
+  th_rad = mic_facing_deg * (pi/180);
+  cosf = cos(th_rad); sinf = sin(th_rad);
+  fx = cosf; fy = sinf;
+  // pan helpers use global-facing vector fx,fy with shared function
+
+  // x=0 mirror
+  ix0 = -sx; dx = ix0 - mx; dy = sy - my; dz = sz - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d0 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g0 = r1 * (1/(1 + dist));
+  pan_er0 = pan_from_vec(dx, dy, fx, fy);
+  // x=L mirror
+  ix1 = 2*Lx - sx; dx = ix1 - mx; dy = sy - my; dz = sz - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d1 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g1 = r1 * (1/(1 + dist));
+  pan_er1 = pan_from_vec(dx, dy, fx, fy);
+
+  // y=0 mirror
+  iy0 = -sy; dx = sx - mx; dy = iy0 - my; dz = sz - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d2 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g2 = r1 * (1/(1 + dist));
+  pan_er2 = pan_from_vec(dx, dy, fx, fy);
+  // y=L mirror
+  iy1 = 2*Ly - sy; dx = sx - mx; dy = iy1 - my; dz = sz - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d3 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g3 = r1 * (1/(1 + dist));
+  pan_er3 = pan_from_vec(dx, dy, fx, fy);
+
+  // z=0 mirror
+  iz0 = -sz; dx = sx - mx; dy = sy - my; dz = iz0 - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d4 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g4 = r1 * (1/(1 + dist));
+  pan_er4 = pan_from_vec(dx, dy, fx, fy);
+  // z=L mirror
+  iz1 = 2*Lz - sz; dx = sx - mx; dy = sy - my; dz = iz1 - mz; dist = sqrt(dx*dx + dy*dy + dz*dz);
+  er_d5 = clamp(floor((dist/speed_of_sound)*srate), 1, max_delay_spl-2);
+  er_g5 = r1 * (1/(1 + dist));
+  pan_er5 = pan_from_vec(dx, dy, fx, fy);
+
+  // direct pan from source -> mic vector
+  pan_dir = pan_from_vec(sx-mx, sy-my, fx, fy);
+);
+
+// Precompute sparse echo tap delays/gains from ballistic and mean free path
+function update_sparse()
+  local(k, t, d_spl, d_m, gain)
+(
+  spN = 0;
+  t = ballistic_s;
+  k = 0;
+  loop(6,
+    d_spl = floor(t * srate);
+    d_spl >= 1 && d_spl < max_delay_spl-2 ? (
+      d_m = t * speed_of_sound;
+      gain = pow(refl1, k+1) * (1/(1 + d_m));
+      sp_delays[spN] = d_spl;
+      sp_gains[spN] = gain;
+      spN += 1;
+    );
+    t += mfp_s;
+    k += 1;
+  );
+);
+
+// allpass state
+apL1_z = apL2_z = apL3_z = 0;
+apR1_z = apR2_z = apR3_z = 0;
+wapInL = wapInR = 0;
+
+// damping states per comb
+dl1L_d = dl2L_d = dl3L_d = dl4L_d = dl5L_d = dl6L_d = 0;
+dl1R_d = dl2R_d = dl3R_d = dl4R_d = dl5R_d = dl6R_d = 0;
+
+// multiband splitter states per channel (for comb feedback processing)
+mb_lp1_L = mb_lp2_L = mb_lp3_L = 0;
+mb_lp1_R = mb_lp2_R = mb_lp3_R = 0;
+
+// AP output smoothing states
+ap_smoothL = ap_smoothR = 0;
+
+// rms trackers for density compensation
+sp_rmsL = sp_rmsR = dn_rmsL = dn_rmsR = rms_init;
+
+update_acoustics();
+update_positions();
+// initialize sparse echo timing and buffers to avoid startup glitches
+sp_offL_spl = floor(sp_offL * srate);
+sp_offR_spl = floor(sp_offR * srate);
+update_sparse();
+// zero sparse AP buffers
+i = 0;
+loop(max_delay_spl,
+  spApL1[i] = 0; spApR1[i] = 0; spApL2[i] = 0; spApR2[i] = 0;
+  spApL3[i] = 0; spApR3[i] = 0; spApL4[i] = 0; spApR4[i] = 0;
+  i += 1;
+);
+
+@slider
+update_acoustics();
+update_positions();
+
+// update sparse echo timing and small stereo skew in samples
+sp_offL_spl = floor(sp_offL * srate);
+sp_offR_spl = floor(sp_offR * srate);
+update_sparse();
+
+// modulation mapping: clean -> no mod; modulated -> chorus-like AP3 modulation
+chor_rateL = 0.08 + 0.35*mod_amt; // lush chorus rate (L)
+chor_rateR = 0.11 + 0.40*mod_amt; // lush chorus rate (R)
+// convert to radians/sample
+chor_dpL = 2*pi * chor_rateL / srate;
+chor_dpR = 2*pi * chor_rateR / srate;
+// depth up to ~4 ms on AP3
+mod_depth_s = 0.004 * mod_amt;
+
+@block
+// per-sample advance handled in @sample
+
+@sample
+// read inputs
+inL = spl0; inR = spl1;
+
+// compute per-sample LFO values for chorus on AP3
+lfo1_ph += 2*pi*lfo_rate1/srate; lfo1_ph >= 2*pi ? lfo1_ph -= 2*pi;
+lfo2_ph += 2*pi*lfo_rate2/srate; lfo2_ph >= 2*pi ? lfo2_ph -= 2*pi;
+lfo3L_ph += chor_dpL; lfo3L_ph >= 2*pi ? lfo3L_ph -= 2*pi;
+lfo3R_ph += chor_dpR; lfo3R_ph >= 2*pi ? lfo3R_ph -= 2*pi;
+
+// Pre-input diffusion allpass (to smear periodic excitation)
+apIn_d = ap_in_time * srate;
+u = frac_read(apInL, max_delay_spl, wapInL, apIn_d);
+v = inL + (-ap_in_g)*u;
+inLd = u + ap_in_g*v;
+apInL[wapInL] = v; wapInL += 1; wapInL >= max_delay_spl ? wapInL = 0;
+
+u = frac_read(apInR, max_delay_spl, wapInR, apIn_d);
+v = inR + (-ap_in_g)*u;
+inRd = u + ap_in_g*v;
+apInR[wapInR] = v; wapInR += 1; wapInR >= max_delay_spl ? wapInR = 0;
+
+// Early reflections via tapped delay (feed-forward)
+// Simple fixed tap buffer per channel; write current input
+erL[werL] = inLd; erR[werR] = inRd;
+er_sumL = 0; er_sumR = 0;
+pos = werL - er_d0; pos < 0 ? pos += max_delay_spl; pan = pan_er0; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g0*gL; er_sumR += erL[pos]*er_g0*gR;
+pos = werL - er_d1; pos < 0 ? pos += max_delay_spl; pan = pan_er1; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g1*gL; er_sumR += erL[pos]*er_g1*gR;
+pos = werL - er_d2; pos < 0 ? pos += max_delay_spl; pan = pan_er2; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g2*gL; er_sumR += erL[pos]*er_g2*gR;
+pos = werL - er_d3; pos < 0 ? pos += max_delay_spl; pan = pan_er3; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g3*gL; er_sumR += erL[pos]*er_g3*gR;
+pos = werL - er_d4; pos < 0 ? pos += max_delay_spl; pan = pan_er4; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g4*gL; er_sumR += erL[pos]*er_g4*gR;
+pos = werL - er_d5; pos < 0 ? pos += max_delay_spl; pan = pan_er5; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan)); er_sumL += erL[pos]*er_g5*gL; er_sumR += erL[pos]*er_g5*gR;
+
+werL += 1; werL >= max_delay_spl ? werL = 0;
+werR += 1; werR >= max_delay_spl ? werR = 0;
+
+// Sparse ballistic echoes (feed-forward) using ER history buffer
+sp_sumL = 0; sp_sumR = 0;
+i = 0;
+loop(spN,
+  pos = werL - (sp_delays[i] + sp_offL_spl);
+  pos < 0 ? pos += max_delay_spl;
+  pos >= max_delay_spl ? pos -= max_delay_spl;
+  sp_sumL += erL[pos] * sp_gains[i];
+  pos = werR - (sp_delays[i] + sp_offR_spl);
+  pos < 0 ? pos += max_delay_spl;
+  pos >= max_delay_spl ? pos -= max_delay_spl;
+  sp_sumR += erR[pos] * sp_gains[i];
+  i += 1;
+);
+
+// Diffuse sparse echoes with four-stage allpass, scaled by room size
+sp_ap1_d = sp_ap1_s * srate; sp_ap2_d = sp_ap2_s * srate; sp_ap3_d = sp_ap3_s * srate; sp_ap4_d = sp_ap4_s * srate;
+// L
+u = frac_read(spApL1, max_delay_spl, wspL1, sp_ap1_d); v = sp_sumL + (-sp_ap_g)*u; sp_s1L = u + sp_ap_g*v; spApL1[wspL1] = v; wspL1 += 1; wspL1 >= max_delay_spl ? wspL1 = 0;
+u = frac_read(spApL2, max_delay_spl, wspL2, sp_ap2_d); v = sp_s1L + (-sp_ap_g)*u; sp_s2L = u + sp_ap_g*v; spApL2[wspL2] = v; wspL2 += 1; wspL2 >= max_delay_spl ? wspL2 = 0;
+u = frac_read(spApL3, max_delay_spl, wspL3, sp_ap3_d); v = sp_s2L + (-sp_ap_g)*u; sp_s3L = u + sp_ap_g*v; spApL3[wspL3] = v; wspL3 += 1; wspL3 >= max_delay_spl ? wspL3 = 0;
+u = frac_read(spApL4, max_delay_spl, wspL4, sp_ap4_d); v = sp_s3L + (-sp_ap_g)*u; sp_diffL = u + sp_ap_g*v; spApL4[wspL4] = v; wspL4 += 1; wspL4 >= max_delay_spl ? wspL4 = 0;
+// R
+u = frac_read(spApR1, max_delay_spl, wspR1, sp_ap1_d); v = sp_sumR + (-sp_ap_g)*u; sp_s1R = u + sp_ap_g*v; spApR1[wspR1] = v; wspR1 += 1; wspR1 >= max_delay_spl ? wspR1 = 0;
+u = frac_read(spApR2, max_delay_spl, wspR2, sp_ap2_d); v = sp_s1R + (-sp_ap_g)*u; sp_s2R = u + sp_ap_g*v; spApR2[wspR2] = v; wspR2 += 1; wspR2 >= max_delay_spl ? wspR2 = 0;
+u = frac_read(spApR3, max_delay_spl, wspR3, sp_ap3_d); v = sp_s2R + (-sp_ap_g)*u; sp_s3R = u + sp_ap_g*v; spApR3[wspR3] = v; wspR3 += 1; wspR3 >= max_delay_spl ? wspR3 = 0;
+u = frac_read(spApR4, max_delay_spl, wspR4, sp_ap4_d); v = sp_s3R + (-sp_ap_g)*u; sp_diffR = u + sp_ap_g*v; spApR4[wspR4] = v; wspR4 += 1; wspR4 >= max_delay_spl ? wspR4 = 0;
+
+// Late reverb: 6 comb per channel with HF damping (no time modulation)
+// add static micro random offsets per instance to reduce periodic beating
+d1L = (d1_s + 0.0001 + comb_off1L) * srate; d1R = (d1_s + 0.0008 + comb_off1R) * srate;
+d2L = (d2_s + 0.0002 + comb_off2L) * srate; d2R = (d2_s + 0.0006 + comb_off2R) * srate;
+d3L = (d3_s + 0.0003 + comb_off3L) * srate; d3R = (d3_s + 0.0004 + comb_off3R) * srate;
+d4L = (d4_s + 0.0005 + comb_off4L) * srate; d4R = (d4_s + 0.0010 + comb_off4R) * srate;
+d5L = (d5_s + 0.0007 + comb_off5L) * srate; d5R = (d5_s + 0.0013 + comb_off5R) * srate;
+d6L = (d6_s + 0.0011 + comb_off6L) * srate; d6R = (d6_s + 0.0017 + comb_off6R) * srate;
+
+// L channel combs
+x1 = frac_read(bufL1, max_delay_spl, wL1, d1L);
+// split into 4 bands using 3 cascaded lowpasses
+mb_lp1_L = onepole_lp(mb_lp1_L, x1, lp1_c);
+mb_lp2_L = onepole_lp(mb_lp2_L, x1, lp2_c);
+mb_lp3_L = onepole_lp(mb_lp3_L, x1, lp3_c);
+b0 = mb_lp1_L;
+b1 = mb_lp2_L - mb_lp1_L;
+b2 = mb_lp3_L - mb_lp2_L;
+b3 = x1 - mb_lp3_L;
+// apply per-band feedback damping
+x1_mb = b0*g1_b0 + b1*g1_b1 + b2*g1_b2 + b3*g1_b3;
+dl1L_d = x1_mb; dl1L_d = flush_denorm(dl1L_d);
+y1 = dl1L_d + inLd;
+bufL1[wL1] = y1; wL1 += 1; wL1 >= max_delay_spl ? wL1 = 0;
+
+x2 = frac_read(bufL2, max_delay_spl, wL2, d2L);
+dl2L_d = onepole_lp(dl2L_d, x2, hf_damp); dl2L_d = flush_denorm(dl2L_d);
+y2 = dl2L_d * g2 + inLd;
+bufL2[wL2] = y2; wL2 += 1; wL2 >= max_delay_spl ? wL2 = 0;
+
+x3 = frac_read(bufL3, max_delay_spl, wL3, d3L);
+dl3L_d = onepole_lp(dl3L_d, x3, hf_damp); dl3L_d = flush_denorm(dl3L_d);
+y3 = dl3L_d * g3 + inLd;
+bufL3[wL3] = y3; wL3 += 1; wL3 >= max_delay_spl ? wL3 = 0;
+
+x4 = frac_read(bufL4, max_delay_spl, wL4, d4L);
+dl4L_d = onepole_lp(dl4L_d, x4, hf_damp); dl4L_d = flush_denorm(dl4L_d);
+y4 = dl4L_d * g4 + inLd;
+bufL4[wL4] = y4; wL4 += 1; wL4 >= max_delay_spl ? wL4 = 0;
+
+// L channel extra combs
+x5 = frac_read(bufL5, max_delay_spl, wL5, d5L);
+dl5L_d = onepole_lp(dl5L_d, x5, hf_damp); dl5L_d = flush_denorm(dl5L_d);
+y5 = dl5L_d * g5 + inLd;
+bufL5[wL5] = y5; wL5 += 1; wL5 >= max_delay_spl ? wL5 = 0;
+
+x6 = frac_read(bufL6, max_delay_spl, wL6, d6L);
+dl6L_d = onepole_lp(dl6L_d, x6, hf_damp); dl6L_d = flush_denorm(dl6L_d);
+y6 = dl6L_d * g6 + inLd;
+bufL6[wL6] = y6; wL6 += 1; wL6 >= max_delay_spl ? wL6 = 0;
+
+combL = y1 + y2 + y3 + y4 + y5 + y6;
+
+// R channel combs
+x1 = frac_read(bufR1, max_delay_spl, wR1, d1R);
+// split into 4 bands using 3 cascaded lowpasses
+mb_lp1_R = onepole_lp(mb_lp1_R, x1, lp1_c);
+mb_lp2_R = onepole_lp(mb_lp2_R, x1, lp2_c);
+mb_lp3_R = onepole_lp(mb_lp3_R, x1, lp3_c);
+b0 = mb_lp1_R;
+b1 = mb_lp2_R - mb_lp1_R;
+b2 = mb_lp3_R - mb_lp2_R;
+b3 = x1 - mb_lp3_R;
+// apply per-band feedback damping
+x1_mb = b0*g1_b0 + b1*g1_b1 + b2*g1_b2 + b3*g1_b3;
+dl1R_d = x1_mb; dl1R_d = flush_denorm(dl1R_d);
+y1 = dl1R_d + inRd;
+bufR1[wR1] = y1; wR1 += 1; wR1 >= max_delay_spl ? wR1 = 0;
+
+x2 = frac_read(bufR2, max_delay_spl, wR2, d2R);
+dl2R_d = onepole_lp(dl2R_d, x2, hf_damp); dl2R_d = flush_denorm(dl2R_d);
+y2 = dl2R_d * g2 + inRd;
+bufR2[wR2] = y2; wR2 += 1; wR2 >= max_delay_spl ? wR2 = 0;
+
+x3 = frac_read(bufR3, max_delay_spl, wR3, d3R);
+dl3R_d = onepole_lp(dl3R_d, x3, hf_damp); dl3R_d = flush_denorm(dl3R_d);
+y3 = dl3R_d * g3 + inRd;
+bufR3[wR3] = y3; wR3 += 1; wR3 >= max_delay_spl ? wR3 = 0;
+
+x4 = frac_read(bufR4, max_delay_spl, wR4, d4R);
+dl4R_d = onepole_lp(dl4R_d, x4, hf_damp); dl4R_d = flush_denorm(dl4R_d);
+y4 = dl4R_d * g4 + inRd;
+bufR4[wR4] = y4; wR4 += 1; wR4 >= max_delay_spl ? wR4 = 0;
+
+// R channel extra combs
+x5 = frac_read(bufR5, max_delay_spl, wR5, d5R);
+dl5R_d = onepole_lp(dl5R_d, x5, hf_damp); dl5R_d = flush_denorm(dl5R_d);
+y5 = dl5R_d * g5 + inRd;
+bufR5[wR5] = y5; wR5 += 1; wR5 >= max_delay_spl ? wR5 = 0;
+
+x6 = frac_read(bufR6, max_delay_spl, wR6, d6R);
+dl6R_d = onepole_lp(dl6R_d, x6, hf_damp); dl6R_d = flush_denorm(dl6R_d);
+y6 = dl6R_d * g6 + inRd;
+bufR6[wR6] = y6; wR6 += 1; wR6 >= max_delay_spl ? wR6 = 0;
+
+combR = y1 + y2 + y3 + y4 + y5 + y6;
+
+// Allpass diffusion (serial 3 stages) — AP3 modulated + static offset for chorus
+ap1_dL = ap1_s * srate; ap2_dL = ap2_s * srate; ap3_dL = (ap3_s + ap3_offL + mod_depth_s * sin(lfo3L_ph)) * srate;
+u = frac_read(apL1, max_delay_spl, wapL1, ap1_dL);
+v = combL + (-ap_g)*u;
+ap_out = u + ap_g*v;
+apL1[wapL1] = v; wapL1 += 1; wapL1 >= max_delay_spl ? wapL1 = 0;
+
+u2 = frac_read(apL2, max_delay_spl, wapL2, ap2_dL);
+v2 = ap_out + (-ap_g)*u2;
+ap_midL = u2 + ap_g*v2;
+apL2[wapL2] = v2; wapL2 += 1; wapL2 >= max_delay_spl ? wapL2 = 0;
+
+u3 = frac_read(apL3, max_delay_spl, wapL3, ap3_dL);
+v3 = ap_midL + (-ap_g)*u3;
+ap_out2L = u3 + ap_g*v3;
+apL3[wapL3] = v3; wapL3 += 1; wapL3 >= max_delay_spl ? wapL3 = 0;
+
+// R
+ap1_dR = ap1_s * srate; ap2_dR = ap2_s * srate; ap3_dR = (ap3_s + ap3_offR + mod_depth_s * sin(lfo3R_ph)) * srate;
+u = frac_read(apR1, max_delay_spl, wapR1, ap1_dR);
+v = combR + (-ap_g)*u;
+ap_out = u + ap_g*v;
+apR1[wapR1] = v; wapR1 += 1; wapR1 >= max_delay_spl ? wapR1 = 0;
+
+u2 = frac_read(apR2, max_delay_spl, wapR2, ap2_dR);
+v2 = ap_out + (-ap_g)*u2;
+ap_midR = u2 + ap_g*v2;
+apR2[wapR2] = v2; wapR2 += 1; wapR2 >= max_delay_spl ? wapR2 = 0;
+
+u3 = frac_read(apR3, max_delay_spl, wapR3, ap3_dR);
+v3 = ap_midR + (-ap_g)*u3;
+ap_out2R = u3 + ap_g*v3;
+apR3[wapR3] = v3; wapR3 += 1; wapR3 >= max_delay_spl ? wapR3 = 0;
+
+// Pre-delay: tied to ballistic and mean-free-path (larger room => longer)
+// Use fraction of first traversal plus a portion of MFP to keep small rooms tight
+prlen_s = clamp(0.25*ballistic_s + 0.50*mfp_s, 0.001, 0.060);
+prlen = prlen_s * srate;
+prL[werL] = ap_out2L; prR[werR] = ap_out2R;
+// apply gentle HF smoothing to AP outputs before predelay
+ap_smoothL = onepole_lp(ap_smoothL, ap_out2L, hf_smooth_c);
+ap_smoothR = onepole_lp(ap_smoothR, ap_out2R, hf_smooth_c);
+rp = werL - prlen; rp < 0 ? rp += max_delay_spl; lateL = prL[rp];
+rp = werR - prlen; rp < 0 ? rp += max_delay_spl; lateR = prR[rp];
+
+// Density control with loudness compensation: keep output consistent across blend
+// Estimate energy of sparse vs dense and apply simple gain comp to dense portion
+denseL = lateL; denseR = lateR;
+// cheap RMS trackers
+sp_rmsL = 0.999*sp_rmsL + 0.001*(sp_diffL*sp_diffL);
+sp_rmsR = 0.999*sp_rmsR + 0.001*(sp_diffR*sp_diffR);
+dn_rmsL = 0.999*dn_rmsL + 0.001*(denseL*denseL);
+dn_rmsR = 0.999*dn_rmsR + 0.001*(denseR*denseR);
+// avoid division by zero
+gcompL = sqrt((sp_rmsL + rms_eps) / (dn_rmsL + rms_eps));
+gcompR = sqrt((sp_rmsR + rms_eps) / (dn_rmsR + rms_eps));
+// constrain gain compensation to a safe range
+gcompL = clamp(gcompL, 0.5, 2.0);
+gcompR = clamp(gcompR, 0.5, 2.0);
+tailL = (1-density)*sp_diffL + density*(gcompL*denseL);
+tailR = (1-density)*sp_diffR + density*(gcompR*denseR);
+
+// Mix fields according to mic/source mapping and direction panning
+pan = pan_dir; gL = sqrt(0.5*(1-pan)); gR = sqrt(0.5*(1+pan));
+wetL = direct_gain*(inL*gL) + er_gain*er_sumL + late_gain*tailL;
+wetR = direct_gain*(inR*gR) + er_gain*er_sumR + late_gain*tailR;
+// final wet/dry with explicit Dry knob
+outL = dry*inL + mix*wetL;
+outR = dry*inR + mix*wetR;
+
+// safety soft clip
+outL >  1 ? outL =  1 : outL < -1 ? outL = -1;
+outR >  1 ? outR =  1 : outR < -1 ? outR = -1;
+
+spl0 = outL;
+spl1 = outR;
+// --- Telemetry update (smoothed energies and geometry) ---
+e_in = 0.5*(inL*inL + inR*inR);
+e_er = 0.5*(er_sumL*er_sumL + er_sumR*er_sumR);
+e_late = 0.5*(tailL*tailL + tailR*tailR);
+arv_in  = onepole_lp(arv_in , e_in ,  arv_smooth_c);
+arv_er  = onepole_lp(arv_er , e_er ,  arv_smooth_c);
+arv_late= onepole_lp(arv_late, e_late, arv_smooth_c);
+arv_stamp += 1;
+gmem[gmem_base+0] = arv_stamp;
+gmem[gmem_base+1] = arv_in;
+gmem[gmem_base+2] = arv_er;
+gmem[gmem_base+3] = arv_late;
+// geometry (meters) and normalized positions
+gmem[gmem_base+4] = room_len_m; // length (m)
+gmem[gmem_base+5] = room_wid_m; // width (m)
+gmem[gmem_base+6] = room_hgt_m; // height (m)
+gmem[gmem_base+7] = src_x; gmem[gmem_base+8] = src_y; gmem[gmem_base+9] = src_z;
+gmem[gmem_base+10] = mic_x; gmem[gmem_base+11] = mic_y; gmem[gmem_base+12] = mic_z;
+gmem[gmem_base+13] = rt60_s;
+
+

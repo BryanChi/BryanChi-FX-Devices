@@ -20,14 +20,12 @@ FX[FxGUID].Width = 350   -- use this to set the device's width
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
 
-ActiveAny, Active, Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Val[FX_Idx] or 0, 0, 1, FX_Idx,nil,FxGUID)
-
 ---------------------------------------------
 ---------Function----------------------------
 ---------------------------------------------
 local posx, posy = im.GetCursorScreenPos(ctx)
 
-track = r.GetSelectedTrack2(0, 0, false)
+track = LT_Track or r.GetSelectedTrack2(0, 0, false)
 if track then
   trackidx = r.CSurf_TrackToID(track, false)
   track_guid = r.GetTrackGUID(track)
@@ -186,6 +184,7 @@ local function DrawPads(loopmin, loopmax)
   CheckDNDType()
   DoubleClickActions(loopmin, loopmax)
 
+  local top_pad = 10
   for a = loopmin, loopmax do
     notenum = a - 1
     note_name = getNoteName(notenum + midi_oct_offs)
@@ -201,7 +200,7 @@ local function DrawPads(loopmin, loopmax)
     else
       pad_name = ""
     end
-    local y = 150 + math.floor((a - loopmin) / 4) * -50 -- start position + math.floor * - row offset
+    local y = 150 + top_pad + math.floor((a - loopmin) / 4) * -50 -- start position + optional top padding
     local x = 5 + (a - 1) % 4 * 80
     local FX_VISIBLE
     im.SetCursorPos(ctx, x, y)
@@ -227,7 +226,7 @@ local function DrawPads(loopmin, loopmax)
 
     im.SetCursorPos(ctx, x, y + 30)
     im.InvisibleButton(ctx, "▶##play" .. a, 25, 15)
-    SendMidiNote(notenum)
+    SendMidiNote(a)
     DrawListButton("-", (RDM_Play or CustomColorsDefault.RDM_Play), nil, true)
 
     im.SetCursorPos(ctx, x + 25, y + 30)
@@ -381,14 +380,30 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   f_draw_list = im.GetForegroundDrawList(ctx) 
   
   local x, y = im.GetCursorPos(ctx)
+  local y_offset = 10
+  -- Top-right wet/dry knob (outside scroll areas)
+  do
+    local total_w = (w_closed - 10) + (w_open + 250)
+    local knob_w = (WET_DRY_KNOB_SZ or 26)
+    im.SetCursorPos(ctx, x + total_w - knob_w, y + y_offset)
+    ActiveAny, Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx, nil, FxGUID)
+  end
     
   local _, n = r.GetProjExtState(0, "ReaDrum Machine", track_guid .. "LAST_MENU")
   if n ~= nil then
     FX[FxGUID].LAST_MENU = tonumber(n)
   end
 
-  im.SetCursorPos(ctx, x, y - 7)
-  if im.BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100) then   -- vertical tab
+  im.SetCursorPos(ctx, x, y + y_offset)
+  if im.BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then   -- vertical tab
+    -- Use child draw list to ensure proper clipping when scrolling
+    draw_list = im.GetWindowDrawList(ctx)
+    f_draw_list = draw_list
+    do -- explicit clip to child bounds
+      local px, py = im.GetWindowPos(ctx)
+      local cw, ch = im.GetWindowSize(ctx)
+      im.PushClipRect(ctx, px, py, px + cw, py + ch, true)
+    end
     for i = 1, 8 do
       im.SetCursorPos(ctx, 3,  y + 145 - (i - 1) * 24 - 6)
       local rv = im.InvisibleButton(ctx, "B" .. i, 20, 20)
@@ -430,15 +445,25 @@ if not FX[FXGUID[FX_Idx]].Collapse then
         Highlight_Itm(draw_list, (RDM_VTab_Highlight or CustomColorsDefault.RDM_VTab_Highlight), (RDM_VTab_Highlight_Edge or CustomColorsDefault.RDM_VTab_Highlight_Edge))
       end
     end
+    im.PopClipRect(ctx)
     im.EndChild(ctx)
   end
   local openpad 
   if FX[FxGUID].LAST_MENU then       -- Open pads manu
-    im.SetCursorPos(ctx, x + w_closed - 10, y - 7)
-    if im.BeginChild(ctx, "child_menu", w_open + 250, h + 88) then
+    im.SetCursorPos(ctx, x + w_closed - 10, y + y_offset - 10)
+    if im.BeginChild(ctx, "child_menu", w_open + 250, h + 88, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then
+      -- Use child draw list so pads are clipped and don't duplicate outside
+      draw_list = im.GetWindowDrawList(ctx)
+      f_draw_list = draw_list
+      do -- explicit clip to child bounds
+        local px, py = im.GetWindowPos(ctx)
+        local cw, ch = im.GetWindowSize(ctx)
+        im.PushClipRect(ctx, px, py, px + cw, py + ch, true)
+      end
       local high = 0 + 16 * (FX[FxGUID].LAST_MENU)
       local low = 0 + 16 * (FX[FxGUID].LAST_MENU - 1) + 1
       openpad = DrawPads(low, high)
+      im.PopClipRect(ctx)
       im.EndChild(ctx)
     end
   end

@@ -6,47 +6,110 @@ import FXD Macros - Default Values.jsfx-inc
 import FXD Macros - Functions.jsfx-inc
 
  
-slider1:0<0,1>Macro 1
-slider2:0<0,1>Macro 2
-slider3:0<0,1>Macro 3
-slider4:0<0,1>Macro 4
-slider5:0<0,1>Macro 5
-slider6:0<0,1>Macro 6
-slider7:0<0,1>Macro 7
-slider8:0<0,1>Macro 8
-slider9:0<0,127>Morph 1
-slider10:0<0,127>Morph 2
-slider11:0<0,127>Morph 3
-slider12:0<0,127>Morph 4 
-slider13:0<0,127>Morph 5
-slider14:0<0,127>Morph 6
-slider15:0<0,127>Morph 7
-slider16:0<0,127>Morph 8s
-slider17:0<0,1>Automatable Param 1
-slider18:0<0,1>Automatable Param 2
-slider19:0<0,1>Automatable Param 3
-slider20:0<0,1>Automatable Param 4
-slider21:0<0,1>Automatable Param 5
-slider22:0<0,1>Automatable Param 6
-slider23:0<0,1>Automatable Param 7
-slider24:0<0,1>Automatable Param 8
-slider25:0<100000000, 999999999> Diy_Trk_ID
-slider26:0<0,1>XY Pad 1 X
-slider27:0<0,1>XY Pad 1 Y
-slider28:0<0,1>XY Pad 2 X
-slider29:0<0,1>XY Pad 2 Y
-slider30:0<0,1>XY Pad 3 X
-slider31:0<0,1>XY Pad 3 Y
-slider32:0<0,1>XY Pad 4 X
-slider33:0<0,1>XY Pad 4 Y
-slider34:0<0,1>XY Pad 5 X
-slider35:0<0,1>XY Pad 5 Y
-slider36:0<0,1>XY Pad 6 X
-slider37:0<0,1>XY Pad 6 Y
-slider38:0<0,1>XY Pad 7 X
-slider39:0<0,1>XY Pad 7 Y
-slider40:0<0,1>XY Pad 8 X
-slider41:0<0,1>XY Pad 8 Y
+// Global sliders
+slider1:0<100000000,999999999>Diy_Trk_ID
+slider2:0<0,1>Velocity Mod Affects Velocity Output
+
+// Unified Modulator Params: 24 modulators * 4 params = 96 sliders
+// Index formula: base=3, index = base + (mod-1)*4 + (param-1)
+slider3:0<0,1>Modulator 1 Param 1
+slider4:0<0,1>Modulator 1 Param 2
+slider5:0<0,1>Modulator 1 Param 3
+slider6:0<0,1>Modulator 1 Param 4
+slider7:0<0,1>Modulator 2 Param 1
+slider8:0<0,1>Modulator 2 Param 2
+slider9:0<0,1>Modulator 2 Param 3
+slider10:0<0,1>Modulator 2 Param 4
+slider11:0<0,1>Modulator 3 Param 1
+slider12:0<0,1>Modulator 3 Param 2
+slider13:0<0,1>Modulator 3 Param 3
+slider14:0<0,1>Modulator 3 Param 4
+slider15:0<0,1>Modulator 4 Param 1
+slider16:0<0,1>Modulator 4 Param 2
+slider17:0<0,1>Modulator 4 Param 3
+slider18:0<0,1>Modulator 4 Param 4
+slider19:0<0,1>Modulator 5 Param 1
+slider20:0<0,1>Modulator 5 Param 2
+slider21:0<0,1>Modulator 5 Param 3
+slider22:0<0,1>Modulator 5 Param 4
+slider23:0<0,1>Modulator 6 Param 1
+slider24:0<0,1>Modulator 6 Param 2
+slider25:0<0,1>Modulator 6 Param 3
+slider26:0<0,1>Modulator 6 Param 4
+slider27:0<0,1>Modulator 7 Param 1
+slider28:0<0,1>Modulator 7 Param 2
+slider29:0<0,1>Modulator 7 Param 3
+slider30:0<0,1>Modulator 7 Param 4
+slider31:0<0,1>Modulator 8 Param 1
+slider32:0<0,1>Modulator 8 Param 2
+slider33:0<0,1>Modulator 8 Param 3
+slider34:0<0,1>Modulator 8 Param 4
+slider35:0<0,1>Modulator 9 Param 1
+slider36:0<0,1>Modulator 9 Param 2
+slider37:0<0,1>Modulator 9 Param 3
+slider38:0<0,1>Modulator 9 Param 4
+slider39:0<0,1>Modulator 10 Param 1
+slider40:0<0,1>Modulator 10 Param 2
+slider41:0<0,1>Modulator 10 Param 3
+slider42:0<0,1>Modulator 10 Param 4
+slider43:0<0,1>Modulator 11 Param 1
+slider44:0<0,1>Modulator 11 Param 2
+slider45:0<0,1>Modulator 11 Param 3
+slider46:0<0,1>Modulator 11 Param 4
+slider47:0<0,1>Modulator 12 Param 1
+slider48:0<0,1>Modulator 12 Param 2
+slider49:0<0,1>Modulator 12 Param 3
+slider50:0<0,1>Modulator 12 Param 4
+slider51:0<0,1>Modulator 13 Param 1
+slider52:0<0,1>Modulator 13 Param 2
+slider53:0<0,1>Modulator 13 Param 3
+slider54:0<0,1>Modulator 13 Param 4
+slider55:0<0,1>Modulator 14 Param 1
+slider56:0<0,1>Modulator 14 Param 2
+slider57:0<0,1>Modulator 14 Param 3
+slider58:0<0,1>Modulator 14 Param 4
+slider59:0<0,1>Modulator 15 Param 1
+slider60:0<0,1>Modulator 15 Param 2
+slider61:0<0,1>Modulator 15 Param 3
+slider62:0<0,1>Modulator 15 Param 4
+slider63:0<0,1>Modulator 16 Param 1
+slider64:0<0,1>Modulator 16 Param 2
+slider65:0<0,1>Modulator 16 Param 3
+slider66:0<0,1>Modulator 16 Param 4
+slider67:0<0,1>Modulator 17 Param 1
+slider68:0<0,1>Modulator 17 Param 2
+slider69:0<0,1>Modulator 17 Param 3
+slider70:0<0,1>Modulator 17 Param 4
+slider71:0<0,1>Modulator 18 Param 1
+slider72:0<0,1>Modulator 18 Param 2
+slider73:0<0,1>Modulator 18 Param 3
+slider74:0<0,1>Modulator 18 Param 4
+slider75:0<0,1>Modulator 19 Param 1
+slider76:0<0,1>Modulator 19 Param 2
+slider77:0<0,1>Modulator 19 Param 3
+slider78:0<0,1>Modulator 19 Param 4
+slider79:0<0,1>Modulator 20 Param 1
+slider80:0<0,1>Modulator 20 Param 2
+slider81:0<0,1>Modulator 20 Param 3
+slider82:0<0,1>Modulator 20 Param 4
+slider83:0<0,1>Modulator 21 Param 1
+slider84:0<0,1>Modulator 21 Param 2
+slider85:0<0,1>Modulator 21 Param 3
+slider86:0<0,1>Modulator 21 Param 4
+slider87:0<0,1>Modulator 22 Param 1
+slider88:0<0,1>Modulator 22 Param 2
+slider89:0<0,1>Modulator 22 Param 3
+slider90:0<0,1>Modulator 22 Param 4
+slider91:0<0,1>Modulator 23 Param 1
+slider92:0<0,1>Modulator 23 Param 2
+slider93:0<0,1>Modulator 23 Param 3
+slider94:0<0,1>Modulator 23 Param 4
+slider95:0<0,1>Modulator 24 Param 1
+slider96:0<0,1>Modulator 24 Param 2
+slider97:0<0,1>Modulator 24 Param 3
+slider98:0<0,1>Modulator 24 Param 4
+
+// (removed legacy duplicate block)
 
 
 
@@ -71,10 +134,10 @@ midiamp = midinote = 0;
 
 totalTrackCount =  gmem[0];
 gmem[4] == 0.1 ? ( // if user is using ImGui to insert jsfx 
-    trkGUID_Num = gmem[1];
-  slider25 = trkGUID_Num;
+  trkGUID_Num = gmem[1];
+  slider1 = trkGUID_Num; // write Diy_Trk_ID into slider1 on insert
 ):( // if user is loading project
-  trkGUID_Num = slider25;
+  trkGUID_Num = slider1; // read Diy_Trk_ID from slider1
 );
 
 
@@ -108,6 +171,7 @@ gmem[4] == 0.1 ? ( // if user is using ImGui to insert jsfx
 //gmem 111 = SEQ Denominator when user is tweaking
 //gmem 112 = step value of currently tweaking step
 //gmem 121 ~128 = SEQ 1 ~ 8 Current Pos 
+//gmem 498 = Velocity mod affects velocity output boolean
 //gmem 500 ~ 650 = All LFO coordinates when window is open. ( 500~550 is x , 550~600 is y, 600 ~ 650 is curve ) 
 //gmem 100000+ = Parameter's original values before modulation
 
@@ -150,16 +214,16 @@ midi_bus=15;
 
 @slider
 
-Mc1.Slider = slider1;
-Mc2.Slider = slider2;
-Mc3.Slider = slider3;
-Mc4.Slider = slider4;
-Mc5.Slider = slider5;
-Mc6.Slider = slider6;
-Mc7.Slider = slider7;
-Mc8.Slider = slider8;
-//slider25 = trkGUID_Num;
-trkGUID_Num = slider25;
+// Macro output is Mod Param1 for each modulator
+Mc1.Slider = slider3;   Mc2.Slider = slider7;   Mc3.Slider = slider11;  Mc4.Slider = slider15;
+Mc5.Slider = slider19;  Mc6.Slider = slider23;  Mc7.Slider = slider27;  Mc8.Slider = slider31;
+Mc9.Slider = slider35;  Mc10.Slider = slider39; Mc11.Slider = slider43; Mc12.Slider = slider47;
+Mc13.Slider = slider51; Mc14.Slider = slider55; Mc15.Slider = slider59; Mc16.Slider = slider63;
+Mc17.Slider = slider67; Mc18.Slider = slider71; Mc19.Slider = slider75; Mc20.Slider = slider79;
+Mc21.Slider = slider83; Mc22.Slider = slider87; Mc23.Slider = slider91; Mc24.Slider = slider95;
+
+// Track GUID binding remains
+trkGUID_Num = slider1;
 
 @serialize 
 
@@ -190,12 +254,6 @@ SAMPLE__DO_FOLLOWER();
 
 
 @block
-AAA_LFO1_PT_Ct = LFO_Ofs[0];
-AAA_LFO1_PT1_X = LFO_Ofs[1];
-AAA_LFO1_PT2_X = LFO_Ofs[2];
-
-AAA_LFO1_PT1_Y = LFO_Ofs[50];
-AAA_LFO1_PT2_Y = LFO_Ofs[51];
 
 
 

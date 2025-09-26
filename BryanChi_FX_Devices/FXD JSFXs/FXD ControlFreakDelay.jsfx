@@ -1,0 +1,436 @@
+desc:FXD - ControlFreakDelay (Multi-Tap Step Sequencer)
+// tags: delay, multitap, step-sequencer
+// author: BryanChi FX Devices (ControlFreakDelay)
+// version: 0.1.1
+
+// Sliders (also controllable from the custom @gfx UI knobs)
+slider1:GridSize_ms=150<10,250,1>Grid Size (ms)
+slider2:Input_dB=0<-24,24,0.1>Input Level (dB)
+slider3:Feedback=0<0,0.95,0.01>Feedback
+slider4:Wet=1<0,1,0.01>Wet
+slider5:Dry=1<0,1,0.01>Dry
+slider6:GlobalDiffuse=1<0,1,0.01>Global Diffuse
+
+options:no_meter
+
+// Prevent @init from re-running on transport start/sample-rate change (per JSFX docs)
+ext_noinit = 1;
+
+@init
+// --- Constants ---
+num_taps = 16;
+two_pi = 2*$pi;
+max_grid_ms = 250; // keep memory bounded for high sample rates
+max_detune_depth_ms = 5; // LFO modulation depth upper bound
+max_chorus_depth_ms = 4; // chorus modulation depth upper bound
+
+// --- Derived ---
+grid_spl = max(1, floor(GridSize_ms * srate/1000));
+input_gain = 10^(Input_dB/20);
+detune_max_spl = max(1, floor(max_detune_depth_ms * srate/1000));
+chorus_max_spl = max(1, floor(max_chorus_depth_ms * srate/1000));
+
+// --- Delay buffer sizing ---
+max_delay_s = (num_taps * max_grid_ms)/1000 + (max_detune_depth_ms/1000) + 0.1;
+buf_size = max(4096, ceil(max_delay_s * srate));
+buf_mask = buf_size-1; // not necessarily power-of-two; we will mod manually
+
+// --- Memory layout (shared memory space) ---
+mem_base = 0;
+bufL = mem_base; // [0 .. buf_size-1]
+bufR = bufL + buf_size; // [buf_size .. 2*buf_size-1]
+
+hp_lp_stateL = bufR + buf_size; // length: num_taps
+hp_lp_stateR = hp_lp_stateL + num_taps;
+lp_stateL     = hp_lp_stateR + num_taps;
+lp_stateR     = lp_stateL + num_taps;
+ap_stateL     = lp_stateR + num_taps; // allpass z1
+ap_stateR     = ap_stateL + num_taps;
+lfo_phase     = ap_stateR + num_taps; // store radians
+
+// UI-controlled per-tap parameters (normalized 0..1 unless stated)
+tap_vol       = lfo_phase + num_taps; // 0..1
+tap_hp        = tap_vol + num_taps;   // 0..1 maps to 20..10k Hz
+tap_lp        = tap_hp + num_taps;    // 0..1 maps to 500..20k Hz
+tap_diff      = tap_lp + num_taps;    // 0..1 -> allpass g [0..0.9]
+tap_detune    = tap_diff + num_taps;  // 0..1
+tap_subdiv    = tap_detune + num_taps; // integer 0..8 (stored as float)
+
+// Persistent init flag stored after arrays
+init_flag     = tap_subdiv + num_taps; // use init_flag[0]
+init_magic = 1234567;
+
+// Additional arrays after init flag
+chorus_phase  = init_flag + 1;            // per-tap chorus LFO phase
+tap_chorus    = chorus_phase + num_taps;  // 0..1 chorus depth UI row
+ap2_stateL    = tap_chorus + num_taps;    // second AP not used now (reserved)
+ap2_stateR    = ap2_stateL + num_taps;
+
+// Short diffusion feedback buffers per tap
+diff_len = 32; // ~0.7ms @ 48k
+diff_baseL = ap2_stateR + num_taps; // length num_taps*diff_len
+diff_baseR = diff_baseL + num_taps*diff_len;
+diff_pos   = diff_baseR + num_taps*diff_len; // per-tap write index
+diff_sumL  = diff_pos + num_taps; // running sums for moving average
+diff_sumR  = diff_sumL + num_taps;
+
+// Multi-stage short-delay allpass buffers for smear without LP tonality
+apd1_len = 7; apd2_len = 11; apd3_len = 15;
+ap1_baseL = diff_sumR + num_taps;           ap1_baseR = ap1_baseL + num_taps*apd1_len; ap1_pos = ap1_baseR + num_taps*apd1_len;
+ap2_baseL = ap1_pos + num_taps;             ap2_baseR = ap2_baseL + num_taps*apd2_len; ap2_pos = ap2_baseR + num_taps*apd2_len;
+ap3_baseL = ap2_pos + num_taps;             ap3_baseR = ap3_baseL + num_taps*apd3_len; ap3_pos = ap3_baseR + num_taps*apd3_len;
+
+// --- Initialize arrays (guarded to avoid resets on playback start) ---
+(init_flag[0] != init_magic) ? (
+  i=0;
+  loop(num_taps,
+    hp_lp_stateL[i]=0; hp_lp_stateR[i]=0;
+    lp_stateL[i]=0; lp_stateR[i]=0;
+    ap_stateL[i]=0; ap_stateR[i]=0;
+    lfo_phase[i]=rand(1)*two_pi; // randomize phases
+    chorus_phase[i]=rand(1)*two_pi;
+    tap_vol[i]=0.8; tap_hp[i]=0; tap_lp[i]=1; tap_diff[i]=0.5; tap_detune[i]=0;
+    tap_subdiv[i]=0; tap_chorus[i]=0;
+    // init diff loop state
+    diff_pos[i]=0; diff_sumL[i]=0; diff_sumR[i]=0;
+    j=0; loop(diff_len,
+      idx = i*diff_len + j;
+      diff_baseL[idx]=0; diff_baseR[idx]=0;
+      j+=1;
+    );
+    i+=1;
+  );
+  init_flag[0] = init_magic;
+);
+
+wpos = 0;
+
+// GFX state
+gfx_clear = 0x151515;
+gfx_ext_retina = 1;
+gfx_a = 1;
+
+// UI state
+ui_active_col = -1;
+ui_active_row = -1; // 0..4  -> Vol, HP, LP, Diff, Detune
+ui_dragging = 0;
+
+// knob state
+knob_active_id = 0; // 1 = input, 2 = grid
+knob_last_x = knob_last_y = 0;
+
+@slider
+grid_spl = max(1, floor(GridSize_ms * srate/1000));
+input_gain = 10^(Input_dB/20);
+detune_max_spl = max(1, floor(max_detune_depth_ms * srate/1000));
+feedback_gain = Feedback;
+wet_gain = Wet; dry_gain = Dry; global_diffuse = GlobalDiffuse;
+
+@block
+// no block-specific processing required for now
+
+@sample
+inL = spl0 * input_gain;
+inR = spl1 * input_gain;
+
+wetL = 0; wetR = 0;
+
+// per-tap processing (use dedicated index to avoid @gfx race)
+s_i=0;
+loop(num_taps,
+  base_delay = (s_i+1)*grid_spl; // base delay in samples
+
+  // detune modulation
+  d_norm = tap_detune[s_i];
+  // frequency 0.2..5.0 Hz
+  lfo_f = 0.2 + d_norm*4.8;
+  lfo_inc = two_pi * lfo_f / srate;
+  ph = lfo_phase[s_i];
+  lfo = sin(ph);
+  ph += lfo_inc; ph >= two_pi ? ph-=two_pi;
+  lfo_phase[s_i] = ph;
+  mod_spl = d_norm * detune_max_spl * lfo; // +/- depth
+
+  total_delay = base_delay + mod_spl;
+  total_delay < 0 ? total_delay = 0;
+
+  rpos = wpos - total_delay;
+  // wrap
+  rpos < 0 ? rpos += buf_size * (1 + floor((-rpos)/buf_size));
+  rpos >= buf_size ? rpos -= buf_size * floor(rpos/buf_size);
+
+  rpos_i = floor(rpos);
+  frac = rpos - rpos_i;
+  rpos_i1 = rpos_i+1; rpos_i1 >= buf_size ? rpos_i1 -= buf_size;
+
+  // Subdivision: number of occurrences within one grid window
+  rc = tap_subdiv[s_i]; rc = floor(rc + 0.0001);
+  rc < 0 ? rc = 0; rc > 8 ? rc = 8;
+  repeats = rc + 1; // include the base occurrence
+
+  k = 0;
+  loop(repeats,
+    // evenly distribute within one grid window [0..base_delay]
+    frac_pos = k/repeats; // 0 .. (repeats-1)/repeats
+    offset_before = grid_spl * frac_pos;
+    tdelay = base_delay - offset_before + mod_spl;
+    tdelay < 0 ? tdelay = 0;
+
+    rr = wpos - tdelay;
+    rr < 0 ? rr += buf_size * (1 + floor((-rr)/buf_size));
+    rr >= buf_size ? rr -= buf_size * floor(rr/buf_size);
+    ri = floor(rr);
+    rfrac = rr - ri;
+    ri1 = ri+1; ri1 >= buf_size ? ri1 -= buf_size;
+
+    sL = bufL[ri] + (bufL[ri1]-bufL[ri])*rfrac;
+    sR = bufR[ri] + (bufR[ri1]-bufR[ri])*rfrac;
+
+    // High-pass (one-pole via subtracting low-pass of input)
+    // HP cutoff mapping: 20..10000 Hz (log)
+    hp_norm = tap_hp[s_i];
+    hp_min = 20; hp_max = 10000;
+    hp_fc = exp(log(hp_min) + hp_norm*(log(hp_max)-log(hp_min)));
+    hp_a = exp(-two_pi * hp_fc / srate);
+    // low-pass of input for HP stage
+    xL = sL; xR = sR;
+    prevL = hp_lp_stateL[s_i]; prevR = hp_lp_stateR[s_i];
+    lpL = (1-hp_a)*xL + hp_a*prevL; hp_lp_stateL[s_i]=lpL;
+    lpR = (1-hp_a)*xR + hp_a*prevR; hp_lp_stateR[s_i]=lpR;
+    sL = xL - lpL; sR = xR - lpR;
+
+    // Low-pass (one-pole)
+    // LP cutoff mapping: 500..20000 Hz (log)
+    lp_norm = tap_lp[s_i];
+    lp_min = 500; lp_max = 20000;
+    lp_fc = exp(log(lp_min) + lp_norm*(log(lp_max)-log(lp_min)));
+    lp_a = exp(-two_pi * lp_fc / srate);
+    prevLL = lp_stateL[s_i]; prevRR = lp_stateR[s_i];
+    sL = (1-lp_a)*sL + lp_a*prevLL; lp_stateL[s_i]=sL;
+    sR = (1-lp_a)*sR + lp_a*prevRR; lp_stateR[s_i]=sR;
+
+    // Smearing diffusion via 3 short allpass filters in series (no metallic ring)
+    g = min(0.85, max(0, tap_diff[s_i]*GlobalDiffuse));
+    // AP1
+    p1 = ap1_pos[s_i]; b1 = s_i*apd1_len; z1L = ap1_baseL[b1+p1]; z1R = ap1_baseR[b1+p1];
+    y1L = -g*sL + z1L; ap1_baseL[b1+p1] = sL + g*y1L; sL = y1L;
+    y1R = -g*sR + z1R; ap1_baseR[b1+p1] = sR + g*y1R; sR = y1R;
+    p1 += 1; p1>=apd1_len ? p1=0; ap1_pos[s_i]=p1;
+    // AP2
+    p2 = ap2_pos[s_i]; b2 = s_i*apd2_len; z2L = ap2_baseL[b2+p2]; z2R = ap2_baseR[b2+p2];
+    y2L = -g*sL + z2L; ap2_baseL[b2+p2] = sL + g*y2L; sL = y2L;
+    y2R = -g*sR + z2R; ap2_baseR[b2+p2] = sR + g*y2R; sR = y2R;
+    p2 += 1; p2>=apd2_len ? p2=0; ap2_pos[s_i]=p2;
+    // AP3
+    p3 = ap3_pos[s_i]; b3 = s_i*apd3_len; z3L = ap3_baseL[b3+p3]; z3R = ap3_baseR[b3+p3];
+    y3L = -g*sL + z3L; ap3_baseL[b3+p3] = sL + g*y3L; sL = y3L;
+    y3R = -g*sR + z3R; ap3_baseR[b3+p3] = sR + g*y3R; sR = y3R;
+    p3 += 1; p3>=apd3_len ? p3=0; ap3_pos[s_i]=p3;
+
+    // Apply per-tap volume
+    gain = tap_vol[s_i];
+    wetL += sL * gain;
+    wetR += sR * gain;
+
+    k += 1;
+  );
+
+  s_i+=1;
+);
+
+// write input + feedback to delay buffers
+writeL = inL + wetL*feedback_gain;
+writeR = inR + wetR*feedback_gain;
+bufL[wpos] = writeL;
+bufR[wpos] = writeR;
+
+spl0 = dry_gain*spl0 + wet_gain*wetL;
+spl1 = dry_gain*spl1 + wet_gain*wetR;
+
+// advance write position
+wpos += 1; wpos >= buf_size ? wpos = 0;
+
+@gfx 640 400
+gfx_clear = 0x151515;
+gfx_r=gfx_g=gfx_b=1; gfx_a=1;
+
+// Layout
+margin = 16;
+top_h = 60;
+legend_h = 18;
+rows = 7; // Vol, HP, LP, Diffuse, Detune, Subdiv, Chorus
+
+label_w = 64;
+grid_x = margin + label_w;
+grid_y = top_h + legend_h + margin;
+grid_w = max(200, gfx_w - margin*2);
+grid_h = max(140, gfx_h - grid_y - margin);
+
+// ensure last column fully visible (use ceil, clamp last cell width)
+col_w = ceil(grid_w/num_taps);
+row_h = floor(grid_h/rows);
+
+// Draw knobs (Input, Grid, Feedback)
+function draw_knob(
+  x, y, r, norm, label, value_str, active_id, id
+)(
+  // knob background
+  gfx_r=0.2; gfx_g=0.2; gfx_b=0.2; gfx_a=1; gfx_circle(x,y,r,1);
+  // ring
+  gfx_r=0.45; gfx_g=0.45; gfx_b=0.45; gfx_a=1; gfx_circle(x,y,r,0);
+  // arc
+  a0 = -$pi*3/4; a1 = $pi*3/4; ang = a0 + (a1-a0)*norm;
+  // pointer
+  px = x + (r-6)*cos(ang);
+  py = y + (r-6)*sin(ang);
+  gfx_r=0.9; gfx_g=0.9; gfx_b=0.9; gfx_line(x,y,px,py);
+  // label
+  gfx_x = x - 28; gfx_y = y + r + 6; gfx_r=0.8; gfx_g=0.8; gfx_b=0.8; gfx_printf(#label);
+  // value
+  gfx_x = x - 28; gfx_y = y + r + 20; gfx_r=0.7; gfx_g=0.7; gfx_b=0.7; gfx_printf(#value_str);
+
+  // hit test and interaction
+  mx = mouse_x; my = mouse_y; mc = mouse_cap;
+  over = (mx>x-r && mx<x+r && my>y-r && my<y+r);
+  (mc&1 && over && !knob_active_id) ? (
+    knob_active_id = id; knob_last_x = mx; knob_last_y = my;
+  );
+  (knob_active_id == id) ? (
+    dy = (mouse_y - knob_last_y);
+    // adjust norm with vertical drag
+    norm -= dy * 0.004;
+    norm < 0 ? norm = 0; norm > 1 ? norm = 1;
+    knob_last_y = mouse_y;
+    !(mc&1) ? (knob_active_id=0;);
+  );
+  norm;
+);
+
+// Input knob
+in_norm = (Input_dB + 24) / 48; // -24..+24 -> 0..1
+sprintf(#in_str, "%.1f dB", Input_dB);
+#label_input = "Input";
+in_norm = draw_knob(margin+40, 34, 22, in_norm, #label_input, #in_str, knob_active_id, 1);
+Input_dB = -24 + in_norm*48; slider2=Input_dB;
+
+// Grid knob
+grid_norm = (GridSize_ms - 10) / (max_grid_ms - 10);
+grid_norm < 0 ? grid_norm = 0; grid_norm > 1 ? grid_norm = 1;
+sprintf(#grid_str, "%.0f ms", GridSize_ms);
+#label_grid = "Grid";
+grid_norm = draw_knob(margin+120, 34, 22, grid_norm, #label_grid, #grid_str, knob_active_id, 2);
+GridSize_ms = 10 + grid_norm*(max_grid_ms-10); slider1=GridSize_ms;
+
+// Feedback knob
+fb_norm = Feedback; // 0..0.95 mapped to 0..1 linearly
+sprintf(#fb_str, "%.2f", Feedback);
+#label_fb = "Feedback";
+fb_norm = draw_knob(margin+200, 34, 22, fb_norm, #label_fb, #fb_str, knob_active_id, 3);
+Feedback = min(0.95, max(0, fb_norm)); slider3=Feedback;
+
+// Titles
+gfx_r=0.9; gfx_g=0.9; gfx_b=0.9; gfx_x=margin; gfx_y=top_h; gfx_printf("ControlFreakDelay");
+
+// Row labels (legend)
+gfx_x=grid_x; gfx_y=grid_y - legend_h; gfx_r=0.75; gfx_g=0.75; gfx_b=0.75; gfx_printf("Vol     HP       LP       Diffuse  Detune  Subdiv  Chorus");
+
+// Colors per row
+rowR0=0.35; rowG0=0.75; rowB0=0.35; // Vol
+rowR1=0.75; rowG1=0.55; rowB1=0.35; // HP
+rowR2=0.35; rowG2=0.55; rowB2=0.85; // LP
+rowR3=0.70; rowG3=0.50; rowB3=0.80; // Diffuse
+rowR4=0.85; rowG4=0.35; rowB4=0.50; // Detune
+rowR5=0.90; rowG5=0.90; rowB5=0.30; // Subdiv
+rowR6=0.30; rowG6=0.90; rowB6=0.90; // Chorus
+
+// Draw grid cells and values
+mx = mouse_x; my = mouse_y; mc = mouse_cap;
+over_any = 0;
+
+row=0;
+loop(rows,
+  y0 = grid_y + row*row_h;
+  // draw row label at left
+  gfx_r=0.75; gfx_g=0.75; gfx_b=0.75;
+  row==0 ? (#row_lbl = "Vol");
+  row==1 ? (#row_lbl = "HP");
+  row==2 ? (#row_lbl = "LP");
+  row==3 ? (#row_lbl = "Diffuse");
+  row==4 ? (#row_lbl = "Detune");
+  row==5 ? (#row_lbl = "Subdiv");
+  row==6 ? (#row_lbl = "Chorus");
+  gfx_x = margin; gfx_y = y0 + row_h*0.5 - 7; gfx_printf(#row_lbl);
+  i=0;
+  loop(num_taps,
+    x0 = grid_x + i*col_w;
+    // background (clip last cell width and ensure last pixel visible)
+    bg_w = min(col_w-2, grid_x+grid_w - (x0+1));
+    bg_w < 0 ? bg_w = 0;
+    gfx_r=0.1; gfx_g=0.1; gfx_b=0.1; gfx_rect(x0+1,y0+1,bg_w,row_h-2,1);
+    // value
+    v = row==0 ? tap_vol[i]
+        : row==1 ? tap_hp[i]
+        : row==2 ? tap_lp[i]
+        : row==3 ? tap_diff[i]
+        : row==4 ? tap_detune[i]
+        : row==5 ? (tap_subdiv[i] / 8)
+        : tap_chorus[i];
+    // clamp for safety to avoid occasional junk draw
+    v < 0 ? v = 0; v > 1 ? v = 1;
+    fh = (row_h-4) * v;
+    // color per row
+    row==0 ? (gfx_r=rowR0; gfx_g=rowG0; gfx_b=rowB0);
+    row==1 ? (gfx_r=rowR1; gfx_g=rowG1; gfx_b=rowB1);
+    row==2 ? (gfx_r=rowR2; gfx_g=rowG2; gfx_b=rowB2);
+    row==3 ? (gfx_r=rowR3; gfx_g=rowG3; gfx_b=rowB3);
+    row==4 ? (gfx_r=rowR4; gfx_g=rowG4; gfx_b=rowB4);
+    row==5 ? (gfx_r=rowR5; gfx_g=rowG5; gfx_b=rowB5);
+    row==6 ? (gfx_r=rowR6; gfx_g=rowG6; gfx_b=rowB6);
+    fill_w = min(col_w-4, grid_x+grid_w - (x0+2));
+    fill_w < 0 ? fill_w = 0;
+    gfx_rect(x0+2, y0 + (row_h-2) - fh, fill_w, fh, 1);
+    // border (clip last cell to grid width)
+    draw_w = min(col_w-2, grid_x+grid_w - (x0+1));
+    draw_w < 0 ? draw_w = 0;
+    gfx_r=0.25; gfx_g=0.25; gfx_b=0.25; gfx_rect(x0+1,y0+1,draw_w,row_h-2,0);
+
+    // interaction
+    inside = (mx>=x0+1 && mx<x0+col_w-1 && my>=y0+1 && my<y0+row_h-1);
+    inside ? (
+      over_any=1;
+      (mc&1 && !ui_dragging) ? (
+        ui_dragging=1; ui_active_col=i; ui_active_row=row;
+      );
+    );
+
+    (ui_dragging && ui_active_col==i && ui_active_row==row) ? (
+      // compute a single clamped value and assign once to avoid flicker
+      new_v = 1 - ((my - (y0+2)) / (row_h-4));
+      new_v < 0 ? new_v = 0; new_v > 1 ? new_v = 1;
+      row==0 ? (tap_vol[i]=new_v);
+      row==1 ? (tap_hp[i]=new_v);
+      row==2 ? (tap_lp[i]=new_v);
+      row==3 ? (tap_diff[i]=new_v);
+      row==4 ? (tap_detune[i]=new_v);
+      row==5 ? (
+        quant = floor(new_v*8 + 0.5);
+        quant < 0 ? quant = 0; quant > 8 ? quant = 8;
+        tap_subdiv[i] = quant;
+      );
+      row==6 ? (tap_chorus[i]=new_v);
+    );
+
+    i+=1;
+  );
+  row+=1;
+);
+
+(!(mc&1) && ui_dragging) ? (
+  ui_dragging=0; ui_active_col=-1; ui_active_row=-1;
+);
+
+@serialize
+// Non-empty to prevent memory/variables from being cleared before @init (per JSFX docs)
+1;
+
+
