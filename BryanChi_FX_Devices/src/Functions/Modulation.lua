@@ -39,10 +39,14 @@ end
 
 function Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro, Update_All_Curve)
     --r.gmem_attach(IsLFO and 'ContainerMacro' or 'ParamValues')
+    local midiModOfs = Get_MidiMod_Ofs(lbl)
     r.gmem_write(499, 1) -- tells jsfx to get all points info    
-    r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
+    r.gmem_write(12, midiModOfs)  -- tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
     r.gmem_write(13, #PtsTB) -- tells how many points there are in the curve so JSFX can use them
-    if IsLFO then r.gmem_write(5, Macro) end -- tells which LFO it is
+    -- Always send Macro number for LFO/Envelope (gmem[12] == 7 means LFO/Envelope)
+    if (IsLFO or midiModOfs == 7) and Macro then 
+        r.gmem_write(5, Macro) 
+    end
     local limit = IsLFO and #PtsTB or 10 
     local start = IsLFO and 500 or 20 
     local prop = IsLFO and 50 or 10
@@ -155,13 +159,20 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
             end
         else 
             local MOD = McroV
-            if M.Type == 'env' or M.Type == 'envelope' or M.Type == 'Envelope' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' then
+            -- Retrieve modulation value based on modulator type
+            if M and M.Type and (M.Type == 'env' or M.Type == 'envelope' or M.Type == 'Envelope' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO') then
                 if FX[FxGUID].parent then 
                     r.gmem_attach('ContainerMacro')
                 else
                     r.gmem_attach('ParamValues')
                 end
                 MOD = math.abs(SetMinMax(r.gmem_read(100 + Macro) / 127, -1, 1))
+            elseif M and M.Type == 'Macro' then
+                -- For Macro type, use McroV (which should be passed in) or read from M.Val
+                MOD = McroV or (M.Val and M.Val or 0)
+            elseif M and M.Val then
+                -- Fallback: use M.Val if available
+                MOD = M.Val
             end
 
             if MOD then
@@ -301,6 +312,11 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
         elseif FP.WhichMODs and string.find(FP.WhichMODs, tostring(AssigningMacro)) == nil then --if there's more than 1 macro assigned, and the assigning macro is new to this param.
             FP.WhichMODs = FP.WhichMODs .. tostring(AssigningMacro)
         end
+        
+        -- Initialize ModAMT to 0 when first assigning a macro to prevent value jump
+        if AssigningMacro and (FP.ModAMT[AssigningMacro] == nil) then
+            FP.ModAMT[AssigningMacro] = 0
+        end
         local CC = FP.WhichCC
 
 
@@ -330,6 +346,12 @@ function AssignMod (FxGUID, Fx_P, FX_Idx, P_Num, p_value, trigger)
         r.gmem_write(7, CC) --tells jsfx to rfetrieve P value
 
         r.gmem_write(JSFX.P_ORIG_V + CC, p_value ) -- JSFX.P_ORIG_V is a constant offset of 100000
+        
+        -- Write initial modulation amount (0) to gmem to prevent value jump
+        if AssigningMacro and CC then
+            r.gmem_write(4, 1)
+            r.gmem_write(1000 * AssigningMacro + CC, FP.ModAMT[AssigningMacro] or 0)
+        end
 
     end
 end
@@ -435,22 +457,20 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         im.DrawList_AddRectFilled(draw_list, PosL, PosT, PosR, PosB, EightColors.bgWhenAsgnMod[AssigningMacro] or 0xffff33ff)
     end
     if --[[Link CC back when mouse is up]] Tweaking == P_Num .. FxGUID and IsLBtnHeld == false then
-    msg('nasjd')
-        if FP and Trk.Prm.Assign then
-            local CC = Trk.Prm.Assign
-            local extKey = 'P_EXT: FX' .. tostring(FxGUID or '') .. 'Prm' .. tostring(Fx_P or '') .. 'Value before modulation'
-            local extVal = tostring(FP.V or p_value or 0)
-            r.GetSetMediaTrackInfo_String(LT_Track, extKey, extVal, true)
-            r.gmem_write(7, CC) --tells jsfx to retrieve P value
-            PM.TimeNow = r.time_precise()
-            r.gmem_write(JSFX.P_ORIG_V + CC, p_value)
-            local link_bus = IsModulatorParam and 15 or 15
-            local link_chan = IsModulatorParam and 14 or 16
-            msg('IsModulatorParam = ' .. tostring(IsModulatorParam))
-            msg('link_bus = ' .. tostring(link_bus))
-            msg('link_chan = ' .. tostring(link_chan))
-            local baseline = IsModulatorParam and p_value or nil
-            ParameterMIDILink(FX_Idx, P_Num, 1, nil, link_bus, link_chan, 176, CC, baseline)
+        if FP then
+            local CC = Trk.Prm.Assign or FP.WhichCC
+            if CC then
+                local extKey = 'P_EXT: FX' .. tostring(FxGUID or '') .. 'Prm' .. tostring(Fx_P or '') .. 'Value before modulation'
+                local extVal = tostring(FP.V or p_value or 0)
+                r.GetSetMediaTrackInfo_String(LT_Track, extKey, extVal, true)
+                r.gmem_write(7, CC) --tells jsfx to retrieve P value
+                PM.TimeNow = r.time_precise()
+                r.gmem_write(JSFX.P_ORIG_V + CC, p_value)
+                local link_bus = IsModulatorParam and 15 or 15
+                local link_chan = IsModulatorParam and 14 or 16
+                local baseline = IsModulatorParam and p_value or nil
+                ParameterMIDILink(FX_Idx, P_Num, 1, nil, link_bus, link_chan, 176, CC, baseline)
+            end
         end
     end
     local function Mouse_Interaction_When_Theres_Mod_Assigned()
@@ -533,7 +553,13 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if Type =='Pro-Q' then RightBtnDragY = RightBtnDragY / 4 end 
         if Vertical == 'Vert' or Type == 'knob' or Type =='Pro-Q' then MouseDrag = -RightBtnDragY else MouseDrag = RightBtnDragX end
 
-        ModAmt = ((MouseDrag / 100) or 0) + (ModAmt or 0)
+        -- Only accumulate if there's actual drag movement
+        if MouseDrag and MouseDrag ~= 0 then
+            ModAmt = ((MouseDrag / 100) or 0) + (ModAmt or 0)
+            -- Reset drag delta only after we've used it
+            im.ResetMouseDragDelta(ctx, 1)
+        end
+        
        --[[  if ModAmt + p_value > 1 then ModAmt = 1 - p_value end
         if ModAmt + p_value < 0 then ModAmt = -p_value end ]]
 
@@ -545,7 +571,6 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             if ModAmt + p_value > max then ModAmt = max - p_value end
             if ModAmt + p_value < min then ModAmt = -( p_value-min) end
         end 
-        im.ResetMouseDragDelta(ctx, 1)
         return ModAmt
     end 
 
@@ -553,6 +578,11 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         if Trk.Prm.Assign and FP.WhichCC == Trk.Prm.Assign and AssigningMacro then -- assign Modulations
             local M = AssigningMacro
             local BipolarOut 
+            
+            -- Ensure ModAMT is initialized to 0 if nil to prevent value jump
+            if FP.ModAMT[M] == nil then
+                FP.ModAMT[M] = 0
+            end
 
             FP.ModAMT[M] = SetMinMax( CalculateModAmt(FP.ModAMT[M]) , -1, 1 )
 
@@ -631,7 +661,14 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                     FX[FxGUID][Fx_P].V = FX[FxGUID][Fx_P].V or  r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
                     local w = Sldr_Width
                     if Vertical == 'Vert' then w = ModLineDir or Sldr_Width end 
-                    DrawModLines(M, true, 0, FxGUID, w,FX[FxGUID][Fx_P].V, Vertical, FP, offset, nil,nil,nil , true , FX_Idx)
+                    -- Get the modulation value based on modulator type
+                    local McroV = 0
+                    if Trk[TrkID].Mod[M] and Trk[TrkID].Mod[M].Type == 'Macro' then
+                        McroV = Trk[TrkID].Mod[M].Val or r.TrackFX_GetParamNormalized(LT_Track, 0, M-1)
+                    elseif Trk[TrkID].Mod[M] and Trk[TrkID].Mod[M].Val then
+                        McroV = Trk[TrkID].Mod[M].Val
+                    end
+                    DrawModLines(M, true, McroV, FxGUID, w,FX[FxGUID][Fx_P].V, Vertical, FP, offset, nil,nil,nil , true , FX_Idx)
                     Mc.V_Out[M] = (FP.ModAMT[M] * p_value)
                     ParamHasMod_Any = true
                     offset = offset + OffsetForMultipleMOD
@@ -723,8 +760,18 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                         if If_Hvr_or_Macro_Active (FxGUID, M) then 
                             clr = CustomColorsDefault.Container_Accent_Clr
                         end 
-
-                        DrawModLines(M, true, mc.Val, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr, true, FX_Idx)
+                        -- Get the modulation value based on container modulator type
+                        local McroV = 0
+                        if mc and mc.Type == 'Macro' then
+                            McroV = mc.Val or r.TrackFX_GetParamNormalized(LT_Track, 0, M-1)
+                        elseif mc and (mc.Type == 'env' or mc.Type == 'envelope' or mc.Type == 'Envelope' or mc.Type == 'Step' or mc.Type == 'Follower' or mc.Type == 'LFO') then
+                            r.gmem_attach('ContainerMacro')
+                            r.gmem_write(2, FX[cont_GUID].DIY_FxGUID)
+                            McroV = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
+                        elseif mc and mc.Val then
+                            McroV = mc.Val
+                        end
+                        DrawModLines(M, true, McroV, FxGUID, ModLineDir or Sldr_Width,FP.V, Vertical, FP, offset, FP.Cont_ModAMT[M], clr, clr, true, FX_Idx)
 
                         Mc.V_Out[M] = (FP.Cont_ModAMT[M] * p_value)
                         ParamHasMod_Any = true
@@ -1045,8 +1092,73 @@ end
 
 function Add_BG_Text_For_Modulator(txt, indent, ftSz, Y_offset)
     local X, Y = im.GetItemRectMin(ctx)
-    local Y = Y+ (Y_offset or 0)
-    im.DrawList_AddTextEx(WDL or im.GetWindowDrawList(ctx), _G['Arial Black'], ftSz or 25, X + (indent or 0), Y , 0xffffff44, txt)
+    local R, B = im.GetItemRectMax(ctx)
+    
+    -- Calculate text width to ensure it fits within bounds
+    local font = _G['Arial Black']
+    local fontSize = ftSz or 25
+    local indent_val = indent or 0
+    -- If indent is nil, center horizontally; otherwise use indent
+    local textX = indent and (X + indent_val) or nil -- nil means center horizontally
+    
+    -- Push font temporarily to calculate text size
+    if im.ValidatePtr(font, 'ImGui_Font*') then
+        im.PushFont(ctx, font)
+        local baseW, baseH = im.CalcTextSize(ctx, txt)
+        im.PopFont(ctx)
+        
+        -- Account for font size scaling if DrawList_AddTextEx scales by fontSize parameter
+        -- Font is created at size 15, but rendered at fontSize (25 or 30)
+        local fontScale = fontSize / 15
+        local itemWidth = R - X
+        
+        -- Calculate scaled dimensions
+        local scaledW = baseW * fontScale
+        local textW = scaledW
+        local textH = baseH * fontScale
+        
+        -- Auto-adjust font size if text is too long for Random or other long text
+        local checkX = textX or X -- Use textX if set, otherwise X for bounds check
+        if checkX + scaledW > R - 2 then
+            -- Calculate needed font size to fit
+            local availableWidth = itemWidth - (indent_val or 0) - 4 -- Leave margins
+            if baseW > 0 then
+                local neededScale = availableWidth / baseW
+                fontSize = math.min(fontSize, fontSize * neededScale)
+                fontScale = fontSize / 15
+                textW = baseW * fontScale
+            end
+        end
+        
+        textH = baseH * fontScale
+        
+        -- Calculate horizontal position: center if indent is nil, otherwise use indent
+        if not textX then
+            -- Center horizontally
+            textX = X + (itemWidth - textW) / 2
+        else
+            -- Use indent, but adjust if text would overflow
+            if textX + textW > R then
+                -- Try to fit by moving left to stay within bounds
+                textX = math.max(X, R - textW - 2) -- Leave 2px margin
+            end
+            -- Ensure text stays within item bounds horizontally
+            textX = math.max(X, math.min(textX, R - 2))
+        end
+        
+        -- Calculate vertical position: center if Y_offset is nil, otherwise use offset
+        local textY
+        if Y_offset then
+            textY = Y + Y_offset
+        else
+            -- Center vertically
+            local itemHeight = B - Y
+            textY = Y + (itemHeight - textH) / 2
+        end
+        Y = textY
+    end
+    
+    im.DrawList_AddTextEx(WDL or im.GetWindowDrawList(ctx), font, fontSize, textX, Y , 0xffffff44, txt)
 
 end
 
@@ -1132,7 +1244,7 @@ function Follower_Box(mc,i, sz, FxGUID, Gmem, Width)
         im.EndPopup(ctx)
     end 
     if not IsContainer then 
-        Add_BG_Text_For_Modulator('Follow', 20)
+        Add_BG_Text_For_Modulator('Follow', nil) -- nil to center horizontally
 
     end 
 
@@ -1476,10 +1588,10 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'..i .. 'Type', Type, true)
         end
         
-            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' or Type == 'Envelope' then AddMacroJSFX() end
+            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' or Type == 'Envelope' or Type == 'Random' then AddMacroJSFX() end
         local JSFX_Type = {
             LFO = 12,
-            Envelope = 12,
+            Envelope = 4,  -- JSFX expects mode 4 for Envelope (not 12)
             Follower = 9,
             Step = 6,
             Macro = 5,
@@ -1494,8 +1606,12 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             Mc.LFO_spd = speed_norm
             r.gmem_write(9, Mc.LFO_spd)
         end
-        r.gmem_write(4, JSFX_Type[Type]) -- tells jsfx macro type
-        r.gmem_write(5, i) -- tells jsfx which macro
+        
+        -- Write type to JSFX immediately for most types, but defer LFO, Envelope, Random and Step until after initialization
+        if Type ~= 'Random' and Type ~= 'Step' and Type ~= 'LFO' and Type ~= 'Envelope' then
+            r.gmem_write(4, JSFX_Type[Type]) -- tells jsfx macro type
+            r.gmem_write(5, i) -- tells jsfx which macro
+        end
 
         -- If selecting Envelope, force LFO to Envelope mode (use LFO envelope instead of JSFX env)
         if Type == 'Envelope' then
@@ -1505,24 +1621,113 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 1, true)
             end
             Mc.LFO_Env_or_Loop = 'Envelope'
-            -- Also notify JSFX to switch LFO to Envelope mode
-            r.gmem_write(4, 18)
+            -- Mode 18 sets type to LFO and EnvOrLoop in one go
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
             r.gmem_write(5, i)
-            r.gmem_write(9, 1)
+            r.gmem_write(9, 1) -- 1 = Envelope mode
         elseif Type == 'LFO' then
-            -- Ensure LFO defaults to Loop mode to avoid confusion
+            -- Ensure LFO defaults to Loop mode
             if ContainerID then
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 0, true)
             else
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 0, true)
             end
             Mc.LFO_Env_or_Loop = 'Loop'
-            r.gmem_write(4, 18)
+            -- Mode 18 sets type to LFO and EnvOrLoop in one go
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
             r.gmem_write(5, i)
-            r.gmem_write(9, 0)
+            r.gmem_write(9, 0) -- 0 = Loop mode
 
-            -- Also set sane defaults for LFO params so output isn't muted
+            -- Set defaults for LFO params if values don't exist previously
             -- Param indices are 0-based: base = 2 + (macro-1)*4; Param2=base+1 (Length), Param3=base+2 (Gain), Param4=base+3 (Speed)
+            local function FindMacrosFXIdx()
+                local cnt = r.TrackFX_GetCount(LT_Track)
+                for idx = 0, cnt-1, 1 do
+                    local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+                    if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
+                end
+            end
+            local MacFxIdx = FindMacrosFXIdx()
+            if MacFxIdx then
+                local base = 2 + (i - 1) * 4
+                local lenIdx  = base + 1 -- Param2
+                local gainIdx = base + 2 -- Param3
+                local spdIdx  = base + 3 -- Param4
+                
+                -- Recall saved values, or set defaults if they don't exist
+                -- Try both container and regular keys to ensure we find saved values
+                local _, saved_len_str1
+                if FxGUID then
+                    _, saved_len_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Length', '', false)
+                end
+                local _, saved_len_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Length', '', false)
+                local saved_len_str = (saved_len_str1 and saved_len_str1 ~= '' and saved_len_str1) or (saved_len_str2 and saved_len_str2 ~= '' and saved_len_str2) or nil
+                
+                local _, saved_gain_str1
+                if FxGUID then
+                    _, saved_gain_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Gain', '', false)
+                end
+                local _, saved_gain_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Gain', '', false)
+                local saved_gain_str = (saved_gain_str1 and saved_gain_str1 ~= '' and saved_gain_str1) or (saved_gain_str2 and saved_gain_str2 ~= '' and saved_gain_str2) or nil
+                
+                local _, saved_spd_str1
+                if FxGUID then
+                    _, saved_spd_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Speed', '', false)
+                end
+                local _, saved_spd_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Speed', '', false)
+                local saved_spd_str = (saved_spd_str1 and saved_spd_str1 ~= '' and saved_spd_str1) or (saved_spd_str2 and saved_spd_str2 ~= '' and saved_spd_str2) or nil
+                
+                local saved_len = (saved_len_str ~= '' and saved_len_str) and tonumber(saved_len_str) or nil
+                local saved_gain = (saved_gain_str ~= '' and saved_gain_str) and tonumber(saved_gain_str) or nil
+                local saved_spd = (saved_spd_str ~= '' and saved_spd_str) and tonumber(saved_spd_str) or nil
+                
+                -- Length: restore saved value or default to 4
+                -- Length maps 0-1 to 1-8: (length-1)/7
+                if saved_len and saved_len >= 1 and saved_len <= 8 then
+                    local len_norm = (saved_len - 1) / 7
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, len_norm)
+                    Mc.LFO_leng = saved_len
+                else
+                    -- Default to 4: (4-1)/7 = 3/7 ≈ 0.4286
+                    local len_norm_4 = (4 - 1) / 7  -- = 3/7 = 0.42857142857142855
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, len_norm_4)
+                    Mc.LFO_leng = 4
+                end
+                
+                -- Gain: restore saved value or default to 1.0 (100%)
+                if saved_gain and saved_gain >= 0 and saved_gain <= 1 then
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, saved_gain)
+                else
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, 1.0) -- 100%
+                end
+                
+                -- Speed: restore saved value or default to 1 bar (normalized = 1/8)
+                if saved_spd and saved_spd > 0 and saved_spd <= 1 then
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, saved_spd)
+                    Mc.LFO_spd = saved_spd
+                else
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, 1/8) -- 1 bar
+                    Mc.LFO_spd = 1/8
+                end
+            end
+
+--[[             -- Clear continuous override and set musical division
+            r.gmem_write(4, 30) -- clear period continuous flag
+            r.gmem_write(9, 0)
+            r.gmem_write(5, i)
+            r.gmem_write(9, Mc.LFO_spd or (1/8))
+            r.gmem_write(4, 12) -- set musical speed
+            r.gmem_write(9, Mc.LFO_leng or 4)
+            r.gmem_write(4, 13) -- length tweak to finalize initialization ]]
+            -- Notify JSFX of type change AFTER all initialization
+            --[[ r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 12) -- mode 12 = LFO type
+            r.gmem_write(5, i) -- tells jsfx which macro ]]
+        elseif Type == 'Random' then
+            -- Initialize Random parameters to unified params
+            -- Param indices are 0-based: base = 2 + (macro-1)*4; Param1=base+0 (Interval), Param2=base+1 (Smooth), Param3=base+2 (Chance)
             local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
             if MacFxGUID then
                 local function FindFxIdxByGUID(guid)
@@ -1533,28 +1738,134 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 end
                 local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
                 local base = 2 + (i - 1) * 4
-                local lenIdx  = base + 1 -- Param2
-                local gainIdx = base + 2 -- Param3
-                local spdIdx  = base + 3 -- Param4
-               --[[  -- Default length = 4 → normalized (4-1)/7
-                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, (4-1)/7)
-                -- Default LFO gain to 1 so output is audible
-                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, 1)
-                -- Default LFO speed to 1 bar (idx=1 of 9 → norm = 1/8)
-                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, 1/8) ]]
+                local intervalIdx = base + 0 -- Param1 (Interval)
+                local smoothIdx = base + 1   -- Param2 (Smooth)
+                local chanceIdx = base + 2   -- Param3
+                
+                -- Recall saved values, or set defaults if they don't exist
+                local _, saved_int_str = ContainerID and 
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Interval', '', false) or
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Interval', '', false)
+                local _, saved_smooth_str = ContainerID and 
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Smooth', '', false) or
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Smooth', '', false)
+                local _, saved_chance_str = ContainerID and 
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Chance', '', false) or
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Chance', '', false)
+                local _, saved_sync_str = ContainerID and 
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Sync', '', false) or
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Sync', '', false)
+                
+                local saved_int = (saved_int_str ~= '' and saved_int_str) and tonumber(saved_int_str) or nil
+                local saved_smooth = (saved_smooth_str ~= '' and saved_smooth_str) and tonumber(saved_smooth_str) or nil
+                local saved_chance = (saved_chance_str ~= '' and saved_chance_str) and tonumber(saved_chance_str) or nil
+                local saved_sync = (saved_sync_str ~= '' and saved_sync_str) and tonumber(saved_sync_str) or nil
+                
+                -- Interval: restore saved value or default to 200
+                local interval_val = saved_int or (Mc.Random_Int or 200)
+                Mc.Random_Int = interval_val
+                -- Convert to normalized: 1-500 → (value-1)/499
+                local interval_norm = (interval_val - 1) / 499
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, intervalIdx, interval_norm)
+                
+                -- Smooth: restore saved value or default to 0
+                local smooth_val = saved_smooth or (Mc.Random_Smooth or 0)
+                Mc.Random_Smooth = smooth_val
+                -- Convert to normalized: 0-100 → value/100
+                local smooth_norm = smooth_val / 100
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, smoothIdx, smooth_norm)
+                
+                -- Chance: restore saved value or default to 100
+                local chance_val = saved_chance or (Mc.Random_Chance or 100)
+                Mc.Random_Chance = chance_val
+                -- Convert to normalized: 0-100 → value/100
+                local chance_norm = chance_val / 100
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, chanceIdx, chance_norm)
+                -- Sync toggle (Param4)
+                local syncIdx = base + 3
+                local sync_val = saved_sync or (Mc.Random_Sync or 0)
+                Mc.Random_Sync = sync_val
+                local sync_norm = sync_val > 0 and 1 or 0
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, syncIdx, sync_norm)
             end
-
-            -- Ensure JSFX recognizes type change immediately via both speed and length modes
-            r.gmem_write(2,  ContainerID or PM.DIY_TrkID[TrkID])
-            r.gmem_write(5, i)
---[[             -- Clear continuous override and set musical division
-            r.gmem_write(4, 30) -- clear period continuous flag
-            r.gmem_write(9, 0)
-            r.gmem_write(5, i)
-            r.gmem_write(9, Mc.LFO_spd or (1/8))
-            r.gmem_write(4, 12) -- set musical speed
-            r.gmem_write(9, Mc.LFO_leng or 4)
-            r.gmem_write(4, 13) -- length tweak to finalize initialization ]]
+            -- Always notify JSFX of type change AFTER parameter initialization
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 27) -- tells jsfx macro type = Random
+            r.gmem_write(5, i) -- tells jsfx which macro
+        elseif Type == 'Step' then
+            -- Initialize Step parameters to unified params
+            -- Param indices are 0-based: base = 2 + (macro-1)*4; Param1=base+0 (Length), Param2=base+1 (Denominator)
+            
+            -- Recall saved values, or set defaults if they don't exist
+            -- Try both container and regular keys to ensure we find saved values
+            local _, saved_seql_str1
+            if FxGUID then
+                _, saved_seql_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..i..' SEQ Length', '', false)
+            end
+            local _, saved_seql_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro '..i..' SEQ Length', '', false)
+            local saved_seql_str = (saved_seql_str1 and saved_seql_str1 ~= '' and saved_seql_str1) or (saved_seql_str2 and saved_seql_str2 ~= '' and saved_seql_str2) or nil
+            
+            local _, saved_denom_str1
+            if FxGUID then
+                _, saved_denom_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro '..i..' SEQ Denominator', '', false)
+            end
+            local _, saved_denom_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro '..i..' SEQ Denominator', '', false)
+            local saved_denom_str = (saved_denom_str1 and saved_denom_str1 ~= '' and saved_denom_str1) or (saved_denom_str2 and saved_denom_str2 ~= '' and saved_denom_str2) or nil
+            
+            Trk[TrkID].SEQL = Trk[TrkID].SEQL or {}
+            Trk[TrkID].SEQ_Dnom = Trk[TrkID].SEQ_Dnom or {}
+            
+            -- Length: restore saved value or default to 8
+            local saved_seql = (saved_seql_str ~= '' and saved_seql_str) and tonumber(saved_seql_str) or nil
+            if saved_seql and saved_seql >= 2 and saved_seql <= 64 then
+                Trk[TrkID].SEQL[i] = saved_seql
+            else
+                Trk[TrkID].SEQL[i] = 8
+            end
+            
+            -- Denominator: restore saved value or default to 1
+            local saved_denom = (saved_denom_str ~= '' and saved_denom_str) and tonumber(saved_denom_str) or nil
+            if saved_denom then
+                Trk[TrkID].SEQ_Dnom[i] = saved_denom
+            else
+                Trk[TrkID].SEQ_Dnom[i] = 1
+            end
+            
+            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+            if MacFxGUID then
+                local function FindFxIdxByGUID(guid)
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                    end
+                end
+                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                local base = 2 + (i - 1) * 4
+                local lengthIdx = base + 0  -- Param1
+                local denomIdx = base + 1   -- Param2
+                
+                -- Convert to normalized values (0-1)
+                -- Length: 2-64 → normalized (length-2)/62
+                local length_norm = (Trk[TrkID].SEQL[i] - 2) / 62
+                -- Denominator: values are [0.125, 0.25, 0.5, 1, 2, 4, 8] (7 values) → normalized index/6
+                -- Find index for value 1 (which is index 3, so normalized = 3/6 = 0.5)
+                local denom_values = {0.125, 0.25, 0.5, 1, 2, 4, 8}
+                local denom_norm = 0.5 -- default for value 1
+                for idx, val in ipairs(denom_values) do
+                    if math.abs(Trk[TrkID].SEQ_Dnom[i] - val) < 0.001 then
+                        denom_norm = (idx - 1) / 6
+                        break
+                    end
+                end
+                
+                -- Set the parameters
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lengthIdx, length_norm)
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, denomIdx, denom_norm)
+            end
+            -- Always notify JSFX of type change AFTER parameter initialization
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 6) -- tells jsfx macro type = Step
+            r.gmem_write(5, i) -- tells jsfx which macro
         end
         return Type
 
@@ -1710,8 +2021,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
     local BG_txt_Indent = IsContainer and 5 or 30
     local BG_txt_Sz = IsContainer and 20 or 30
     local BG_txt_Ofs_Y = IsContainer and H/4 or nil
-    local BG_txt = (Mc.Type == 'Envelope' or Mc.Type == 'envelope') and 'Env' or 'LFO'
-    Add_BG_Text_For_Modulator(BG_txt, BG_txt_Indent ,BG_txt_Sz, BG_txt_Ofs_Y)
+    local BG_txt = (Mc.Type == 'Envelope' or Mc.Type == 'envelope') and 'ENV' or 'LFO'
+    Add_BG_Text_For_Modulator(BG_txt, nil ,BG_txt_Sz, BG_txt_Ofs_Y) -- nil indent to center horizontally
     do
         local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
         local div = Mc.LFO_leng or (LFO and LFO.Def and LFO.Def.Len) or 4
@@ -2121,6 +2432,15 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                             local new_norm = (newLenTop - 1) / 7
                             r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len, new_norm)
                             Mc.LFO_leng = newLenTop
+                            -- Save immediately when value changes
+                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Length') or ('Mod '..Macro..' LFO Length')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.LFO_leng), true)
+                        end
+                        -- Also save on mouse release for cases where value might change via other means
+                        if im.IsItemDeactivatedAfterEdit(ctx) then
+                            local final_len = Mc.LFO_leng or math.floor(1 + r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len) * 7 + 0.5)
+                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Length') or ('Mod '..Macro..' LFO Length')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_len), true)
                         end
                         -- Allow other modulators to modulate Length
                         do
@@ -2147,6 +2467,15 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         local rv_gain, new_gain = im.SliderDouble(ctx, '##LFO_Gain_Top'..Macro..(FxGUID or ''), gain_value, 0, 1, '%.2f')
                         if rv_gain then
                             r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain, new_gain)
+                            -- Save immediately when value changes
+                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Gain') or ('Mod '..Macro..' LFO Gain')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(new_gain), true)
+                        end
+                        -- Also save on mouse release for cases where value might change via other means
+                        if im.IsItemDeactivatedAfterEdit(ctx) then
+                            local final_gain = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain)
+                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Gain') or ('Mod '..Macro..' LFO Gain')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_gain), true)
                         end
                         -- Allow other modulators to modulate Gain (using a vertical style so range drag is vertical)
                         do
@@ -2267,38 +2596,10 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             if Mc.LFO_snap then
                 -- Musical with triplet/dotted options
                 im.SetNextItemWidth(ctx, 140)
-                local changedIdx, idx = im.SliderInt(ctx, '##LFO_SpeedDiv'..Macro..(FxGUID or ''), Mc.LFO_spd_idx, 0, #labels-1, labels[(Mc.LFO_spd_idx or 0)+1])
-                if changedIdx then Mc.LFO_spd_idx = idx end
-                SL()
-                -- Triplet / Dotted toggles (mutually exclusive)
-                local wasTrip = Mc.LFO_triplet and 1 or 0
-                local clickedTrip = im.Checkbox(ctx, 'Triplet', wasTrip == 1)
-                if clickedTrip then
-                    Mc.LFO_triplet = not Mc.LFO_triplet
-                    if Mc.LFO_triplet then Mc.LFO_dotted = false end
-                end
-                SL()
-                local wasDot = Mc.LFO_dotted and 1 or 0
-                local clickedDot = im.Checkbox(ctx, 'Dotted', wasDot == 1)
-                if clickedDot then
-                    Mc.LFO_dotted = not Mc.LFO_dotted
-                    if Mc.LFO_dotted then Mc.LFO_triplet = false end
-                end
-
-                -- Compute effective period and map to nearest discrete index for Param4
-                local basePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
-                local mult = 1
-                if Mc.LFO_triplet then mult = (2/3) end
-                if Mc.LFO_dotted then mult = (3/2) end
-                local targetPer = basePer * mult
-                -- find nearest discrete period index
-                local nearestIdx, bestDiff = 0, math.huge
-                for iP, per in ipairs(periods) do
-                    local d = math.abs(per - targetPer)
-                    if d < bestDiff then bestDiff = d; nearestIdx = iP-1 end
-                end
-                local norm = nearestIdx / (#labels-1)
+                
+                -- Get FX GUID and index first (needed for saving)
                 local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                local MacFxIdx2, P_Num_Spd
                 if MacFxGUID2 then
                     local function FindFxIdxByGUID2(guid)
                         local cnt = r.TrackFX_GetCount(LT_Track)
@@ -2306,10 +2607,88 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                             if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
                         end
                     end
-                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
                     local base = 2 + (Macro - 1) * 4
-                    local P_Num_Spd = base + 3 -- Param4
-                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, norm)
+                    P_Num_Spd = base + 3 -- Param4
+                end
+                
+                -- Render the slider
+                local changedIdx, idx = im.SliderInt(ctx, '##LFO_SpeedDiv'..Macro..(FxGUID or ''), Mc.LFO_spd_idx, 0, #labels-1, labels[(Mc.LFO_spd_idx or 0)+1])
+                if changedIdx then 
+                    Mc.LFO_spd_idx = idx
+                    -- Recalculate norm with new index and save immediately
+                    local newBasePer = periods[Mc.LFO_spd_idx + 1] or 1
+                    local newMult = 1
+                    if Mc.LFO_triplet then newMult = (2/3) end
+                    if Mc.LFO_dotted then newMult = (3/2) end
+                    local newTargetPer = newBasePer * newMult
+                    local newNearestIdx, newBestDiff = 0, math.huge
+                    for iP, per in ipairs(periods) do
+                        local d = math.abs(per - newTargetPer)
+                        if d < newBestDiff then newBestDiff = d; newNearestIdx = iP-1 end
+                    end
+                    local newNorm = newNearestIdx / (#labels-1)
+                    if MacFxIdx2 and P_Num_Spd then
+                        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
+                        Mc.LFO_spd = newNorm
+                        -- Save immediately when value changes
+                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
+                    end
+                end
+                SL()
+                -- Triplet / Dotted toggles (mutually exclusive)
+                local wasTrip = Mc.LFO_triplet and 1 or 0
+                local clickedTrip = im.Checkbox(ctx, 'Triplet', wasTrip == 1)
+                if clickedTrip then
+                    Mc.LFO_triplet = not Mc.LFO_triplet
+                    if Mc.LFO_triplet then Mc.LFO_dotted = false end
+                    -- Recalculate and save on checkbox click
+                    if MacFxIdx2 and P_Num_Spd then
+                        local newBasePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
+                        local newMult = Mc.LFO_triplet and (2/3) or (Mc.LFO_dotted and (3/2) or 1)
+                        local newTargetPer = newBasePer * newMult
+                        local newNearestIdx, newBestDiff = 0, math.huge
+                        for iP, per in ipairs(periods) do
+                            local d = math.abs(per - newTargetPer)
+                            if d < newBestDiff then newBestDiff = d; newNearestIdx = iP-1 end
+                        end
+                        local newNorm = newNearestIdx / (#labels-1)
+                        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
+                        Mc.LFO_spd = newNorm
+                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
+                    end
+                end
+                SL()
+                local wasDot = Mc.LFO_dotted and 1 or 0
+                local clickedDot = im.Checkbox(ctx, 'Dotted', wasDot == 1)
+                if clickedDot then
+                    Mc.LFO_dotted = not Mc.LFO_dotted
+                    if Mc.LFO_dotted then Mc.LFO_triplet = false end
+                    -- Recalculate and save on checkbox click
+                    if MacFxIdx2 and P_Num_Spd then
+                        local newBasePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
+                        local newMult = Mc.LFO_triplet and (2/3) or (Mc.LFO_dotted and (3/2) or 1)
+                        local newTargetPer = newBasePer * newMult
+                        local newNearestIdx, newBestDiff = 0, math.huge
+                        for iP, per in ipairs(periods) do
+                            local d = math.abs(per - newTargetPer)
+                            if d < newBestDiff then newBestDiff = d; newNearestIdx = iP-1 end
+                        end
+                        local newNorm = newNearestIdx / (#labels-1)
+                        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
+                        Mc.LFO_spd = newNorm
+                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
+                    end
+                end
+                
+                -- Also save on mouse release for safety
+                if MacFxIdx2 and P_Num_Spd and im.IsItemDeactivatedAfterEdit(ctx) then
+                    local final_spd = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd)
+                    local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_spd), true)
                 end
             else
                 -- Free: ms input -> beats -> nearest discrete Param4
@@ -2321,6 +2700,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                     local basePer = periods[(Mc.LFO_spd_idx or 0)+1] or 1
                     cur_ms = math.floor(basePer * secPerBeat * 1000 + 0.5)
                 end
+                local was_active_ms = im.IsItemActive(ctx)
                 local rv_ms, ms = im.DragInt(ctx, '##LFO_FreeMs'..Macro..(FxGUID or ''), Mc.LFO_free_ms or cur_ms, 1, 1, 60000, '%d ms')
                 if rv_ms then Mc.LFO_free_ms = ms end
                 local beats = (Mc.LFO_free_ms or cur_ms) / 1000 / secPerBeat
@@ -2331,6 +2711,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 end
                 local norm = nearestIdx / (#labels-1)
                 local MacFxGUID2 = r.TrackFX_GetFXGUID(LT_Track, 0)
+                local MacFxIdx2, P_Num_Spd
                 if MacFxGUID2 then
                     local function FindFxIdxByGUID2(guid)
                         local cnt = r.TrackFX_GetCount(LT_Track)
@@ -2338,10 +2719,17 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                             if r.TrackFX_GetFXGUID(LT_Track, idx2) == guid then return idx2 end
                         end
                     end
-                    local MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
+                    MacFxIdx2 = FindFxIdxByGUID2(MacFxGUID2) or 0
                     local base = 2 + (Macro - 1) * 4
-                    local P_Num_Spd = base + 3 -- Param4
+                    P_Num_Spd = base + 3 -- Param4
                     r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, norm)
+                    Mc.LFO_spd = norm
+                end
+                -- Save on mouse release
+                if MacFxIdx2 and P_Num_Spd and was_active_ms and im.IsItemDeactivatedAfterEdit(ctx) then
+                    local final_spd = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd)
+                    local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_spd), true)
                 end
             end
             im.PopStyleColor(ctx)
@@ -3128,6 +3516,23 @@ function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
         Macro_FXid = 0
     end
 
+    -- Initialize XY pad values from parameters if not already set
+    if not Mc.XY_Pad_X then
+        local P_Num_X, P_Num_Y
+        if IsContainer then
+            -- Container macros use dedicated XY pad sliders: slider26-41
+            -- XY Pad M X = slider(26 + (M-1)*2) = param index 25 + (M-1)*2
+            -- XY Pad M Y = slider(27 + (M-1)*2) = param index 26 + (M-1)*2
+            P_Num_X = 25 + (i - 1) * 2
+            P_Num_Y = 26 + (i - 1) * 2
+        else
+            -- Track macros use modulator parameters: X = Param 1, Y = Param 2
+            P_Num_X = 2 + (i - 1) * 4
+            P_Num_Y = 2 + (i - 1) * 4 + 1
+        end
+        Mc.XY_Pad_X = math.floor(r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, P_Num_X) * 127 + 0.5)
+        Mc.XY_Pad_Y = math.floor(r.TrackFX_GetParamNormalized(LT_Track, Macro_FXid, P_Num_Y) * 127 + 0.5)
+    end
     
     --local W = (VP.w - 10) / 12 - 3 -- old W 
     local function PAD()
@@ -3193,8 +3598,16 @@ function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
            Mc.XY_Pad_X = SetMinMax(Mc.XY_Pad_X + DtX, 0, 127)
            Mc.XY_Pad_Y = SetMinMax(Mc.XY_Pad_Y - DtY, 0, 127)  
 
-           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid ,25 + (i - 1) * 2, Mc.XY_Pad_X / 127)
-           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid ,26 + (i - 1) * 2, Mc.XY_Pad_Y / 127)
+           local P_Num_X, P_Num_Y
+           if IsContainer then
+               P_Num_X = 25 + (i - 1) * 2
+               P_Num_Y = 26 + (i - 1) * 2
+           else
+               P_Num_X = 2 + (i - 1) * 4
+               P_Num_Y = 2 + (i - 1) * 4 + 1
+           end
+           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, P_Num_X, Mc.XY_Pad_X / 127)
+           r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, P_Num_Y, Mc.XY_Pad_Y / 127)
 
            if DtX ~= 0 or DtY ~= 0 then 
                 im.ResetMouseDragDelta(ctx)
@@ -3216,7 +3629,8 @@ function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
         _, Mc.XY_Pad_X = im.DragDouble(ctx, '##X', Mc.XY_Pad_X or 0, 1, 0, 127, 'X : %.0f', flg)
         Assign_Macro('X')
         if im.IsItemActive (ctx) then 
-            r.TrackFX_SetParamNormalized(LT_Track, 0, 25 + (i - 1) * 2, Mc.XY_Pad_X / 127)
+            local P_Num_X = IsContainer and (25 + (i - 1) * 2) or (2 + (i - 1) * 4)
+            r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, P_Num_X, Mc.XY_Pad_X / 127)
         end
         im.SetCursorPos(ctx, cX , cY + 15)
         im.SetNextItemWidth(ctx, Width/1.5)
@@ -3226,7 +3640,8 @@ function XY_BOX(Mc, i, Width, IsContainer,TB) -- FX_Idx is for container macro
         _, Mc.XY_Pad_Y = im.DragDouble(ctx, '##Y', Mc.XY_Pad_Y or 0, 1, 0, 127, 'Y : %.f', flg)
         Assign_Macro('Y')
         if im.IsItemActive (ctx) then 
-            r.TrackFX_SetParamNormalized(LT_Track, 0, 26 + (i - 1) * 2, Mc.XY_Pad_Y / 127)
+            local P_Num_Y = IsContainer and (26 + (i - 1) * 2) or (2 + (i - 1) * 4 + 1)
+            r.TrackFX_SetParamNormalized(LT_Track, Macro_FXid, P_Num_Y, Mc.XY_Pad_Y / 127)
         end
         if ASSIGNING_XY_PAD == 'Y' and AssigningMacro == i   then 
             Highlight_Itm(WDL, nil, EightColors.LFO[i]) 
@@ -3349,10 +3764,41 @@ end
 
 
 
+-- Sync Random modulator parameters to sliders continuously
+function Sync_Random_Parameters_To_Sliders(Mc, i, IsContainer, FxGUID)
+    if Mc.Type ~= 'Random' then return end
+    
+    local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+    if MacFxGUID then
+        local function FindFxIdxByGUID(guid)
+            local cnt = r.TrackFX_GetCount(LT_Track)
+            for idx = 0, cnt-1, 1 do
+                if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+            end
+        end
+        local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+        local base = 2 + (i - 1) * 4
+        
+        -- Sync Interval (Param1)
+        local interval_val = Mc.Random_Int or 200
+        local interval_norm = (interval_val - 1) / 499
+        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 0, interval_norm)
+        
+        -- Sync Smooth (Param2)
+        local smooth_val = Mc.Random_Smooth or 0
+        local smooth_norm = smooth_val / 100
+        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 1, smooth_norm)
+        
+        -- Sync Chance (Param3)
+        local chance_val = Mc.Random_Chance or 100
+        local chance_norm = chance_val / 100
+        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 2, chance_norm)
+    end
+end
+
 function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
 
     if Mc.Type ~= 'Random' then return end
-
 
     local boxWidth, boxHeight = Width, Height or Width/3
     local L, T = im.GetCursorScreenPos(ctx)
@@ -3366,7 +3812,7 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
         
         Mc.Random_Pts = Mc.Random_Pts or  {}
 
-        local v = r.gmem_read(100+ i)
+        local v = r.gmem_read(100+ i) / 127  -- Normalize from 0-127 to 0-1
 
 
         table.insert(Mc.Random_Pts , v )
@@ -3401,35 +3847,93 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
         im.DrawList_PathClear(WDL)
     end
     local function parameters(Open_Random_Mod)
-        local function Change_Prop(mode, v , str)
-            r.gmem_write(4, mode)
-            r.gmem_write(8, v ) -- tells the value
+        local function Change_Prop(mode, v , str, paramIdx)
             local str = IsContainer and 'Container '..FxGUID .. str  or str
             Save_to_Trk(str , v)
+            -- Update unified parameter slider (JSFX reads from sliders directly)
+            if paramIdx ~= nil then
+                local function FindMacrosFXIdx()
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
+                    end
+                end
+                local MacFxIdx = FindMacrosFXIdx()
+                if MacFxIdx then
+                    local base = 2 + (i - 1) * 4
+                    local norm_value
+                    if paramIdx == 0 then -- Interval: 1-500 → normalized (value-1)/499
+                        norm_value = (v - 1) / 499
+                    elseif paramIdx == 1 then -- Smooth: 0-100 → normalized value/100
+                        norm_value = v / 100
+                    elseif paramIdx == 2 then -- Chance: 0-100 → normalized value/100
+                        norm_value = v / 100
+                    elseif paramIdx == 3 then -- Sync toggle: 0 or 1
+                        norm_value = (v and v>0) and 1 or 0
+                    end
+                    if norm_value then
+                        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + paramIdx, norm_value)
+                    end
+                end
+            end
         end
         im.SetNextWindowPos(ctx, L, T - WinH)
         if im.BeginPopup(ctx, "RandomModulatorPopup"..i, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
             
-            r.gmem_write(5, i)  -- tells which modulator
-            r.gmem_write(4, 27) -- tells jsfx the type is random
+            -- Don't write mode 27 here - it triggers reinitialization in JSFX
+            -- Only write mode when actually changing the type, not when opening popup
             im.Text(ctx, "Random Modulator Options")
 
 
+            local was_active_int = im.IsItemActive(ctx)
             local rv , Random_Int = Drag_With_Bar(ctx, 'Interval', Mc.Random_Int or 200, 1 , 1 , 500, '%.f', flags, 0xffffff33)
             if rv then 
                 Mc.Random_Int = SetMinMax(Random_Int  , 1 , 500)
-                Change_Prop(27.1, Mc.Random_Int , 'Random Interval for mod'.. i )
+                Change_Prop(27.1, Mc.Random_Int , 'Random Interval for mod'.. i , 0)
             end
+            -- Save on mouse release
+            if was_active_int and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Interval') or ('Mod '..i..' Random Interval')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Int), true)
+            end
+            
+            local was_active_smooth = im.IsItemActive(ctx)
             local rv , Random_Smooth = Drag_With_Bar(ctx, 'Smooth', Mc.Random_Smooth or 0, 1 , 0 , 100, '%.f %%', flags, 0xffffff33)
             if rv then 
                 Mc.Random_Smooth = SetMinMax(Random_Smooth, 0 , 100)
-                Change_Prop(27.2, Random_Smooth ,  'Random Smooth for mod'.. i )
+                Change_Prop(27.2, Random_Smooth ,  'Random Smooth for mod'.. i , 1)
             end
+            -- Save on mouse release
+            if was_active_smooth and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Smooth') or ('Mod '..i..' Random Smooth')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Smooth), true)
+            end
+            
+            local was_active_chance = im.IsItemActive(ctx)
             local rv , Chance = Drag_With_Bar(ctx, 'Chance', Mc.Random_Chance or 100, 1 , 0 , 100, '%.f %%', flags, 0xffffff33)
             if rv then 
                 Mc.Random_Chance = SetMinMax(Chance, 0 , 100)
-                Change_Prop(27.3, Chance,  'Random Chance for mod'.. i)
+                Change_Prop(27.3, Chance,  'Random Chance for mod'.. i, 2)
+            end
+            -- Save on mouse release
+            if was_active_chance and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Chance') or ('Mod '..i..' Random Chance')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Chance), true)
+            end
 
+            -- Sync toggle (Param4)
+            local was_active_sync = im.IsItemActive(ctx)
+            local clicked_sync = im.Checkbox(ctx, 'Sync to musical', (Mc.Random_Sync or 0) > 0)
+            if clicked_sync ~= nil then
+                -- ImGui checkbox returns boolean; normalize to 0/1
+                local sync_val = clicked_sync and 1 or 0
+                Mc.Random_Sync = sync_val
+                Change_Prop(27.4, sync_val, ' Random Sync for mod'.. i, 3)
+            end
+            if was_active_sync and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Sync') or ('Mod '..i..' Random Sync')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Sync or 0), true)
             end
 
             im.EndPopup(ctx)
@@ -3437,10 +3941,10 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
 
     end
 
-    local BG_txt_Indent = IsContainer and 2 or 2
+    local BG_txt_Indent = nil -- nil to center horizontally
     local BG_txt_Sz = IsContainer and 20 or 30
     local BG_txt_Ofs_Y = IsContainer and Height/4 or nil
-    local BG_txt = IsContainer and 'Rdm' or 'Random'
+    local BG_txt = IsContainer and 'Rdm' or 'RDM'
     im.InvisibleButton(ctx, "RandomModulatorBox", boxWidth, boxHeight)
     Add_BG_Text_For_Modulator(BG_txt, BG_txt_Indent ,BG_txt_Sz, BG_txt_Ofs_Y)
     Draw_Value_Histogram()
@@ -3666,6 +4170,8 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             local SmallSEQActive
             local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
             local len = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
+            local StepSeqRect = nil -- Will store the rect for drawing background text
+            
             im.BeginGroup(ctx)
             for St = 1, len, 1 do -- create all steps
                 local W = (VP.w - 10) / 12
@@ -3680,6 +4186,14 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                 im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, W / len, H)
                 local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx); local w, h =
                     im.GetItemRectSize(ctx)
+                
+                -- Save rect from first step to draw background text later
+                -- Steps are laid out horizontally, so total width is W (from first step), height is H
+                if St == 1 then
+                    local totalWidth = W
+                    StepSeqRect = {L, T, L + totalWidth, B}
+                end
+                
                 local FillClr = 0x00000000
     
     
@@ -3740,6 +4254,32 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                 SL(nil, 0)
             end
             im.EndGroup(ctx)
+            
+            -- Draw background text 'Step' as overlay without taking up layout space
+            if StepSeqRect then
+                local X, Y = StepSeqRect[1], StepSeqRect[2]
+                local R, B = StepSeqRect[3], StepSeqRect[4]
+                
+                -- Use the same font and styling as Add_BG_Text_For_Modulator
+                local font = _G['Arial Black']
+                local fontSize = 30
+                
+                if im.ValidatePtr(font, 'ImGui_Font*') then
+                    im.PushFont(ctx, font)
+                    local baseW, baseH = im.CalcTextSize(ctx, 'Step')
+                    im.PopFont(ctx)
+                    
+                    local fontScale = fontSize / 15
+                    local textW = baseW * fontScale
+                    local textH = baseH * fontScale
+                    
+                    -- Center horizontally and vertically
+                    local textX = X + ((R - X) - textW) / 2
+                    local textY = Y + ((B - Y) - textH) / 2
+                    
+                    im.DrawList_AddTextEx(Macros_WDL, font, fontSize, textX, textY, 0xffffff44, 'Step')
+                end
+            end
     
     
             im.SetNextWindowPos(ctx, HdrPosL, VP.Y - StepSEQ_H - 100)
@@ -3751,15 +4291,42 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                     if im.Begin(ctx, 'SEQ Window' .. i, true, im.WindowFlags_NoResize + im.WindowFlags_NoDocking + im.WindowFlags_NoCollapse + im.WindowFlags_NoTitleBar + im.WindowFlags_AlwaysAutoResize) then
                         local WDL = im.GetWindowDrawList(ctx)
                         im.Text(ctx, 'Sequence Length : ')
+                        -- Determine if this is a container by checking if container type is saved
+                        local _, containerType = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod'..i..'Type', '', false)
+                        local IsContainerSEQ = (containerType and containerType ~= '') and true or false
+                        
                         local function writeSEQDNom()
                             if AddMacroJSFX() then
                                 r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                 r.gmem_write(5, i) --[[tells JSFX the macro]]
                                 r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i])
                                 r.gmem_write(9, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Macro ' .. i .. ' SEQ Denominator',
-                                    Trk[TrkID].SEQ_Dnom[i], true)
+                                -- Save with container format if container, otherwise regular format
+                                local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Denominator') or ('Macro '..i..' SEQ Denominator')
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQ_Dnom[i], true)
+                                
+                                -- Also update unified parameter (Param2 = Denominator)
+                                local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                                if MacFxGUID then
+                                    local function FindFxIdxByGUID(guid)
+                                        local cnt = r.TrackFX_GetCount(LT_Track)
+                                        for idx = 0, cnt-1, 1 do
+                                            if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                        end
+                                    end
+                                    local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                    local base = 2 + (i - 1) * 4
+                                    -- Denominator: values are [0.125, 0.25, 0.5, 1, 2, 4, 8] (7 values) → normalized index/6
+                                    local denom_values = {0.125, 0.25, 0.5, 1, 2, 4, 8}
+                                    local denom_norm = 0.5 -- default for value 1
+                                    for idx, val in ipairs(denom_values) do
+                                        if math.abs(Trk[TrkID].SEQ_Dnom[i] - val) < 0.001 then
+                                            denom_norm = (idx - 1) / 6
+                                            break
+                                        end
+                                    end
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 1, denom_norm)
+                                end
                             end
                         end
     
@@ -3769,9 +4336,25 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                                 r.gmem_write(5, i)
                                 r.gmem_write(9, Trk[TrkID].SEQL[i])
                                 r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
-                                r.GetSetMediaTrackInfo_String(LT_Track,
-                                    'P_EXT: Macro ' .. i .. ' SEQ Length',
-                                    Trk[TrkID].SEQL[i], true)
+                                -- Save with container format if container, otherwise regular format
+                                local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Length') or ('Macro '..i..' SEQ Length')
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQL[i], true)
+                                
+                                -- Also update unified parameter (Param1 = Length)
+                                local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                                if MacFxGUID then
+                                    local function FindFxIdxByGUID(guid)
+                                        local cnt = r.TrackFX_GetCount(LT_Track)
+                                        for idx = 0, cnt-1, 1 do
+                                            if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                        end
+                                    end
+                                    local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                    local base = 2 + (i - 1) * 4
+                                    -- Length: 2-64 → normalized (length-2)/62
+                                    local length_norm = (Trk[TrkID].SEQL[i] - 2) / 62
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 0, length_norm)
+                                end
                             end
                         end
     
@@ -3780,7 +4363,14 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                         Trk[TrkID].SEQL        = Trk[TrkID].SEQL or {}
                         rv, Trk[TrkID].SEQL[i] = im.SliderInt(ctx, '##' .. 'Macro' .. i .. 'SEQ Length',
                             Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps, 2, 64)
-                        if im.IsItemActive(ctx) then writeSEQGmem() end
+                        if rv then
+                            -- Save immediately when value changes
+                            writeSEQGmem()
+                        end
+                        -- Also save on mouse release
+                        if im.IsItemDeactivatedAfterEdit(ctx) then
+                            writeSEQGmem()
+                        end
                         SL()
                         if im.Button(ctx, 'x2##' .. i) then
                             Trk[TrkID].SEQL[i] = math.floor((Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps) * 2)

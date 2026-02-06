@@ -45,24 +45,26 @@ function GetCurveValue(x, p, xmin, xmax, ymin, ymax)(
   );
 
 function Get_XY_PAD_SLIDERS_FOR_Y(M)(
-  M == 1 ? ( Slider27; ):
-  M == 2 ? ( Slider29; ): 
-  M == 3 ? ( Slider31; ):
-  M == 4 ? ( Slider33; ):
-  M == 5 ? ( Slider35; ):
-  M == 6 ? ( Slider37; ):
-  M == 7 ? ( Slider39; ): 
-  M == 8 ? ( Slider41; )
+  // Y is M Param 2: slider(3 + (M-1)*4 + 1) = slider(4 + (M-1)*4)
+  M == 1 ? ( slider4; ):
+  M == 2 ? ( slider8; ): 
+  M == 3 ? ( slider12; ):
+  M == 4 ? ( slider16; ):
+  M == 5 ? ( slider20; ):
+  M == 6 ? ( slider24; ):
+  M == 7 ? ( slider28; ): 
+  M == 8 ? ( slider32; )
   );
 function Get_XY_PAD_SLIDERS_FOR_X(M)(
-  M == 1 ? ( Slider26; ):
-  M == 2 ? ( Slider28; ): 
-  M == 3 ? ( Slider30; ):
-  M == 4 ? ( Slider32; ):
-  M == 5 ? ( Slider34; ):
-  M == 6 ? ( Slider36; ):
-  M == 7 ? ( Slider38; ): 
-  M == 8 ? ( Slider40; )
+  // X is M Param 1: slider(3 + (M-1)*4 + 0) = slider(3 + (M-1)*4)
+  M == 1 ? ( slider3; ):
+  M == 2 ? ( slider7; ): 
+  M == 3 ? ( slider11; ):
+  M == 4 ? ( slider15; ):
+  M == 5 ? ( slider19; ):
+  M == 6 ? ( slider23; ):
+  M == 7 ? ( slider27; ): 
+  M == 8 ? ( slider31; )
   );
 
 // Map a normalized control to common musical periods in beats
@@ -321,9 +323,6 @@ function SaveAllModulatorInfo()(
     file_var(0,this.lp.c);
     file_var(0,this.lp.freq);
 
-    file_var( 0, this.Rdm_Chance);
-    file_var( 0, this.Rdm_Smooth);
-    file_var( 0, this.RDM_Interval);
 
 );
 
@@ -354,47 +353,7 @@ function DoFollower()(
 
 
 
-function RDM_Chance(v)( this.RDM_Chance = v );
-function RDM_Smooth(v)(this.RDM_Smooth = v ) ; 
-function RDM_Interval(v)(this.RDM_Interval = v ) ;
 
-function RANDOM_Change_Prop(mode)local(mc)(
-  mc = gmem[5]; 
-  mode == 27.1?(
-    mc == 1 ? (Mc1.RDM_Interval(gmem[8]) );
-    mc == 2 ? (Mc2.RDM_Interval(gmem[8]) );
-    mc == 3 ? (Mc3.RDM_Interval(gmem[8]) );
-    mc == 4 ? (Mc4.RDM_Interval(gmem[8]) );
-    mc == 5 ? (Mc5.RDM_Interval(gmem[8]) );
-    mc == 6 ? (Mc6.RDM_Interval(gmem[8]) );
-    mc == 7 ? (Mc7.RDM_Interval(gmem[8]) ); 
-    mc == 8 ? (Mc8.RDM_Interval(gmem[8]) );
-  );
-  mode == 27.2?(
-    mc == 1 ? ( Mc1.RDM_Smooth(gmem[8]) );
-    mc == 2 ? ( Mc2.RDM_Smooth(gmem[8]) );
-    mc == 3 ? ( Mc3.RDM_Smooth(gmem[8]) );
-    mc == 4 ? ( Mc4.RDM_Smooth(gmem[8]) );
-    mc == 5 ? ( Mc5.RDM_Smooth(gmem[8]) );
-    mc == 6 ? ( Mc6.RDM_Smooth(gmem[8]) );
-    mc == 7 ? ( Mc7.RDM_Smooth(gmem[8]) ); 
-    mc == 8 ? ( Mc8.RDM_Smooth(gmem[8]) );
-  );
-  mode == 27.3?(
-    mc == 1 ? (Mc1.RDM_Chance(gmem[8]) );
-    mc == 2 ? (Mc2.RDM_Chance(gmem[8]) );
-    mc == 3 ? (Mc3.RDM_Chance(gmem[8]) );
-    mc == 4 ? (Mc4.RDM_Chance(gmem[8]) );
-    mc == 5 ? (Mc5.RDM_Chance(gmem[8]) );
-    mc == 6 ? (Mc6.RDM_Chance(gmem[8]) );
-    mc == 7 ? (Mc7.RDM_Chance(gmem[8]) ); 
-    mc == 8 ? (Mc8.RDM_Chance(gmem[8]) );
-  );
-
-  this.Rdm_Chance = save(this.Rdm_Chance);
-  this.Rdm_Smooth = save(this.Rdm_Smooth);
-  this.RDM_Interval = save(this.RDM_Interval);
-);
 
 
 function ChangeRange(V1, V2 , Max)(
@@ -414,14 +373,14 @@ function SendInfoBackToImGui()
     (gmem[100 + this.Macro] = SEQ[this.CurrentPos+1+64*(this.Macro-1)]*127);
     gmem[this.LFO_PlayPos] = this.CurrentPos;
   ):this.type =='env'?(
-    gmem[100 + this.Macro] = this.masr_do(midiamp)
+    gmem[100 + this.Macro] = this.masr_do(midiamp) * 127
   ):this.type =='Fol' ? (
     gmem[100 + this.Macro] =  this.FOL_out*this.FOL_Gain*127
   ):this.type =='LFO'?(
    gmem[100 + this.Macro] = this.out * 127;
    gmem[this.LFO_PlayPos] = this.CurrentPos;
   ):this.type == 'Rdm'?(
-    gmem[100 + this.Macro] = this.out;
+    gmem[100 + this.Macro] = this.Out * 127;
   );
 
 );
@@ -552,7 +511,7 @@ function SetBpTo0_All(midinote)(
 );
 
 
-function SetBPToRel_Node()local (Rel_pos, Rel_V, idx) (
+function SetBPToRel_Node()local (Rel_pos, Rel_V, idx, per, phase) (
   this.Rel_Type == 2 ||this.Rel_Type==3 ? ( //if it's custom release
   
 
@@ -565,7 +524,12 @@ function SetBPToRel_Node()local (Rel_pos, Rel_V, idx) (
         this.Rel_V = this.Out ; // get value when note was released 
       );
       this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
-        this.bp = Rel_pos;  // move playhead to release node 
+        // Convert release position from LFO length units to beats
+        this.LFO_Len <= 0 ? (this.LFO_Len = 4;);
+        per = this.LFO_PeriodBeats * (this.LFO_Len / 4);
+        per <= 0 ? (per = 1;);
+        phase = Rel_pos / this.LFO_Len; // convert LFO position to phase (0..1)
+        this.bp = phase * per;  // convert phase to beats, move playhead to release node 
       );
     );
   );
@@ -595,13 +559,33 @@ function LFO_Calc_Play_Pos ()(
   play_state == 1 || play_state == 5 ? (
     // advance by transport beats, convert to phase by period, then to beats within length
     this.bp += beat_per_block; // bp in beats
-    phase = fmod(this.bp, per) / per; // 0..1
-    this.CurrentPos = phase * this.LFO_Len;
+    
+    // For envelope mode, don't loop - clamp to end
+    this.EnvOrLoop == 1 ? (
+      // Envelope mode: clamp position to end instead of looping
+      phase = this.bp / per; // 0..1 and beyond
+      phase > 1 ? (phase = 1;); // clamp to end
+      this.CurrentPos = phase * this.LFO_Len;
+    ) : (
+      // LFO mode: loop as normal
+      phase = fmod(this.bp, per) / per; // 0..1
+      this.CurrentPos = phase * this.LFO_Len;
+    );
   ) : (
     // stopped/paused: derive from current transport beat position
     this.bp = beat_position; // beats
-    phase = fmod(this.bp, per) / per; // 0..1
-    this.CurrentPos = phase * this.LFO_Len;
+    
+    // For envelope mode, don't loop - clamp to end
+    this.EnvOrLoop == 1 ? (
+      // Envelope mode: clamp position to end instead of looping
+      phase = this.bp / per; // 0..1 and beyond
+      phase > 1 ? (phase = 1;); // clamp to end
+      this.CurrentPos = phase * this.LFO_Len;
+    ) : (
+      // LFO mode: loop as normal
+      phase = fmod(this.bp, per) / per; // 0..1
+      this.CurrentPos = phase * this.LFO_Len;
+    );
   );
 
   this.CurrentPos;
@@ -710,7 +694,16 @@ function Check_If_Bipolar(ModAmt)
 
 function If_User_Set_Type_To_Random() (
   mode == 27? (
-    SetTypeTo('Rdm')
+    SetTypeTo('Rdm');
+    Macro = gmem[5];
+    Macro==1?(Mc1.Rdm_time = -1;); 
+    Macro==2?(Mc2.Rdm_time = -1;); 
+    Macro==3?(Mc3.Rdm_time = -1;);
+    Macro==4?(Mc4.Rdm_time = -1;);
+    Macro==5?(Mc5.Rdm_time = -1;);
+    Macro==6?(Mc6.Rdm_time = -1;);
+    Macro==7?(Mc7.Rdm_time = -1;); 
+    Macro==8?(Mc8.Rdm_time = -1;);
   );
 );
 
@@ -786,8 +779,8 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
 
   this.type =='step'?(
     // Unified params: Param1=Length, Param2=Denominator
-    this.Param1 = slider(59 + (this.Macro-1)*4 + 0);
-    this.Param2 = slider(59 + (this.Macro-1)*4 + 1);
+    this.Param1 = slider(2 + (this.Macro-1)*4 + 0);
+    this.Param2 = slider(2 + (this.Macro-1)*4 + 1);
     this.SEQ_Leng = max(2, floor(2 + this.Param1 * 62));
     _idx = floor(this.Param2 * 6 + 0.5);
     _idx < 0 ? (_idx = 0); _idx > 6 ? (_idx = 6);
@@ -843,30 +836,83 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
       this.Out *= this.LFO_Gain;
     );
   ):this.type =='Rdm' ? ( // if type is random
-    this.Rdm_time = this.Rdm_time + 1 * (samplesblock/64) ; 
-    // Unified params: Param1=Interval, Param2=Smooth, Param3=Chance
-    this.Param1 = slider(59 + (this.Macro-1)*4 + 0);
-    this.Param2 = slider(59 + (this.Macro-1)*4 + 1);
-    this.Param3 = slider(59 + (this.Macro-1)*4 + 2);
-    this.RDM_Interval = max(1, floor(1 + this.Param1 * 499));
-    this.Rdm_Smooth = floor(this.Param2 * 100 + 0.5);
-    this.RDM_Chance = floor(this.Param3 * 100 + 0.5);
-    this.Rdm_time > this.RDM_Interval  ? (
-
-      rand(100) < this.RDM_Chance ? (
-      this.Rdm_Next_Out = rand(1); //create next point 
-      );
-
-
-      this.Rdm_Smooth == 0 ?(
-        this.Rdm_Next_Out!= 0 ? ( this.Out = this.Rdm_Next_Out); //set current output to next point
-      );
-      this.Rdm_time = 0;
+    // Unified params: Param1=Interval (ms), Param2=Smooth (%), Param3=Chance (%)
+    // Sliders are 1-based: use base index 3
+    this.Param1 = slider(3 + (this.Macro-1)*4 + 0);
+    this.Param2 = slider(3 + (this.Macro-1)*4 + 1);
+    this.Param3 = slider(3 + (this.Macro-1)*4 + 2);
+    this.Param4 = slider(3 + (this.Macro-1)*4 + 3); // Sync toggle / mode (0..1)
+    
+    // Convert normalized params to actual values (read every block from sliders)
+    // Interval: add musical sync option using Param4 (>0.5 => sync)
+    this.RDM_Sync = this.Param4 > 0.5;
+    this.RDM_Sync ? (
+      // Map Param1 to discrete musical divisions in beats
+      // Divisions: 1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4 beats
+      _idx = floor(this.Param1 * 8 + 0.5); _idx < 0 ? (_idx = 0); _idx > 8 ? (_idx = 8);
+      _div = (_idx == 0 ? 1/64
+            : _idx == 1 ? 1/32
+            : _idx == 2 ? 1/16
+            : _idx == 3 ? 1/8
+            : _idx == 4 ? 1/4
+            : _idx == 5 ? 1/2
+            : _idx == 6 ? 1
+            : _idx == 7 ? 2
+            : 4);
+      // samples per beat = srate * 60 / tempo
+      _spb = srate * 60 / max(tempo, 0.000001);
+      this.RDM_Interval_samples = max(1, _div * _spb);
+    ) : (
+      // Free mode (milliseconds): normalized [0..1] → 1-500 ms
+      this.RDM_Interval_ms = max(1, floor(1 + this.Param1 * 499));
+      this.RDM_Interval_samples = max(1, this.RDM_Interval_ms * srate / 1000);
     );
-    this.Rdm_Smooth != 0   ? (// if there's smooth, and next point is created
-      Rdm_Smooth =  10 - this.Rdm_Smooth*0.99 /10;
-      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) *  min ((this.Rdm_time/this.RDM_Interval) * Rdm_Smooth, 1  );
-
+    
+    // Smooth: normalized [0..1] → 0-100%
+    this.Rdm_Smooth = floor(this.Param2 * 100 + 0.5);
+    
+    // Chance: normalized [0..1] → 0-100%
+    this.RDM_Chance = floor(this.Param3 * 100 + 0.5);
+    
+    // Initialize on first run (Rdm_time < 0 means uninitialized)
+    this.Rdm_time < 0 ? (
+      this.Rdm_time = 0;
+      this.Out = rand(1);
+      this.Rdm_Next_Out = this.Out;
+    );
+    
+    // Ensure Out is initialized (fallback)
+    this.Out == 0 && this.Rdm_Next_Out == 0 ? (
+      this.Out = rand(1);
+      this.Rdm_Next_Out = this.Out;
+    );
+    
+    // Increment time counter by samples in this block
+    this.Rdm_time = this.Rdm_time + samplesblock;
+    
+    // Check if interval has elapsed
+    this.Rdm_time >= this.RDM_Interval_samples ? (
+      // Check chance - if it succeeds, generate new random value
+      (rand(1) * 100) < this.RDM_Chance ? (
+        this.Rdm_Next_Out = rand(1); // create next target point
+      );
+      // If smoothing is disabled, immediately update output to next target
+      this.Rdm_Smooth == 0 ? (
+        this.Out = this.Rdm_Next_Out; // immediately set output to next point
+      );
+      // Keep remainder for accuracy when interval changes
+      this.Rdm_time = this.Rdm_time - this.RDM_Interval_samples;
+    );
+    
+    // Smoothing interpolation (runs every block when smoothing is enabled)
+    this.Rdm_Smooth != 0 ? (
+      // Smoothing factor: convert 0-100% to interpolation rate
+      // Higher smooth value = slower interpolation (smaller step per block)
+      // Smooth 0% = instant (handled above), Smooth 100% = very slow
+      // Use exponential approach: smooth 100% = ~0.01 per block, smooth 1% = ~0.99 per block
+      Rdm_Smooth_rate = 0.01 + (100 - this.Rdm_Smooth) * 0.0099; // maps 0-100% to 0.01-1.0
+      // Interpolate toward target using exponential smoothing
+      this.Out = this.Out + (this.Rdm_Next_Out - this.Out) * Rdm_Smooth_rate;
     );
   ):(   //if type is macro
     this.Out = (this.Slider )   
@@ -1156,8 +1202,8 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==8?(Mc8.LFO_Gain = gmem[9];);
     );
 
-    If_User_Set_Type_To_Random(mode) ;
-    If_User_Set_Type_To_XY(mode);
+    If_User_Set_Type_To_Random();
+    If_User_Set_Type_To_XY();
 
     mode == 15?(  // if user changing LFO Shape
       SetTypeTo('LFO');
@@ -1209,6 +1255,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
       Macro==8?(Mc8.LFO_Spd_Auto = AutomatedPrm_Num;);
     );
     mode == 18? ( // if user set LFO's type (loop or envelope)
+      SetTypeTo('LFO'); // Ensure type is LFO (both Loop and Envelope are LFO internally)
       Macro = gmem[5];
       Macro==1?(Mc1.EnvOrLoop = gmem[9]); 
       Macro==2?(Mc2.EnvOrLoop = gmem[9]); 
@@ -1279,7 +1326,6 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
     Set_Midi_Mod_Curve_All_Pts(mode);
     Set_Midi_Mod_Curve_Pts_Log_or_Exp(mode);
     Set_Modulator_Curve(mode);
-    RANDOM_Change_Prop(mode);
     id =  Gap * gmem[12]; // gmem 12 tells which midi mod it is: Velocity = 0 , random = 1~3, keytrack = 4~6
     pt = gmem[11]; // tells which point is user dragging 
 

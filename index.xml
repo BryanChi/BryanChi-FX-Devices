@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" commit="0f14f25833b80e5f76f4c914d519fc2183317e07" name="FX Device">
-  <category name="BryanChi_FX_Devices">
+  <category name="Cool_Reaper_Scripts">
     <reapack name="BryanChi_FX Devices.lua" type="script" desc="FX Devices">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}

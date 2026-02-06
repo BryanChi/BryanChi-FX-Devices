@@ -501,6 +501,10 @@ function Retrieve_All_Saved_Data_Of_Project()
             end
             -- Load whether velocity modulation should affect note velocity for this track
             TRK.Velo_Mod_Affect_Velocity = RC('Velo_Mod_Affect_Velocity', 'bool')
+            -- Reflect saved state into JSFX param 41 so behavior is consistent after reopening
+            if TRK.Velo_Mod_Affect_Velocity ~= nil then
+                r.TrackFX_SetParamNormalized(Track, 0, 41, TRK.Velo_Mod_Affect_Velocity and 0 or 1)
+            end
         end
         
         local function RET_ModulatorSettings()
@@ -757,7 +761,13 @@ function Retrieve_All_Saved_Data_Of_Project()
                     
                     TRK.Mod = TRK.Mod or {}
                     TRK.Mod[m] = TRK.Mod[m] or {}
-                    TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, 0, m-1)
+                    -- For Macro type, read from parameter. For other types (LFO, Envelope, Step, Follower), read from gmem
+                    if TRK.Mod[m].Type == 'Macro' then
+                        TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, 0, m-1)
+                    else
+                        r.gmem_attach('ParamValues')
+                        TRK.Mod[m].Val = math.abs(SetMinMax(r.gmem_read(100 + m) / 127, -1, 1))
+                    end
                    -- TRK.Mod[m].Val = tonumber(select(2, r.GetProjExtState(0, 'FX Devices', 'Macro' .. m .. 'Value of Track' .. TrkID)))
                     
                     FP.ModBypass = RemoveEmptyStr(RC('FX' .. FxGUID .. 'Prm' .. Fx_P .. 'Mod bypass', 'str'))

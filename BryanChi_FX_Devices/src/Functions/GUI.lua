@@ -288,6 +288,10 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     local gmem_space = IsContainer and 'ContainerMacro' or 'ParamValues'
     local Macro = MacroTB and MacroTB.Num
     local Mc = MacroTB
+    -- Both LFO and Envelope types use the same system, so ensure IsLFO is true for both
+    if Mc and (Mc.Type == 'LFO' or Mc.Type == 'Envelope' or Mc.Type == 'envelope') then
+        IsLFO = true
+    end
     local Pad = 15
     local PtSz = 15
     local x, y = im.GetCursorPos(ctx)
@@ -674,10 +678,15 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         
         local function Send_gmem(Pt , mode )
             r.gmem_attach(gmem_space)
+            local midiModOfs = Get_MidiMod_Ofs(lbl)
             r.gmem_write(4, mode or 23) -- tells jsfx user is changing the curve
-            r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
+            r.gmem_write(12, midiModOfs)  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
             r.gmem_write(11, Pt) -- tells which pt
             r.gmem_write(13, #PtsTB) -- tells how many points in total
+            -- Always send Macro number for LFO/Envelope (gmem[12] == 7 means LFO/Envelope)
+            if (IsLFO or midiModOfs == 7) and Macro then 
+                r.gmem_write(5, Macro) 
+            end
         end
 
         local function Wheel_To_Adjust_Curve()
@@ -710,16 +719,23 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             if DtX or DtY then 
                 --Send_gmem(i )
                 r.gmem_attach(gmem_space)
+                local midiModOfs = Get_MidiMod_Ofs(lbl)
                 r.gmem_write(4, 23) -- tells jsfx user is changing the curve
-                r.gmem_write(12, Get_MidiMod_Ofs(lbl))  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6)
+                r.gmem_write(12, midiModOfs)  -- - tells which midi mod it is , velocity is (+0) , Random is (+1~3) , KeyTrack is(+4~6), LFO is 7
                 r.gmem_write(11, i) -- tells which pt
                 r.gmem_write(13, #PtsTB) -- tells how many points in total
+                -- Always send Macro number for LFO/Envelope (gmem[12] == 7 means LFO/Envelope)
+                if (IsLFO or midiModOfs == 7) and Macro then 
+                    r.gmem_write(5, Macro) 
+                end
                 if DtX then  
                     r.gmem_write(9, v[1]) 
                 end
                 if DtY then  
                     r.gmem_write(10, v[2]) 
                 end
+                -- Send curve value
+                r.gmem_write(15, v[3] or 0)
 
             end
         end
@@ -837,10 +853,13 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
         local function LFO_Release_Node ()
             if not Mc then return end 
-            if not Mc.Rel_Type then return end 
-            if  Mc.LFO_Env_or_Loop ~= 'Envelope'  then return end
-            if Mc.Rel_Type:find('Custom Release') then 
+            if not Mc.LFO_Env_or_Loop then return end
+            if  Mc.LFO_Env_or_Loop ~= 'Envelope' then return end
+
+            if Mc.Rel_Type and  Mc.Rel_Type:find('Custom Release') then 
+
                 if v.Rel  then
+
                     local function If_Choose_Rel(id)
                         PtsTB[id].Rel = true
                         v.Rel = nil 
@@ -855,13 +874,17 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                     local B = B + PtSz
                     im.DrawList_AddLine(WDL, L, T, L, B, 0xffffff55, PtSz/3)
                     --im.DrawList_AddText(WDL, L + PtSz/2, T, 0xffffffaa, 'Release')
+                    
+                    -- Temporarily pop clip rect so buttons can be drawn outside curve editor bounds
+                    im.DrawList_PopClipRect(WDL)
+                    
                     local X, Y = im.GetCursorPos(ctx)
                     im.SetCursorScreenPos(ctx, L , T)
-                    if im.ArrowButton(ctx, 'ReleaseLeft', 0) then 
+                    if im.ArrowButton(ctx, 'ReleaseLeft'..i, 0) then 
                         If_Choose_Rel(math.max(i-1 , 1 ) ) 
                     end
                     SL(nil,0 ) 
-                    im.Button(ctx, 'R' ) 
+                    im.Button(ctx, 'R'..i ) 
                     if im.IsItemActive(ctx) then  
                         TWEAKING =true   
                         local MsX, MsY = im.GetMouseDragDelta(ctx)
@@ -875,12 +898,15 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                         
                     end 
                     SL(nil, 0)
-                    if im.ArrowButton(ctx, 'ReleaseRight', 1) then 
+                    if im.ArrowButton(ctx, 'ReleaseRight'..i, 1) then 
                         If_Choose_Rel(math.min(i+1 , #PtsTB))
 
 
                     end
-                    im.SetCursorScreenPos(ctx, X, Y) 
+                    im.SetCursorScreenPos(ctx, X, Y)
+                    
+                    -- Restore clip rect for rest of curve editor
+                    im.DrawList_PushClipRect(WDL, ClipL, ClipT, ClipR, ClipB, true) 
 
 
                 end
