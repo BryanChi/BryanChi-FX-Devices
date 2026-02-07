@@ -1,6 +1,11 @@
-Square New
-Saw
+spike1
+fast attack
+Spike (Default)
+notch
 Pulse
-Sine
 testdafdf
 Sine Better
+Square New
+Saw
+tst
+Sine (Default)

@@ -1033,6 +1033,65 @@ local function get_Global_Env_Shapes()
     end
     return Shapes
 end
+
+-- Find a default shape (one with 'Default' in the name) from Global, Project, and Track shapes
+local function Find_Default_Shape(is_env)
+    -- Check Global shapes first
+    local Shapes = is_env and get_Global_Env_Shapes() or get_Global_Shapes()
+    for i, v in ipairs(Shapes) do
+        if v.Name and v.Name:lower():find('default') then
+            return v
+        end
+    end
+    
+    -- Check Project shapes
+    local HowManySavedShapes = getProjSavedInfo('LFO Saved Shape Count')
+    for I = 1, HowManySavedShapes or 0, 1 do
+        local Shape = {}
+        local Ct = getProjSavedInfo('LFO Shape' .. I .. 'Node Count = ')
+        for i = 1, Ct or 1, 1 do
+            Shape[i] = Shape[i] or {}
+            Shape[i].x = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'x = ')
+            Shape[i].y = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. 'y = ')
+            Shape[i].ctrlX = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
+            Shape[i].ctrlY = getProjSavedInfo('LFO Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
+            Shape[i][1] = tonumber(Shape[i].x) or Shape[i][1] or 0
+            Shape[i][2] = tonumber(Shape[i].y) or Shape[i][2] or 0
+        end
+        local nm = getProjSavedInfo('LFO Shape' .. I .. ' Name', 'str')
+        if nm and Shape[1] then 
+            Shape.Name = nm
+            if nm:lower():find('default') then
+                return Shape
+            end
+        end
+    end
+    
+    -- Check Track shapes
+    local HowManySavedShapes = GetTrkSavedInfo('LFO Saved Shape Count')
+    for I = 1, HowManySavedShapes or 0, 1 do
+        local Shape = {}
+        local Ct = GetTrkSavedInfo('Shape' .. I .. 'LFO Node Count = ')
+        for i = 1, Ct or 1, 1 do
+            Shape[i] = Shape[i] or {}
+            Shape[i].x = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. ' x') or GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'x = ')
+            Shape[i].y = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. ' y') or GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. 'y = ')
+            Shape[i].ctrlX = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlX = ')
+            Shape[i].ctrlY = GetTrkSavedInfo('Shape' .. I .. 'Node ' .. i .. '.ctrlY = ')
+            Shape[i][1] = tonumber(Shape[i].x) or Shape[i][1] or 0
+            Shape[i][2] = tonumber(Shape[i].y) or Shape[i][2] or 0
+        end
+        local nm = GetTrkSavedInfo('Shape' .. I .. ' Name', LT_Track, 'str')
+        if nm and Shape[1] then 
+            Shape.Name = nm
+            if nm:lower():find('default') then
+                return Shape
+            end
+        end
+    end
+    
+    return nil
+end
 function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
 
     r.gmem_attach('ContainerMacro')
@@ -1598,50 +1657,31 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             Random = 27,
             XY = 28,
         }
-        r.gmem_write(2,  ContainerID or PM.DIY_TrkID[TrkID])
-        -- When initializing LFO, ensure a non-zero speed is provided so JSFX doesn't set speed to 0
-        if Type == 'LFO' then
-            -- Default musical speed to 1 bar (4 beats)
-            local speed_norm = 1/8 -- idx=1 => 1 bar; norm = idx/8
-            Mc.LFO_spd = speed_norm
-            r.gmem_write(9, Mc.LFO_spd)
-        end
-        
-        -- Write type to JSFX immediately for most types, but defer LFO, Envelope, Random and Step until after initialization
-        if Type ~= 'Random' and Type ~= 'Step' and Type ~= 'LFO' and Type ~= 'Envelope' then
-            r.gmem_write(4, JSFX_Type[Type]) -- tells jsfx macro type
-            r.gmem_write(5, i) -- tells jsfx which macro
-        end
-
-        -- If selecting Envelope, force LFO to Envelope mode (use LFO envelope instead of JSFX env)
-        if Type == 'Envelope' then
-            if ContainerID then
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 1, true)
-            else
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 1, true)
-            end
-            Mc.LFO_Env_or_Loop = 'Envelope'
-            -- Mode 18 sets type to LFO and EnvOrLoop in one go
-            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
-            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
-            r.gmem_write(5, i)
-            r.gmem_write(9, 1) -- 1 = Envelope mode
-        elseif Type == 'LFO' then
-            -- Ensure LFO defaults to Loop mode
-            if ContainerID then
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 0, true)
-            else
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 0, true)
-            end
-            Mc.LFO_Env_or_Loop = 'Loop'
-            -- Mode 18 sets type to LFO and EnvOrLoop in one go
-            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
-            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
-            r.gmem_write(5, i)
-            r.gmem_write(9, 0) -- 0 = Loop mode
-
+        local function Init_LFO_Params(init_type)
+            local is_env = init_type == 'Envelope' or init_type == 'envelope' or init_type == 'env'
+            local key_prefix = is_env and 'Env' or 'LFO'
+            local default_len = is_env and 4 or 4
+            local default_gain = 1.0
+            local default_spd = is_env and 1/2 or 1/8
             -- Set defaults for LFO params if values don't exist previously
             -- Param indices are 0-based: base = 2 + (macro-1)*4; Param2=base+1 (Length), Param3=base+2 (Gain), Param4=base+3 (Speed)
+            local function Read_LFO_Saved_Str(param_label)
+                local _, saved_str1
+                if FxGUID then
+                    _, saved_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' '..key_prefix..' '..param_label, '', false)
+                end
+                local _, saved_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' '..key_prefix..' '..param_label, '', false)
+                local saved_str = (saved_str1 and saved_str1 ~= '' and saved_str1) or (saved_str2 and saved_str2 ~= '' and saved_str2) or nil
+                if (not saved_str or saved_str == '') and is_env then
+                    local _, fallback1
+                    if FxGUID then
+                        _, fallback1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO '..param_label, '', false)
+                    end
+                    local _, fallback2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO '..param_label, '', false)
+                    saved_str = (fallback1 and fallback1 ~= '' and fallback1) or (fallback2 and fallback2 ~= '' and fallback2) or nil
+                end
+                return saved_str
+            end
             local function FindMacrosFXIdx()
                 local cnt = r.TrackFX_GetCount(LT_Track)
                 for idx = 0, cnt-1, 1 do
@@ -1657,31 +1697,9 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 local spdIdx  = base + 3 -- Param4
                 
                 -- Recall saved values, or set defaults if they don't exist
-                -- Try both container and regular keys to ensure we find saved values
-                local _, saved_len_str1
-                if FxGUID then
-                    _, saved_len_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Length', '', false)
-                end
-                local _, saved_len_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Length', '', false)
-                local saved_len_str = (saved_len_str1 and saved_len_str1 ~= '' and saved_len_str1) or (saved_len_str2 and saved_len_str2 ~= '' and saved_len_str2) or nil
-                
-                local _, saved_gain_str1
-                if FxGUID then
-                    _, saved_gain_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Gain', '', false)
-                end
-                local _, saved_gain_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Gain', '', false)
-                local saved_gain_str = (saved_gain_str1 and saved_gain_str1 ~= '' and saved_gain_str1) or (saved_gain_str2 and saved_gain_str2 ~= '' and saved_gain_str2) or nil
-                
-                local _, saved_spd_str1
-                if FxGUID then
-                    _, saved_spd_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' LFO Speed', '', false)
-                end
-                local _, saved_spd_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' LFO Speed', '', false)
-                local saved_spd_str = (saved_spd_str1 and saved_spd_str1 ~= '' and saved_spd_str1) or (saved_spd_str2 and saved_spd_str2 ~= '' and saved_spd_str2) or nil
-                
-                local saved_len = (saved_len_str ~= '' and saved_len_str) and tonumber(saved_len_str) or nil
-                local saved_gain = (saved_gain_str ~= '' and saved_gain_str) and tonumber(saved_gain_str) or nil
-                local saved_spd = (saved_spd_str ~= '' and saved_spd_str) and tonumber(saved_spd_str) or nil
+                local saved_len = tonumber(Read_LFO_Saved_Str('Length') or '')
+                local saved_gain = tonumber(Read_LFO_Saved_Str('Gain') or '')
+                local saved_spd = tonumber(Read_LFO_Saved_Str('Speed') or '')
                 
                 -- Length: restore saved value or default to 4
                 -- Length maps 0-1 to 1-8: (length-1)/7
@@ -1691,25 +1709,154 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                     Mc.LFO_leng = saved_len
                 else
                     -- Default to 4: (4-1)/7 = 3/7 ≈ 0.4286
-                    local len_norm_4 = (4 - 1) / 7  -- = 3/7 = 0.42857142857142855
-                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, len_norm_4)
-                    Mc.LFO_leng = 4
+                    local len_norm_default = (default_len - 1) / 7
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, lenIdx, len_norm_default)
+                    Mc.LFO_leng = default_len
                 end
                 
                 -- Gain: restore saved value or default to 1.0 (100%)
                 if saved_gain and saved_gain >= 0 and saved_gain <= 1 then
                     r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, saved_gain)
                 else
-                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, 1.0) -- 100%
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, gainIdx, default_gain)
                 end
                 
-                -- Speed: restore saved value or default to 1 bar (normalized = 1/8)
+                -- Speed: restore saved value or default
                 if saved_spd and saved_spd > 0 and saved_spd <= 1 then
                     r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, saved_spd)
                     Mc.LFO_spd = saved_spd
+                    -- Convert normalized speed to index for UI display (0-8)
+                    local labels_count = 9
+                    Mc.LFO_spd_idx = math.max(0, math.min(math.floor(saved_spd * (labels_count - 1) + 0.5), labels_count - 1))
                 else
-                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, 1/8) -- 1 bar
-                    Mc.LFO_spd = 1/8
+                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, spdIdx, default_spd)
+                    Mc.LFO_spd = default_spd
+                    -- Convert normalized speed to index for UI display (0-8)
+                    local labels_count = 9
+                    Mc.LFO_spd_idx = math.max(0, math.min(math.floor(default_spd * (labels_count - 1) + 0.5), labels_count - 1))
+                end
+            end
+        end
+        r.gmem_write(2,  ContainerID or PM.DIY_TrkID[TrkID])
+        -- Write type to JSFX immediately for most types, but defer LFO, Envelope, Random and Step until after initialization
+        if Type ~= 'Random' and Type ~= 'Step' and Type ~= 'LFO' and Type ~= 'Envelope' then
+            r.gmem_write(4, JSFX_Type[Type]) -- tells jsfx macro type
+            r.gmem_write(5, i) -- tells jsfx which macro
+        end
+        
+
+        -- If selecting Envelope, force LFO to Envelope mode (use LFO envelope instead of JSFX env)
+        if Type == 'Envelope' then
+            if ContainerID then
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 1, true)
+            else
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 1, true)
+            end
+            Mc.LFO_Env_or_Loop = 'Envelope'
+            -- Mode 18 sets type to LFO and EnvOrLoop in one go
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
+            r.gmem_write(5, i)
+            r.gmem_write(9, 1) -- 1 = Envelope mode
+            Init_LFO_Params(Type)
+            
+            -- Apply default shape if modulator hasn't been edited
+            if not Mc.Node or #Mc.Node == 0 then
+                local defaultShape = Find_Default_Shape(true) -- true for envelope
+                if defaultShape then
+                    Mc.Node = defaultShape
+                    -- Send shape info to JSFX
+                    if ContainerID then
+                        r.gmem_attach('ContainerMacro')
+                        -- For containers, try to generate AllCoord and use Cont_Send_All_Coord
+                        local fx = FX[FxGUID] or {}
+                        if Cont_DrawShape then
+                            local dummyW, dummyH = 100, 50
+                            local dummyL, dummyT = 0, 0
+                            local AllCoord = Cont_DrawShape(defaultShape, dummyL, dummyW, dummyH, dummyT, nil, nil, 'SaveAllCoord')
+                            if AllCoord then
+                                Cont_Send_All_Coord(fx, i, AllCoord, Mc, #defaultShape * 11)
+                            else
+                                Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                            end
+                        else
+                            Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                        end
+                        SAVE_ALL_LFO_INFO(defaultShape, FxGUID, i)
+                    else
+                        r.gmem_attach('ParamValues')
+                        Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                        -- Save to track
+                        local function SaveLFO(StrName, V)
+                            if StrName then
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. StrName, tostring(V or ''), true)
+                            end
+                        end
+                        for j, v in ipairs(defaultShape) do
+                            SaveLFO('Node' .. j .. 'Ctrl X', defaultShape[j].ctrlX or '')
+                            SaveLFO('Node' .. j .. 'Ctrl Y', defaultShape[j].ctrlY or '')
+                            SaveLFO('Node ' .. j .. ' X', defaultShape[j].x or defaultShape[j][1] or '')
+                            SaveLFO('Node ' .. j .. ' Y', defaultShape[j].y or defaultShape[j][2] or '')
+                            SaveLFO('Total Number of Nodes', #defaultShape)
+                        end
+                    end
+                end
+            end
+        elseif Type == 'LFO' then
+            -- Ensure LFO defaults to Loop mode
+            if ContainerID then
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..'Mod ' .. i .. ' LFO_Env_or_Loop', 0, true)
+            else
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. 'LFO_Env_or_Loop', 0, true)
+            end
+            Mc.LFO_Env_or_Loop = 'Loop'
+            -- Mode 18 sets type to LFO and EnvOrLoop in one go
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 18) -- mode 18 = set EnvOrLoop (also sets type to LFO)
+            r.gmem_write(5, i)
+            r.gmem_write(9, 0) -- 0 = Loop mode
+            Init_LFO_Params(Type)
+            
+            -- Apply default shape if modulator hasn't been edited
+            if not Mc.Node or #Mc.Node == 0 then
+                local defaultShape = Find_Default_Shape(false) -- false for LFO
+                if defaultShape then
+                    Mc.Node = defaultShape
+                    -- Send shape info to JSFX
+                    if ContainerID then
+                        r.gmem_attach('ContainerMacro')
+                        -- For containers, try to generate AllCoord and use Cont_Send_All_Coord
+                        local fx = FX[FxGUID] or {}
+                        if Cont_DrawShape then
+                            local dummyW, dummyH = 100, 50
+                            local dummyL, dummyT = 0, 0
+                            local AllCoord = Cont_DrawShape(defaultShape, dummyL, dummyW, dummyH, dummyT, nil, nil, 'SaveAllCoord')
+                            if AllCoord then
+                                Cont_Send_All_Coord(fx, i, AllCoord, Mc, #defaultShape * 11)
+                            else
+                                Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                            end
+                        else
+                            Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                        end
+                        SAVE_ALL_LFO_INFO(defaultShape, FxGUID, i)
+                    else
+                        r.gmem_attach('ParamValues')
+                        Update_Info_To_Jsfx(defaultShape, 'LFO'..i, true, i, true)
+                        -- Save to track
+                        local function SaveLFO(StrName, V)
+                            if StrName then
+                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. i .. StrName, tostring(V or ''), true)
+                            end
+                        end
+                        for j, v in ipairs(defaultShape) do
+                            SaveLFO('Node' .. j .. 'Ctrl X', defaultShape[j].ctrlX or '')
+                            SaveLFO('Node' .. j .. 'Ctrl Y', defaultShape[j].ctrlY or '')
+                            SaveLFO('Node ' .. j .. ' X', defaultShape[j].x or defaultShape[j][1] or '')
+                            SaveLFO('Node ' .. j .. ' Y', defaultShape[j].y or defaultShape[j][2] or '')
+                            SaveLFO('Total Number of Nodes', #defaultShape)
+                        end
+                    end
                 end
             end
 
@@ -1992,6 +2139,14 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod ' .. Macro .. StrName, V, true)
             end
         end
+    end
+    local function Get_LFO_Save_Key(param_label)
+        local is_env = Mc and (Mc.Type == 'Envelope' or Mc.Type == 'envelope' or Mc.Type == 'env')
+        local prefix = is_env and 'Env' or 'LFO'
+        if IsContainer then
+            return 'Container '..FxGUID..' Mod '..Macro..' '..prefix..' '..param_label
+        end
+        return 'Mod '..Macro..' '..prefix..' '..param_label
     end
 
     local function IF_CONTIAINER_SEND_RIGHT_CLICK_INFO()
@@ -2433,13 +2588,13 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                             r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len, new_norm)
                             Mc.LFO_leng = newLenTop
                             -- Save immediately when value changes
-                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Length') or ('Mod '..Macro..' LFO Length')
+                            local str = Get_LFO_Save_Key('Length')
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.LFO_leng), true)
                         end
                         -- Also save on mouse release for cases where value might change via other means
                         if im.IsItemDeactivatedAfterEdit(ctx) then
                             local final_len = Mc.LFO_leng or math.floor(1 + r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Len) * 7 + 0.5)
-                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Length') or ('Mod '..Macro..' LFO Length')
+                            local str = Get_LFO_Save_Key('Length')
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_len), true)
                         end
                         -- Allow other modulators to modulate Length
@@ -2468,13 +2623,13 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         if rv_gain then
                             r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain, new_gain)
                             -- Save immediately when value changes
-                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Gain') or ('Mod '..Macro..' LFO Gain')
+                            local str = Get_LFO_Save_Key('Gain')
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(new_gain), true)
                         end
                         -- Also save on mouse release for cases where value might change via other means
                         if im.IsItemDeactivatedAfterEdit(ctx) then
                             local final_gain = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Gain)
-                            local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Gain') or ('Mod '..Macro..' LFO Gain')
+                            local str = Get_LFO_Save_Key('Gain')
                             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_gain), true)
                         end
                         -- Allow other modulators to modulate Gain (using a vertical style so range drag is vertical)
@@ -2632,7 +2787,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
                         Mc.LFO_spd = newNorm
                         -- Save immediately when value changes
-                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        local str = Get_LFO_Save_Key('Speed')
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
                     end
                 end
@@ -2656,7 +2811,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         local newNorm = newNearestIdx / (#labels-1)
                         r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
                         Mc.LFO_spd = newNorm
-                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        local str = Get_LFO_Save_Key('Speed')
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
                     end
                 end
@@ -2679,7 +2834,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         local newNorm = newNearestIdx / (#labels-1)
                         r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd, newNorm)
                         Mc.LFO_spd = newNorm
-                        local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                        local str = Get_LFO_Save_Key('Speed')
                         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(newNorm), true)
                     end
                 end
@@ -2687,7 +2842,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 -- Also save on mouse release for safety
                 if MacFxIdx2 and P_Num_Spd and im.IsItemDeactivatedAfterEdit(ctx) then
                     local final_spd = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd)
-                    local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                    local str = Get_LFO_Save_Key('Speed')
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_spd), true)
                 end
             else
@@ -2728,7 +2883,7 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                 -- Save on mouse release
                 if MacFxIdx2 and P_Num_Spd and was_active_ms and im.IsItemDeactivatedAfterEdit(ctx) then
                     local final_spd = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx2, P_Num_Spd)
-                    local str = IsContainer and ('Container '..FxGUID..' Mod '..Macro..' LFO Speed') or ('Mod '..Macro..' LFO Speed')
+                    local str = Get_LFO_Save_Key('Speed')
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(final_spd), true)
                 end
             end
