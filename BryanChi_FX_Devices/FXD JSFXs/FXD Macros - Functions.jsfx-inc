@@ -282,6 +282,106 @@ function Set_Modulator_Curve(mode) local (prm, mod) (
   );
 );
 
+function Set_ADSR_Curve_For_Macro(M, curve_id, value) (
+  M==1 ? (
+    curve_id == 1 ? (Mc1.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc1.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc1.ADSR_Curve_R = value;);
+  ) : M==2 ? (
+    curve_id == 1 ? (Mc2.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc2.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc2.ADSR_Curve_R = value;);
+  ) : M==3 ? (
+    curve_id == 1 ? (Mc3.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc3.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc3.ADSR_Curve_R = value;);
+  ) : M==4 ? (
+    curve_id == 1 ? (Mc4.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc4.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc4.ADSR_Curve_R = value;);
+  ) : M==5 ? (
+    curve_id == 1 ? (Mc5.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc5.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc5.ADSR_Curve_R = value;);
+  ) : M==6 ? (
+    curve_id == 1 ? (Mc6.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc6.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc6.ADSR_Curve_R = value;);
+  ) : M==7 ? (
+    curve_id == 1 ? (Mc7.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc7.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc7.ADSR_Curve_R = value;);
+  ) : M==8 ? (
+    curve_id == 1 ? (Mc8.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc8.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc8.ADSR_Curve_R = value;);
+  ) : M==9 ? (
+    curve_id == 1 ? (Mc9.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc9.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc9.ADSR_Curve_R = value;);
+  ) : M==10 ? (
+    curve_id == 1 ? (Mc10.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc10.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc10.ADSR_Curve_R = value;);
+  ) : M==11 ? (
+    curve_id == 1 ? (Mc11.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc11.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc11.ADSR_Curve_R = value;);
+  ) : M==12 ? (
+    curve_id == 1 ? (Mc12.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc12.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc12.ADSR_Curve_R = value;);
+  ) : M==13 ? (
+    curve_id == 1 ? (Mc13.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc13.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc13.ADSR_Curve_R = value;);
+  ) : M==14 ? (
+    curve_id == 1 ? (Mc14.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc14.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc14.ADSR_Curve_R = value;);
+  ) : M==15 ? (
+    curve_id == 1 ? (Mc15.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc15.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc15.ADSR_Curve_R = value;);
+  ) : M==16 ? (
+    curve_id == 1 ? (Mc16.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc16.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc16.ADSR_Curve_R = value;);
+  ) : M==17 ? (
+    curve_id == 1 ? (Mc17.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc17.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc17.ADSR_Curve_R = value;);
+  ) : M==18 ? (
+    curve_id == 1 ? (Mc18.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc18.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc18.ADSR_Curve_R = value;);
+  ) : M==19 ? (
+    curve_id == 1 ? (Mc19.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc19.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc19.ADSR_Curve_R = value;);
+  ) : M==20 ? (
+    curve_id == 1 ? (Mc20.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc20.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc20.ADSR_Curve_R = value;);
+  ) : M==21 ? (
+    curve_id == 1 ? (Mc21.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc21.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc21.ADSR_Curve_R = value;);
+  ) : M==22 ? (
+    curve_id == 1 ? (Mc22.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc22.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc22.ADSR_Curve_R = value;);
+  ) : M==23 ? (
+    curve_id == 1 ? (Mc23.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc23.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc23.ADSR_Curve_R = value;);
+  ) : M==24 ? (
+    curve_id == 1 ? (Mc24.ADSR_Curve_A = value;);
+    curve_id == 2 ? (Mc24.ADSR_Curve_D = value;);
+    curve_id == 3 ? (Mc24.ADSR_Curve_R = value;);
+  );
+);
+
 
 
 function setNode(index, attribute, value) (
@@ -381,6 +481,10 @@ function SendInfoBackToImGui()
    gmem[this.LFO_PlayPos] = this.CurrentPos;
   ):this.type == 'Rdm'?(
     gmem[100 + this.Macro] = this.Out * 127;
+  ):this.type == 'ASR'?(
+    gmem[100 + this.Macro] = this.Out * 127; // ADSR output (0.0-1.0) * 127 = 0-127
+    gmem[140 + this.Macro] = this.ADSR_stage; // ADSR stage for playhead
+    gmem[160 + this.Macro] = this.ADSR_time; // ADSR time in seconds for current stage
   );
 
 );
@@ -599,6 +703,14 @@ function DoMidiTriggeredActions()(
       this.Out *= this.LFO_Gain;
 
   );
+  // ADSR note-on: trigger attack stage only if currently idle
+  // Don't retrigger if envelope is already active (attack/decay/sustain)
+  this.type == 'ASR' && this.ADSR_stage == 0 ? (
+    this.ADSR_stage = 1; // Start attack stage
+    this.ADSR_time = 0;
+    this.ADSR_level = 0;
+    this.ADSR_release_start = 0; // Initialize release start level
+  );
 );
 function DoMidi_Release()(
   this.EnvOrLoop == 1 && (this.Rel_Type == 2 || this.Rel_Type == 3) ?(// if it's custom release
@@ -606,6 +718,12 @@ function DoMidi_Release()(
     this.Out = this.Calculate_Midi_Mod(this.CurrentPos/ this.LFO_Len, Gap*7 , this.Macro  ) ; 
     this.Out *= this.LFO_Gain;
 
+  );
+  // ADSR note-off: trigger release stage
+  this.type == 'ASR' && this.ADSR_stage >= 1 && this.ADSR_stage <= 4 ? (
+    this.ADSR_stage = 5; // Start release stage
+    this.ADSR_time = 0;
+    this.ADSR_release_start = this.ADSR_level; // Store current level to decay from
   );
 );
 
@@ -713,6 +831,38 @@ function If_User_Set_Type_To_XY() (
   );
 );
 
+function If_User_Set_Type_To_ADSR() (
+  mode == 29? (
+    SetTypeTo('ASR');
+    Macro = gmem[5];
+    // Initialize ADSR state for all modulators (1-24)
+    Macro==1?(Mc1.ADSR_stage = 0; Mc1.ADSR_level = 0; Mc1.ADSR_time = 0; Mc1.ADSR_release_start = 0; Mc1.ADSR_Hold = 0.0;);
+    Macro==2?(Mc2.ADSR_stage = 0; Mc2.ADSR_level = 0; Mc2.ADSR_time = 0; Mc2.ADSR_release_start = 0; Mc2.ADSR_Hold = 0.0;);
+    Macro==3?(Mc3.ADSR_stage = 0; Mc3.ADSR_level = 0; Mc3.ADSR_time = 0; Mc3.ADSR_release_start = 0; Mc3.ADSR_Hold = 0.0;);
+    Macro==4?(Mc4.ADSR_stage = 0; Mc4.ADSR_level = 0; Mc4.ADSR_time = 0; Mc4.ADSR_release_start = 0; Mc4.ADSR_Hold = 0.0;);
+    Macro==5?(Mc5.ADSR_stage = 0; Mc5.ADSR_level = 0; Mc5.ADSR_time = 0; Mc5.ADSR_release_start = 0; Mc5.ADSR_Hold = 0.0;);
+    Macro==6?(Mc6.ADSR_stage = 0; Mc6.ADSR_level = 0; Mc6.ADSR_time = 0; Mc6.ADSR_release_start = 0; Mc6.ADSR_Hold = 0.0;);
+    Macro==7?(Mc7.ADSR_stage = 0; Mc7.ADSR_level = 0; Mc7.ADSR_time = 0; Mc7.ADSR_release_start = 0; Mc7.ADSR_Hold = 0.0;);
+    Macro==8?(Mc8.ADSR_stage = 0; Mc8.ADSR_level = 0; Mc8.ADSR_time = 0; Mc8.ADSR_release_start = 0; Mc8.ADSR_Hold = 0.0;);
+    Macro==9?(Mc9.ADSR_stage = 0; Mc9.ADSR_level = 0; Mc9.ADSR_time = 0; Mc9.ADSR_release_start = 0; Mc9.ADSR_Hold = 0.0;);
+    Macro==10?(Mc10.ADSR_stage = 0; Mc10.ADSR_level = 0; Mc10.ADSR_time = 0; Mc10.ADSR_release_start = 0; Mc10.ADSR_Hold = 0.0;);
+    Macro==11?(Mc11.ADSR_stage = 0; Mc11.ADSR_level = 0; Mc11.ADSR_time = 0; Mc11.ADSR_release_start = 0; Mc11.ADSR_Hold = 0.0;);
+    Macro==12?(Mc12.ADSR_stage = 0; Mc12.ADSR_level = 0; Mc12.ADSR_time = 0; Mc12.ADSR_release_start = 0; Mc12.ADSR_Hold = 0.0;);
+    Macro==13?(Mc13.ADSR_stage = 0; Mc13.ADSR_level = 0; Mc13.ADSR_time = 0; Mc13.ADSR_release_start = 0; Mc13.ADSR_Hold = 0.0;);
+    Macro==14?(Mc14.ADSR_stage = 0; Mc14.ADSR_level = 0; Mc14.ADSR_time = 0; Mc14.ADSR_release_start = 0; Mc14.ADSR_Hold = 0.0;);
+    Macro==15?(Mc15.ADSR_stage = 0; Mc15.ADSR_level = 0; Mc15.ADSR_time = 0; Mc15.ADSR_release_start = 0; Mc15.ADSR_Hold = 0.0;);
+    Macro==16?(Mc16.ADSR_stage = 0; Mc16.ADSR_level = 0; Mc16.ADSR_time = 0; Mc16.ADSR_release_start = 0; Mc16.ADSR_Hold = 0.0;);
+    Macro==17?(Mc17.ADSR_stage = 0; Mc17.ADSR_level = 0; Mc17.ADSR_time = 0; Mc17.ADSR_release_start = 0; Mc17.ADSR_Hold = 0.0;);
+    Macro==18?(Mc18.ADSR_stage = 0; Mc18.ADSR_level = 0; Mc18.ADSR_time = 0; Mc18.ADSR_release_start = 0; Mc18.ADSR_Hold = 0.0;);
+    Macro==19?(Mc19.ADSR_stage = 0; Mc19.ADSR_level = 0; Mc19.ADSR_time = 0; Mc19.ADSR_release_start = 0; Mc19.ADSR_Hold = 0.0;);
+    Macro==20?(Mc20.ADSR_stage = 0; Mc20.ADSR_level = 0; Mc20.ADSR_time = 0; Mc20.ADSR_release_start = 0; Mc20.ADSR_Hold = 0.0;);
+    Macro==21?(Mc21.ADSR_stage = 0; Mc21.ADSR_level = 0; Mc21.ADSR_time = 0; Mc21.ADSR_release_start = 0; Mc21.ADSR_Hold = 0.0;);
+    Macro==22?(Mc22.ADSR_stage = 0; Mc22.ADSR_level = 0; Mc22.ADSR_time = 0; Mc22.ADSR_release_start = 0; Mc22.ADSR_Hold = 0.0;);
+    Macro==23?(Mc23.ADSR_stage = 0; Mc23.ADSR_level = 0; Mc23.ADSR_time = 0; Mc23.ADSR_release_start = 0; Mc23.ADSR_Hold = 0.0;);
+    Macro==24?(Mc24.ADSR_stage = 0; Mc24.ADSR_level = 0; Mc24.ADSR_time = 0; Mc24.ADSR_release_start = 0; Mc24.ADSR_Hold = 0.0;);
+  );
+);
+
 function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M, out, ID, Curve)  // i is the track param number
 (
   M = 1;
@@ -809,10 +959,39 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
   ):this.type=='LFO'    ?( // if type is LFO
     // New unified mapping: Param2=Length, Param3=Gain, Param4=Speed (normalized)
     // Mod N Param M index = 3 + (N-1)*4 + (M-1)
+    this.Param1 = slider(3 + (this.Macro-1)*4 + 0); // For envelope: release type
     this.Param2 = slider(3 + (this.Macro-1)*4 + 1); // length
     this.Param3 = slider(3 + (this.Macro-1)*4 + 2); // gain
     this.Param4 = slider(3 + (this.Macro-1)*4 + 3); // speed (normalized)
-    this.LFO_Len_Sldr   = this.Param2;
+    
+    // Read release type and release node from Param1/Param2 for envelope mode
+    this.EnvOrLoop == 1 ? (
+      // Param1: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+      this.Param1 < 0.25 ? (
+        this.Rel_Type = 0; // Latch
+      ) : this.Param1 < 0.75 ? (
+        this.Rel_Type = 2; // Custom Release
+      ) : (
+        this.Rel_Type = 3; // Custom Release - No Jump
+      );
+      
+      // Param2: Release node number (normalized 0-1, convert to node index)
+      // Get node count from LFO data
+      idx = Gap*7 + LFO_Max_Num_Of_Pts * 3 * (this.Macro-1);
+      _nodeCount = Velo_ModAmt[idx]; // first slot has node count
+      _nodeCount > 0 ? (
+        // Convert normalized Param2 (0-1) to node index (1 to nodeCount)
+        // Param2 = 0 -> node 1, Param2 = 1 -> last node
+        this.Rel_Node = floor(this.Param2 * (_nodeCount - 1) + 1 + 0.5);
+        this.Rel_Node < 1 ? (this.Rel_Node = 1);
+        this.Rel_Node > _nodeCount ? (this.Rel_Node = _nodeCount);
+      );
+      
+      this.LFO_Len_Sldr = 0.5; // default envelope length (not used for envelope)
+    ) : (
+      // LFO mode: use Param2 for length
+      this.LFO_Len_Sldr = this.Param2;
+    );
     this.LFO_Gain_Sldr  = this.Param3;
     this.LFO_Spd_Norm   = this.Param4;
     // Period uses Param4 only; no triplet/dotted/free/continuous modes
@@ -914,6 +1093,84 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
       // Interpolate toward target using exponential smoothing
       this.Out = this.Out + (this.Rdm_Next_Out - this.Out) * Rdm_Smooth_rate;
     );
+  ):this.type == 'ASR' ? ( // if type is ASR
+    // Read ADSR parameters from unified params
+    this.Param1 = slider(3 + (this.Macro-1)*4 + 0); // Attack (normalized 0-1)
+    this.Param2 = slider(3 + (this.Macro-1)*4 + 1); // Decay (normalized 0-1)
+    this.Param3 = slider(3 + (this.Macro-1)*4 + 2); // Sustain (0-1, linear level)
+    this.Param4 = slider(3 + (this.Macro-1)*4 + 3); // Release (normalized 0-1)
+    
+    // Convert normalized parameters to actual values
+    // Attack: logarithmic 0.001-2.0 seconds
+    this.ADSR_A = exp(this.Param1 * (log(2.0) - log(0.001)) + log(0.001));
+    // Decay: logarithmic 0.001-2.0 seconds
+    this.ADSR_D = exp(this.Param2 * (log(2.0) - log(0.001)) + log(0.001));
+    // Sustain: linear 0.0-1.0
+    this.ADSR_S = this.Param3;
+    // Release: logarithmic 0.001-2.0 seconds
+    this.ADSR_R = exp(this.Param4 * (log(2.0) - log(0.001)) + log(0.001));
+    
+    // Initialize Hold if not set (stored in JSFX internal memory)
+    this.ADSR_Hold = this.ADSR_Hold >= 0 ? this.ADSR_Hold : 0.0;
+    
+    // ADSR state machine
+    // Stage: 0=idle, 1=attack, 2=hold, 3=decay, 4=sustain, 5=release
+    this.ADSR_stage = this.ADSR_stage >= 0 ? this.ADSR_stage : 0;
+    this.ADSR_level = this.ADSR_level >= 0 ? this.ADSR_level : 0;
+    this.ADSR_time = this.ADSR_time >= 0 ? this.ADSR_time : 0;
+    
+    // Calculate envelope based on current stage
+    // Note: CalculatMacroAmt() runs per block, so increment time by samplesblock/srate
+    // Calculate block duration in seconds (samplesblock is built-in JSFX variable)
+    _block_time = max(samplesblock, 1) / srate; // Ensure at least 1 sample to avoid division issues
+    this.ADSR_stage == 1 ? ( // Attack stage
+      this.ADSR_time += _block_time;
+      _progress = min(this.ADSR_time / max(this.ADSR_A, 0.001), 1.0);
+      _curve = this.ADSR_Curve_A;
+      _curve > 0 ? (_curve = 1 + _curve;);
+      _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
+      this.ADSR_level = _progress;
+      this.ADSR_level >= 1.0 ? (
+        this.ADSR_stage = 2; // Move to hold stage
+        this.ADSR_time = 0;
+        this.ADSR_level = 1.0;
+      );
+    ) : this.ADSR_stage == 2 ? ( // Hold stage
+      this.ADSR_time += _block_time;
+      this.ADSR_level = 1.0; // Hold at peak level
+      this.ADSR_time >= max(this.ADSR_Hold, 0.0) ? (
+        this.ADSR_stage = 3; // Move to decay stage
+        this.ADSR_time = 0;
+      );
+    ) : this.ADSR_stage == 3 ? ( // Decay stage
+      this.ADSR_time += _block_time;
+      // Exponential decay from 1.0 to sustain level
+      _progress = min(this.ADSR_time / max(this.ADSR_D, 0.001), 1.0);
+      _curve = this.ADSR_Curve_D;
+      _curve > 0 ? (_curve = 1 + _curve;);
+      _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
+      this.ADSR_level = 1.0 + (this.ADSR_S - 1.0) * _progress;
+      _progress >= 1.0 ? (
+        this.ADSR_stage = 4; // Move to sustain stage
+        this.ADSR_level = this.ADSR_S;
+      );
+    ) : this.ADSR_stage == 4 ? ( // Sustain stage
+      this.ADSR_level = this.ADSR_S;
+    ) : this.ADSR_stage == 5 ? ( // Release stage
+      this.ADSR_time += _block_time;
+      // Exponential decay from current level to 0
+      _progress = min(this.ADSR_time / max(this.ADSR_R, 0.001), 1.0);
+      _curve = this.ADSR_Curve_R;
+      _curve > 0 ? (_curve = 1 + _curve;);
+      _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
+      this.ADSR_level = this.ADSR_release_start * (1.0 - _progress);
+      _progress >= 1.0 ? (
+        this.ADSR_stage = 0; // Move to idle stage
+        this.ADSR_level = 0;
+      );
+    );
+    
+    this.Out = this.ADSR_level;
   ):(   //if type is macro
     this.Out = (this.Slider )   
   );
@@ -1204,6 +1461,39 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
 
     If_User_Set_Type_To_Random();
     If_User_Set_Type_To_XY();
+    If_User_Set_Type_To_ADSR();
+    mode == 34 ? ( // ADSR Hold parameter
+      Macro = gmem[5];
+      Macro==1?(Mc1.ADSR_Hold = gmem[9];);
+      Macro==2?(Mc2.ADSR_Hold = gmem[9];);
+      Macro==3?(Mc3.ADSR_Hold = gmem[9];);
+      Macro==4?(Mc4.ADSR_Hold = gmem[9];);
+      Macro==5?(Mc5.ADSR_Hold = gmem[9];);
+      Macro==6?(Mc6.ADSR_Hold = gmem[9];);
+      Macro==7?(Mc7.ADSR_Hold = gmem[9];);
+      Macro==8?(Mc8.ADSR_Hold = gmem[9];);
+      Macro==9?(Mc9.ADSR_Hold = gmem[9];);
+      Macro==10?(Mc10.ADSR_Hold = gmem[9];);
+      Macro==11?(Mc11.ADSR_Hold = gmem[9];);
+      Macro==12?(Mc12.ADSR_Hold = gmem[9];);
+      Macro==13?(Mc13.ADSR_Hold = gmem[9];);
+      Macro==14?(Mc14.ADSR_Hold = gmem[9];);
+      Macro==15?(Mc15.ADSR_Hold = gmem[9];);
+      Macro==16?(Mc16.ADSR_Hold = gmem[9];);
+      Macro==17?(Mc17.ADSR_Hold = gmem[9];);
+      Macro==18?(Mc18.ADSR_Hold = gmem[9];);
+      Macro==19?(Mc19.ADSR_Hold = gmem[9];);
+      Macro==20?(Mc20.ADSR_Hold = gmem[9];);
+      Macro==21?(Mc21.ADSR_Hold = gmem[9];);
+      Macro==22?(Mc22.ADSR_Hold = gmem[9];);
+      Macro==23?(Mc23.ADSR_Hold = gmem[9];);
+      Macro==24?(Mc24.ADSR_Hold = gmem[9];);
+    );
+
+    mode == 35 ? ( // ADSR Curve parameter
+      Macro = gmem[5];
+      Set_ADSR_Curve_For_Macro(Macro, gmem[6], gmem[8]);
+    );
 
     mode == 15?(  // if user changing LFO Shape
       SetTypeTo('LFO');

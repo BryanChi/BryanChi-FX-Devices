@@ -542,12 +542,52 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         if not Mc then return end 
         if not Mc.Rel_Type then return end 
         if not  Mc.Rel_Type:find('Custom Release') then return end 
-        local found 
-        for i, v in ipairs( PtsTB) do 
+        
+        -- First, try to restore from Param2
+        local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+        if MacFxGUID then
+            local function FindFxIdxByGUID(guid)
+                local cnt = r.TrackFX_GetCount(LT_Track)
+                for idx = 0, cnt-1, 1 do
+                    if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                end
+            end
+            local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+            local param2Idx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+            local param2Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param2Idx)
+            
+            if param2Value and param2Value >= 0 and param2Value <= 1 and #PtsTB > 1 then
+                -- Convert normalized value back to node index
+                local nodeIdx = math.floor(param2Value * (#PtsTB - 1) + 1 + 0.5)
+                nodeIdx = math.max(1, math.min(nodeIdx, #PtsTB))
+                if PtsTB[nodeIdx] then
+                    -- Clear all previous .Rel flags first
+                    for idx, node in ipairs(PtsTB) do
+                        node.Rel = nil
+                    end
+                    -- Set the restored release node
+                    PtsTB[nodeIdx].Rel = true
+                    -- Also sync to Mc.Node if it exists
+                    if Mc and Mc.Node and Mc.Node[nodeIdx] then
+                        -- Clear all previous .Rel flags in Mc.Node
+                        for idx, node in ipairs(Mc.Node) do
+                            node.Rel = nil
+                        end
+                        Mc.Node[nodeIdx].Rel = true
+                    end
+                    return -- Found and restored from Param2
+                end
+            end
+        end
+        
+        -- Check if any node already has Rel flag
+        for i, v in ipairs(PtsTB) do 
             if v.Rel then return end 
         end
-        if not found then 
-            PtsTB [#PtsTB - 1 ].Rel = true 
+        
+        -- Default to second-to-last node if none found
+        if #PtsTB > 1 then
+            PtsTB[#PtsTB - 1].Rel = true 
         end
     end
 
@@ -781,7 +821,18 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             if not IsLFO then return end 
             local MOD  = math.abs(SetMinMax((r.gmem_read(100 + Macro) or 0) / 127, -1, 1))
             local zoom = (Mc and (Mc.Zoom or 1) or 1)
-            local PlayPos = L + PtSz/2 + r.gmem_read(108 + Macro) / 4 * (W * zoom) / ((Mc.LFO_leng or LFO.Def.Len) / 4)
+            local center = (Mc and (Mc.ZoomCenter or 0.5) or 0.5)
+            
+            local function map_u(u)
+                return ((u - center) * zoom + 0.5)
+            end
+            
+            -- CurrentPos is in LFO length units (0 to LFO_Len), convert to normalized (0 to 1)
+            local CurrentPos = r.gmem_read(108 + Macro) or 0
+            local LFO_Len = (Mc.LFO_leng or LFO.Def.Len) or 4
+            local normalizedPos = CurrentPos / LFO_Len
+            local PlayPos = L + PtSz/2 + map_u(normalizedPos) * W
+            
             local H = H 
             local T = T + PtSz/2
             local X = PlayPos 
@@ -834,7 +885,6 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             -- DrawValueTrail()
             function Show_Position_Retroactively()
                 Mc.Trail = Mc.Trail or {}
-                --local prevPlayPos = M.Trail[#M.Trail] and M.Trail[#M.Trail].x or PlayPos
                 table.insert(Mc.Trail, PlayPos)
                 if #Mc.Trail > 40 then table.remove(Mc.Trail, 1) end
                 for i = 2, #Mc.Trail do
@@ -856,15 +906,68 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             if not Mc.LFO_Env_or_Loop then return end
             if  Mc.LFO_Env_or_Loop ~= 'Envelope' then return end
 
-            if Mc.Rel_Type and  Mc.Rel_Type:find('Custom Release') then 
+            -- Read Param1 from JSFX to determine release type (0=Latch, 0.5=Custom Release, 1=Custom Release No Jump)
+            local isCustomRelease = false
+            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+            if MacFxGUID then
+                local function FindFxIdxByGUID(guid)
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                    end
+                end
+                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                local param1Idx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                local param1Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param1Idx)
+                -- Param1 >= 0.25 means Custom Release (0.5) or Custom Release No Jump (1.0)
+                if param1Value and param1Value >= 0.25 then
+                    isCustomRelease = true
+                end
+            end
+
+            if isCustomRelease then 
 
                 if v.Rel  then
 
                     local function If_Choose_Rel(id)
+                        -- Clear all previous .Rel flags first
+                        for idx, node in ipairs(PtsTB) do
+                            node.Rel = nil
+                        end
+                        -- Set the new release node
                         PtsTB[id].Rel = true
-                        v.Rel = nil 
-                        r.gmem_write(4, 20) -- set mode to 20 , which means User is choosing release point
-                        r.gmem_write(9, id) -- tells which point(node) is the release
+                        
+                        -- Also sync to Mc.Node if it exists
+                        if Mc and Mc.Node and Mc.Node[id] then
+                            Mc.Node[id].Rel = true
+                            -- Clear other nodes in Mc.Node
+                            for idx, node in ipairs(Mc.Node) do
+                                if idx ~= id then
+                                    node.Rel = nil
+                                end
+                            end
+                        end
+                        
+                        -- Set Param2 to release node number (normalized)
+                        local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                        if MacFxGUID then
+                            local function FindFxIdxByGUID(guid)
+                                local cnt = r.TrackFX_GetCount(LT_Track)
+                                for idx = 0, cnt-1, 1 do
+                                    if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                end
+                            end
+                            local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                            local paramIdx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+                            local nodeCount = #PtsTB
+                            if nodeCount > 1 then
+                                -- Normalize: node 1 = 0, last node = 1
+                                local normalized = (id - 1) / (nodeCount - 1)
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, paramIdx, normalized)
+                            end
+                        end
+                        -- Save release node ID to track extended data
+                        Save_to_Trk('Mod ' .. Macro .. 'LFO_Rel_Node', id)
                         LFO_REL_MS_DT = nil
                         im.ResetMouseDragDelta(ctx)
                     end

@@ -160,7 +160,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
         else 
             local MOD = McroV
             -- Retrieve modulation value based on modulator type
-            if M and M.Type and (M.Type == 'env' or M.Type == 'envelope' or M.Type == 'Envelope' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO') then
+            if M and M.Type and (M.Type == 'env' or M.Type == 'envelope' or M.Type == 'Envelope' or M.Type == 'Step' or M.Type == 'Follower' or M.Type == 'LFO' or M.Type == 'ADSR') then
                 if FX[FxGUID].parent then 
                     r.gmem_attach('ContainerMacro')
                 else
@@ -764,7 +764,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
                         local McroV = 0
                         if mc and mc.Type == 'Macro' then
                             McroV = mc.Val or r.TrackFX_GetParamNormalized(LT_Track, 0, M-1)
-                        elseif mc and (mc.Type == 'env' or mc.Type == 'envelope' or mc.Type == 'Envelope' or mc.Type == 'Step' or mc.Type == 'Follower' or mc.Type == 'LFO') then
+                        elseif mc and (mc.Type == 'env' or mc.Type == 'envelope' or mc.Type == 'Envelope' or mc.Type == 'Step' or mc.Type == 'Follower' or mc.Type == 'LFO' or mc.Type == 'ADSR') then
                             r.gmem_attach('ContainerMacro')
                             r.gmem_write(2, FX[cont_GUID].DIY_FxGUID)
                             McroV = math.abs(SetMinMax(r.gmem_read(100 + M) / 127, -1, 1))
@@ -1647,7 +1647,7 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'..i .. 'Type', Type, true)
         end
         
-            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' or Type == 'Envelope' or Type == 'Random' then AddMacroJSFX() end
+            if Type == 'LFO' or Type == 'Follower' or Type == 'Step' or Type == 'Envelope' or Type == 'Random' or Type == 'ADSR' then AddMacroJSFX() end
         local JSFX_Type = {
             LFO = 12,
             Envelope = 4,  -- JSFX expects mode 4 for Envelope (not 12)
@@ -1656,6 +1656,7 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             Macro = 5,
             Random = 27,
             XY = 28,
+            ADSR = 29,  -- New ADSR modulator type
         }
         local function Init_LFO_Params(init_type)
             local is_env = init_type == 'Envelope' or init_type == 'envelope' or init_type == 'env'
@@ -2012,6 +2013,106 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             -- Always notify JSFX of type change AFTER parameter initialization
             r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
             r.gmem_write(4, 6) -- tells jsfx macro type = Step
+            r.gmem_write(5, i) -- tells jsfx which macro
+        elseif Type == 'ADSR' then
+            -- Initialize ADSR parameters using unified param slots
+            -- ADSR uses all 4 params: Param1=Attack, Param2=Decay, Param3=Sustain, Param4=Release
+            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+            if MacFxGUID then
+                local function FindFxIdxByGUID(guid)
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                    end
+                end
+                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                local base = 2 + (i - 1) * 4
+                local attackIdx = base + 0  -- Param1 (Attack)
+                local decayIdx = base + 1   -- Param2 (Decay)
+                local sustainIdx = base + 2 -- Param3 (Sustain)
+                local releaseIdx = base + 3 -- Param4 (Release)
+                
+                -- Recall saved values, or set defaults if they don't exist
+                local function Read_ADSR_Saved_Val(param_name)
+                    local _, saved_str1
+                    if FxGUID then
+                        _, saved_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' ADSR '..param_name, '', false)
+                    end
+                    local _, saved_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' ADSR '..param_name, '', false)
+                    local saved_str = (saved_str1 and saved_str1 ~= '' and saved_str1) or (saved_str2 and saved_str2 ~= '' and saved_str2) or nil
+                    return saved_str and tonumber(saved_str) or nil
+                end
+                
+                -- Hold: restore or default to 0.0 (stored in JSFX internal memory, not in unified params)
+                local hold_val = Read_ADSR_Saved_Val('Hold') or (Mc.ADSR_Hold or 0.0)
+                Mc.ADSR_Hold = hold_val
+                
+                -- Attack: restore or default to 0.01 (10ms)
+                local attack_val = Read_ADSR_Saved_Val('Attack') or (Mc.ADSR_Attack or 0.01)
+                Mc.ADSR_Attack = attack_val
+                -- Normalize: 0.001-2.0 seconds, logarithmic mapping
+                local attack_norm = (math.log(attack_val) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, attackIdx, attack_norm)
+                
+                -- Decay: restore or default to 0.1 (100ms)
+                local decay_val = Read_ADSR_Saved_Val('Decay') or (Mc.ADSR_Decay or 0.1)
+                Mc.ADSR_Decay = decay_val
+                -- Normalize: 0.001-2.0 seconds, logarithmic mapping
+                local decay_norm = (math.log(decay_val) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, decayIdx, decay_norm)
+                
+                -- Sustain: restore or default to 0.7 (70%)
+                local sustain_val = Read_ADSR_Saved_Val('Sustain') or (Mc.ADSR_Sustain or 0.7)
+                Mc.ADSR_Sustain = sustain_val
+                -- Normalize: 0.0-1.0, linear (it's a level, not a time)
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, sustainIdx, sustain_val)
+                
+                -- Release: restore or default to 0.1 (100ms)
+                local release_val = Read_ADSR_Saved_Val('Release') or (Mc.ADSR_Release or 0.1)
+                Mc.ADSR_Release = release_val
+                -- Normalize: 0.001-2.0 seconds, logarithmic mapping
+                local release_norm = (math.log(release_val) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, releaseIdx, release_norm)
+
+                -- ADSR curves: restore or default to 0 (linear)
+                local curve_a_val = Read_ADSR_Saved_Val('Curve Attack') or (Mc.ADSR_Curve_Attack or 0.0)
+                Mc.ADSR_Curve_Attack = curve_a_val
+                local curve_d_val = Read_ADSR_Saved_Val('Curve Decay') or (Mc.ADSR_Curve_Decay or 0.0)
+                Mc.ADSR_Curve_Decay = curve_d_val
+                local curve_r_val = Read_ADSR_Saved_Val('Curve Release') or (Mc.ADSR_Curve_Release or 0.0)
+                Mc.ADSR_Curve_Release = curve_r_val
+                
+                -- Hold: restore or default to 0.0 (stored in JSFX internal memory, not in unified params)
+                local hold_val = Read_ADSR_Saved_Val('Hold') or (Mc.ADSR_Hold or 0.0)
+                Mc.ADSR_Hold = hold_val
+                -- Send Hold value to JSFX via gmem
+                if ContainerID then
+                    r.gmem_attach('ContainerMacro')
+                else
+                    r.gmem_attach('ParamValues')
+                end
+                r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+                r.gmem_write(4, 34) -- mode 34 = ADSR Hold parameter
+                r.gmem_write(5, i) -- which modulator
+                r.gmem_write(9, hold_val) -- Hold value in seconds
+
+                r.gmem_write(4, 35) -- mode 35 = ADSR curve
+                r.gmem_write(5, i) -- which modulator
+                r.gmem_write(6, 1) -- Attack curve
+                r.gmem_write(8, Mc.ADSR_Curve_Attack or 0.0)
+                r.gmem_write(6, 2) -- Decay curve
+                r.gmem_write(8, Mc.ADSR_Curve_Decay or 0.0)
+                r.gmem_write(6, 3) -- Release curve
+                r.gmem_write(8, Mc.ADSR_Curve_Release or 0.0)
+            end
+            -- Always notify JSFX of type change AFTER parameter initialization
+            if ContainerID then
+                r.gmem_attach('ContainerMacro')
+            else
+                r.gmem_attach('ParamValues')
+            end
+            r.gmem_write(2, ContainerID or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 29) -- tells jsfx macro type = ADSR
             r.gmem_write(5, i) -- tells jsfx which macro
         end
         return Type
@@ -2425,7 +2526,20 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         tweaking = Ident
                         if im.Selectable(ctx, 'Latch', p_1selected, flagsIn, size_wIn, size_hIn) then
                             Mc.Rel_Type = 'Latch'
-                            ChangeLFO(19, 0, nil, 'LFO_Release_Type') -- 1 for latch
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local paramIdx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, paramIdx, 0) -- 0 = Latch
+                            end
+                            SaveLFO('LFO_Release_Type', '0')
                         end
                         QuestionHelpHint('Latch on to whichever value its at when midi key is released ')
                         --[[ if im.Selectable( ctx, 'Simple Release',  p_1selected,   flagsIn,   size_wIn,   size_hIn) then
@@ -2434,13 +2548,105 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         end   ]]
                         if im.Selectable(ctx, 'Custom Release', p_1selected, flagsIn, size_wIn, size_hIn) then
                             Mc.Rel_Type = 'Custom Release'
-                            ChangeLFO(19, 2, nil, 'LFO_Release_Type') -- 2 for Custom release
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local param1Idx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                local param2Idx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param1Idx, 0.5) -- 0.5 = Custom Release
+                                
+                                -- Restore release node from Param2 or find existing/default
+                                local relNodeIdx = nil
+                                local param2Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param2Idx)
+                                if param2Value and param2Value >= 0 and param2Value <= 1 and Mc.Node and #Mc.Node > 0 then
+                                    -- Convert normalized value to node index
+                                    relNodeIdx = math.floor(param2Value * (#Mc.Node - 1) + 1 + 0.5)
+                                    relNodeIdx = math.max(1, math.min(relNodeIdx, #Mc.Node))
+                                end
+                                
+                                -- If not found in Param2, check existing nodes or default
+                                if not relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    for idx, node in ipairs(Mc.Node) do
+                                        if node.Rel then
+                                            relNodeIdx = idx
+                                            break
+                                        end
+                                    end
+                                    if not relNodeIdx then
+                                        relNodeIdx = #Mc.Node - 1 -- default to second-to-last
+                                    end
+                                end
+                                
+                                -- Set Param2 and restore .Rel flag
+                                if relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    -- Normalize: node 1 = 0, last node = 1
+                                    local normalized = (relNodeIdx - 1) / (#Mc.Node - 1)
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param2Idx, normalized)
+                                    -- Restore the .Rel flag
+                                    Mc.Node[relNodeIdx] = Mc.Node[relNodeIdx] or {}
+                                    Mc.Node[relNodeIdx].Rel = true
+                                end
+                            end
+                            SaveLFO('LFO_Release_Type', '2')
                         end
                         QuestionHelpHint('Jump to release node when midi note is released')
 
                         if im.Selectable(ctx, 'Custom Release - No Jump', p_1selected, flagsIn, size_wIn, size_hIn) then
                             Mc.Rel_Type = 'Custom Release - No Jump'
-                            ChangeLFO(19, 3, nil, 'LFO_Release_Type') -- 3 for Custom release no jump
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local param1Idx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                local param2Idx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param1Idx, 1.0) -- 1.0 = Custom Release No Jump
+                                
+                                -- Restore release node from Param2 or find existing/default
+                                local relNodeIdx = nil
+                                local param2Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param2Idx)
+                                if param2Value and param2Value >= 0 and param2Value <= 1 and Mc.Node and #Mc.Node > 0 then
+                                    -- Convert normalized value to node index
+                                    relNodeIdx = math.floor(param2Value * (#Mc.Node - 1) + 1 + 0.5)
+                                    relNodeIdx = math.max(1, math.min(relNodeIdx, #Mc.Node))
+                                end
+                                
+                                -- If not found in Param2, check existing nodes or default
+                                if not relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    for idx, node in ipairs(Mc.Node) do
+                                        if node.Rel then
+                                            relNodeIdx = idx
+                                            break
+                                        end
+                                    end
+                                    if not relNodeIdx then
+                                        relNodeIdx = #Mc.Node - 1 -- default to second-to-last
+                                    end
+                                end
+                                
+                                -- Set Param2 and restore .Rel flag
+                                if relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    -- Normalize: node 1 = 0, last node = 1
+                                    local normalized = (relNodeIdx - 1) / (#Mc.Node - 1)
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param2Idx, normalized)
+                                    -- Restore the .Rel flag
+                                    Mc.Node[relNodeIdx] = Mc.Node[relNodeIdx] or {}
+                                    Mc.Node[relNodeIdx].Rel = true
+                                end
+                            end
+                            SaveLFO('LFO_Release_Type', '3')
                         end
                         QuestionHelpHint(
                             'Custom release, but will prevent values jumping by scaling the part after the release node to fit value when midi key was released')
@@ -2551,15 +2757,120 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
                         tweaking = Ident
                         if im.Selectable(ctx, 'Latch', Mc.Rel_Type == 'Latch') then
                             Mc.Rel_Type = 'Latch'
-                            ChangeLFO(19, 0, nil, 'LFO_Release_Type')
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local paramIdx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, paramIdx, 0) -- 0 = Latch
+                            end
+                            SaveLFO('LFO_Release_Type', '0')
                         end
                         if im.Selectable(ctx, 'Custom Release', Mc.Rel_Type == 'Custom Release') then
                             Mc.Rel_Type = 'Custom Release'
-                            ChangeLFO(19, 2, nil, 'LFO_Release_Type')
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local param1Idx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                local param2Idx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param1Idx, 0.5) -- 0.5 = Custom Release
+                                
+                                -- Restore release node from Param2 or find existing/default
+                                local relNodeIdx = nil
+                                local param2Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param2Idx)
+                                if param2Value and param2Value >= 0 and param2Value <= 1 and Mc.Node and #Mc.Node > 0 then
+                                    -- Convert normalized value to node index
+                                    relNodeIdx = math.floor(param2Value * (#Mc.Node - 1) + 1 + 0.5)
+                                    relNodeIdx = math.max(1, math.min(relNodeIdx, #Mc.Node))
+                                end
+                                
+                                -- If not found in Param2, check existing nodes or default
+                                if not relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    for idx, node in ipairs(Mc.Node) do
+                                        if node.Rel then
+                                            relNodeIdx = idx
+                                            break
+                                        end
+                                    end
+                                    if not relNodeIdx then
+                                        relNodeIdx = #Mc.Node - 1 -- default to second-to-last
+                                    end
+                                end
+                                
+                                -- Set Param2 and restore .Rel flag
+                                if relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    -- Normalize: node 1 = 0, last node = 1
+                                    local normalized = (relNodeIdx - 1) / (#Mc.Node - 1)
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param2Idx, normalized)
+                                    -- Restore the .Rel flag
+                                    Mc.Node[relNodeIdx] = Mc.Node[relNodeIdx] or {}
+                                    Mc.Node[relNodeIdx].Rel = true
+                                end
+                            end
+                            SaveLFO('LFO_Release_Type', '2')
                         end
                         if im.Selectable(ctx, 'Custom Release - No Jump', Mc.Rel_Type == 'Custom Release - No Jump') then
                             Mc.Rel_Type = 'Custom Release - No Jump'
-                            ChangeLFO(19, 3, nil, 'LFO_Release_Type')
+                            -- For envelope, use Param1 for release type: 0=Latch, 0.5=Custom Release, 1=Custom Release No Jump
+                            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
+                            if MacFxGUID then
+                                local function FindFxIdxByGUID(guid)
+                                    local cnt = r.TrackFX_GetCount(LT_Track)
+                                    for idx = 0, cnt-1, 1 do
+                                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
+                                    end
+                                end
+                                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+                                local param1Idx = 2 + (Macro - 1) * 4 -- Param1 for this modulator
+                                local param2Idx = 2 + (Macro - 1) * 4 + 1 -- Param2 for this modulator
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param1Idx, 1.0) -- 1.0 = Custom Release No Jump
+                                
+                                -- Restore release node from Param2 or find existing/default
+                                local relNodeIdx = nil
+                                local param2Value = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, param2Idx)
+                                if param2Value and param2Value >= 0 and param2Value <= 1 and Mc.Node and #Mc.Node > 0 then
+                                    -- Convert normalized value to node index
+                                    relNodeIdx = math.floor(param2Value * (#Mc.Node - 1) + 1 + 0.5)
+                                    relNodeIdx = math.max(1, math.min(relNodeIdx, #Mc.Node))
+                                end
+                                
+                                -- If not found in Param2, check existing nodes or default
+                                if not relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    for idx, node in ipairs(Mc.Node) do
+                                        if node.Rel then
+                                            relNodeIdx = idx
+                                            break
+                                        end
+                                    end
+                                    if not relNodeIdx then
+                                        relNodeIdx = #Mc.Node - 1 -- default to second-to-last
+                                    end
+                                end
+                                
+                                -- Set Param2 and restore .Rel flag
+                                if relNodeIdx and Mc.Node and #Mc.Node > 0 then
+                                    -- Normalize: node 1 = 0, last node = 1
+                                    local normalized = (relNodeIdx - 1) / (#Mc.Node - 1)
+                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, param2Idx, normalized)
+                                    -- Restore the .Rel flag
+                                    Mc.Node[relNodeIdx] = Mc.Node[relNodeIdx] or {}
+                                    Mc.Node[relNodeIdx].Rel = true
+                                end
+                            end
+                            SaveLFO('LFO_Release_Type', '3')
                         end
                         im.EndCombo(ctx)
                     end
@@ -4116,6 +4427,544 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
 end
 
 
+function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
+    if Mc.Type ~= 'ADSR' then return end
+    local LineHeight = Height or 30
+    local boxWidth = Width or 98
+    local boxHeight = LineHeight
+    local L, T = im.GetCursorScreenPos(ctx)
+    local WDL = im.GetWindowDrawList(ctx)
+    local flags = 0
+    
+    -- Draw envelope visualization (simple ADSR shape)
+    local function Draw_ADSR_Shape()
+        local A = Mc.ADSR_Attack or 0.01
+        local H = Mc.ADSR_Hold or 0.0
+        local D = Mc.ADSR_Decay or 0.1
+        local S = Mc.ADSR_Sustain or 0.7
+        local R = Mc.ADSR_Release or 0.1
+        
+        -- Normalize times for display (make total fit in box width)
+        local totalTime = A + H + D + 0.1 + R -- add arbitrary sustain display length
+        local scaleX = (boxWidth - 4) / totalTime
+        
+        local x1 = L + 2
+        local y1 = T + boxHeight - 2
+        local x2 = x1 + (A * scaleX)
+        local y2 = T + 2
+        local x3 = x2 + (H * scaleX) -- Hold phase
+        local y3 = y2 -- Hold stays at peak
+        local x4 = x3 + (D * scaleX)
+        local y4 = T + 2 + ((1 - S) * (boxHeight - 4))
+        local x5 = x4 + (0.1 * scaleX) -- sustain display time
+        local y5 = y4
+        local x6 = L + boxWidth - 2
+        local y6 = y1
+
+        local function Val_To_Y(v)
+            return T + 2 + ((1 - v) * (boxHeight - 4))
+        end
+
+        local function Draw_Curved_Segment(xa, xb, v1, v2, curve)
+            if not curve or math.abs(curve) < 0.01 then
+                local ya = Val_To_Y(v1)
+                local yb = Val_To_Y(v2)
+                im.DrawList_AddLine(WDL, xa, ya, xb, yb, EightColors.LFO[i] or 0xFFFFFFFF, 2)
+                return
+            end
+            local steps = 20
+            local lastx = xa
+            local lasty = Val_To_Y(v1)
+            local vmin = math.min(v1, v2)
+            local vmax = math.max(v1, v2)
+            for s = 1, steps do
+                local t = s / steps
+                local v_lin = v1 + (v2 - v1) * t
+                local v_curve = GetCurveValue(v_lin, -curve, vmin, vmax, vmin, vmax)
+                local x = xa + (xb - xa) * t
+                local y = Val_To_Y(v_curve)
+                im.DrawList_AddLine(WDL, lastx, lasty, x, y, EightColors.LFO[i] or 0xFFFFFFFF, 2)
+                lastx, lasty = x, y
+            end
+        end
+        
+        -- Draw ADSR envelope shape
+        Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack)
+        im.DrawList_AddLine(WDL, x2, y2, x3, y3, EightColors.LFO[i] or 0xFFFFFFFF, 2) -- Hold phase
+        Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay)
+        im.DrawList_AddLine(WDL, x4, y4, x5, y5, EightColors.LFO[i] or 0xFFFFFFFF, 2)
+        Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release)
+
+        local adsr_stage = r.gmem_read(140 + i) or 0
+        local adsr_time = r.gmem_read(160 + i) or 0
+        local adsr_level = (r.gmem_read(100 + i) or 0) / 127
+        adsr_level = SetMinMax(adsr_level, 0, 1)
+        if adsr_stage and adsr_stage > 0 then
+            local play_x = nil
+            if adsr_stage == 1 then
+                play_x = x1 + SetMinMax(adsr_time, 0, A) * scaleX
+            elseif adsr_stage == 2 then
+                play_x = x2 + SetMinMax(adsr_time, 0, H) * scaleX
+            elseif adsr_stage == 3 then
+                play_x = x3 + SetMinMax(adsr_time, 0, D) * scaleX
+            elseif adsr_stage == 4 then
+                play_x = x4 + (0.1 * scaleX)
+            elseif adsr_stage == 5 then
+                play_x = x5 + SetMinMax(adsr_time, 0, R) * scaleX
+            end
+            if play_x then
+                local play_y = T + 2 + ((1 - adsr_level) * (boxHeight - 4))
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2, 0xFFFFFFFF)
+            end
+        end
+    end
+    
+    local function parameters(Open_ADSR_Mod)
+        local function Change_Prop(mode, v, str, paramIdx)
+            local str = IsContainer and 'Container '..FxGUID .. str or str
+            Save_to_Trk(str, v)
+            
+            -- Update unified parameter slider (JSFX reads from sliders directly)
+            if paramIdx ~= nil then
+                local function FindMacrosFXIdx()
+                    local cnt = r.TrackFX_GetCount(LT_Track)
+                    for idx = 0, cnt-1, 1 do
+                        local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
+                    end
+                end
+                local MacFxIdx = FindMacrosFXIdx()
+                if MacFxIdx then
+                    local base = 2 + (i - 1) * 4
+                    local norm_value
+                    if paramIdx == 0 then -- Attack: 0.001-2.0 seconds, logarithmic
+                        norm_value = (math.log(v) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                    elseif paramIdx == 1 then -- Decay: 0.001-2.0 seconds, logarithmic
+                        norm_value = (math.log(v) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                    elseif paramIdx == 2 then -- Sustain: 0.0-1.0, linear
+                        norm_value = v
+                    elseif paramIdx == 3 then -- Release: 0.001-2.0 seconds, logarithmic
+                        norm_value = (math.log(v) - math.log(0.001)) / (math.log(2.0) - math.log(0.001))
+                    end
+                    if norm_value then
+                        r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + paramIdx, norm_value)
+                    end
+                end
+            end
+            
+            -- Notify JSFX of parameter change
+            r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 29) -- mode 29 = ADSR parameter change
+            r.gmem_write(5, i) -- which modulator
+        end
+
+        local function Send_ADSR_Hold()
+            if IsContainer then
+                r.gmem_attach('ContainerMacro')
+            else
+                r.gmem_attach('ParamValues')
+            end
+            r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 34) -- mode 34 = ADSR Hold parameter
+            r.gmem_write(5, i) -- which modulator
+            r.gmem_write(9, Mc.ADSR_Hold or 0.0) -- Hold value in seconds
+        end
+
+        local function Send_ADSR_Curve(curve_id, value)
+            if IsContainer then
+                r.gmem_attach('ContainerMacro')
+            else
+                r.gmem_attach('ParamValues')
+            end
+            r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 35) -- mode 35 = ADSR curve
+            r.gmem_write(5, i) -- which modulator
+            r.gmem_write(6, curve_id) -- 1=Attack, 2=Decay, 3=Release
+            r.gmem_write(8, value or 0.0)
+        end
+
+        local function Save_ADSR_To_PExt()
+            local base = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR ') or ('Mod '..i..' ADSR ')
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Attack', tostring(Mc.ADSR_Attack), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Hold', tostring(Mc.ADSR_Hold), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Decay', tostring(Mc.ADSR_Decay), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Sustain', tostring(Mc.ADSR_Sustain), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Release', tostring(Mc.ADSR_Release), true)
+        end
+
+        local function Save_ADSR_Curves_To_PExt()
+            local base = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR ') or ('Mod '..i..' ADSR ')
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Curve Attack', tostring(Mc.ADSR_Curve_Attack or 0.0), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Curve Decay', tostring(Mc.ADSR_Curve_Decay or 0.0), true)
+            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..base..'Curve Release', tostring(Mc.ADSR_Curve_Release or 0.0), true)
+        end
+
+        local function Set_ADSR_Attack(v)
+            local new_v = SetMinMax(v, 0.001, 2.0)
+            if new_v ~= Mc.ADSR_Attack then
+                Mc.ADSR_Attack = new_v
+                Change_Prop(29.1, Mc.ADSR_Attack, ' ADSR Attack for mod'..i, 0)
+                return true
+            end
+        end
+
+        local function Set_ADSR_Hold(v)
+            local new_v = SetMinMax(v, 0.0, 2.0)
+            if new_v ~= Mc.ADSR_Hold then
+                Mc.ADSR_Hold = new_v
+                Send_ADSR_Hold()
+                return true
+            end
+        end
+
+        local function Set_ADSR_Decay(v)
+            local new_v = SetMinMax(v, 0.001, 2.0)
+            if new_v ~= Mc.ADSR_Decay then
+                Mc.ADSR_Decay = new_v
+                Change_Prop(29.2, Mc.ADSR_Decay, ' ADSR Decay for mod'..i, 1)
+                return true
+            end
+        end
+
+        local function Set_ADSR_Sustain(v)
+            local new_v = SetMinMax(v, 0.0, 1.0)
+            if new_v ~= Mc.ADSR_Sustain then
+                Mc.ADSR_Sustain = new_v
+                Change_Prop(29.3, Mc.ADSR_Sustain, ' ADSR Sustain for mod'..i, 2)
+                return true
+            end
+        end
+
+        local function Set_ADSR_Release(v)
+            local new_v = SetMinMax(v, 0.001, 2.0)
+            if new_v ~= Mc.ADSR_Release then
+                Mc.ADSR_Release = new_v
+                Change_Prop(29.4, Mc.ADSR_Release, ' ADSR Release for mod'..i, 3)
+                return true
+            end
+        end
+        
+        im.SetNextWindowPos(ctx, L, T - 150)
+        if im.BeginPopup(ctx, "ADSRModulatorPopup"..i, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
+            im.Text(ctx, "ADSR Envelope")
+            im.Separator(ctx)
+
+            local function ADSR_Graph()
+                local graph_w, graph_h = 220, 110
+                im.InvisibleButton(ctx, '##ADSRGraph'..i, graph_w, graph_h)
+                local gL, gT = im.GetItemRectMin(ctx)
+                local gR, gB = im.GetItemRectMax(ctx)
+                local gW, gH = im.GetItemRectSize(ctx)
+                local dl = im.GetWindowDrawList(ctx)
+                local pad = 4
+                im.DrawList_AddRect(dl, gL, gT, gR, gB, 0xFFFFFF22)
+
+                local A = SetMinMax(Mc.ADSR_Attack or 0.01, 0.001, 2.0)
+                local H = SetMinMax(Mc.ADSR_Hold or 0.0, 0.0, 2.0)
+                local D = SetMinMax(Mc.ADSR_Decay or 0.1, 0.001, 2.0)
+                local S = SetMinMax(Mc.ADSR_Sustain or 0.7, 0.0, 1.0)
+                local R = SetMinMax(Mc.ADSR_Release or 0.1, 0.001, 2.0)
+                local sustain_display = 0.1
+
+                local totalTime = A + H + D + sustain_display + R
+                if totalTime <= 0 then totalTime = 1 end
+                local scaleX = (gW - pad * 2) / totalTime
+
+                local x1 = gL + pad
+                local y1 = gB - pad
+                local x2 = x1 + (A * scaleX)
+                local y2 = gT + pad
+                local x3 = x2 + (H * scaleX)
+                local y3 = y2
+                local x4 = x3 + (D * scaleX)
+                local y4 = gT + pad + ((1 - S) * (gH - pad * 2))
+                local x5 = x4 + (sustain_display * scaleX)
+                local y5 = y4
+                local x6 = x5 + (R * scaleX)
+                local y6 = y1
+
+                local line_clr = EightColors.LFO[i] or 0xFFFFFFFF
+                local function Val_To_Y(v)
+                    return gT + pad + ((1 - v) * (gH - pad * 2))
+                end
+
+                local function Draw_Curved_Segment(xa, xb, v1, v2, curve)
+                    if not curve or math.abs(curve) < 0.01 then
+                        local ya = Val_To_Y(v1)
+                        local yb = Val_To_Y(v2)
+                        im.DrawList_AddLine(dl, xa, ya, xb, yb, line_clr, 2)
+                        return
+                    end
+                    local steps = 24
+                    local lastx = xa
+                    local lasty = Val_To_Y(v1)
+                    local vmin = math.min(v1, v2)
+                    local vmax = math.max(v1, v2)
+                    for s = 1, steps do
+                        local t = s / steps
+                        local v_lin = v1 + (v2 - v1) * t
+                        local v_curve = GetCurveValue(v_lin, -curve, vmin, vmax, vmin, vmax)
+                        local x = xa + (xb - xa) * t
+                        local y = Val_To_Y(v_curve)
+                        im.DrawList_AddLine(dl, lastx, lasty, x, y, line_clr, 2)
+                        lastx, lasty = x, y
+                    end
+                end
+
+                Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack)
+                im.DrawList_AddLine(dl, x2, y2, x3, y3, line_clr, 2)
+                Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay)
+                im.DrawList_AddLine(dl, x4, y4, x5, y5, line_clr, 2)
+                Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release)
+
+                local function Draw_Curve_Label(curve, x, y)
+                    if curve and curve > 0.1 then
+                        im.DrawList_AddText(dl, x, y, 0xFFFFFFFF, 'EXP')
+                    elseif curve and curve < -0.1 then
+                        im.DrawList_AddText(dl, x, y, 0xFFFFFFFF, 'LOG')
+                    end
+                end
+
+                Draw_Curve_Label(Mc.ADSR_Curve_Attack, (x1 + x2) / 2 - 8, (y1 + y2) / 2 - 10)
+                Draw_Curve_Label(Mc.ADSR_Curve_Decay, (x3 + x4) / 2 - 8, (y3 + y4) / 2 - 10)
+                Draw_Curve_Label(Mc.ADSR_Curve_Release, (x5 + x6) / 2 - 8, (y5 + y6) / 2 - 10)
+
+                local adsr_stage = r.gmem_read(140 + i) or 0
+                local adsr_time = r.gmem_read(160 + i) or 0
+                local adsr_level = (r.gmem_read(100 + i) or 0) / 127
+                adsr_level = SetMinMax(adsr_level, 0, 1)
+                if adsr_stage and adsr_stage > 0 then
+                    local play_x = nil
+                    if adsr_stage == 1 then
+                        play_x = x1 + SetMinMax(adsr_time, 0, A) * scaleX
+                    elseif adsr_stage == 2 then
+                        play_x = x2 + SetMinMax(adsr_time, 0, H) * scaleX
+                    elseif adsr_stage == 3 then
+                        play_x = x3 + SetMinMax(adsr_time, 0, D) * scaleX
+                    elseif adsr_stage == 4 then
+                        play_x = x4 + (sustain_display * scaleX)
+                    elseif adsr_stage == 5 then
+                        play_x = x5 + SetMinMax(adsr_time, 0, R) * scaleX
+                    end
+                    if play_x then
+                        local play_y = gT + pad + ((1 - adsr_level) * (gH - pad * 2))
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3, 0xFFFFFFFF)
+                    end
+                end
+
+                local function Draw_Handle(x, y, active)
+                    local sz = 4
+                    local clr = active and line_clr or 0xFFFFFFFF
+                    im.DrawList_AddCircleFilled(dl, x, y, sz, clr)
+                end
+
+                local function Is_Near(x, y, r)
+                    local mx, my = im.GetMousePos(ctx)
+                    local dx, dy = mx - x, my - y
+                    return (dx * dx + dy * dy) <= (r * r)
+                end
+
+                local handle_hit = nil
+                local hit_r = 7
+                if Is_Near(x2, y2, hit_r) then
+                    handle_hit = 'A'
+                elseif Is_Near(x3, y3, hit_r) then
+                    handle_hit = 'H'
+                elseif Is_Near(x4, y4, hit_r) then
+                    handle_hit = 'D'
+                elseif Is_Near(x6, y6, hit_r) then
+                    handle_hit = 'R'
+                end
+
+                local function Dist_Point_Segment(px, py, ax, ay, bx, by)
+                    local vx, vy = bx - ax, by - ay
+                    local wx, wy = px - ax, py - ay
+                    local c1 = wx * vx + wy * vy
+                    if c1 <= 0 then
+                        return math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay))
+                    end
+                    local c2 = vx * vx + vy * vy
+                    if c2 <= c1 then
+                        return math.sqrt((px - bx) * (px - bx) + (py - by) * (py - by))
+                    end
+                    local b = c1 / c2
+                    local px2 = ax + b * vx
+                    local py2 = ay + b * vy
+                    return math.sqrt((px - px2) * (px - px2) + (py - py2) * (py - py2))
+                end
+
+                local curve_hit = nil
+                if im.IsItemHovered(ctx) and not handle_hit and not Mc.ADSR_Graph_Dragging then
+                    local mx, my = im.GetMousePos(ctx)
+                    local dA = Dist_Point_Segment(mx, my, x1, y1, x2, y2)
+                    local dD = Dist_Point_Segment(mx, my, x3, y3, x4, y4)
+                    local dR = Dist_Point_Segment(mx, my, x5, y5, x6, y6)
+                    local min_d = math.min(dA, dD, dR)
+                    if min_d <= 6 then
+                        curve_hit = (min_d == dA and 'A') or (min_d == dD and 'D') or 'R'
+                    end
+                end
+
+                Draw_Handle(x2, y2, Mc.ADSR_DragPoint == 'A')
+                Draw_Handle(x3, y3, Mc.ADSR_DragPoint == 'H')
+                Draw_Handle(x4, y4, Mc.ADSR_DragPoint == 'D')
+                Draw_Handle(x6, y6, Mc.ADSR_DragPoint == 'R')
+
+                if im.IsMouseClicked(ctx, 0) and handle_hit then
+                    Mc.ADSR_DragPoint = handle_hit
+                    Mc.ADSR_Graph_Dragging = true
+                elseif im.IsMouseClicked(ctx, 0) and curve_hit then
+                    Mc.ADSR_Curve_Drag = curve_hit
+                end
+
+                if Mc.ADSR_Graph_Dragging and Mc.ADSR_DragPoint and im.IsMouseDown(ctx, 0) then
+                    local mx, my = im.GetMousePos(ctx)
+                    local changed = false
+                    if Mc.ADSR_DragPoint == 'A' then
+                        local newA = (mx - x1) / scaleX
+                        changed = Set_ADSR_Attack(newA) or changed
+                    elseif Mc.ADSR_DragPoint == 'H' then
+                        local newH = (mx - x2) / scaleX
+                        changed = Set_ADSR_Hold(newH) or changed
+                    elseif Mc.ADSR_DragPoint == 'D' then
+                        local newD = (mx - x3) / scaleX
+                        local clampedY = SetMinMax(my, gT + pad, gB - pad)
+                        local newS = 1 - ((clampedY - (gT + pad)) / (gH - pad * 2))
+                        changed = Set_ADSR_Decay(newD) or changed
+                        changed = Set_ADSR_Sustain(newS) or changed
+                    elseif Mc.ADSR_DragPoint == 'R' then
+                        local newR = (mx - x5) / scaleX
+                        changed = Set_ADSR_Release(newR) or changed
+                    end
+                    if changed then
+                        Mc.ADSR_Graph_Dirty = true
+                    end
+                end
+
+                if Mc.ADSR_Curve_Drag and im.IsMouseDown(ctx, 0) and not Mc.ADSR_Graph_Dragging then
+                    local _, dy = im.GetMouseDragDelta(ctx)
+                    if dy > 1 or dy < -1 then
+                        local delta = (-dy / 80)
+                        if Mc.ADSR_Curve_Drag == 'A' then
+                            Mc.ADSR_Curve_Attack = SetMinMax((Mc.ADSR_Curve_Attack or 0) + delta, -4, 4)
+                            Send_ADSR_Curve(1, Mc.ADSR_Curve_Attack)
+                        elseif Mc.ADSR_Curve_Drag == 'D' then
+                            Mc.ADSR_Curve_Decay = SetMinMax((Mc.ADSR_Curve_Decay or 0) + delta, -4, 4)
+                            Send_ADSR_Curve(2, Mc.ADSR_Curve_Decay)
+                        elseif Mc.ADSR_Curve_Drag == 'R' then
+                            Mc.ADSR_Curve_Release = SetMinMax((Mc.ADSR_Curve_Release or 0) + delta, -4, 4)
+                            Send_ADSR_Curve(3, Mc.ADSR_Curve_Release)
+                        end
+                        Mc.ADSR_Curve_Dirty = true
+                        im.ResetMouseDragDelta(ctx)
+                    end
+                end
+
+                if Mc.ADSR_Graph_Dragging and im.IsMouseReleased(ctx, 0) then
+                    if Mc.ADSR_Graph_Dirty then
+                        Save_ADSR_To_PExt()
+                    end
+                    Mc.ADSR_Graph_Dragging = nil
+                    Mc.ADSR_Graph_Dirty = nil
+                    Mc.ADSR_DragPoint = nil
+                end
+
+                if Mc.ADSR_Curve_Drag and im.IsMouseReleased(ctx, 0) then
+                    if Mc.ADSR_Curve_Dirty then
+                        Save_ADSR_Curves_To_PExt()
+                    end
+                    Mc.ADSR_Curve_Drag = nil
+                    Mc.ADSR_Curve_Dirty = nil
+                end
+            end
+
+            ADSR_Graph()
+            im.Spacing(ctx)
+            
+            -- Attack
+            local was_active_attack = im.IsItemActive(ctx)
+            local rv, Attack = Drag_With_Bar(ctx, 'Attack', Mc.ADSR_Attack or 0.01, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            if rv then
+                Mc.ADSR_Attack = SetMinMax(Attack, 0.001, 2.0)
+                Change_Prop(29.1, Mc.ADSR_Attack, ' ADSR Attack for mod'..i, 0)
+            end
+            if was_active_attack and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR Attack') or ('Mod '..i..' ADSR Attack')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.ADSR_Attack), true)
+            end
+            
+            -- Hold
+            local was_active_hold = im.IsItemActive(ctx)
+            local rv, Hold = Drag_With_Bar(ctx, 'Hold', Mc.ADSR_Hold or 0.0, 0.001, 0.0, 2.0, '%.3f s', flags, 0xffffff33)
+            if rv then
+                Mc.ADSR_Hold = SetMinMax(Hold, 0.0, 2.0)
+                Send_ADSR_Hold()
+            end
+            if was_active_hold and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR Hold') or ('Mod '..i..' ADSR Hold')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.ADSR_Hold), true)
+            end
+            
+            -- Decay
+            local was_active_decay = im.IsItemActive(ctx)
+            local rv, Decay = Drag_With_Bar(ctx, 'Decay', Mc.ADSR_Decay or 0.1, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            if rv then
+                Mc.ADSR_Decay = SetMinMax(Decay, 0.001, 2.0)
+                Change_Prop(29.2, Mc.ADSR_Decay, ' ADSR Decay for mod'..i, 1)
+            end
+            if was_active_decay and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR Decay') or ('Mod '..i..' ADSR Decay')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.ADSR_Decay), true)
+            end
+            
+            -- Sustain
+            local was_active_sustain = im.IsItemActive(ctx)
+            local rv, Sustain = Drag_With_Bar(ctx, 'Sustain', Mc.ADSR_Sustain or 0.7, 0.01, 0.0, 1.0, '%.2f', flags, 0xffffff33)
+            if rv then
+                Mc.ADSR_Sustain = SetMinMax(Sustain, 0.0, 1.0)
+                Change_Prop(29.3, Mc.ADSR_Sustain, ' ADSR Sustain for mod'..i, 2)
+            end
+            if was_active_sustain and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR Sustain') or ('Mod '..i..' ADSR Sustain')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.ADSR_Sustain), true)
+            end
+            
+            -- Release
+            local was_active_release = im.IsItemActive(ctx)
+            local rv, Release = Drag_With_Bar(ctx, 'Release', Mc.ADSR_Release or 0.1, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            if rv then
+                Mc.ADSR_Release = SetMinMax(Release, 0.001, 2.0)
+                Change_Prop(29.4, Mc.ADSR_Release, ' ADSR Release for mod'..i, 3)
+            end
+            if was_active_release and im.IsItemDeactivatedAfterEdit(ctx) then
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' ADSR Release') or ('Mod '..i..' ADSR Release')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.ADSR_Release), true)
+            end
+            
+            im.EndPopup(ctx)
+        end
+    end
+    
+    local BG_txt_Indent = nil -- nil to center horizontally
+    local BG_txt_Sz = IsContainer and 12 or 20
+    local BG_txt_Ofs_Y = IsContainer and Height/4 or nil
+    local BG_txt = 'ADSR'
+    im.InvisibleButton(ctx, "ADSRModulatorBox"..i, boxWidth, boxHeight)
+    Add_BG_Text_For_Modulator(BG_txt, BG_txt_Indent, BG_txt_Sz, BG_txt_Ofs_Y)
+    Draw_ADSR_Shape()
+    
+    if im.IsItemClicked(ctx, 0) then
+        im.OpenPopup(ctx, 'ADSRModulatorPopup'..i)
+    end
+    parameters(Open_ADSR_Mod)
+    
+    -- Draw a visible outline for the invisible button
+    local drawList = im.GetWindowDrawList(ctx)
+    im.DrawList_AddRect(drawList, L, T, L + boxWidth, T + boxHeight, 0xFFFFFF22)
+    if im.IsItemClicked(ctx, 1) then Mc.TweakingKnob = 2 end
+end
+
+
 function Create_Header_For_Track_Modulators__Squared_Modulators()
     local SavedCt = (Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8
     SavedCt = tonumber(SavedCt) or 8
@@ -4711,6 +5560,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         LFO_BOX_NEW(mc, i  , ItmSz )
         Follower_Box(mc,i , ItmSz/3, TrkID, 'ParamValues')
         Random_Modulator_Box(mc, i , ItmSz )
+        AHDSR_Box(mc, i, ItmSz)
         XY_BOX(mc, i , ItmSz)
         If_Macro_Is_StepSEQ()
         WhenRightClickOnModulators(i) -- this has to be before step SEQ because the rightclick function is within step seq function
@@ -4754,6 +5604,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             Set_Modulator_Type(mc, i, 'LFO')
             Set_Modulator_Type(mc, i, 'Follower')
             Set_Modulator_Type(mc, i, 'Envelope')
+            Set_Modulator_Type(mc, i, 'ADSR')
             Set_Modulator_Type(mc, i, 'Step')
             Set_Modulator_Type(mc, i, 'Macro')
             Set_Modulator_Type(mc, i, 'Random')
