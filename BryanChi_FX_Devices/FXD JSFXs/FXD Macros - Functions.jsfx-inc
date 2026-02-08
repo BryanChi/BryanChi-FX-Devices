@@ -485,6 +485,7 @@ function SendInfoBackToImGui()
     gmem[100 + this.Macro] = this.Out * 127; // ADSR output (0.0-1.0) * 127 = 0-127
     gmem[140 + this.Macro] = this.ADSR_stage; // ADSR stage for playhead
     gmem[160 + this.Macro] = this.ADSR_time; // ADSR time in seconds for current stage
+    gmem[180 + this.Macro] = this.ADSR_Hold; // ADSR Hold value in seconds
   );
 
 );
@@ -1127,7 +1128,6 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
       this.ADSR_time += _block_time;
       _progress = min(this.ADSR_time / max(this.ADSR_A, 0.001), 1.0);
       _curve = this.ADSR_Curve_A;
-      _curve > 0 ? (_curve = 1 + _curve;);
       _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
       this.ADSR_level = _progress;
       this.ADSR_level >= 1.0 ? (
@@ -1147,7 +1147,6 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
       // Exponential decay from 1.0 to sustain level
       _progress = min(this.ADSR_time / max(this.ADSR_D, 0.001), 1.0);
       _curve = this.ADSR_Curve_D;
-      _curve > 0 ? (_curve = 1 + _curve;);
       _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
       this.ADSR_level = 1.0 + (this.ADSR_S - 1.0) * _progress;
       _progress >= 1.0 ? (
@@ -1161,7 +1160,6 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
       // Exponential decay from current level to 0
       _progress = min(this.ADSR_time / max(this.ADSR_R, 0.001), 1.0);
       _curve = this.ADSR_Curve_R;
-      _curve > 0 ? (_curve = 1 + _curve;);
       _curve != 0 ? (_progress = GetCurveValue(_progress, _curve, 0, 1, 0, 1););
       this.ADSR_level = this.ADSR_release_start * (1.0 - _progress);
       _progress >= 1.0 ? (

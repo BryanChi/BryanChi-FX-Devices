@@ -4435,6 +4435,62 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
     local L, T = im.GetCursorScreenPos(ctx)
     local WDL = im.GetWindowDrawList(ctx)
     local flags = 0
+
+    local function FindMacrosFXIdx()
+        local cnt = r.TrackFX_GetCount(LT_Track)
+        for idx = 0, cnt-1, 1 do
+            local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
+            if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
+        end
+    end
+
+    local function Update_ADSR_From_Jsfx()
+        local MacFxIdx = FindMacrosFXIdx()
+        if MacFxIdx then
+            local base = 2 + (i - 1) * 4
+            local attack_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, base + 0)
+            local decay_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, base + 1)
+            local sustain_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, base + 2)
+            local release_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, base + 3)
+            if attack_norm then
+                Mc.ADSR_Attack = math.exp(attack_norm * (math.log(2.0) - math.log(0.001)) + math.log(0.001))
+            end
+            if decay_norm then
+                Mc.ADSR_Decay = math.exp(decay_norm * (math.log(2.0) - math.log(0.001)) + math.log(0.001))
+            end
+            if sustain_norm then
+                Mc.ADSR_Sustain = sustain_norm
+            end
+            if release_norm then
+                Mc.ADSR_Release = math.exp(release_norm * (math.log(2.0) - math.log(0.001)) + math.log(0.001))
+            end
+        end
+        if IsContainer then
+            r.gmem_attach('ContainerMacro')
+        else
+            r.gmem_attach('ParamValues')
+        end
+        local hold_val = r.gmem_read(180 + i)
+        if hold_val then
+            Mc.ADSR_Hold = hold_val
+        end
+
+        local function Read_ADSR_Saved_Val(param_name)
+            local _, saved_str1
+            if FxGUID then
+                _, saved_str1 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' ADSR '..param_name, '', false)
+            end
+            local _, saved_str2 = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' ADSR '..param_name, '', false)
+            local saved_str = (saved_str1 and saved_str1 ~= '' and saved_str1) or (saved_str2 and saved_str2 ~= '' and saved_str2) or nil
+            return saved_str and tonumber(saved_str) or nil
+        end
+
+        Mc.ADSR_Curve_Attack = Read_ADSR_Saved_Val('Curve Attack') or Mc.ADSR_Curve_Attack or 0.0
+        Mc.ADSR_Curve_Decay = Read_ADSR_Saved_Val('Curve Decay') or Mc.ADSR_Curve_Decay or 0.0
+        Mc.ADSR_Curve_Release = Read_ADSR_Saved_Val('Curve Release') or Mc.ADSR_Curve_Release or 0.0
+    end
+
+    Update_ADSR_From_Jsfx()
     
     -- Draw envelope visualization (simple ADSR shape)
     local function Draw_ADSR_Shape()
@@ -4460,40 +4516,63 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
         local y5 = y4
         local x6 = L + boxWidth - 2
         local y6 = y1
-
+        
         local function Val_To_Y(v)
             return T + 2 + ((1 - v) * (boxHeight - 4))
         end
 
-        local function Draw_Curved_Segment(xa, xb, v1, v2, curve)
+        local function Draw_Curved_Segment(xa, xb, v1, v2, curve, thick, clr)
+            local ya = Val_To_Y(v1)
+            local yb = Val_To_Y(v2)
+            local thick = thick or 2
+            local clr = clr or (EightColors.LFO[i] or 0xFFFFFFFF)
             if not curve or math.abs(curve) < 0.01 then
-                local ya = Val_To_Y(v1)
-                local yb = Val_To_Y(v2)
-                im.DrawList_AddLine(WDL, xa, ya, xb, yb, EightColors.LFO[i] or 0xFFFFFFFF, 2)
+                im.DrawList_AddLine(WDL, xa, ya, xb, yb, clr, thick)
                 return
             end
-            local steps = 20
-            local lastx = xa
-            local lasty = Val_To_Y(v1)
-            local vmin = math.min(v1, v2)
-            local vmax = math.max(v1, v2)
-            for s = 1, steps do
-                local t = s / steps
-                local v_lin = v1 + (v2 - v1) * t
-                local v_curve = GetCurveValue(v_lin, -curve, vmin, vmax, vmin, vmax)
-                local x = xa + (xb - xa) * t
-                local y = Val_To_Y(v_curve)
-                im.DrawList_AddLine(WDL, lastx, lasty, x, y, EightColors.LFO[i] or 0xFFFFFFFF, 2)
-                lastx, lasty = x, y
-            end
+            Draw_Single_Curve(xb, xa, yb, ya, curve, thick, clr, 0)
         end
-        
+
+        local function Draw_Single_Curve_Partial(xa, xb, ya, yb, curve, thick, clr, targetX, targetY)
+            if not targetX or not targetY then return end
+            local inc = 0.5
+            local vmin = math.min(ya, yb)
+            local vmax = math.max(ya, yb)
+            local PtsX = {}
+            local PtsY = {}
+            for x = xa, xb, inc do
+                local I = (x - xa) / (xb - xa)
+                local y = ya + (yb - ya) * I
+                y = GetCurveValue(y, curve or 0, vmin, vmax, vmin, vmax)
+                PtsX[#PtsX + 1] = x
+                PtsY[#PtsY + 1] = y
+            end
+            local closest = 1
+            local closest_d = nil
+            for idx = 1, #PtsX do
+                local dx = PtsX[idx] - targetX
+                local dy = PtsY[idx] - targetY
+                local d = dx * dx + dy * dy
+                if not closest_d or d < closest_d then
+                    closest_d = d
+                    closest = idx
+                end
+            end
+            im.DrawList_PathClear(WDL)
+            for idx = 1, closest do
+                im.DrawList_PathLineTo(WDL, PtsX[idx], PtsY[idx])
+            end
+            im.DrawList_PathStroke(WDL, clr, nil, thick)
+        end
+
         -- Draw ADSR envelope shape
-        Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack)
-        im.DrawList_AddLine(WDL, x2, y2, x3, y3, EightColors.LFO[i] or 0xFFFFFFFF, 2) -- Hold phase
-        Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay)
-        im.DrawList_AddLine(WDL, x4, y4, x5, y5, EightColors.LFO[i] or 0xFFFFFFFF, 2)
-        Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release)
+        local base_clr = EightColors.LFO[i] or 0xFFFFFFFF
+        local bright_clr = HSV_Change(base_clr, 0, 0, 0.2, 0)
+        Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 2, base_clr)
+        im.DrawList_AddLine(WDL, x2, y2, x3, y3, base_clr, 2) -- Hold phase
+        Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, 2, base_clr)
+        im.DrawList_AddLine(WDL, x4, y4, x5, y5, base_clr, 2)
+        Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release, 2, base_clr)
 
         local adsr_stage = r.gmem_read(140 + i) or 0
         local adsr_time = r.gmem_read(160 + i) or 0
@@ -4501,20 +4580,80 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
         adsr_level = SetMinMax(adsr_level, 0, 1)
         if adsr_stage and adsr_stage > 0 then
             local play_x = nil
+            local play_y = nil
+            local fade_sec = 0.2
+            local function Fade_Clr(alpha)
+                local a = SetMinMax(alpha or 0, 0, 1)
+                return Change_Clr_A(bright_clr, -(1 - a))
+            end
+            local now = r.time_precise()
+            if Mc.ADSR_LastStage ~= adsr_stage then
+                if Mc.ADSR_LastStage == 1 and adsr_stage == 2 then
+                    Mc.ADSR_AttackEndTime = now
+                elseif Mc.ADSR_LastStage == 3 and adsr_stage == 4 then
+                    Mc.ADSR_DecayEndTime = now
+                end
+                Mc.ADSR_LastStage = adsr_stage
+            end
+            local attack_elapsed = Mc.ADSR_AttackEndTime and (now - Mc.ADSR_AttackEndTime) or 0
+            local decay_elapsed = Mc.ADSR_DecayEndTime and (now - Mc.ADSR_DecayEndTime) or 0
+            local attack_alpha = (adsr_stage > 1) and SetMinMax(1 - (attack_elapsed / math.max(fade_sec, 0.001)), 0, 1) or 1
+            local decay_alpha = (adsr_stage > 3) and SetMinMax(1 - (decay_elapsed / math.max(fade_sec, 0.001)), 0, 1) or 1
+            local attack_clr = (adsr_stage > 1) and Fade_Clr(attack_alpha) or bright_clr
+            local decay_clr = (adsr_stage > 3) and Fade_Clr(decay_alpha) or bright_clr
             if adsr_stage == 1 then
                 play_x = x1 + SetMinMax(adsr_time, 0, A) * scaleX
+                play_y = Val_To_Y(adsr_level)
+                --[[ local dot_clr = HSV_Change(base_clr, 0, 0, 0.35, 0)
+                GLOWING_CIRCLE({play_x, play_y}, 0, 8, 0, base_clr, WDL)
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2.5, dot_clr) ]]
+                Draw_Single_Curve_Partial(x1, x2, y1, y2, Mc.ADSR_Curve_Attack, 3, bright_clr, play_x, play_y)
             elseif adsr_stage == 2 then
                 play_x = x2 + SetMinMax(adsr_time, 0, H) * scaleX
+                play_y = y2
+                --[[ local dot_clr = HSV_Change(base_clr, 0, 0, 0.35, 0)
+                GLOWING_CIRCLE({play_x, play_y}, 0, 8, 0, base_clr, WDL)
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2.5, dot_clr) ]]
+                Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                im.DrawList_AddLine(WDL, x2, y2, x2 + SetMinMax(adsr_time, 0, H) * scaleX, y2, bright_clr, 3)
             elseif adsr_stage == 3 then
                 play_x = x3 + SetMinMax(adsr_time, 0, D) * scaleX
+                Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                im.DrawList_AddLine(WDL, x2, y2, x3, y3, bright_clr, 3)
+                play_y = Val_To_Y(adsr_level)
+                --[[ local dot_clr = HSV_Change(base_clr, 0, 0, 0.35, 0)
+                GLOWING_CIRCLE({play_x, play_y}, 0, 8, 0, base_clr, WDL)
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2.5, dot_clr) ]]
+                Draw_Single_Curve_Partial(x3, x4, y3, y4, Mc.ADSR_Curve_Decay, 3, bright_clr, play_x, play_y)
             elseif adsr_stage == 4 then
                 play_x = x4 + (0.1 * scaleX)
+                play_y = y4
+                --[[ local dot_clr = HSV_Change(base_clr, 0, 0, 0.35, 0)
+                GLOWING_CIRCLE({play_x, play_y}, 0, 8, 0, base_clr, WDL)
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2.5, dot_clr) ]]
+                if attack_alpha > 0 then
+                    Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                    im.DrawList_AddLine(WDL, x2, y2, x3, y3, attack_clr, 3)
+                end
+                if decay_alpha > 0 then
+                    Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, 3, decay_clr)
+                end
+                im.DrawList_AddLine(WDL, x4, y4, x5, y5, bright_clr, 3)
             elseif adsr_stage == 5 then
                 play_x = x5 + SetMinMax(adsr_time, 0, R) * scaleX
-            end
-            if play_x then
-                local play_y = T + 2 + ((1 - adsr_level) * (boxHeight - 4))
-                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2, 0xFFFFFFFF)
+                if attack_alpha > 0 then
+                    Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                    im.DrawList_AddLine(WDL, x2, y2, x3, y3, attack_clr, 3)
+                end
+                if decay_alpha > 0 then
+                    Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, 3, decay_clr)
+                end
+                -- sustain segment stays unlit
+                play_y = Val_To_Y(adsr_level)
+                --[[ local dot_clr = HSV_Change(base_clr, 0, 0, 0.35, 0)
+                GLOWING_CIRCLE({play_x, play_y}, 0, 8, 0, base_clr, WDL)
+                im.DrawList_AddCircleFilled(WDL, play_x, play_y, 2.5, dot_clr) ]]
+                Draw_Single_Curve_Partial(x5, x6, y5, y6, Mc.ADSR_Curve_Release, 3, bright_clr, play_x, play_y)
             end
         end
     end
@@ -4688,68 +4827,48 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                     return gT + pad + ((1 - v) * (gH - pad * 2))
                 end
 
-                local function Draw_Curved_Segment(xa, xb, v1, v2, curve)
+                local function Draw_Curved_Segment(xa, xb, v1, v2, curve, thick, clr)
+                    local ya = Val_To_Y(v1)
+                    local yb = Val_To_Y(v2)
+                    local thick = thick or 2
+                    local clr = clr or line_clr
                     if not curve or math.abs(curve) < 0.01 then
-                        local ya = Val_To_Y(v1)
-                        local yb = Val_To_Y(v2)
-                        im.DrawList_AddLine(dl, xa, ya, xb, yb, line_clr, 2)
+                        im.DrawList_AddLine(dl, xa, ya, xb, yb, clr, thick)
                         return
                     end
-                    local steps = 24
-                    local lastx = xa
-                    local lasty = Val_To_Y(v1)
-                    local vmin = math.min(v1, v2)
-                    local vmax = math.max(v1, v2)
-                    for s = 1, steps do
-                        local t = s / steps
-                        local v_lin = v1 + (v2 - v1) * t
-                        local v_curve = GetCurveValue(v_lin, -curve, vmin, vmax, vmin, vmax)
-                        local x = xa + (xb - xa) * t
-                        local y = Val_To_Y(v_curve)
-                        im.DrawList_AddLine(dl, lastx, lasty, x, y, line_clr, 2)
-                        lastx, lasty = x, y
-                    end
+                    Draw_Single_Curve(xb, xa, yb, ya, curve, thick, clr, 0)
                 end
 
-                Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack)
-                im.DrawList_AddLine(dl, x2, y2, x3, y3, line_clr, 2)
-                Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay)
-                im.DrawList_AddLine(dl, x4, y4, x5, y5, line_clr, 2)
-                Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release)
-
-                local function Draw_Curve_Label(curve, x, y)
-                    if curve and curve > 0.1 then
-                        im.DrawList_AddText(dl, x, y, 0xFFFFFFFF, 'EXP')
-                    elseif curve and curve < -0.1 then
-                        im.DrawList_AddText(dl, x, y, 0xFFFFFFFF, 'LOG')
+                local function Draw_Single_Curve_Partial(xa, xb, ya, yb, curve, thick, clr, targetX, targetY)
+                    if not targetX or not targetY then return end
+                    local inc = 0.5
+                    local vmin = math.min(ya, yb)
+                    local vmax = math.max(ya, yb)
+                    local PtsX = {}
+                    local PtsY = {}
+                    for x = xa, xb, inc do
+                        local I = (x - xa) / (xb - xa)
+                        local y = ya + (yb - ya) * I
+                        y = GetCurveValue(y, curve or 0, vmin, vmax, vmin, vmax)
+                        PtsX[#PtsX + 1] = x
+                        PtsY[#PtsY + 1] = y
                     end
-                end
-
-                Draw_Curve_Label(Mc.ADSR_Curve_Attack, (x1 + x2) / 2 - 8, (y1 + y2) / 2 - 10)
-                Draw_Curve_Label(Mc.ADSR_Curve_Decay, (x3 + x4) / 2 - 8, (y3 + y4) / 2 - 10)
-                Draw_Curve_Label(Mc.ADSR_Curve_Release, (x5 + x6) / 2 - 8, (y5 + y6) / 2 - 10)
-
-                local adsr_stage = r.gmem_read(140 + i) or 0
-                local adsr_time = r.gmem_read(160 + i) or 0
-                local adsr_level = (r.gmem_read(100 + i) or 0) / 127
-                adsr_level = SetMinMax(adsr_level, 0, 1)
-                if adsr_stage and adsr_stage > 0 then
-                    local play_x = nil
-                    if adsr_stage == 1 then
-                        play_x = x1 + SetMinMax(adsr_time, 0, A) * scaleX
-                    elseif adsr_stage == 2 then
-                        play_x = x2 + SetMinMax(adsr_time, 0, H) * scaleX
-                    elseif adsr_stage == 3 then
-                        play_x = x3 + SetMinMax(adsr_time, 0, D) * scaleX
-                    elseif adsr_stage == 4 then
-                        play_x = x4 + (sustain_display * scaleX)
-                    elseif adsr_stage == 5 then
-                        play_x = x5 + SetMinMax(adsr_time, 0, R) * scaleX
+                    local closest = 1
+                    local closest_d = nil
+                    for idx = 1, #PtsX do
+                        local dx = PtsX[idx] - targetX
+                        local dy = PtsY[idx] - targetY
+                        local d = dx * dx + dy * dy
+                        if not closest_d or d < closest_d then
+                            closest_d = d
+                            closest = idx
+                        end
                     end
-                    if play_x then
-                        local play_y = gT + pad + ((1 - adsr_level) * (gH - pad * 2))
-                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3, 0xFFFFFFFF)
+                    im.DrawList_PathClear(dl)
+                    for idx = 1, closest do
+                        im.DrawList_PathLineTo(dl, PtsX[idx], PtsY[idx])
                     end
+                    im.DrawList_PathStroke(dl, clr, nil, thick)
                 end
 
                 local function Draw_Handle(x, y, active)
@@ -4800,8 +4919,98 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                     local dD = Dist_Point_Segment(mx, my, x3, y3, x4, y4)
                     local dR = Dist_Point_Segment(mx, my, x5, y5, x6, y6)
                     local min_d = math.min(dA, dD, dR)
-                    if min_d <= 6 then
+                    if min_d <= 10 then
                         curve_hit = (min_d == dA and 'A') or (min_d == dD and 'D') or 'R'
+                    end
+                end
+
+                local bright_clr = HSV_Change(line_clr, 0, 0, 0.2, 0)
+                Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, curve_hit == 'A' and 4 or 2)
+                im.DrawList_AddLine(dl, x2, y2, x3, y3, line_clr, curve_hit == 'A' and 3 or 2)
+                Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, curve_hit == 'D' and 4 or 2)
+                im.DrawList_AddLine(dl, x4, y4, x5, y5, line_clr, curve_hit == 'D' and 3 or 2)
+                Draw_Curved_Segment(x5, x6, S, 0, Mc.ADSR_Curve_Release, curve_hit == 'R' and 4 or 2)
+
+                local adsr_stage = r.gmem_read(140 + i) or 0
+                local adsr_time = r.gmem_read(160 + i) or 0
+                local adsr_level = (r.gmem_read(100 + i) or 0) / 127
+                adsr_level = SetMinMax(adsr_level, 0, 1)
+                if adsr_stage and adsr_stage > 0 then
+                    local play_x = nil
+                    local play_y = nil
+                    local fade_sec = 0.2
+                    local function Fade_Clr(alpha)
+                        local a = SetMinMax(alpha or 0, 0, 1)
+                        return Change_Clr_A(bright_clr, -(1 - a))
+                    end
+                    local now = r.time_precise()
+                    if Mc.ADSR_LastStage ~= adsr_stage then
+                        if Mc.ADSR_LastStage == 1 and adsr_stage == 2 then
+                            Mc.ADSR_AttackEndTime = now
+                        elseif Mc.ADSR_LastStage == 3 and adsr_stage == 4 then
+                            Mc.ADSR_DecayEndTime = now
+                        end
+                        Mc.ADSR_LastStage = adsr_stage
+                    end
+                    local attack_elapsed = Mc.ADSR_AttackEndTime and (now - Mc.ADSR_AttackEndTime) or 0
+                    local decay_elapsed = Mc.ADSR_DecayEndTime and (now - Mc.ADSR_DecayEndTime) or 0
+                    local attack_alpha = (adsr_stage > 1) and SetMinMax(1 - (attack_elapsed / math.max(fade_sec, 0.001)), 0, 1) or 1
+                    local decay_alpha = (adsr_stage > 3) and SetMinMax(1 - (decay_elapsed / math.max(fade_sec, 0.001)), 0, 1) or 1
+                    local attack_clr = (adsr_stage > 1) and Fade_Clr(attack_alpha) or bright_clr
+                    local decay_clr = (adsr_stage > 3) and Fade_Clr(decay_alpha) or bright_clr
+                    if adsr_stage == 1 then
+                        play_x = x1 + SetMinMax(adsr_time, 0, A) * scaleX
+                        play_y = Val_To_Y(adsr_level)
+                        --[[ local dot_clr = HSV_Change(line_clr, 0, 0, 0.35, 0)
+                        GLOWING_CIRCLE({play_x, play_y}, 0, 10, 0, line_clr, dl)
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3.5, dot_clr) ]]
+                        Draw_Single_Curve_Partial(x1, x2, y1, y2, Mc.ADSR_Curve_Attack, 3, bright_clr, play_x, play_y)
+                    elseif adsr_stage == 2 then
+                        play_x = x2 + SetMinMax(adsr_time, 0, H) * scaleX
+                        play_y = y2
+                        --[[ local dot_clr = HSV_Change(line_clr, 0, 0, 0.35, 0)
+                        GLOWING_CIRCLE({play_x, play_y}, 0, 10, 0, line_clr, dl)
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3.5, dot_clr) ]]
+                        Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                        im.DrawList_AddLine(dl, x2, y2, x2 + SetMinMax(adsr_time, 0, H) * scaleX, y2, bright_clr, 3)
+                    elseif adsr_stage == 3 then
+                        play_x = x3 + SetMinMax(adsr_time, 0, D) * scaleX
+                        Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                        im.DrawList_AddLine(dl, x2, y2, x3, y3, bright_clr, 3)
+                        play_y = Val_To_Y(adsr_level)
+                        --[[ local dot_clr = HSV_Change(line_clr, 0, 0, 0.35, 0)
+                        GLOWING_CIRCLE({play_x, play_y}, 0, 10, 0, line_clr, dl)
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3.5, dot_clr) ]]
+                        Draw_Single_Curve_Partial(x3, x4, y3, y4, Mc.ADSR_Curve_Decay, 3, bright_clr, play_x, play_y)
+                    elseif adsr_stage == 4 then
+                        play_x = x4 + (sustain_display * scaleX)
+                        play_y = y4
+                        --[[ local dot_clr = HSV_Change(line_clr, 0, 0, 0.35, 0)
+                        GLOWING_CIRCLE({play_x, play_y}, 0, 10, 0, line_clr, dl)
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3.5, dot_clr) ]]
+                        if attack_alpha > 0 then
+                            Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                            im.DrawList_AddLine(dl, x2, y2, x3, y3, attack_clr, 3)
+                        end
+                        if decay_alpha > 0 then
+                            Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, 3, decay_clr)
+                        end
+                        im.DrawList_AddLine(dl, x4, y4, x5, y5, bright_clr, 3)
+                    elseif adsr_stage == 5 then
+                        play_x = x5 + SetMinMax(adsr_time, 0, R) * scaleX
+                        if attack_alpha > 0 then
+                            Draw_Curved_Segment(x1, x2, 0, 1, Mc.ADSR_Curve_Attack, 3, attack_clr)
+                            im.DrawList_AddLine(dl, x2, y2, x3, y3, attack_clr, 3)
+                        end
+                        if decay_alpha > 0 then
+                            Draw_Curved_Segment(x3, x4, 1, S, Mc.ADSR_Curve_Decay, 3, decay_clr)
+                        end
+                        -- sustain segment stays unlit
+                        play_y = Val_To_Y(adsr_level)
+                        --[[ local dot_clr = HSV_Change(line_clr, 0, 0, 0.35, 0)
+                        GLOWING_CIRCLE({play_x, play_y}, 0, 10, 0, line_clr, dl)
+                        im.DrawList_AddCircleFilled(dl, play_x, play_y, 3.5, dot_clr) ]]
+                        Draw_Single_Curve_Partial(x5, x6, y5, y6, Mc.ADSR_Curve_Release, 3, bright_clr, play_x, play_y)
                     end
                 end
 
@@ -4847,12 +5056,21 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                         local delta = (-dy / 80)
                         if Mc.ADSR_Curve_Drag == 'A' then
                             Mc.ADSR_Curve_Attack = SetMinMax((Mc.ADSR_Curve_Attack or 0) + delta, -4, 4)
+                            if Mc.ADSR_Curve_Attack < 1 and Mc.ADSR_Curve_Attack > -1 then
+                                Mc.ADSR_Curve_Attack = delta > 0 and 1 or -1
+                            end
                             Send_ADSR_Curve(1, Mc.ADSR_Curve_Attack)
                         elseif Mc.ADSR_Curve_Drag == 'D' then
                             Mc.ADSR_Curve_Decay = SetMinMax((Mc.ADSR_Curve_Decay or 0) + delta, -4, 4)
+                            if Mc.ADSR_Curve_Decay < 1 and Mc.ADSR_Curve_Decay > -1 then
+                                Mc.ADSR_Curve_Decay = delta > 0 and 1 or -1
+                            end
                             Send_ADSR_Curve(2, Mc.ADSR_Curve_Decay)
                         elseif Mc.ADSR_Curve_Drag == 'R' then
                             Mc.ADSR_Curve_Release = SetMinMax((Mc.ADSR_Curve_Release or 0) + delta, -4, 4)
+                            if Mc.ADSR_Curve_Release < 1 and Mc.ADSR_Curve_Release > -1 then
+                                Mc.ADSR_Curve_Release = delta > 0 and 1 or -1
+                            end
                             Send_ADSR_Curve(3, Mc.ADSR_Curve_Release)
                         end
                         Mc.ADSR_Curve_Dirty = true
