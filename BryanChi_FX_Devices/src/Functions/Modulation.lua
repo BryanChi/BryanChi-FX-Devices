@@ -5362,6 +5362,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             if mc.Type == '' then mc.Type = 'Macro' end 
         end ]]
 
+        local ItmSz = 98
         local function If_Macro_Is_StepSEQ()
             if mc.Type~='Step' then return end 
             Macros_WDL = Macros_WDL or im.GetWindowDrawList(ctx)
@@ -5392,11 +5393,11 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             local SmallSEQActive
             local HdrPosL, HdrPosT = im.GetCursorScreenPos(ctx)
             local len = Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps
-            local StepSeqRect = nil -- Will store the rect for drawing background text
+            local boxWidth = ItmSz or ((VP.w - 10) / 12)
+            local stepWidth = boxWidth / len
             
             im.BeginGroup(ctx)
             for St = 1, len, 1 do -- create all steps
-                local W = (VP.w - 10) / 12
                 local L, T = im.GetCursorScreenPos(ctx)
                 local H = LineHeight
                 --[[ if St == 1 and AssigningMacro == i then
@@ -5405,17 +5406,9 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                     --HighlightSelectedItem(0xffffff77,0xffffff33, 0, L,T,L+W,T+H,H,W, 1, 1,GetItemRect, Foreground)
                 end ]]
                 --_, S[St]= im.DragDouble(ctx, '##SEQ '..St ,  S[St], 0 ,0, 1, ' ',im.SliderFlags_NoInput)
-                im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, W / len, H)
+                im.InvisibleButton(ctx, '##SEQ' .. St .. TrkID, stepWidth, H)
                 local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx); local w, h =
                     im.GetItemRectSize(ctx)
-                
-                -- Save rect from first step to draw background text later
-                -- Steps are laid out horizontally, so total width is W (from first step), height is H
-                if St == 1 then
-                    local totalWidth = W
-                    StepSeqRect = {L, T, L + totalWidth, B}
-                end
-                
                 local FillClr = 0x00000000
     
     
@@ -5429,31 +5422,15 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                 if HoverOnAnyStep then WhichMacroIsHovered = i end
     
     
-                if im.IsItemHovered(ctx) then FillClr = 0xffffff22 end
-                HighlightSelectedItem(FillClr, 0xffffff33, 0, L - 1, T, R - 1, B, h, w, 1, 1, GetItemRect,
-                    Foreground)
+                -- no white outline/hover fill for step seq box
     
     
     
                 S[St] = SetMinMax(S[St] or 0, 0, 1)
-                if im.IsItemActive(ctx) then
-                    local _, v = im.GetMouseDelta(ctx, nil, nil)
-    
-                    if Mods == Shift then DrgSpdMod = 4 end
-                    if v ~= 0 then
-                        v = v * (-1)
-                        if not (S[St] == 1 and v > 0) and not (S[St] == 0 and v < 0) then
-                            S[St] = S[St] + v / 100
-                            r.gmem_write(4, 7)                                   -- tells jsfx user is changing a step's value
-                            r.gmem_write(5, i)                                   -- tells which macro user is tweaking
-                            r.gmem_write(112, SetMinMax(S[St], 0, 1) * (-1) + 1) -- tells the step's value
-                            r.gmem_write(113, St)                                -- tells which step
-                        end
-                        im.ResetMouseDragDelta(ctx)
-                    end
-                    SmallSEQActive = true
-                elseif im.IsItemDeactivated(ctx) then
-                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Macro ' .. i .. ' SEQ Step = ' .. St .. ' Val', S[St], true)
+                if im.IsItemClicked(ctx) then
+                    Mc.SEQ_Open = true
+                    Mc.SEQ_Open_JustOpened = true
+                    WhichMacroIsHovered = i
                 end
                --WhenRightClickOnModulators(Macro)
     
@@ -5470,38 +5447,11 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
     
                 im.DrawList_AddRectFilled(Macros_WDL, L, T + H, L + W - 1, math.max(B - H * (S[St] or 0), T),
                     Clr)
-                if CurrentPos == St then -- if Step SEQ 'playhead' is now on current step
-                    im.DrawList_AddRect(Macros_WDL, L, T + H, L + W - 1, T, 0xffffff99)
-                end
+                -- no white playhead rectangle
                 SL(nil, 0)
             end
             im.EndGroup(ctx)
-            
-            -- Draw background text 'Step' as overlay without taking up layout space
-            if StepSeqRect then
-                local X, Y = StepSeqRect[1], StepSeqRect[2]
-                local R, B = StepSeqRect[3], StepSeqRect[4]
-                
-                -- Use the same font and styling as Add_BG_Text_For_Modulator
-                local font = _G['Arial Black']
-                local fontSize = 30
-                
-                if im.ValidatePtr(font, 'ImGui_Font*') then
-                    im.PushFont(ctx, font)
-                    local baseW, baseH = im.CalcTextSize(ctx, 'Step')
-                    im.PopFont(ctx)
-                    
-                    local fontScale = fontSize / 15
-                    local textW = baseW * fontScale
-                    local textH = baseH * fontScale
-                    
-                    -- Center horizontally and vertically
-                    local textX = X + ((R - X) - textW) / 2
-                    local textY = Y + ((B - Y) - textH) / 2
-                    
-                    im.DrawList_AddTextEx(Macros_WDL, font, fontSize, textX, textY, 0xffffff44, 'Step')
-                end
-            end
+            Add_BG_Text_For_Modulator('Step', nil, 22)
     
     
             im.SetNextWindowPos(ctx, HdrPosL, VP.Y - StepSEQ_H - 100)
@@ -5742,25 +5692,38 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
     
                         local x, y = im.GetWindowPos(ctx)
                         local w, h = im.GetWindowSize(ctx)
+                        local is_window_hovered = im.IsMouseHoveringRect(ctx, x, y, x + w, y + h)
     
-    
-                        if im.IsMouseHoveringRect(ctx, x, y, x + w, y + h) then notHoverSEQ_Time = 0 end
+                        if is_window_hovered then notHoverSEQ_Time = 0 end
+                        if Mc.SEQ_Open_JustOpened then
+                            Mc.SEQ_Open_JustOpened = nil
+                        else
+                            if im.IsMouseClicked(ctx, 0) and not is_window_hovered then
+                                Mc.SEQ_Open = nil
+                                WhichMacroIsHovered = nil
+                                notHoverSEQ_Time = 0
+                            end
+                        end
+                        if im.IsKeyPressed(ctx, im.Key_Escape) then
+                            Mc.SEQ_Open = nil
+                            WhichMacroIsHovered = nil
+                            notHoverSEQ_Time = 0
+                        end
     
                         im.End(ctx)
                     end
                 end
             end
     
-            if (WhichMacroIsHovered == Macro and HoverOnAnyStep) or SmallSEQActive or Mc.AdjustingSteps then
+            if Mc.SEQ_Open or SmallSEQActive or Mc.AdjustingSteps then
                 open_SEQ_Win(Track, Macro)
                 notHoverSEQ_Time = 0
             end
     
-            if WhichMacroIsHovered == i and not HoverOnAnyStep and not SmallSEQActive and not Mc.AdjustingSteps then
+            if Mc.SEQ_Open and not HoverOnAnyStep and not SmallSEQActive and not Mc.AdjustingSteps then
                 notHoverSEQ_Time = math.min((notHoverSEQ_Time or 0), 11) + 1
-                if notHoverSEQ_Time < 10 then
-                    open_SEQ_Win(Track, i)
-                else
+                if notHoverSEQ_Time >= 10 then
+                    Mc.SEQ_Open = nil
                     WhichMacroIsHovered = nil
                     notHoverSEQ_Time = 0
                 end
@@ -5773,7 +5736,6 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
 
         --im.SetCursorPos(ctx,45 + (Size*3 * (row-1)),  10+ (i-4*(row-1) ) * (Size*2+25))
         im.PushStyleVar(ctx, im.StyleVar_WindowPadding, 20, 10)
-        local ItmSz=98
         MacroKnob(mc,i, LineHeight /1.85,'Track' )
         LFO_BOX_NEW(mc, i  , ItmSz )
         Follower_Box(mc,i , ItmSz/3, TrkID, 'ParamValues')

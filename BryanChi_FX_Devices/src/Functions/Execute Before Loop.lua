@@ -748,10 +748,20 @@ function Retrieve_All_Saved_Data_Of_Project()
             end
             
             local function RET_MacroModulation(FP, FxGUID, Fx_P, TRK, TrkID)
+                local function FindMacrosFXIdx()
+                    local cnt = r.TrackFX_GetCount(Track)
+                    for idx = 0, cnt - 1, 1 do
+                        local rv, name = r.TrackFX_GetFXName(Track, idx, '')
+                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
+                    end
+                end
+                local function GetMacroParamIdx(macro_num)
+                    return 2 + (macro_num - 1) * 4 -- Modulator Param 1 per FXD Macros JSFX
+                end
                 local CC = FP.WhichCC
                 local has_Mod_Amt, has_Cont_Mod_Amt 
                 for m, v in ipairs(MacroNums) do
-                    
+
                     local Curve = RC('Mod_Curve_for_Mod' .. m .. 'Prm =' .. (CC or ''))
                     
                     if Curve then
@@ -761,9 +771,16 @@ function Retrieve_All_Saved_Data_Of_Project()
                     
                     TRK.Mod = TRK.Mod or {}
                     TRK.Mod[m] = TRK.Mod[m] or {}
-                    -- For Macro type, read from parameter. For other types (LFO, Envelope, Step, Follower), read from gmem
-                    if TRK.Mod[m].Type == 'Macro' then
-                        TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, 0, m-1)
+                    -- For Macro type, only restore from JSFX when value is nil
+                    if TRK.Mod[m].Type == 'Macro'  or TRK.Mod[m].Type == nil then
+                        if TRK.Mod[m].Val == nil then
+                            local MacFxIdx = FindMacrosFXIdx()
+                            if MacFxIdx then
+                                TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, MacFxIdx, GetMacroParamIdx(m))
+                            else
+                                TRK.Mod[m].Val = 0
+                            end
+                        end
                     else
                         r.gmem_attach('ParamValues')
                         TRK.Mod[m].Val = math.abs(SetMinMax(r.gmem_read(100 + m) / 127, -1, 1))
@@ -1102,7 +1119,7 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     Retrieve_All_Saved_Data_Of_Project()
     attachImagesAndFonts()
     PluginScripts()
-    Get_Modulator_JSFX_Info()
+    --Get_Modulator_JSFX_Info()
     VersionNumber = GetVersionNum()
 
     FX_LIST, CAT = ReadFXFile()

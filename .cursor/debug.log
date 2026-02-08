@@ -1,0 +1,20 @@
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Get_Modulator_JSFX_Info entry","data":{"lt_track":true,"macros_fx_idx":-1},"timestamp":1770533520122}
+{"runId":"pre-fix","hypothesisId":"H2","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Macros JSFX not at index 0 or missing","data":{"macros_fx_idx":-1},"timestamp":1770533520122}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Get_Modulator_JSFX_Info entry","data":{"lt_track":true,"macros_fx_idx":0},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":1,"val":0.539784},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":2,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":3,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":4,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":5,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":6,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":7,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":8,"val":0.000000},"timestamp":1770533530287}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Get_Modulator_JSFX_Info entry","data":{"lt_track":true,"macros_fx_idx":0},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":1,"val":0.251409},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":2,"val":0.000000},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":3,"val":0.300000},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":4,"val":0.880000},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":5,"val":0.700000},"timestamp":1770533536571}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":6,"val":0.610000},"timestamp":1770533536572}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":7,"val":0.150000},"timestamp":1770533536572}
+{"runId":"pre-fix","hypothesisId":"H1","location":"Execute Before Loop.lua:Get_Modulator_JSFX_Info","message":"Set macro value from JSFX index 0","data":{"macro":8,"val":0.430000},"timestamp":1770533536572}
