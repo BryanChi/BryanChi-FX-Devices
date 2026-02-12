@@ -624,18 +624,16 @@ function SetBPToRel_Node()local (Rel_pos, Rel_V, idx, per, phase) (
     //Rel_pos = LFO[(this.Macro-1)*1000+this.Rel_Node*11] * this.LFO_Len;
     Rel_pos = this.LFO_Len * Velo_ModAmt[idx + this.Rel_Node] ; 
 
-    this.CurrentPos< Rel_pos? ( // if 'playhead' hasn't reached the release node 
-      this.Rel_Type==3 ? (    // if it's no jump 
-        this.Rel_V = this.Out ; // get value when note was released 
-      );
-      this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
-        // Convert release position from LFO length units to beats
-        this.LFO_Len <= 0 ? (this.LFO_Len = 4;);
-        per = this.LFO_PeriodBeats * (this.LFO_Len / 4);
-        per <= 0 ? (per = 1;);
-        phase = Rel_pos / this.LFO_Len; // convert LFO position to phase (0..1)
-        this.bp = phase * per;  // convert phase to beats, move playhead to release node 
-      );
+    this.Rel_Type==3 ? (    // if it's no jump 
+      this.Rel_V = this.Out ; // get value when note was released 
+    );
+    this.Legato ==0 || (this.Legato ==1 && TotalNotesHeld == 0 ) ? (
+      // Convert release position from LFO length units to beats
+      this.LFO_Len <= 0 ? (this.LFO_Len = 4;);
+      per = this.LFO_PeriodBeats * (this.LFO_Len / 4);
+      per <= 0 ? (per = 1;);
+      phase = Rel_pos / this.LFO_Len; // convert LFO position to phase (0..1)
+      this.bp = phase * per;  // convert phase to beats, move playhead to release node 
     );
   );
 
@@ -1002,7 +1000,8 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
     _len = floor(1 + (this.LFO_Len_Sldr * 7) + 0.5);
     _len < 1 ? (_len = 1);
     _len > 8 ? (_len = 8);
-    this.LFO_Len = _len;
+    // Envelope mode uses fixed length (match LFO default)
+    this.EnvOrLoop == 1 ? (this.LFO_Len = 4;) : (this.LFO_Len = _len;);
     this.LFO_Gain = this.LFO_Gain_Sldr; // 0% should mute output; default handled elsewhere
     this.LFO_Gain_Auto != 0 ? ( 
       this.LFO_Gain = slider(Automate+this.LFO_Gain_Auto);
