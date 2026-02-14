@@ -1543,10 +1543,16 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
 
         if FX[FxGUID].DeltaP_V ~= 1 then
             --im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, 0x444444ff, 16)
-
-            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, CircleClr or lineClr, 16)
+            local circleClr = CircleClr or lineClr
+            local lineThick = 2.0
+            if is_hovered and not is_active then
+                circleClr = HSV_Change(circleClr, nil, nil, 0.15)
+                lineClr = HSV_Change(lineClr, nil, nil, 0.15)
+                lineThick = 2.5
+            end
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer, circleClr, 16, is_hovered and not is_active and 2 or 1)
             im.DrawList_AddLine(draw_list, center[1], center[2], center[1] + angle_cos * (radius_outer - 2),
-                center[2] + angle_sin * (radius_outer - 2), lineClr, 2.0)
+                center[2] + angle_sin * (radius_outer - 2), lineClr, lineThick)
             im.DrawList_AddText(draw_list, pos[1], pos[2] + radius_outer * 2 + item_inner_spacing[2],
                 im.GetColor(ctx, im.Col_Text), labeltoShow)
         elseif FX[FxGUID].DeltaP_V == 1 then 
@@ -1665,7 +1671,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         end 
     end
     local function Push_Clr()
-        im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr'))
+        im.PushStyleColor(ctx, im.Col_Button, FX[FxGUID].TitleClr or ThemeClr('FX_Btn_BG_Clr'))
 
         if FX[FxGUID].TitleClr then
             if not FX[FxGUID].TitleClrHvr then
@@ -1674,7 +1680,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             im.PushStyleColor(ctx, im.Col_ButtonHovered, FX[FxGUID].TitleClrHvr or 0x22222233)
             im.PushStyleColor(ctx, im.Col_ButtonActive, FX[FxGUID].TitleClrAct or 0x22222233)
         else
-            local Hvr, Act = Generate_Active_And_Hvr_CLRs( ThemeClr('FX_Title_Clr'))
+            local Hvr, Act = Generate_Active_And_Hvr_CLRs( ThemeClr('FX_Btn_BG_Clr'))
             im.PushStyleColor(ctx, im.Col_ButtonHovered, Hvr )
             im.PushStyleColor(ctx, im.Col_ButtonActive, Act )
 
@@ -1716,7 +1722,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 local sz = WET_DRY_KNOB_SZ * 0.9
 
                 if im.IsMouseHoveringRect(ctx, L, T,  TtlR ,TtlB ) then
-                    im.DrawList_AddRectFilled(WDL, L, T,  TtlR ,TtlB , ThemeClr('FX_Title_Clr'))
+                    im.DrawList_AddRectFilled(WDL, L, T,  TtlR ,TtlB , ThemeClr('FX_Btn_BG_Clr'))
                     im.DrawList_AddRect(WDL, L, T,  TtlR ,TtlB , getClr(im.Col_Text))
                     im.DrawList_AddTextEx(WDL, Font_Andale_Mono_20_B, sz, TtlR - 15, TtlB - sz, getClr(im.Col_Text), '+')
                     if IsLBtnClicked then
@@ -1952,7 +1958,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local is_Mid_Side_Split = Name == "Mid Side Split" and true or nil
     
             if isContainer and not is_T_Split and not is_Mid_Side_Split then
-                local W = isContainer and fx.Collapse and 20  or 25
+                local W = WET_DRY_KNOB_SZ or 20
                 local clr = Cont_Clr
                 local pad_L = fx.Collapse and 3 or 6
                 local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
@@ -1969,7 +1975,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 im.SetCursorPosX(ctx, pad_L)
     
                 WindowBtn = im.Button(ctx,   '##' .. FxGUID, W, fx.V_Win_Btn_Height)
-                Draw_Vert_Text(Name, nil, 200-W*3)    
+                Draw_Vert_Text(Name, 6, 200-W*3)    
             elseif is_T_Split or is_Mid_Side_Split then
                 local H =  170
                 local W =  30 
@@ -5088,7 +5094,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 if FX[FxGUID].Collapse then return end
                 if FX[FxGUID].NoWetKnob then return end
                 if IsContainer then return end
-                local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Title_Clr')
+                local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Btn_BG_Clr')
                 local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
                 SL( nil, gap)
                 local pos ={ im.GetCursorScreenPos(ctx)}
@@ -5110,6 +5116,20 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             end
 
+            local function Draw_Container_Title_Panel()
+                if not IsContainer then return end
+                if fx.Collapse then return end
+                local Title_Strip_W = 33
+                local pad = 1
+                local clr = FX[FxGUID].TitleClr or ThemeClr('FX_Btn_BG_Clr')
+                local clr = HSV_Change(clr, nil, nil, 0.06)
+                local clr_outline = FX[FxGUID].TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline')
+                local x1, y1 = Win_L, Win_T
+                local x2, y2 = Win_L + Title_Strip_W + pad, Win_B
+                im.DrawList_AddRectFilled(WDL, x1, y1, x2, y2, clr, FX_Title_Round)
+                im.DrawList_AddRect(WDL, x1, y1, x2, y2, clr_outline, FX_Title_Round, nil, 1)
+                im.DrawList_AddLine(WDL, x2, y1, x2, y2, ThemeClr('Accent_Clr_Dark'), 1)
+            end
             local function Window_Title_Area()
                 local sz= WET_DRY_KNOB_SZ
 
@@ -5117,6 +5137,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 SL( nil, gap)
                 local St = {im.GetCursorScreenPos(ctx)}
 
+                Draw_Container_Title_Panel()
                 AddWindowBtn(FxGUID, FX_Idx )
                 If_LayEdit_Activated__WindowBtn()
                 If_DebugMode_Active()

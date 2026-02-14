@@ -19,6 +19,7 @@ fx.Cont_Collapse = fx.Cont_Collapse or 0
 local Title_Width = 33
 local AnyMacroHovered
 local ModIconSz = 20
+local ModIconImgSz = 16
 local Top_Spacing = 0
 local Modulator_Outline_Clr = 0xffffff22
 LFO_Box_Size = 38
@@ -248,10 +249,16 @@ local function Set_Midi_Output_To_Bus1() --sets to 'Merge Container Bus1 to pare
 end
 
 local function Modulation_Icon(LT_Track, slot)
-    im.PushStyleColor ( ctx, im.Col_Button, 0x000000000)
-    local clr = 0xD3D3D399
-    if fx.MacroPageActive then clr = Accent_Clr end 
-    if im.ImageButton(ctx, '##', Img.ModIconHollow, ModIconSz , ModIconSz, nil, nil, nil, nil, 0x00000000, clr) then 
+    im.PushStyleVar(ctx, im.StyleVar_FrameRounding, 4)
+    im.PushStyleVar(ctx, im.StyleVar_FrameBorderSize, 1)
+    local bg_clr = fx.TitleClr or ThemeClr('FX_Title_Clr')
+    im.PushStyleColor(ctx, im.Col_Button, bg_clr)
+    im.PushStyleColor(ctx, im.Col_ButtonHovered, HSV_Change(bg_clr, nil, nil, 0.06))
+    im.PushStyleColor(ctx, im.Col_ButtonActive, HSV_Change(bg_clr, nil, nil, -0.04))
+    im.PushStyleColor(ctx, im.Col_Border, fx.TitleClr_Outline or ThemeClr('FX_Title_Clr_Outline'))
+    local clr = 0x888888cc
+    if fx.MacroPageActive then clr = Accent_Clr end
+    if im.Button(ctx, '##' .. FxGUID .. 'ModIcon', ModIconSz, ModIconSz) then 
         fx.MacroPageActive = toggle (fx.MacroPageActive)
         r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container ID of '..FxGUID..'Macro Active' , tostring(fx.MacroPageActive), true )
 
@@ -294,7 +301,14 @@ local function Modulation_Icon(LT_Track, slot)
 
 
     end 
-    im.PopStyleColor(ctx)
+    local rmin = { im.GetItemRectMin(ctx) }
+    local pad = (ModIconSz - ModIconImgSz) / 2
+    if im.IsItemHovered(ctx) and not fx.MacroPageActive then
+        clr = HSV_Change(clr, nil, nil, 0.2)
+    end
+    im.DrawList_AddImage(im.GetWindowDrawList(ctx), Img.ModIconHollow, rmin[1] + pad, rmin[2] + pad, rmin[1] + pad + ModIconImgSz, rmin[2] + pad + ModIconImgSz, 0, 0, 1, 1, clr)
+    im.PopStyleColor(ctx, 4)
+    im.PopStyleVar(ctx, 2)
 end
 
 local function titleBar()
@@ -307,11 +321,15 @@ local function titleBar()
         -- Position other elements AFTER drawing the icon
         im.SetCursorPosX(ctx, Pad_L)
         SyncWetValues(FX_Idx)
+        local knob_pos = { im.GetCursorScreenPos(ctx) }
+        local radius = (WET_DRY_KNOB_SZ or 20) / 2
+        local cx, cy = knob_pos[1] + radius, knob_pos[2] + radius
+        local circle_bg_clr = fx.TitleClr or ThemeClr('FX_Title_Clr')
+        im.DrawList_AddCircleFilled(im.GetWindowDrawList(ctx), cx, cy, radius, circle_bg_clr)
         Wet.ActiveAny, Wet.Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx,nil,FxGUID)
-        local X, Y = im.GetCursorPos(ctx)
-        im.SetCursorPos(ctx, X+ Pad_L, Y - 10)
-        
-        --im.SetCursorPos(ctx, 7, 165)
+        local _, Y = im.GetCursorPos(ctx)
+        local mod_icon_x = fx.Collapse and Pad_L or (W - ModIconSz) / 2
+        im.SetCursorPos(ctx, mod_icon_x, Y - 10)
         Modulation_Icon(LT_Track, fx.LowestID)
         
         im.Dummy(ctx, W, 10)
@@ -1225,7 +1243,7 @@ local function Main(TB, X, Y)
         end
         fx.nestingLevel = nestingLevel
         local bracketColor = Calculate_Color_Based_On_Nesting_Level(nestingLevel)
-        local l = X - 33
+        local l = X
 
         if not fx.Collapse then 
             --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
@@ -1240,8 +1258,8 @@ local function Main(TB, X, Y)
             -- Shift hue based on container nesting level
             -- Left bracket
             im.DrawList_AddLine(WDL, l, Y, l, Y + 220, bracketColor, Thick) -- Vertical line
-            im.DrawList_AddLine(WDL, l, Y, X - 21, Y, bracketColor, Thick) -- Top horizontal
-            im.DrawList_AddLine(WDL, l, Y + 220, X - 21, Y + 220, bracketColor, Thick) -- Bottom horizontal
+            im.DrawList_AddLine(WDL, l, Y, l + 12, Y, bracketColor, Thick) -- Top horizontal
+            im.DrawList_AddLine(WDL, l, Y + 220, l + 12, Y + 220, bracketColor, Thick) -- Bottom horizontal
             
             -- Right bracket
             local rightX = X + (fx.Width or 190) - 35
@@ -1253,8 +1271,8 @@ local function Main(TB, X, Y)
         end 
     end
     
-    -- Skip drawing enclosure brackets for split types
-    if not (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split')) then
+    -- Skip drawing enclosure brackets for split types or empty container
+    if not (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split')) and tonumber(FX_Count or 0) > 0 then
         Enclose_With_Brackets()
     end
 
