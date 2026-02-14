@@ -619,11 +619,16 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             elseif AssigningMidiMod == 'KeyTrack 3' then jsfx_ofs = JSFX.KeyTrack3
             end
 
+            -- Ensure ModAMT is initialized to 0 if nil to prevent gmem_write error
+            if FP.ModAMT[M] == nil then
+                FP.ModAMT[M] = 0
+            end
+
             Save_to_Trk('FX' .. FxGUID .. 'Prm' .. Fx_P.. ' Mod Amt for '.. AssigningMidiMod , FP.ModAMT[M]  )
             r.gmem_write(4, 1)
             r.gmem_write(5, jsfx_ofs + Trk.Prm.Assign)
             FP.ModAMT[M] = CalculateModAmt(FP.ModAMT[M])
-            r.gmem_write(9, FP.ModAMT[M] ) -- tells jsfx the param's mod amount
+            r.gmem_write(9, FP.ModAMT[M] or 0) -- tells jsfx the param's mod amount
 
 
         end

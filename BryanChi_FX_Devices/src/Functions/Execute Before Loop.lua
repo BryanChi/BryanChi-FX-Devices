@@ -797,7 +797,14 @@ function Retrieve_All_Saved_Data_Of_Project()
                     if FP.ModAMT[m] then has_Mod_Amt = true end 
                     if FP.Cont_ModAMT[m]  then has_Cont_Mod_Amt = true end 
                 end 
-                if not has_Mod_Amt then FP.ModAMT = nil  end 
+                -- Only nil FP.ModAMT if no macro AND no MIDI modulation (RET_MIDIModulation runs first and may have set Velocity, Random, etc.)
+                local has_MidiMod_Amt = false
+                if FP.ModAMT then
+                    for _, midiMod in ipairs(Midi_Mods) do
+                        if FP.ModAMT[midiMod] ~= nil then has_MidiMod_Amt = true break end
+                    end
+                end
+                if not has_Mod_Amt and not has_MidiMod_Amt then FP.ModAMT = nil  end 
                 if not has_Cont_Mod_Amt then FP.Cont_ModAMT = nil end 
             end
             
