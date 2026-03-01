@@ -834,31 +834,31 @@ function If_User_Set_Type_To_ADSR() (
   mode == 29? (
     SetTypeTo('ASR');
     Macro = gmem[5];
-    // Initialize ADSR state for all modulators (1-24)
-    Macro==1?(Mc1.ADSR_stage = 0; Mc1.ADSR_level = 0; Mc1.ADSR_time = 0; Mc1.ADSR_release_start = 0; Mc1.ADSR_Hold = 0.0;);
-    Macro==2?(Mc2.ADSR_stage = 0; Mc2.ADSR_level = 0; Mc2.ADSR_time = 0; Mc2.ADSR_release_start = 0; Mc2.ADSR_Hold = 0.0;);
-    Macro==3?(Mc3.ADSR_stage = 0; Mc3.ADSR_level = 0; Mc3.ADSR_time = 0; Mc3.ADSR_release_start = 0; Mc3.ADSR_Hold = 0.0;);
-    Macro==4?(Mc4.ADSR_stage = 0; Mc4.ADSR_level = 0; Mc4.ADSR_time = 0; Mc4.ADSR_release_start = 0; Mc4.ADSR_Hold = 0.0;);
-    Macro==5?(Mc5.ADSR_stage = 0; Mc5.ADSR_level = 0; Mc5.ADSR_time = 0; Mc5.ADSR_release_start = 0; Mc5.ADSR_Hold = 0.0;);
-    Macro==6?(Mc6.ADSR_stage = 0; Mc6.ADSR_level = 0; Mc6.ADSR_time = 0; Mc6.ADSR_release_start = 0; Mc6.ADSR_Hold = 0.0;);
-    Macro==7?(Mc7.ADSR_stage = 0; Mc7.ADSR_level = 0; Mc7.ADSR_time = 0; Mc7.ADSR_release_start = 0; Mc7.ADSR_Hold = 0.0;);
-    Macro==8?(Mc8.ADSR_stage = 0; Mc8.ADSR_level = 0; Mc8.ADSR_time = 0; Mc8.ADSR_release_start = 0; Mc8.ADSR_Hold = 0.0;);
-    Macro==9?(Mc9.ADSR_stage = 0; Mc9.ADSR_level = 0; Mc9.ADSR_time = 0; Mc9.ADSR_release_start = 0; Mc9.ADSR_Hold = 0.0;);
-    Macro==10?(Mc10.ADSR_stage = 0; Mc10.ADSR_level = 0; Mc10.ADSR_time = 0; Mc10.ADSR_release_start = 0; Mc10.ADSR_Hold = 0.0;);
-    Macro==11?(Mc11.ADSR_stage = 0; Mc11.ADSR_level = 0; Mc11.ADSR_time = 0; Mc11.ADSR_release_start = 0; Mc11.ADSR_Hold = 0.0;);
-    Macro==12?(Mc12.ADSR_stage = 0; Mc12.ADSR_level = 0; Mc12.ADSR_time = 0; Mc12.ADSR_release_start = 0; Mc12.ADSR_Hold = 0.0;);
-    Macro==13?(Mc13.ADSR_stage = 0; Mc13.ADSR_level = 0; Mc13.ADSR_time = 0; Mc13.ADSR_release_start = 0; Mc13.ADSR_Hold = 0.0;);
-    Macro==14?(Mc14.ADSR_stage = 0; Mc14.ADSR_level = 0; Mc14.ADSR_time = 0; Mc14.ADSR_release_start = 0; Mc14.ADSR_Hold = 0.0;);
-    Macro==15?(Mc15.ADSR_stage = 0; Mc15.ADSR_level = 0; Mc15.ADSR_time = 0; Mc15.ADSR_release_start = 0; Mc15.ADSR_Hold = 0.0;);
-    Macro==16?(Mc16.ADSR_stage = 0; Mc16.ADSR_level = 0; Mc16.ADSR_time = 0; Mc16.ADSR_release_start = 0; Mc16.ADSR_Hold = 0.0;);
-    Macro==17?(Mc17.ADSR_stage = 0; Mc17.ADSR_level = 0; Mc17.ADSR_time = 0; Mc17.ADSR_release_start = 0; Mc17.ADSR_Hold = 0.0;);
-    Macro==18?(Mc18.ADSR_stage = 0; Mc18.ADSR_level = 0; Mc18.ADSR_time = 0; Mc18.ADSR_release_start = 0; Mc18.ADSR_Hold = 0.0;);
-    Macro==19?(Mc19.ADSR_stage = 0; Mc19.ADSR_level = 0; Mc19.ADSR_time = 0; Mc19.ADSR_release_start = 0; Mc19.ADSR_Hold = 0.0;);
-    Macro==20?(Mc20.ADSR_stage = 0; Mc20.ADSR_level = 0; Mc20.ADSR_time = 0; Mc20.ADSR_release_start = 0; Mc20.ADSR_Hold = 0.0;);
-    Macro==21?(Mc21.ADSR_stage = 0; Mc21.ADSR_level = 0; Mc21.ADSR_time = 0; Mc21.ADSR_release_start = 0; Mc21.ADSR_Hold = 0.0;);
-    Macro==22?(Mc22.ADSR_stage = 0; Mc22.ADSR_level = 0; Mc22.ADSR_time = 0; Mc22.ADSR_release_start = 0; Mc22.ADSR_Hold = 0.0;);
-    Macro==23?(Mc23.ADSR_stage = 0; Mc23.ADSR_level = 0; Mc23.ADSR_time = 0; Mc23.ADSR_release_start = 0; Mc23.ADSR_Hold = 0.0;);
-    Macro==24?(Mc24.ADSR_stage = 0; Mc24.ADSR_level = 0; Mc24.ADSR_time = 0; Mc24.ADSR_release_start = 0; Mc24.ADSR_Hold = 0.0;);
+    // Initialize ADSR state for all modulators (1-24) - preserve ADSR_Hold (set via mode 34)
+    Macro==1?(Mc1.ADSR_stage = 0; Mc1.ADSR_level = 0; Mc1.ADSR_time = 0; Mc1.ADSR_release_start = 0;);
+    Macro==2?(Mc2.ADSR_stage = 0; Mc2.ADSR_level = 0; Mc2.ADSR_time = 0; Mc2.ADSR_release_start = 0;);
+    Macro==3?(Mc3.ADSR_stage = 0; Mc3.ADSR_level = 0; Mc3.ADSR_time = 0; Mc3.ADSR_release_start = 0;);
+    Macro==4?(Mc4.ADSR_stage = 0; Mc4.ADSR_level = 0; Mc4.ADSR_time = 0; Mc4.ADSR_release_start = 0;);
+    Macro==5?(Mc5.ADSR_stage = 0; Mc5.ADSR_level = 0; Mc5.ADSR_time = 0; Mc5.ADSR_release_start = 0;);
+    Macro==6?(Mc6.ADSR_stage = 0; Mc6.ADSR_level = 0; Mc6.ADSR_time = 0; Mc6.ADSR_release_start = 0;);
+    Macro==7?(Mc7.ADSR_stage = 0; Mc7.ADSR_level = 0; Mc7.ADSR_time = 0; Mc7.ADSR_release_start = 0;);
+    Macro==8?(Mc8.ADSR_stage = 0; Mc8.ADSR_level = 0; Mc8.ADSR_time = 0; Mc8.ADSR_release_start = 0;);
+    Macro==9?(Mc9.ADSR_stage = 0; Mc9.ADSR_level = 0; Mc9.ADSR_time = 0; Mc9.ADSR_release_start = 0;);
+    Macro==10?(Mc10.ADSR_stage = 0; Mc10.ADSR_level = 0; Mc10.ADSR_time = 0; Mc10.ADSR_release_start = 0;);
+    Macro==11?(Mc11.ADSR_stage = 0; Mc11.ADSR_level = 0; Mc11.ADSR_time = 0; Mc11.ADSR_release_start = 0;);
+    Macro==12?(Mc12.ADSR_stage = 0; Mc12.ADSR_level = 0; Mc12.ADSR_time = 0; Mc12.ADSR_release_start = 0;);
+    Macro==13?(Mc13.ADSR_stage = 0; Mc13.ADSR_level = 0; Mc13.ADSR_time = 0; Mc13.ADSR_release_start = 0;);
+    Macro==14?(Mc14.ADSR_stage = 0; Mc14.ADSR_level = 0; Mc14.ADSR_time = 0; Mc14.ADSR_release_start = 0;);
+    Macro==15?(Mc15.ADSR_stage = 0; Mc15.ADSR_level = 0; Mc15.ADSR_time = 0; Mc15.ADSR_release_start = 0;);
+    Macro==16?(Mc16.ADSR_stage = 0; Mc16.ADSR_level = 0; Mc16.ADSR_time = 0; Mc16.ADSR_release_start = 0;);
+    Macro==17?(Mc17.ADSR_stage = 0; Mc17.ADSR_level = 0; Mc17.ADSR_time = 0; Mc17.ADSR_release_start = 0;);
+    Macro==18?(Mc18.ADSR_stage = 0; Mc18.ADSR_level = 0; Mc18.ADSR_time = 0; Mc18.ADSR_release_start = 0;);
+    Macro==19?(Mc19.ADSR_stage = 0; Mc19.ADSR_level = 0; Mc19.ADSR_time = 0; Mc19.ADSR_release_start = 0;);
+    Macro==20?(Mc20.ADSR_stage = 0; Mc20.ADSR_level = 0; Mc20.ADSR_time = 0; Mc20.ADSR_release_start = 0;);
+    Macro==21?(Mc21.ADSR_stage = 0; Mc21.ADSR_level = 0; Mc21.ADSR_time = 0; Mc21.ADSR_release_start = 0;);
+    Macro==22?(Mc22.ADSR_stage = 0; Mc22.ADSR_level = 0; Mc22.ADSR_time = 0; Mc22.ADSR_release_start = 0;);
+    Macro==23?(Mc23.ADSR_stage = 0; Mc23.ADSR_level = 0; Mc23.ADSR_time = 0; Mc23.ADSR_release_start = 0;);
+    Macro==24?(Mc24.ADSR_stage = 0; Mc24.ADSR_level = 0; Mc24.ADSR_time = 0; Mc24.ADSR_release_start = 0;);
   );
 );
 

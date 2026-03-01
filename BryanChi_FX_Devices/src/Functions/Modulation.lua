@@ -4490,9 +4490,11 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             return saved_str and tonumber(saved_str) or nil
         end
 
-        Mc.ADSR_Curve_Attack = Read_ADSR_Saved_Val('Curve Attack') or Mc.ADSR_Curve_Attack or 0.0
-        Mc.ADSR_Curve_Decay = Read_ADSR_Saved_Val('Curve Decay') or Mc.ADSR_Curve_Decay or 0.0
-        Mc.ADSR_Curve_Release = Read_ADSR_Saved_Val('Curve Release') or Mc.ADSR_Curve_Release or 0.0
+        if not Mc.ADSR_Curve_Drag then
+            Mc.ADSR_Curve_Attack = Read_ADSR_Saved_Val('Curve Attack') or Mc.ADSR_Curve_Attack or 0.0
+            Mc.ADSR_Curve_Decay = Read_ADSR_Saved_Val('Curve Decay') or Mc.ADSR_Curve_Decay or 0.0
+            Mc.ADSR_Curve_Release = Read_ADSR_Saved_Val('Curve Release') or Mc.ADSR_Curve_Release or 0.0
+        end
     end
 
     Update_ADSR_From_Jsfx()
@@ -4664,6 +4666,18 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
     end
     
     local function parameters(Open_ADSR_Mod)
+        local function Send_ADSR_Hold()
+            if IsContainer then
+                r.gmem_attach('ContainerMacro')
+            else
+                r.gmem_attach('ParamValues')
+            end
+            r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
+            r.gmem_write(4, 34) -- mode 34 = ADSR Hold parameter
+            r.gmem_write(5, i) -- which modulator
+            r.gmem_write(9, Mc.ADSR_Hold or 0.0) -- Hold value in seconds
+        end
+
         local function Change_Prop(mode, v, str, paramIdx)
             local str = IsContainer and 'Container '..FxGUID .. str or str
             Save_to_Trk(str, v)
@@ -4697,21 +4711,16 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             end
             
             -- Notify JSFX of parameter change
-            r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
-            r.gmem_write(4, 29) -- mode 29 = ADSR parameter change
-            r.gmem_write(5, i) -- which modulator
-        end
-
-        local function Send_ADSR_Hold()
             if IsContainer then
                 r.gmem_attach('ContainerMacro')
             else
                 r.gmem_attach('ParamValues')
             end
             r.gmem_write(2, IsContainer and (FX[FxGUID] and FX[FxGUID].DIY_FxGUID) or PM.DIY_TrkID[TrkID])
-            r.gmem_write(4, 34) -- mode 34 = ADSR Hold parameter
+            r.gmem_write(4, 29) -- mode 29 = ADSR parameter change
             r.gmem_write(5, i) -- which modulator
-            r.gmem_write(9, Mc.ADSR_Hold or 0.0) -- Hold value in seconds
+            -- Re-send hold so it is not lost when JSFX processes mode 29
+            Send_ADSR_Hold()
         end
 
         local function Send_ADSR_Curve(curve_id, value)
@@ -4917,12 +4926,29 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                     return math.sqrt((px - px2) * (px - px2) + (py - py2) * (py - py2))
                 end
 
+                local function Dist_Point_Curve(px, py, xa, xb, ya, yb, curve)
+                    if not curve or math.abs(curve) < 0.01 or (xb - xa) == 0 then
+                        return Dist_Point_Segment(px, py, xa, ya, xb, yb)
+                    end
+                    local vmin, vmax = math.min(ya, yb), math.max(ya, yb)
+                    local inc = 0.5
+                    local min_d = nil
+                    for x = xa, xb, inc do
+                        local I = (x - xa) / (xb - xa)
+                        local y_lin = ya + (yb - ya) * I
+                        local y = GetCurveValue(y_lin, curve or 0, vmin, vmax, vmin, vmax)
+                        local d = (px - x) * (px - x) + (py - y) * (py - y)
+                        if not min_d or d < min_d then min_d = d end
+                    end
+                    return min_d and math.sqrt(min_d) or math.huge
+                end
+
                 local curve_hit = nil
                 if im.IsItemHovered(ctx) and not handle_hit and not Mc.ADSR_Graph_Dragging then
                     local mx, my = im.GetMousePos(ctx)
-                    local dA = Dist_Point_Segment(mx, my, x1, y1, x2, y2)
-                    local dD = Dist_Point_Segment(mx, my, x3, y3, x4, y4)
-                    local dR = Dist_Point_Segment(mx, my, x5, y5, x6, y6)
+                    local dA = Dist_Point_Curve(mx, my, x1, x2, y1, y2, Mc.ADSR_Curve_Attack)
+                    local dD = Dist_Point_Curve(mx, my, x3, x4, y3, y4, Mc.ADSR_Curve_Decay)
+                    local dR = Dist_Point_Curve(mx, my, x5, x6, y5, y6, Mc.ADSR_Curve_Release)
                     local min_d = math.min(dA, dD, dR)
                     if min_d <= 10 then
                         curve_hit = (min_d == dA and 'A') or (min_d == dD and 'D') or 'R'
@@ -5056,9 +5082,12 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                 end
 
                 if Mc.ADSR_Curve_Drag and im.IsMouseDown(ctx, 0) and not Mc.ADSR_Graph_Dragging then
-                    local _, dy = im.GetMouseDragDelta(ctx)
-                    if dy > 1 or dy < -1 then
-                        local delta = (-dy / 80)
+                    local _, my = im.GetMousePos(ctx)
+                    Mc.ADSR_Curve_Drag_StartY = Mc.ADSR_Curve_Drag_StartY or my
+                    local dy = Mc.ADSR_Curve_Drag_StartY - my
+                    Mc.ADSR_Curve_Drag_StartY = my
+                    if dy ~= 0 then
+                        local delta = (dy / 80)
                         if Mc.ADSR_Curve_Drag == 'A' then
                             Mc.ADSR_Curve_Attack = SetMinMax((Mc.ADSR_Curve_Attack or 0) + delta, -4, 4)
                             if Mc.ADSR_Curve_Attack < 1 and Mc.ADSR_Curve_Attack > -1 then
@@ -5079,7 +5108,6 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                             Send_ADSR_Curve(3, Mc.ADSR_Curve_Release)
                         end
                         Mc.ADSR_Curve_Dirty = true
-                        im.ResetMouseDragDelta(ctx)
                     end
                 end
 
@@ -5097,6 +5125,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
                         Save_ADSR_Curves_To_PExt()
                     end
                     Mc.ADSR_Curve_Drag = nil
+                    Mc.ADSR_Curve_Drag_StartY = nil
                     Mc.ADSR_Curve_Dirty = nil
                 end
             end
