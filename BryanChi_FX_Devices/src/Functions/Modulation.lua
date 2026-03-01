@@ -1246,7 +1246,7 @@ function Follower_Box(mc,i, sz, FxGUID, Gmem, Width)
     if im.IsItemClicked(ctx,1 )then 
         mc.TweakingKnob = 2 
     elseif rv then 
-        im.SetNextWindowPos(ctx, Popup_Pos_X -sz , Popup_Pos_Y - sz*2 )
+        im.SetNextWindowPos(ctx, Popup_Pos_X, Popup_Pos_Y, im.Cond_Always, 0, 1)
         im.OpenPopup(ctx, 'Follower Window'..i..FxGUID)
     end 
     -- NotifyHoverState(I, im.IsItemHovered(ctx))
@@ -2435,7 +2435,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
         local neededH = math.max(minH, baseH + 85)
         im.SetNextWindowSizeConstraints(ctx, popupW, neededH, popupW, 100000)
         if not asFloating then
-            im.SetNextWindowPos(ctx, HdrPosL, IsContainer and pos[2] - 385 or VP.Y - 385)
+            local boxTop = IsContainer and pos and pos[2] or HdrPosT
+            im.SetNextWindowPos(ctx, HdrPosL, boxTop, im.Cond_Always, 0, 1)
         end
         local PopupLbl = (IsContainer and 'Container' or '')..'LFO Popup' .. Macro .. (FxGUID or '')
 
@@ -4349,7 +4350,7 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
                 end
             end
         end
-        im.SetNextWindowPos(ctx, L, T - WinH)
+        im.SetNextWindowPos(ctx, L, T, im.Cond_Always, 0, 1)
         if im.BeginPopup(ctx, "RandomModulatorPopup"..i, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
             
             -- Don't write mode 27 here - it triggers reinitialization in JSFX
@@ -4797,7 +4798,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             end
         end
         
-        im.SetNextWindowPos(ctx, L, T - 150)
+        im.SetNextWindowPos(ctx, L, T, im.Cond_Always, 0, 1)
         if im.BeginPopup(ctx, "ADSRModulatorPopup"..i, im.WindowFlags_NoDecoration | im.WindowFlags_AlwaysAutoResize) then
             im.Text(ctx, "ADSR Envelope")
             im.Separator(ctx)
@@ -5338,6 +5339,8 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         im.PushFont(ctx, Arial_14)
         im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
         if im.Button(ctx, ' +'..'##Add modulator btn', sz, sz) then 
+            local bx, by = im.GetItemRectMin(ctx)
+            im.SetNextWindowPos(ctx, bx, by, im.Cond_Always, 0, 1)
             im.OpenPopup(ctx, 'AddMoreModulatorsPopup')
 
         end

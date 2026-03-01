@@ -7,6 +7,8 @@ function StoreSettings()
             proc_gr_native = ProC.GR_NATIVE,
             proq_analyzer = ProQ.Analyzer,
             USE_MOD_CONTROL_POPUP = USE_MOD_CONTROL_POPUP,
+            global_default_param_type = Global_Default_Param_Type,
+            global_default_sldr_width = Global_Default_Sldr_W,
             plugin_type_order = PluginTypeOrder
             --use_systemfont = Use_SystemFont
         }
@@ -231,6 +233,26 @@ function Settings()
             _, ProQ.Analyzer = im.Checkbox(ctx, 'Use analyzer for Pro-Q', ProQ.Analyzer)
             --_, Use_SystemFont = im.Checkbox(ctx, 'Use System Font', Use_SystemFont)
             _, USE_MOD_CONTROL_POPUP = im.Checkbox(ctx, 'Modulation Control Popup on Mouse Hover', USE_MOD_CONTROL_POPUP)
+            im.Separator(ctx)
+            im.Text(ctx, 'Default Param Type (Global):')
+            im.SetNextItemWidth(ctx, 140)
+            if im.BeginCombo(ctx, '##GlobalDefaultParamType', Global_Default_Param_Type or 'Drag', im.ComboFlags_NoArrowButton) then
+                local function Op(type)
+                    if im.Selectable(ctx, type, (Global_Default_Param_Type == type)) then
+                        Global_Default_Param_Type = type
+                    end
+                end
+                Op('Slider')
+                Op('Drag')
+                Op('Knob')
+                Op('V-Slider')
+                im.EndCombo(ctx)
+            end
+            if (Global_Default_Param_Type or 'Drag') ~= 'Knob' then
+                im.Text(ctx, 'Default Slider Width (Global):')
+                im.SetNextItemWidth(ctx, 140)
+                _, Global_Default_Sldr_W = im.DragInt(ctx, '##GlobalDefaultSliderWidth', Global_Default_Sldr_W or 160, LE.GridSize, 50, 300)
+            end
             
             -- Plugin Type Preference Section
             im.Separator(ctx)

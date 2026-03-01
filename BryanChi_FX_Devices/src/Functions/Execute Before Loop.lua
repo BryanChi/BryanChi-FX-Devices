@@ -103,6 +103,8 @@ function Default_Values()
     Df = { V_Sldr_W = 15, KnobRadius = 18, KnobSize = 15 * 3, Sldr_H = 3,   Sldr_W = 160, Dvdr_Width = 15, Dvdr_Hvr_W = 0 , V_Sldr_H = 160 ,
         XY_Pad_Size = 100
     }
+    Global_Default_Param_Type = 'Drag'
+    Global_Default_Sldr_W = 160
 end 
 
 function GetVersionNum()
@@ -453,6 +455,8 @@ function Retrieve_User_Settings()
                 ProC.GR_NATIVE = storedTable.proc_gr_native
                 ProQ.Analyzer = storedTable.proq_analyzer
                 USE_MOD_CONTROL_POPUP = storedTable.USE_MOD_CONTROL_POPUP
+                Global_Default_Param_Type = storedTable.global_default_param_type or Global_Default_Param_Type or 'Drag'
+                Global_Default_Sldr_W = storedTable.global_default_sldr_width or Global_Default_Sldr_W or 160
                 -- Restore plugin type preferences if available
                 if storedTable.plugin_type_order then
                     PluginTypeOrder = storedTable.plugin_type_order
@@ -669,8 +673,9 @@ function Retrieve_All_Saved_Data_Of_Project()
         local function RET_FXLayerAndContainerSettings(fx, FxGUID, Track)
             fx.ModSlots = RC('Container Active Mod Slots ' .. FxGUID)
             fx.MacroPageActive = RC('Container ID of ' .. FxGUID .. 'Macro Active', 'bool')
-            fx.Def_Sldr_W = RC('Default Slider Width for FX:' .. FxGUID)
-            fx.DefType = RC('Default Param type for FX:' .. FxGUID, 'str')
+            fx.Def_Sldr_W = Global_Default_Sldr_W or 160
+            fx.DefType = Global_Default_Param_Type or 'Drag'
+            FX.Def_Sldr_W[FxGUID] = fx.Def_Sldr_W
             
             GetProjExt_FxNameNum(FxGUID, Track)
             

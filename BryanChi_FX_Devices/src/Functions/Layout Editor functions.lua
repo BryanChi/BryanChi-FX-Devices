@@ -1615,7 +1615,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         
         local function Type()
             local PrmTypeLbl = TypeID == 'Group' and 'Multiple Values' or (FS.Type or FX[FxGUID].DefType )
-            FS.Type = FS.Type or FX[FxGUID].DefType or 'Slider'
+            FS.Type = FS.Type or FX[FxGUID].DefType or 'Drag'
 
             im.AlignTextToFramePadding(ctx)
 
@@ -2297,7 +2297,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
 
         end
         function Get_Attach_Drawing_Styles()
-            local type = FS.Type or FX[FxGUID].DefType or 'Slider'
+            local type = FS.Type or FX[FxGUID].DefType or 'Drag'
 
             if im.IsWindowAppearing(ctx) and type then
 
@@ -4903,10 +4903,12 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
     TextW, Texth = im.CalcTextSize(ctx, Format_P_V, nil, nil, true, -100)
     --if is_active then txtclr = 0xEEEEEEff else txtclr = 0xD6D6D6ff end
     local V_Clr = FP.V_Clr_At_Full and BlendColors(FP.V_Clr, FP.V_Clr_At_Full, FP.V)    or FP.V_Clr or getClr(im.Col_Text)
+    local V_R, V_G, V_B, V_A = im.ColorConvertU32ToDouble4(V_Clr)
+    V_Clr = im.ColorConvertDouble4ToU32(V_R, V_G, V_B, V_A * 0.78)
     local Lbl_Clr = FP.Lbl_Clr_At_Full and BlendColors(FP.Lbl_Clr, FP.Lbl_Clr_At_Full, FP.V) or FP.Lbl_Clr or getClr(im.Col_Text)
 
     im.PopFont(ctx)
-    local Centered_H = SldrT + H / 2 - 5
+    local Centered_H = SldrT + (H - Texth) / 2
     local Centered_W = SldrL + W / 2 - TextW / 2
     local FontSz = FP.V_FontSize or Knob_DefaultFontSize
     local p1, p2 
@@ -4939,15 +4941,30 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
 
 
     if not Lbl_Pos or Lbl_Pos == 'Within-Top-Left' then
-        local X, Y = im.GetCursorPos(ctx)
+        -- Default slider/drag label: anchor at top-left outside control, clipped to slider width.
+        local lblFont = _G[Font] or Font_Andale_Mono_12
+        local LblW, LblH
+        if lblFont then im.PushFont(ctx, lblFont) end
+        LblW, LblH = im.CalcTextSize(ctx, labeltoShow or '', nil, nil, true)
+        if lblFont then im.PopFont(ctx) end
 
-        if Disable == 'Disabled' then TxtClr = getClr(im.Col_TextDisabled) end
+        if Disable == 'Disabled' then Lbl_Clr = getClr(im.Col_TextDisabled) end
 
-     
+        local x = SldrL + (FP.Lbl_Pos_X or 0)
+        local y = SldrT - LblH + (FP.Lbl_Pos_Y or 0)
+        local _, winY = im.GetWindowPos(ctx)
+        local topLimit = winY
+        y = math.max(y, topLimit)
 
-        MyText(labeltoShow, _G[Font] or Font_Andale_Mono_12, Lbl_Clr)
-       
-        --im.SetCursorPos(ctx, SldrR - TextW, Y)
+        x = SetMinMax(x, SldrL, math.max(SldrL, SldrR - 1))
+        local clipL, clipT = SldrL, y
+        local clipR, clipB = SldrR, y + LblH
+
+        im.PushClipRect(ctx, clipL, clipT, clipR, clipB, true)
+        im.DrawList_AddTextEx(draw_list, lblFont, FP.FontSize or LblTextSize or Knob_DefaultFontSize, x, y, Lbl_Clr, labeltoShow or '')
+        im.PopClipRect(ctx)
+
+        im.SetCursorScreenPos(ctx, SldrL, SldrB)
 
     elseif Lbl_Pos =='Bottom-Left' or Lbl_Pos == 'Bottom' then 
            
@@ -5833,6 +5850,11 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     local labeltoShow = FP.CustomLbl  or select(2, r.TrackFX_GetParamName( LT_Track,FX_Idx, P_Num))
 
     local Vertical = FP.Type == 'V-Slider' and 'Vert' or nil
+    local Effective_V_Pos = FP.V_Pos
+    local isDefaultSlider = FP.Type == 'Slider' or (FP.Type == nil and FX[FxGUID] and FX[FxGUID].DefType == 'Slider')
+    if not Effective_V_Pos and Vertical ~= 'Vert' and isDefaultSlider then
+        Effective_V_Pos = 'Within'
+    end
     local PosL, PosR, PosT, PosB
     local ClrPop = 0
     local pos = { im.GetCursorScreenPos(ctx) }
@@ -5953,7 +5975,15 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     end
 
     local function MakeSlider()
-        im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FP.Height or 3)
+        local FramePadY
+        if FP.Height ~= nil then
+            FramePadY = FP.Height 
+        elseif Vertical == 'Vert' then
+            FramePadY = 3
+        else
+            FramePadY = 0.5
+        end
+        im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FramePadY)
         if GrabSize then im.PushStyleVar(ctx, im.StyleVar_GrabMinSize, GrabSize) end
 
         if not Sldr_Width or Sldr_Width == '' then Sldr_Width = FX.Def_Sldr_W[FxGUID] or Def_Sldr_W or 160 end
@@ -5999,7 +6029,7 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
 
     FP.V = FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
-    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
+    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font, V_Font, Format_P_V, FP, FP.Lbl_Pos, Effective_V_Pos)
     im.BeginGroup(ctx)
     MakeSlider()
 
@@ -6028,7 +6058,7 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     local is_hovered = im.IsItemHovered(ctx)
     Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value ,nil,  FxGUID)
 
-    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, FP.Lbl_Pos, FP.V_Pos)
+    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, FP.Lbl_Pos, Effective_V_Pos)
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) 
     --[[ Write_Label_And_Value_If_Vert()
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow ,  CenteredLblPos, Font, V_Font , FormatPV, Lbl_Pos) ]]
@@ -6088,7 +6118,7 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     end
     If_V_Pos_Is_Only_When_Active(FP, is_active, Format_P_V)
 
-    local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or FP.V_Pos == nil )
+    local tooltip_Tirgger = (is_active or is_hovered) and (Effective_V_Pos == 'None' or Effective_V_Pos == nil )
     local SzX, SzY = im.GetItemRectSize(ctx)
     local MsX, MsY = im.GetMousePos(ctx)
     local PosY = FP.Type =='V-Slider' and pos[2]-line_height or pos[2] - SzY - line_height --[[ + button_y ]]
@@ -7004,6 +7034,7 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local Style = FP.Style or 'Default'
     local Lbl_Pos = FP.Lbl_Pos
     local V_Pos = FP.V_Pos
+    local Effective_V_Pos = V_Pos or 'Within'
     local Height = FP.Height or Df.Sldr_H
     local Rounding = FX[FxGUID].Round
 
@@ -7012,7 +7043,8 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
 
 
 
-    im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, Height or FP.Height or Df.Sldr_H)
+    local FramePadY = FP.Height ~= nil and FP.Height or 0
+    im.PushStyleVar(ctx, im.StyleVar_FramePadding, 0, FramePadY)
     
 
     if FX[FxGUID].Morph_Value_Edit or (Mods == Alt + Ctrl and is_hovered) then im.BeginDisabled(ctx) end
@@ -7079,7 +7111,7 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     im.PushStyleColor(ctx, im.Col_FrameBgHovered, FP.BgClrHvr or im.GetColor(ctx, im.Col_FrameBgHovered))
 
 
-    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
+    Before_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, Effective_V_Pos)
     im.SetNextItemWidth(ctx, Sldr_Width)
     local DragSpeed = 0.01
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
@@ -7277,7 +7309,7 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     local ClrBg        = im.GetColor(ctx, im.Col_FrameBg)
     local cur_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
 
-    local tooltip_Tirgger = (is_active or is_hovered) and (FP.V_Pos == 'None' or  FP.V_Pos==nil )
+    local tooltip_Tirgger = (is_active or is_hovered) and (Effective_V_Pos == 'None' or  Effective_V_Pos==nil )
 
     local SzX, SzY = im.GetItemRectSize(ctx)
     local MsX, MsY = im.GetMousePos(ctx)
@@ -7325,7 +7357,7 @@ function AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
     
 
     Draw_Attached_Drawings(FP,FX_Idx, pos, cur_value,nil, FxGUID)
-    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, V_Pos)
+    After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V_Font, Format_P_V, FP, Lbl_Pos, Effective_V_Pos)
 
     im.Dummy(ctx,10,10)
     im.EndGroup(ctx)
@@ -8542,7 +8574,7 @@ function SaveLayoutEditings(FX_Name, FX_Idx, FxGUID)
             write('Custom Label', FP.CustomLbl)
             write('Link', FP.Link and FP.Link.Num )
             if FP.Link then goto Basic_Properties_End end
-            write('Type', FP.Type or FX[FxGUID].DefType or 'Slider')
+            write('Type', FP.Type or FX[FxGUID].DefType or 'Drag')
             
             write('Width', FP.Sldr_W)
             write('Style', FP.Style)

@@ -2377,8 +2377,6 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         HandleParallelFX(FX_Idx)
         HandleLayoutEditMode(FxGUID)
         SaveDefaultValues(FX_Idx, FX_Name)
-        HandleDefaultSliderWidth(FxGUID)
-        HandleDefaultParamType(FxGUID)
         im.EndPopup(ctx)
     end
 
@@ -4601,26 +4599,39 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
 
     local PrmCount = Load_from_Trk('Prm Count' ,  LT_Track, 'num') or 0
+    local ActualPrmCount = 0
+    for _, prm in ipairs(FX[FxGUID] or {}) do
+        if prm and prm.Num ~= nil then
+            ActualPrmCount = ActualPrmCount + 1
+        end
+    end
+    PrmCount = math.max(PrmCount, ActualPrmCount)
 
-    local Def_Sldr_W = 160
-    if FX.Def_Sldr_W[FxGUID] then Def_Sldr_W = FX.Def_Sldr_W[FxGUID] end
+    local Def_Sldr_W = Global_Default_Sldr_W or 160
+    FX.Def_Sldr_W[FxGUID] = Def_Sldr_W
+    FX[FxGUID].DefType = Global_Default_Param_Type or 'Drag'
 
     if FX[FxGUID].DefType == 'Slider' or FX[FxGUID].DefType == 'Drag' or not FX[FxGUID].DefType then
         local DF = (FX.Def_Sldr_W[FxGUID] or Df.Sldr_W)
-
-        local Ct = math.max(math.floor((PrmCount / 6 - 0.01)) + 1, 1)
+        local itemsPerColumn = 7
+        local Ct = math.max(math.floor((PrmCount / itemsPerColumn - 0.01)) + 1, 1)
 
         DefaultWidth = (DF + GapBtwnPrmColumns) * Ct
 
     elseif FX[FxGUID].DefType == 'Knob' then
         local Ct = math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
         DefaultWidth = Df.KnobSize * Ct + GapBtwnPrmColumns
+    elseif FX[FxGUID].DefType == 'V-Slider' then
+        DefaultWidth = math.max(220, (17 * math.max(PrmCount - 1, 0)) + 30)
     end
 
     if If_Need_To_Hide() then return end
     im.BeginGroup(ctx)
 
 
+    if not fx.Width_Collapse and DefaultWidth then
+        fx.Width = math.max(fx.Width or 0, DefaultWidth)
+    end
     local Width = fx.Width_Collapse or fx.Width or DefaultWidth or 220
     local dummyH = 220
     local  _, name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
@@ -4664,6 +4675,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         AddWindowBtn(FxGUID, FX_Idx,nil,nil,nil,nil,nil,Title_Btn_H)
         im.SetCursorPos(ctx, LeftColX + Title_Btn_Column_W - 4, LeftColY)
 
+        im.PushStyleVar(ctx, im.StyleVar_ChildRounding, FX_Title_Round or 0)
         if im.BeginChild(ctx, FX_Name .. FX_Idx, Main_Content_W, Main_Content_H, nil, im.WindowFlags_NoScrollbar | im.WindowFlags_NoScrollWithMouse) and not Hide then   ----START CHILD WINDOW------
             local fx = FX[FxGUID]
 
@@ -5415,19 +5427,28 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     ----Default Layouts
                     if not FP.PosX and not FP.PosY then
+                        local idx = Fx_P - 1
+                        local topPad = im.GetTextLineHeight(ctx)
                         if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' or FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag' and FP.Type == nil) then
-                            local Column = math.floor((Fx_P / 6) - 0.01)
-                            local W = ((FX[FxGUID][Fx_P - Column * 6].Sldr_W or FX.Def_Sldr_W[FxGUID] or 160) + GapBtwnPrmColumns) * Column
-                            local Y = 30 * (Fx_P - (Column * 6))
+                            local itemsPerColumn = 7
+                            local rowSpacing = 2
+                            local rowPitch = 30 + rowSpacing
+                            local row = idx % itemsPerColumn
+                            local Column = math.floor(idx / itemsPerColumn)
+                            local firstInColumn = Column * itemsPerColumn + 1
+                            local colW = FX[FxGUID][firstInColumn] and (FX[FxGUID][firstInColumn].Sldr_W or FX.Def_Sldr_W[FxGUID] or 160) or (FX.Def_Sldr_W[FxGUID] or 160)
+                            local W = (colW + GapBtwnPrmColumns) * Column
+                            local Y = topPad + (row * rowPitch)
                             im.SetCursorPos(ctx, W, Y)
                         elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider' and FP.Type == nil) then
-                            im.SetCursorPos(ctx, 17 * (Fx_P - 1), 30)
+                            im.SetCursorPos(ctx, 17 * idx, topPad)
                         elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
                             local KSz = Df.KnobSize
                             local G = 15
-                            local Column = math.floor(Fx_P / 3 - 0.1)
-
-                            im.SetCursorPos(ctx, KSz * (Column), 26 + (KSz + G) * (Fx_P - (Column * 3) - 1))
+                            local rowsPerColumn = 3
+                            local row = idx % rowsPerColumn
+                            local Column = math.floor(idx / rowsPerColumn)
+                            im.SetCursorPos(ctx, KSz * Column, topPad + (KSz + G) * row)
                         end
                     end
 
@@ -5558,7 +5579,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local pos =  { im.GetCursorScreenPos(ctx) }
 
                                 --- Add Parameter controls ---------
-                                if FP.Type == 'Slider' or (not FP.Type and not FX[FxGUID].DefType) or FX[FxGUID].DefType == 'Slider' then
+                                if FP.Type == 'Slider' or FX[FxGUID].DefType == 'Slider' then
                                     AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
                                     AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
@@ -5972,8 +5993,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             im.Dummy(ctx, 100, 100)
             im.EndChild(ctx)    
+            im.PopStyleVar(ctx)
                 
             Highlight_selected_FX(FX_Idx)
+        else
+            im.PopStyleVar(ctx)
         end
 
         -- Draw_Parallel_FX_Enclosure(FX_Idx, FxGUID, Parallel, PosX_before_FX_Win, im.GetWindowDrawList(ctx))
