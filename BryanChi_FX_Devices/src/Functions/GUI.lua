@@ -1474,7 +1474,15 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
         FX[FxGUID] = FX[FxGUID] or {}
         im.SetNextItemWidth(ctx, 40)
 
-        SyncWetValues(FX_Idx, FxGUID)
+        if SyncWetValues then
+            SyncWetValues(FX_Idx, FxGUID)
+        else
+            FX[FxGUID][0] = FX[FxGUID][0] or {}
+            FX[FxGUID][0].Num = FX[FxGUID][0].Num or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+            if FX[FxGUID][0].Num and FX[FxGUID][0].Num ~= -1 then
+                FX[FxGUID][0].V = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FX[FxGUID][0].Num)
+            end
+        end
         Wet.P_Num[FX_Idx] = Wet.P_Num[FX_Idx] or r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
 
         im.InvisibleButton(ctx, label, radius_outer * 2, radius_outer * 2 + line_height - 10 + item_inner_spacing[2])
@@ -1612,12 +1620,13 @@ function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterCl
         end
     end
 end
-function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer, NoVert)
+function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer, NoVert, VertBtnHeight)
     if not FX[FxGUID] then return end 
 
 
     local fx = FX[FxGUID]
     local WindowBtn 
+    local DragHitL, DragHitT, DragHitR, DragHitB
 
     local _, orig_Name = r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
     local isContainer = orig_Name == 'Container' and true
@@ -1689,6 +1698,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
         WinbtnClrPop = 3
 
     end
+    local Fx_Module_Menu_ID = 'Fx Module Menu##' .. FxGUID
     local function Rpt_If_Multi_Select_FX (func, ...)
         if If_Multi_Select_FX(FxGUID) then 
             for i, v in ipairs(Trk[TrkID].SelFX) do 
@@ -1749,7 +1759,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     
         if not CantCollapse then
             if R_ClickOnWindowBtn and Mods == Ctrl then
-                im.OpenPopup(ctx, 'Fx Module Menu')
+                im.OpenPopup(ctx, Fx_Module_Menu_ID)
     
             elseif R_ClickOnWindowBtn and Mods == 0  then
                 Long_Or_Short_FX_Idx = FX_Idx
@@ -1926,15 +1936,85 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             fx.NotFirstOpenPrmWin = nil
         end
     end
+    local function Handle_FX_DragDrop_Source(BeginDragDrop)
+        if not BeginDragDrop then return end
+        if Trk[TrkID].Sel_FX and Trk[TrkID].Sel_FX[1] and tablefind(Trk[TrkID].Sel_FX, FxGUID)  then
+            for i, v in ipairs( Trk[TrkID].Sel_FX )do
+                local id = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+                DragFX_ID_Table = {}
+                table.insert(DragFX_ID_Table , id )
+            end
+        else
+            DragFX_ID = FX_Idx
+            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
+        end
+        im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
+        im.EndDragDropSource(ctx)
+        DragDroppingFX = true
+        if IsAnyMouseDown == false then DragDroppingFX = false end
+        HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
+        Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FxGUID_DragFX)
+    end
     local function Create_Window_Btn()
+        local LastWetKnobL, LastWetKnobT, LastWetKnobR, LastWetKnobB
         local function Draw_Vert_Text(nm, x_offset, max_height)
             local x, y = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
             local x_ofs = x_offset or 8 
-            DrawTextWithSpacing(im.GetWindowDrawList(ctx), nm, x+x_ofs ,y+h-15 , 0xffffffff, 0.6, Font_Andale_Mono_Vertical_13, "vertical_up", max_height or 200)
+            -- Available height: from draw start (y+h-15) upward to top of button (y); cap to prevent top poking out
+            local available_height = math.max(0, h - 17)  -- 15 from bottom, 2px top padding
+            local effective_max = math.min(max_height or available_height, available_height)
+            DrawTextWithSpacing(im.GetWindowDrawList(ctx), nm, x+x_ofs ,y+h-15 , 0xffffffff, 0.6, Font_Andale_Mono_Vertical_13, "vertical_up", effective_max)
+        end
+        local function Add_WetDry_Knob_Below_Vert_Btn(Name)
+            if fx.NoWetKnob then return end
+            if not isContainer and FindStringInTable(SpecialLayoutFXs, Name) then return end
+            local orig_name_for_wet = orig_Name
+            if orig_name_for_wet and orig_name_for_wet:find('JS: ') then
+                orig_name_for_wet = string.sub(orig_name_for_wet, 5)
+            end
+            if not isContainer and FindStringInTable(PluginScripts, orig_name_for_wet) then return end
+
+            FX[FxGUID] = FX[FxGUID] or {}
+            FX[FxGUID][0] = FX[FxGUID][0] or {}
+            local wet_param = r.TrackFX_GetParamFromIdent(LT_Track, FX_Idx, ':wet')
+            if wet_param == -1 then return end
+            FX[FxGUID][0].V = FX[FxGUID][0].V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, wet_param)
+
+            local CursorX, CursorY = im.GetCursorPos(ctx)
+            local BtnL, BtnT = im.GetItemRectMin(ctx)
+            local BtnR, BtnB = im.GetItemRectMax(ctx)
+            local BtnW = BtnR - BtnL
+            local KnobW = WET_DRY_KNOB_SZ
+            local KnobX = BtnL + math.max((BtnW - KnobW) / 2, 0)
+            local KnobY = BtnB + 2
+            im.SetCursorScreenPos(ctx, KnobX, KnobY)
+            Wet.ActiveAny, Wet.Active, FX[FxGUID][0].V = Add_WetDryKnob(ctx, 'a', '', FX[FxGUID][0].V, 0, 1, FX_Idx,nil,FxGUID)
+            local kL, kT = im.GetItemRectMin(ctx)
+            local kR, kB = im.GetItemRectMax(ctx)
+            LastWetKnobL, LastWetKnobT, LastWetKnobR, LastWetKnobB = kL, kT, kR, kB
+            im.SetCursorPos(ctx, CursorX, CursorY)
+        end
+        local function Add_Container_Mod_Icon_Below_Vert_Btn()
+            if not isContainer then return end
+            if not Modulation_Icon then return end
+            local CursorX, CursorY = im.GetCursorPos(ctx)
+            local IconSz = 20
+            local baseL = LastWetKnobL or DragHitL
+            local baseR = LastWetKnobR or DragHitR
+            local baseB = LastWetKnobB or DragHitB
+            if not baseL or not baseR or not baseB then return end
+            local iconX = baseL + math.max((baseR - baseL - IconSz) / 2, 0)
+            local iconY = baseB
+            im.SetCursorScreenPos(ctx, iconX, iconY)
+            Modulation_Icon(LT_Track, fx.LowestID or FX_Idx)
+            im.SetCursorPos(ctx, CursorX, CursorY)
         end
         if fx.NoWindowBtn then return end 
-        if (not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width then
+        local Always_Vertical_Title_Btn = not NoVert and not width
+        local Vertical_Title_Btn_Height = VertBtnHeight or fx.V_Win_Btn_Height or 220
+        fx.Draw_Container_Title_Controls_In_Left_Column = nil
+        if (not Always_Vertical_Title_Btn) and ((not fx.Collapse and not fx.V_Win_Btn_Height --[[ or isContainer ]]) or NoVert or width) then
 
             local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) )
             if DebugMode then Name = FxGUID end
@@ -1943,6 +2023,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
             im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
             WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
+            Handle_FX_DragDrop_Source(im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip|im.DragDropFlags_SourceAllowNullID))
             im.PopStyleVar(ctx)
             if isContainer then
                 Highlight_Itm(WDL, nil, Cont_Clr)
@@ -1951,18 +2032,20 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             Add_Prm_Btn()
 
 
-        elseif (fx.V_Win_Btn_Height  ) or (isContainer ) or fx.Collapse then -- Vertical btn
+        elseif Always_Vertical_Title_Btn or (fx.V_Win_Btn_Height  ) or (isContainer ) or fx.Collapse then -- Vertical btn
             
             local Name = (fx.CustomTitle or ChangeFX_Name(select(2, r.TrackFX_GetFXName(LT_Track, FX_Idx))) )
             local is_T_Split = Name == "Transient Split" and true or nil
             local is_Mid_Side_Split = Name == "Mid Side Split" and true or nil
     
             if isContainer and not is_T_Split and not is_Mid_Side_Split then
+                fx.Draw_Container_Title_Controls_In_Left_Column = true
                 local W = WET_DRY_KNOB_SZ or 20
                 local clr = Cont_Clr
-                local pad_L = fx.Collapse and 3 or 6
+                local pad_L = 2
+                local BaseX, BaseY = im.GetCursorPos(ctx)
                 local img = fx.Cont_Collapse == 1 and Img.folder_list or (fx.Collapse or clr == 0xffffff99) and Img.Folder or Img.Folder_Open
-                im.SetCursorPosX(ctx, pad_L)
+                im.SetCursorPos(ctx, BaseX + pad_L, BaseY)
                 im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x00000000)
                 im.PushStyleColor(ctx, im.Col_Button, 0x00000000)
                 im.PushStyleColor(ctx, im.Col_ButtonActive, 0x00000000)
@@ -1972,20 +2055,41 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                     fx.Cont_Collapse = toggle(fx.Cont_Collapse, 1, 0 )
                 end
                 im.PopStyleColor(ctx,3)
-                im.SetCursorPosX(ctx, pad_L)
+                local CurY = im.GetCursorPosY(ctx)
+                im.SetCursorPos(ctx, BaseX + pad_L, CurY)
     
-                WindowBtn = im.Button(ctx,   '##' .. FxGUID, W, fx.V_Win_Btn_Height)
+                WindowBtn = im.Button(ctx,   '##' .. FxGUID, W, Vertical_Title_Btn_Height)
+                Handle_FX_DragDrop_Source(im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip|im.DragDropFlags_SourceAllowNullID))
+                local HitL, HitT = im.GetItemRectMin(ctx)
+                local HitW, HitH = im.GetItemRectSize(ctx)
+                DragHitL, DragHitT, DragHitR, DragHitB = HitL, HitT, HitL + HitW, HitT + HitH
                 Draw_Vert_Text(Name, 6, 200-W*3)    
+                Add_WetDry_Knob_Below_Vert_Btn(Name)
+                Add_Container_Mod_Icon_Below_Vert_Btn()
             elseif is_T_Split or is_Mid_Side_Split then
+                if isContainer then
+                    fx.Draw_Container_Title_Controls_In_Left_Column = true
+                end
                 local H =  170
                 local W =  30 
                 local x_ofs = fx.Collapse and 8 or 12
                 WindowBtn = im.Button(ctx,  '##' .. FxGUID, 30, 170 )
+                Handle_FX_DragDrop_Source(im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip|im.DragDropFlags_SourceAllowNullID))
+                local HitL, HitT = im.GetItemRectMin(ctx)
+                local HitW, HitH = im.GetItemRectSize(ctx)
+                DragHitL, DragHitT, DragHitR, DragHitB = HitL, HitT, HitL + HitW, HitT + HitH
                 Draw_Vert_Text(Name, x_ofs )                
+                Add_WetDry_Knob_Below_Vert_Btn(Name)
+                Add_Container_Mod_Icon_Below_Vert_Btn()
             else
 
-                WindowBtn = im.Button(ctx,  '##' .. FxGUID, 25, fx.V_Win_Btn_Height or 200 )
-                Draw_Vert_Text(Name)                
+                WindowBtn = im.Button(ctx,  '##' .. FxGUID, 25, Vertical_Title_Btn_Height )
+                Handle_FX_DragDrop_Source(im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip|im.DragDropFlags_SourceAllowNullID))
+                local HitL, HitT = im.GetItemRectMin(ctx)
+                local HitW, HitH = im.GetItemRectSize(ctx)
+                DragHitL, DragHitT, DragHitR, DragHitB = HitL, HitT, HitL + HitW, HitT + HitH
+                Draw_Vert_Text(Name)
+                Add_WetDry_Knob_Below_Vert_Btn(Name)
             end
     
     
@@ -1995,8 +2099,14 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     local function Store_Position_If_Dragging()
         if DragFX_ID == FX_Idx then
             -- Store the position of the dragged FX for the arrow
-            local x, y = im.GetItemRectMin(ctx)
-            local w, h = im.GetItemRectSize(ctx)
+            local x, y, w, h
+            if DragHitL and DragHitT and DragHitR and DragHitB then
+                x, y = DragHitL, DragHitT
+                w, h = DragHitR - DragHitL, DragHitB - DragHitT
+            else
+                x, y = im.GetItemRectMin(ctx)
+                w, h = im.GetItemRectSize(ctx)
+            end
             DragFX_Arrow_StartX  = x + w/2
             DragFX_Arrow_StartY = y 
            
@@ -2007,8 +2117,9 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
     Create_Window_Btn()
     im.PopStyleColor(ctx, WinbtnClrPop) -- win btn clr
-    local R_ClickOnWindowBtn = im.IsItemClicked(ctx, 1)
-    local L_ClickOnWindowBtn = im.IsItemClicked(ctx)
+    local Hover_Title_Btn_Area = DragHitL and DragHitT and DragHitR and DragHitB and im.IsMouseHoveringRect(ctx, DragHitL, DragHitT, DragHitR, DragHitB)
+    local R_ClickOnWindowBtn = Hover_Title_Btn_Area and IsRBtnClicked
+    local L_ClickOnWindowBtn = Hover_Title_Btn_Area and IsLBtnClicked
     local BgClr = not fx.Enable  and  0x00000088
     fx.Enable = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
     Store_Position_If_Dragging()
@@ -2022,7 +2133,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
 
-    if im.IsItemHovered(ctx) then
+    if Hover_Title_Btn_Area or im.IsItemHovered(ctx) then
         HelperMsg.L = 'Open FX Window'
         HelperMsg.R = 'Collapse'
         HelperMsg.Shift_L = 'Toggle Bypass'
@@ -2038,37 +2149,6 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
     ----==  Drag and drop----
-    if im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip) then
-
-        if Trk[TrkID].Sel_FX and Trk[TrkID].Sel_FX[1] and tablefind(Trk[TrkID].Sel_FX, FxGUID)  then 
-
-            for i, v in ipairs( Trk[TrkID].Sel_FX )do 
-                local id = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-                DragFX_ID_Table = {}
-                table.insert(DragFX_ID_Table , id )
-            end
-        else
-            DragFX_ID = FX_Idx
-            DragFxGuid = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-            
-            --[[ local arrowCoords = {
-            startX = DragFX_Arrow_StartX,
-            startY = DragFX_Arrow_StartY,
-            endX = x + w/2,
-            endY = y + h/2
-        }
-            DrawArrow(arrowCoords, 0xCCFFFF66, 2, 12) ]]
-        end
-        im.SetDragDropPayload(ctx, 'FX_Drag', FX_Idx)
-        im.EndDragDropSource(ctx)
-       -- Show_Drag_FX_Preview_Tooltip(FxGUID, FX_Idx)
-
-        DragDroppingFX = true
-        if IsAnyMouseDown == false then DragDroppingFX = false end
-        HighlightSelectedItem(0xffffff22, 0xffffffff, 0, L, T, R, B, h, w, H_OutlineSc, V_OutlineSc, 'GetItemRect', WDL)
-        Post_DragFX_ID = tablefind(Trk[TrkID].PostFX, FxGUID_DragFX)
-    end
-
     if IsAnyMouseDown == false and DragDroppingFX == true then
         DragDroppingFX = false
     end
@@ -2085,7 +2165,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
 
     AddPrmPopup()
-    if im.BeginPopup(ctx, 'Fx Module Menu') then
+    if im.BeginPopup(ctx, Fx_Module_Menu_ID) then
         local function Preset_Morph()
             if not fx.MorphA then
                 if im.Button(ctx, 'Preset Morphing', 160) then
@@ -4202,16 +4282,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             local function Add_FX_Btn ()
 
                                 if I == #v then 
-                                    local function Draw_Line_To_Menu(FX_Idx)
-                                        if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx) then 
-                                            local X, Y = im.GetItemRectMax(ctx)
-                                            local W, H = im.GetItemRectSize(ctx)
-                                            local Y = Y - H / 2 
+                                    local function Draw_Line_To_Menu(IsPopupOpenNow, BtnL, BtnT, BtnR, BtnB)
+                                        if IsPopupOpenNow then 
+                                            local X = BtnR
+                                            local Y = BtnT + (BtnB - BtnT) / 2
 
                                             local Vert_Line_Leng = Y -  (VP.Y - 300 )
 
                                             im.DrawList_AddLine(Glob.FDL , X , Y, X + 16 , Y , 0xffffffff, 3 )
                                             im.DrawList_AddLine(Glob.FDL , X+15 , Y , X + 15 , Y - Vert_Line_Leng  , 0xffffffff, 3 )
+                                            im.DrawList_AddRect(Glob.FDL, BtnL, BtnT, BtnR, BtnB, 0xffffffaa, 3, nil, 2)
+                                            im.DrawList_AddRectFilled(Glob.FDL, BtnL, BtnT, BtnR, BtnB, 0xffffff2a, 3)
 
                                         end
                                     end
@@ -4220,6 +4301,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     im.PushFont(ctx, Arial_14)
 
                                     local clickBtn = im.Button(ctx, '+'..'##Add FX Button'..V.addr_fxid.. V.guid, 120 + height*2, height)
+                                    local BtnL, BtnT = im.GetItemRectMin(ctx)
+                                    local BtnR, BtnB = im.GetItemRectMax(ctx)
 
                                     im.PopFont(ctx)
                                     im.PopStyleColor(ctx)
@@ -4227,6 +4310,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     local FillClr= rv and 0xffffff33
                                     local L, T, R, B, w, h = HighlightSelectedItem(FillClr, 0xffffff77, 0, nil,nil,nil,nil, nil, nil , 1,1, 'GetItemRect', nil, nil, 2) 
                                     local scale = v[1].addr_fxid> 0x2000000 and V.scale or 1 
+                                    local Popup_FX_Idx = V.addr_fxid + scale
                                     if rv then
                                         local DL = WDL or Glob.FDL or im.GetWindowDrawList(ctx)
                                         if rv == V.addr_fxid then
@@ -4237,10 +4321,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                     end
                                     if clickBtn and Mods == 0 then 
 
-                                        im.OpenPopup(ctx, 'Btwn FX Windows' .. V.addr_fxid + scale)
-                                        local X, Y = im.GetItemRectMax(ctx)
-                                        local W, H = im.GetItemRectSize(ctx)
-                                        im.SetNextWindowPos(ctx, X , VP.Y- 300)
+                                        im.SetNextWindowPos(ctx, BtnR , VP.Y- 300)
+                                        im.OpenPopup(ctx, 'Btwn FX Windows' .. Popup_FX_Idx)
 
 
                                     elseif clickBtn and Mods == Alt then 
@@ -4252,8 +4334,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                         HelperMsg.L = 'Add new FX'
                                         HelperMsg.Alt_L = 'Add a new Container'
                                     end
-                                    AddFX_Menu(V.addr_fxid + scale, nil,nil, true)
-                                    Draw_Line_To_Menu(V.addr_fxid + scale)
+                                    local PopupOpenNow = im.IsPopupOpen(ctx, 'Btwn FX Windows' .. Popup_FX_Idx)
+                                    if PopupOpenNow then
+                                        im.SetNextWindowPos(ctx, BtnR , VP.Y- 300)
+                                    end
+                                    AddFX_Menu(Popup_FX_Idx, nil,nil, true)
+                                    PopupOpenNow = PopupOpenNow or (clickBtn and Mods == 0)
+                                    if (PopupOpenNow or clickBtn) and (DebugMode or true) then
+                                        r.ShowConsoleMsg(string.format('[AddFX Btn] PopupID=%s PopupOpen=%s clickBtn=%s Mods=%s Draw=%s Btn=%.0f,%.0f,%.0f,%.0f Glob.FDL=%s\n',
+                                            'Btwn FX Windows'..Popup_FX_Idx, tostring(PopupOpenNow), tostring(clickBtn), tostring(Mods), tostring(PopupOpenNow), BtnL or 0, BtnT or 0, BtnR or 0, BtnB or 0, tostring(Glob.FDL)))
+                                    end
+                                    Draw_Line_To_Menu(PopupOpenNow, BtnL, BtnT, BtnR, BtnB)
 
                                 end
 
@@ -4540,12 +4631,40 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
     local function Make_Window()
         local WindowSize
+        local Title_Btn_Column_W = 30
+        local Main_Content_H = 225
+        local Wet_Knob_Gap = 2
+        local Mod_Icon_Sz = 20
+        local Mod_Icon_Gap = 0
+        local _, ItemSpacingY = im.GetStyleVar(ctx, im.StyleVar_ItemSpacing)
+        local _, ItemInnerSpacingY = im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing)
+        local Wet_Knob_H = (WET_DRY_KNOB_SZ or 20) + im.GetTextLineHeight(ctx) - 10 + (ItemInnerSpacingY or 0)
+        local Reserve_Below_Title = Wet_Knob_Gap + Wet_Knob_H
+        if isContainer then
+            local Folder_Icon_Footprint = (WET_DRY_KNOB_SZ or 20) + (ItemSpacingY or 0)
+            Reserve_Below_Title = Reserve_Below_Title + Folder_Icon_Footprint
+        end
+        if isContainer then
+            Reserve_Below_Title = Reserve_Below_Title + Mod_Icon_Sz + Mod_Icon_Gap
+        end
+        if isContainer then
+            Reserve_Below_Title = Reserve_Below_Title + 30
+        end
+        local Title_Btn_H = math.max(Main_Content_H - Reserve_Below_Title, 20)
+        local Main_Content_W = math.max((Width or 220), 40)
             
 
 
         PosX_before_FX_Win =  im.GetCursorScreenPos(ctx)
+        WDL = im.GetWindowDrawList(ctx)
+        local LeftColX, LeftColY = im.GetCursorPos(ctx)
+        local LeftColScreenX, LeftColScreenY = im.GetCursorScreenPos(ctx)
+        local LeftPanelClr = FX[FxGUID].TitleClr or ThemeClr('FX_Btn_BG_Clr')
+        im.DrawList_AddRectFilled(WDL, LeftColScreenX, LeftColScreenY, LeftColScreenX + Title_Btn_Column_W, LeftColScreenY + Main_Content_H, LeftPanelClr, FX_Title_Round)
+        AddWindowBtn(FxGUID, FX_Idx,nil,nil,nil,nil,nil,Title_Btn_H)
+        im.SetCursorPos(ctx, LeftColX + Title_Btn_Column_W - 4, LeftColY)
 
-        if im.BeginChild(ctx, FX_Name .. FX_Idx, Width, 225, nil, im.WindowFlags_NoScrollbar | im.WindowFlags_NoScrollWithMouse) and not Hide then   ----START CHILD WINDOW------
+        if im.BeginChild(ctx, FX_Name .. FX_Idx, Main_Content_W, Main_Content_H, nil, im.WindowFlags_NoScrollbar | im.WindowFlags_NoScrollWithMouse) and not Hide then   ----START CHILD WINDOW------
             local fx = FX[FxGUID]
 
             -- Track whether this is a container
@@ -4556,7 +4675,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             WDL = im.GetWindowDrawList(ctx)
 
             Win_L, Win_T = im.GetItemRectMin(ctx); Win_W, Win_H = im.GetItemRectSize(ctx)
-            Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
+            Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + Main_Content_H
             local function Disable_If_LayEdit(Begin_or_End)
                 if (FX.LayEdit == FxGUID or Draw.DrawMode == FxGUID) and Mods ~= Cmd then
                     if Begin_or_End =='Begin' then 
@@ -4637,7 +4756,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             LE.ChangingTitleSize = true
                             LE.MouseX_before, _ = im.GetMousePos(ctx)
                         elseif IsRBtnClicked and Mods == 0 then
-                            im.OpenPopup(ctx, 'Fx Module Menu')
+                            im.OpenPopup(ctx, 'Fx Module Menu##' .. FxGUID)
                         end
                     end
 
@@ -5163,10 +5282,6 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
             Draw_Background(FxGUID)
             If_LayEdit_Activated()
-
-            im.SameLine(ctx, nil, 0)
-
-            Window_Title_Area()
 
             Disable_If_LayEdit('Begin')
 
@@ -5984,24 +6099,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             --HOVER_RECT = im.IsWindowHovered(ctx,  im.HoveredFlags_RectOnly)
             HoverOnWindow = im.IsWindowHovered(ctx, im.HoveredFlags_AllowWhenBlockedByActiveItem)
             WinW          = im.GetWindowSize(ctx)
-            local function Draw_Lines_If_Popup_Open()
-
-                if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx)  then 
-                    local WinW, WinH = im.GetWindowSize(ctx)
-                    local L,T = im.GetWindowPos(ctx)
-                    local WDL = im.GetWindowDrawList(ctx)
-                    local w,h = im.GetItemRectSize(ctx)
-                    local l ,t = im.GetItemRectMin(ctx)
-                    local z = 20 
-                    local ctX, ctY = l + w/2  , t + h /2
-                    local x1, x2 = ctX - z /2  , ctX+ z /2 
-                    local y1 ,y2 = ctY - z/2 ,  ctY + z/2
-                    im.DrawList_AddRect(WDL, x1, y1, x2, y2 , 0xffffffff  )
-                    im.DrawList_AddLine(Glob.FDL, ctX, y1 ,ctX, T-WinH, 0xffffffff ,3)
-
-                end
-            end
-            
+            local SpaceBtnL, SpaceBtnT, SpaceBtnR, SpaceBtnB
 
             if HoverOnWindow == true and Dragging_TrueUntilMouseUp ~= true and DragDroppingFX ~= true and AssignWhichParam == nil and Is_ParamSliders_Active ~= true and Wet.ActiveAny ~= true and Knob_Active ~= true and not Dvdr.JustDroppedFX and LBtn_MousdDownDuration < 0.2 
                 or Sel_Track_FX_Count == 0 or AddLastSpace  then
@@ -6026,16 +6124,16 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 im.PushFont(ctx, Arial_30)
                 im.PushStyleColor(ctx, im.Col_Button, 0x000000ff)
                 local btn  = im.Button(ctx, BtnSign..'##Button between Windows', w, 220)
-                Draw_Lines_If_Popup_Open()
                 im.PopStyleColor(ctx)
                 im.PopFont(ctx)
-                local l ,t = im.GetItemRectMin(ctx)
+                local BtnL, BtnT = im.GetItemRectMin(ctx)
+                local BtnR, BtnB = im.GetItemRectMax(ctx)
+                SpaceBtnL, SpaceBtnT, SpaceBtnR, SpaceBtnB = BtnL, BtnT, BtnR, BtnB
 
                 FX_Insert_Pos = FX_Idx
 
                 if btn then
-                    local x, y = im.GetCursorScreenPos(ctx)
-                    im.SetNextWindowPos(ctx,l ,VP.Y-300)
+                    im.SetNextWindowPos(ctx, BtnR, VP.Y - 300)
                     im.OpenPopup(ctx, 'Btwn FX Windows' .. FX_Idx)
                 end
                 im.PopStyleColor(ctx, 2)
@@ -6055,15 +6153,16 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
             if im.IsPopupOpen(ctx, 'Btwn FX Windows' .. FX_Idx) then 
                 ADD_FX_MENU_WIN_SZ_X, ADD_FX_MENU_WIN_SZ_Y = im.GetWindowSize(ctx)
-                local l, t  = im.GetItemRectMin(ctx)
-                local w, h  = im.GetItemRectSize(ctx)
-                local WDL = im.GetWindowDrawList(ctx)
-                local h = 220 
-                im.DrawList_AddLine(Glob.FDL, l+w/2 , t, l+w/2, t- 20 , 0xffffffff, 3)
-                
-                im.DrawList_AddRect(WDL, l , t, l+w, t+h , 0xffffffff)
-                im.DrawList_AddRect(WDL, l , t, l+w, t+h , 0xffffffff)
-
+                if SpaceBtnL and SpaceBtnR then
+                    im.SetNextWindowPos(ctx, SpaceBtnR, VP.Y - 300)
+                    local X = SpaceBtnR
+                    local Y = SpaceBtnT + (SpaceBtnB - SpaceBtnT) / 2
+                    local Vert_Line_Leng = Y - (VP.Y - 300)
+                    im.DrawList_AddLine(Glob.FDL, X, Y, X + 16, Y, 0xffffffff, 3)
+                    im.DrawList_AddLine(Glob.FDL, X + 15, Y, X + 15, Y - Vert_Line_Leng, 0xffffffff, 3)
+                    im.DrawList_AddRect(Glob.FDL, SpaceBtnL, SpaceBtnT, SpaceBtnR, SpaceBtnB, 0xffffffaa, 3, nil, 2)
+                    im.DrawList_AddRectFilled(Glob.FDL, SpaceBtnL, SpaceBtnT, SpaceBtnR, SpaceBtnB, 0xffffff2a, 3)
+                end
             end
 
             im.EndChild(ctx)

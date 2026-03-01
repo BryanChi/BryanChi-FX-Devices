@@ -1,0 +1,73 @@
+noindex: true
+
+desc:FXD Mid Side Splitter
+author:BryanChi FX Devices
+tags:mid side splitter m/s encode
+
+/*
+  Splits stereo L/R signal into Mid and Side components.
+  - Mid = (L + R) / 2  (center/ mono content)
+  - Side = (L - R) / 2 (stereo width content)
+
+  Outputs:
+  - Channels 0/1: Mid (stereo - same signal on both)
+  - Channels 2/3: Side (stereo - L-R on left, R-L on right)
+
+  Uses gmem for signal visualization in FX Devices (Mid/Side buttons).
+*/
+
+options:gmem=FXD_MidSide_Splitter
+
+// Slider 1: gmem offset for multi-instance support (0-1, set by Lua)
+slider1:gmem_offset=0<0,1,0.001>-gmem offset
+
+in_pin:left input
+in_pin:right input
+out_pin:left mid
+out_pin:right mid
+out_pin:left side
+out_pin:right side
+
+@init
+// gmem layout: base + 10 = active flag, base + 2100 = mid level, base + 2101 = side level
+GMEM_ACTIVE = 10;
+GMEM_MID = 2100;
+GMEM_SIDE = 2101;
+
+// Peak followers for level metering (0-1 range for Lua visualization)
+mid_peak = 0;
+side_peak = 0;
+peak_decay = 0.9995; // ~60dB/sec decay
+
+gmem_base = 0;
+
+@slider
+// Compute gmem base from offset (Lua: actual_offset = floor(norm*8000*1000))
+gmem_base = floor(gmem_offset * 8000 * 1000);
+
+@block
+
+@sample
+// M/S encode: extract Mid and Side from L/R
+inL = spl0;
+inR = spl1;
+
+mid = (inL + inR) * 0.5;
+side_l = (inL - inR) * 0.5;
+side_r = (inR - inL) * 0.5;
+
+// Output Mid on channels 0/1, Side on channels 2/3
+spl0 = mid;
+spl1 = mid;
+spl2 = side_l;
+spl3 = side_r;
+
+// Peak followers for visualization (write to gmem)
+mid_peak = max(abs(mid), mid_peak * peak_decay);
+side_peak = max(max(abs(side_l), abs(side_r)), side_peak * peak_decay);
+
+// Write levels to gmem for Lua visualization (~60fps update via smoothing)
+// Values 0-1, Lua reads from gmem_base + GMEM_*
+gmem[gmem_base + GMEM_ACTIVE] = 1;
+gmem[gmem_base + GMEM_MID] = mid_peak;
+gmem[gmem_base + GMEM_SIDE] = side_peak;

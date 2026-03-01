@@ -10,7 +10,7 @@ if FX_Name == 'Mid' or FX_Name == 'Side'  then return end
 fx.TitleWidth  = 0
 --fx.CustomTitle = fx.Name
 if  Animate_FX_Width ~=FxGUID and not FX[PluginScript.Guid].Width_Before_Collapse then 
-    fx.Width =     35 +10
+    fx.Width = 10
 end
 
 fx.V_Win_Btn_Height = fx.V_Win_Btn_Height or  130 
@@ -22,6 +22,7 @@ local ModIconSz = 20
 local ModIconImgSz = 16
 local Top_Spacing = 0
 local Modulator_Outline_Clr = 0xffffff22
+local FX_Title_Column_Effective_W = 26 -- 30px left column with 4px overlap in main child
 LFO_Box_Size = 38
 local Root_ID = 0
 if FX_Idx < 0x2000000 then Root_ID = FX_Idx   Root_FxGuid = FxGUID end 
@@ -63,10 +64,11 @@ local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     end
     if not fx or not FxGUID then return end
 
-    local W = FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170
+    local Is_Split_Container = FX_Name and (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split'))
+    local W = (FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170) + (Is_Split_Container and 0 or FX_Title_Column_Effective_W)
    if If_FX_Is_In_Blacklist(FX_Name, {'Transient', 'Sustain', 'Mid', 'Side'}) then W = 0 end 
     
-    fx.Width = ( fx.Width or 0) + (W or 0) +( LastSpc or 0)
+    fx.Width = ( fx.Width or 0) + (W or 0) + (Is_Split_Container and 0 or (LastSpc or 0))
 end
 local function If_Transient_Split_Exists(str)
     if FX_Name ~= str then return end 
@@ -78,11 +80,42 @@ local function If_Transient_Split_Exists(str)
         if Nm:find('FXD Containr Macro') then 
             idx = tonumber( select(2, r.TrackFX_GetNamedConfigParm(LT_Track,FX_Idx, 'container_item.1')))
         end
-        SL(nil, 0)
-        im.SetCursorPosY(ctx, 0)
+        im.SetCursorPos(ctx, -FX_Title_Column_Effective_W, 0)
+        local SplitX, SplitY = im.GetCursorScreenPos(ctx)
         createFXWindow(idx)
         local FxGUID = r.TrackFX_GetFXGUID(LT_Track, idx)
+        local _, RenderedFxName = r.TrackFX_GetFXName(LT_Track, idx)
+        local SPLIT_COLLAPSED_W = 80
+        if FX[FxGUID] then
+            local use_collapsed_w = (FX[FxGUID].Cont_Collapse == 1)
+                or (RenderedFxName and (RenderedFxName:find('Amplitude Splitter') or RenderedFxName:find('Mid Side Splitter'))
+                    and not FX[FxGUID].ChosenContainer)
+            if use_collapsed_w then
+                FX[FxGUID].Width_Collapse = SPLIT_COLLAPSED_W
+            else
+                FX[FxGUID].Width_Collapse = nil
+            end
+        end
         Add_Width(nil, FxGUID, idx, str)
+        local function Draw_Split_Boundary_By_Content()
+            local WDL = im.GetWindowDrawList(ctx)
+            local Thick = 4
+            local Tick = 12
+            local Bracket_H = 225
+            local Clr = ThemeClr('Accent_Clr_Dark')
+            local Content_W = (FX[FxGUID] and (FX[FxGUID].Width_Collapse or FX[FxGUID].Width)) or 170
+            local L = SplitX
+            local T = SplitY
+            local B = T + Bracket_H
+            local R = L + Content_W
+            im.DrawList_AddLine(WDL, L, T, L, B, Clr, Thick)
+            im.DrawList_AddLine(WDL, L, T, L + Tick, T, Clr, Thick)
+            im.DrawList_AddLine(WDL, L, B, L + Tick, B, Clr, Thick)
+            im.DrawList_AddLine(WDL, R, T, R, B, Clr, Thick)
+            im.DrawList_AddLine(WDL, R, T, R - Tick, T, Clr, Thick)
+            im.DrawList_AddLine(WDL, R, B, R - Tick, B, Clr, Thick)
+        end
+        Draw_Split_Boundary_By_Content()
         return true
     end
 end
@@ -248,7 +281,7 @@ local function Set_Midi_Output_To_Bus1() --sets to 'Merge Container Bus1 to pare
     end  
 end
 
-local function Modulation_Icon(LT_Track, slot)
+function Modulation_Icon(LT_Track, slot)
     im.PushStyleVar(ctx, im.StyleVar_FrameRounding, 4)
     im.PushStyleVar(ctx, im.StyleVar_FrameBorderSize, 1)
     local bg_clr = fx.TitleClr or ThemeClr('FX_Title_Clr')
@@ -312,6 +345,7 @@ local function Modulation_Icon(LT_Track, slot)
 end
 
 local function titleBar()
+    if fx.Draw_Container_Title_Controls_In_Left_Column then return end
     --if not fx.Collapse then
         local W = 33
         SyncWetValues(FX_Idx)
@@ -891,6 +925,27 @@ local function DragDropToCollapseView (FX_Id,Xpos, GUID, v)
     end 
 end
 
+local function Get_Empty_Container_Insert_FX_Id()
+    local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder
+    if FxGUID ~= Root_FxGuid then
+        local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
+        local function Get_Fx_Ct(TB, base_FX_Ct)
+            local C = Check_If_Has_Children_Prioritize_Empty_Container(TB)
+            if not C then -- if container has no children
+                Final_FX_Ct = base_FX_Ct
+            else
+                local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
+                Get_Fx_Ct(C, Nxt_Lyr_FX_Ct)
+            end
+            return Final_FX_Ct
+        end
+        local FX_Ct = Get_Fx_Ct(TREE, Rt_FX_Ct)
+        Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1)
+        FX_Id = Empty_Cont_Fx_Id
+    end
+    return FX_Id
+end
+
 local function DndFXtoContainer_TARGET(action_type)
     -- Only push style color for ADD action
     --[[ if action_type == 'ADD' then
@@ -921,28 +976,7 @@ local function DndFXtoContainer_TARGET(action_type)
         end
         
         if dropped and Mods == 0 then
-            local FX_Id = 0x2000000 + 1*(r.TrackFX_GetCount(LT_Track)+1) + (Root_ID+1) -- root containder  
-
-            if FxGUID ~= Root_FxGuid then 
-                local Rt_FX_Ct = r.TrackFX_GetCount(LT_Track) + 1
-                
-                local function Get_Fx_Ct(TB, base_FX_Ct)
-                    local C = Check_If_Has_Children_Prioritize_Empty_Container(TB)
-
-                    if not C then -- if container has no children
-                        Final_FX_Ct = base_FX_Ct
-                    else
-                        local Nxt_Lyr_FX_Ct = base_FX_Ct * (#C + 1)
-                        Get_Fx_Ct(C, Nxt_Lyr_FX_Ct)
-                    end
-
-                    return Final_FX_Ct
-                end
-
-                local FX_Ct = Get_Fx_Ct(TREE, Rt_FX_Ct)
-                Empty_Cont_Fx_Id = FX_Idx + (FX_Ct * 1)
-                FX_Id = Empty_Cont_Fx_Id
-            end
+            local FX_Id = Get_Empty_Container_Insert_FX_Id()
             
             -- Perform different actions based on type
             if action_type == 'ADD' then
@@ -1048,7 +1082,7 @@ local function Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
             local guid = r.TrackFX_GetFXGUID(LT_Track,fx.Sel_Preview)
             -- Only update width if we have a preview FX
             if guid then
-                local preview_width = FX[guid].Width or 170
+                local preview_width = (FX[guid].Width or 170) + FX_Title_Column_Effective_W
                 fx.Width = 210 + preview_width  -- Base width (210) + preview FX width
             end
         end
@@ -1057,9 +1091,19 @@ end
 
 local function If_Container_Is_Empty()
     if tonumber( FX_Count) == 0 then 
-        local X, Y = im.GetCursorPos(ctx, X, Y)
-        im.SetCursorPos(ctx, X-50 , Y)
-        im.InvisibleButton(ctx, 'DropDest'..FxGUID , 90 , 210) 
+        local EmptyBtnW, EmptyBtnH = 35, 225
+        fx.Width = EmptyBtnW
+        local X = im.GetCursorPosX(ctx)
+        im.SetCursorPos(ctx, X, Top_Spacing)
+        if im.Button(ctx, '+' .. '##EmptyContainerAdd' .. FxGUID, EmptyBtnW, EmptyBtnH) then
+            local InsertFX_ID = Get_Empty_Container_Insert_FX_Id()
+            local BtnR, BtnT = im.GetItemRectMax(ctx)
+            TRACK = LT_Track
+            im.SetNextWindowPos(ctx, BtnR, VP.Y - 300)
+            im.OpenPopup(ctx, 'Btwn FX Windows' .. InsertFX_ID)
+        end
+        local InsertFX_ID = Get_Empty_Container_Insert_FX_Id()
+        AddFX_Menu(InsertFX_ID, nil, nil, true)
         --second_layer_container_id = first_layer_container_id + (first_layer_fx_count * second_layer_container_pos)
 
         DndFXtoContainer_TARGET('ADD')
@@ -1228,6 +1272,23 @@ local function Main(TB, X, Y)
         local WDL = im.GetWindowDrawList(ctx)
         -- Draw main container bracket
         local Thick = 4
+        local Bracket_H = 225
+        local function Get_Container_Total_W()
+            if fx.Collapse then
+                return fx.Width_Collapse or 27
+            end
+            if fx.Cont_Collapse == 1 then
+                local preview_w = 0
+                if fx.Sel_Preview then
+                    local guid = r.TrackFX_GetFXGUID(LT_Track, fx.Sel_Preview)
+                    if guid then
+                        preview_w = (FX[guid].Width or 170) + FX_Title_Column_Effective_W
+                    end
+                end
+                return 210 + preview_w
+            end
+            return fx.Width or 190
+        end
         -- Calculate nesting level based on container hierarchy
         local nestingLevel = 0
         if Upcoming_Container_Parent then
@@ -1244,10 +1305,11 @@ local function Main(TB, X, Y)
         fx.nestingLevel = nestingLevel
         local bracketColor = Calculate_Color_Based_On_Nesting_Level(nestingLevel)
         local l = X
+        local totalW = Get_Container_Total_W()
 
         if not fx.Collapse then 
             --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
-            local r = X+ (fx.Width or 190)  -35
+            --local r = X+ (fx.Width or 190)  -35
         -- HighlightSelectedItem(nil, ThemeClr('Accent_Clr_Dark'), 2, l, Y, r , Y+220, h, w, 0.1, 2, 'no', Foreground, 4, 4)
             local WDL = im.GetWindowDrawList(ctx)
             --im.DrawList_AddRect(WDL ,XX - 33, YY, XX+fx.Width -35, YY+220, 0xffffffff)
@@ -1257,22 +1319,28 @@ local function Main(TB, X, Y)
             
             -- Shift hue based on container nesting level
             -- Left bracket
-            im.DrawList_AddLine(WDL, l, Y, l, Y + 220, bracketColor, Thick) -- Vertical line
+            im.DrawList_AddLine(WDL, l, Y, l, Y + Bracket_H, bracketColor, Thick) -- Vertical line
             im.DrawList_AddLine(WDL, l, Y, l + 12, Y, bracketColor, Thick) -- Top horizontal
-            im.DrawList_AddLine(WDL, l, Y + 220, l + 12, Y + 220, bracketColor, Thick) -- Bottom horizontal
+            im.DrawList_AddLine(WDL, l, Y + Bracket_H, l + 12, Y + Bracket_H, bracketColor, Thick) -- Bottom horizontal
             
             -- Right bracket
-            local rightX = X + (fx.Width or 190) - 35
-            im.DrawList_AddLine(WDL, rightX, Y, rightX, Y + 220, bracketColor, Thick) -- Vertical line
+            local rightX = X + totalW
+            im.DrawList_AddLine(WDL, rightX, Y, rightX, Y + Bracket_H, bracketColor, Thick) -- Vertical line
             im.DrawList_AddLine(WDL, rightX, Y, rightX - 12, Y, bracketColor, Thick) -- Top horizontal
-            im.DrawList_AddLine(WDL, rightX, Y + 220, rightX - 12, Y + 220, bracketColor, Thick) -- Bottom horizontal
+            im.DrawList_AddLine(WDL, rightX, Y + Bracket_H, rightX - 12, Y + Bracket_H, bracketColor, Thick) -- Bottom horizontal
         else  -- if Collapsed
-           im.DrawList_AddRect(WDL, l, Y, l+ (fx.Width_Collapse or 27), Y + 220, bracketColor)
+           im.DrawList_AddRect(WDL, l, Y, l + totalW, Y + Bracket_H, bracketColor)
         end 
     end
     
-    -- Skip drawing enclosure brackets for split types or empty container
-    if not (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split')) and tonumber(FX_Count or 0) > 0 then
+    -- Draw enclosure brackets when container has children (skip when inside split - split draws its own boundaries)
+    local parent_cont = tonumber(select(2, r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'parent_container')))
+    local is_inside_split = false
+    if parent_cont then
+        local _, parent_name = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'renamed_name')
+        is_inside_split = parent_name and (parent_name:find('Transient Split') or parent_name:find('Mid Side Split'))
+    end
+    if tonumber(FX_Count or 0) > 0 and not  then
         Enclose_With_Brackets()
     end
 
@@ -1303,6 +1371,7 @@ end
 macroPage(TB)
 im.Dummy(ctx, 5,10)
 if If_Transient_Split_Exists('Transient Split') then return end 
+if If_Transient_Split_Exists('Mid Side Split') then return end 
 if If_Transient_Split_Exists('Mid Side Splitter') then return end 
 
 If_Container_Is_Empty()

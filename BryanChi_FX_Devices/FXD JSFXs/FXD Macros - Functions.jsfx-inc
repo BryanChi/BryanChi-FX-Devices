@@ -1634,7 +1634,8 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
 
   );
 
-function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
+function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num) local(note_idx, held_before, i, held_now)(
+  HeldNoteBase = 950000; // dedicated local-memory region for 16*128 held-note flags
 
   while (midirecv(offset, msg1, msg2, msg3)) (
     // get noteons and noteoffs from all channels
@@ -1645,7 +1646,6 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
       msg3 != 0 ? (   // and velocity is not 0 
         // midi_bus = 15;
         midinote = msg2;
-        NoteOn = 1  ;
         // msg3 == Velocity
         midiamp =  128; // /msg33   // if you want Velocity involved use msg 3
 
@@ -1666,16 +1666,30 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
 
         Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (trkGUID_Num , msg3/127, RAND1, RAND2, RAND3, midinote/127, midinote/127, midinote/127);
 
-        TotalNotesHeld+=1;
+        note_idx = channel * 128 + msg2;
+        held_before = HeldNoteBase[note_idx];
+        held_before <= 0 ? (
+          HeldNoteBase[note_idx] = 1;
+        );
         SetBpTo0_All (midinote);
         midisend(offset,msg1,msg2, NOTE_ON_VELO* 127); 
-      ) ;
+      ) : ( // note-on with velocity 0 = note-off
+        note_idx = channel * 128 + msg2;
+        held_before = HeldNoteBase[note_idx];
+        held_before > 0 ? (
+          HeldNoteBase[note_idx] = 0;
+        );
+        msg2 == midinote ? midiamp = 0;
+        midisend(offset,msg1,msg2,msg3);
+      );
     ):(noteStatus == $x80) ? (    // $x80 is probably note off
       // noteoff
+      note_idx = channel * 128 + msg2;
+      held_before = HeldNoteBase[note_idx];
+      held_before > 0 ? (
+        HeldNoteBase[note_idx] = 0;
+      );
       msg2 == midinote ? midiamp = 0;
-      TotalNotesHeld = max(TotalNotesHeld-1, 0);
-      SetBPToRel_Node_All();  
-      NoteOn = 0;
       midisend(offset,msg1,msg2,msg3);
       
     ) : (
@@ -1687,7 +1701,20 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num)(
 
 
 
-  NoteOn ? (
+  held_now = 0;
+  i = 0;
+  while (i < 2048) (
+    held_now += (HeldNoteBase[i] > 0);
+    i += 1;
+  );
+  PrevTotalNotesHeld > 0 && held_now == 0 ? (
+    SetBPToRel_Node_All();
+  );
+  TotalNotesHeld = held_now;
+  NoteOn = (TotalNotesHeld > 0);
+  PrevTotalNotesHeld = TotalNotesHeld;
+
+  TotalNotesHeld > 0 ? (
 
     Mc1.DoMidiTriggeredActions();
     Mc2.DoMidiTriggeredActions();
@@ -1838,11 +1865,20 @@ function BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num)(
   );
 );
 
-function BLOCK__Calculate_How_Many_Notes_Are_Held()(
+function BLOCK__Calculate_How_Many_Notes_Are_Held() local(i)(
+  HeldNoteBase = 950000;
 
   PlayState ==1 ? (
     (play_state != 1 && play_state != 5)? ( 
-    TotalNotesHeld = 0 );
+      TotalNotesHeld = 0;
+      NoteOn = 0;
+      PrevTotalNotesHeld = 0;
+      i = 0;
+      while (i < 2048) (
+        HeldNoteBase[i] = 0;
+        i += 1;
+      );
+    );
   );
 
   play_state == 1 || play_state == 5? ( 

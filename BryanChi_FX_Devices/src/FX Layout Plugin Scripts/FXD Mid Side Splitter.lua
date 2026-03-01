@@ -432,15 +432,20 @@ local function DrawRadialButton(label, width, height, base_color, glow_color, in
     if container_guid and container_idx then
         local ok, count = r.TrackFX_GetNamedConfigParm(track, container_idx, "container_count")
         is_empty = tonumber(count) == 0
-        if is_empty and fx.ChosenContainer == label then 
-            fx.ChosenContainer = nil
-        end
     end
     
     -- Draw the appropriate symbol based on container state
     local symbol_size = math.min(btn_width, btn_height) * 0.25
     if is_empty then
         DrawPlusSymbol(draw_list, center_x, center_y, symbol_size, glow_color_u32, is_hovered, is_active)
+        -- Set ChosenContainer when clicked so empty space btn appears inside container
+        if clicked then
+            if fx.ChosenContainer == label then
+                fx.ChosenContainer = nil
+            else
+                fx.ChosenContainer = label
+            end
+        end
         local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
 
         if im.IsItemClicked(ctx, 0) then -- Left click on the "+" icon
@@ -545,6 +550,9 @@ function DrawTransientSustainButtons(button_width, button_height, mid_guid, side
     
     -- Calculate available width
     local available_width = button_width * 2 + spacing
+    -- Ensure fx.Width accounts for button area (for correct container clipping)
+    local button_area_width = available_width + 25  -- +25 for AddSpacing between button groups
+    fx.Width = math.max(fx.Width or 50, button_area_width)
     
     -- Calculate button width (split available width)
     local single_button_width = (available_width - spacing) / 2
@@ -705,14 +713,38 @@ function DrawTransientSustainButtons(button_width, button_height, mid_guid, side
         
         -- Get container FX count
         local ok, count = r.TrackFX_GetNamedConfigParm(track, container_idx, "container_count")
-        if not ok or tonumber(count) <= 0 then return end
+        if not ok then return end
+        local count_num = tonumber(count) or 0
         
-        local count_num = tonumber(count)
+        -- When container is empty, draw empty space btn that belongs inside the container
+        if count_num == 0 then
+            local targ_pos = TrackFX_GetInsertPositionInContainer(container_idx, 1)
+            if targ_pos then
+                local tint_color = nil
+                if fx.ChosenContainer == "Mid" then
+                    tint_color = Change_Clr_A(Transient_Color, -0.5)
+                elseif fx.ChosenContainer == "Side" then
+                    tint_color = Change_Clr_A(Sustain_Color, -0.5)
+                end
+                local enc_start_x, enc_start_y = im.GetCursorScreenPos(ctx)
+                im.SetCursorPosY(ctx, 0)
+                AddSpaceBtwnFXs(targ_pos, nil, nil, nil, nil, nil, nil, nil, true, tint_color)
+                fx.Width = fx.Width + (Df.Dvdr_Width or 15)
+                -- Right edge of enclosure = right edge of last empty space btn
+                local space_end_x, space_end_y = im.GetItemRectMax(ctx)
+                local enclosure_color = (fx.ChosenContainer == "Mid") and Transient_Color or Sustain_Color
+                local draw_list = im.GetWindowDrawList(ctx)
+                DrawCustomContainerEnclosure(draw_list, enc_start_x, enc_start_y, space_end_x, space_end_y, enclosure_color, 3.0, nil)
+            end
+            im.SetCursorPos(ctx, initial_cursor_x, initial_cursor_y)
+            return
+        end
         
         -- Get the FX ID before the first FX in container
         local previous_fx_id = GetLastFXid_in_Container(container_idx)
         
         local enclosure_start_x, enclosure_start_y = nil, nil
+        local container_content_width = 0
         local tint_color = nil
         if fx.ChosenContainer == "Mid" then
             tint_color = Change_Clr_A(Transient_Color, -0.5)
@@ -745,6 +777,7 @@ function DrawTransientSustainButtons(button_width, button_height, mid_guid, side
 
                     local fx_W = FX[fx_guid] and FX[fx_guid].Width or Df.Default_FX_Width or 170
                     fx.Width = fx.Width + fx_W + Df.Dvdr_Width
+                    container_content_width = container_content_width + fx_W + (Df.Dvdr_Width or 15)
                 end
             end
         end
@@ -755,11 +788,22 @@ function DrawTransientSustainButtons(button_width, button_height, mid_guid, side
             im.SetCursorPosY(ctx, 0)
             AddSpaceBtwnFXs(end_position_id, nil, nil, nil, nil, nil, nil, nil, nil, tint_color)
             fx.Width = fx.Width + Df.Dvdr_Width
+            container_content_width = container_content_width + (Df.Dvdr_Width or 15)
         end
 
+        -- Add extra width so FX content is not cropped: SameLine spacing (20) + right-edge buffer (20) - adjustment (Side needs more reduction)
+        local width_adjust = (fx.ChosenContainer == "Side") and -60 or -10
+        fx.Width = fx.Width + width_adjust
+
         im.SetCursorPosY(ctx, 0)
-        local enclosure_end_x = im.GetCursorScreenPos(ctx)
-        local enclosure_end_y = enclosure_start_y + 224
+        -- Right edge of enclosure = right edge of last empty space btn
+        local enclosure_end_x, enclosure_end_y
+        if end_position_id then
+            enclosure_end_x, enclosure_end_y = im.GetItemRectMax(ctx)
+        else
+            enclosure_end_x = enclosure_start_x and (enclosure_start_x + container_content_width) or nil
+            enclosure_end_y = enclosure_start_y and (enclosure_start_y + 224) or nil
+        end
 
         -- Draw the enclosure if we have valid coordinates
         if enclosure_start_x and enclosure_start_y and enclosure_end_x and enclosure_end_y then

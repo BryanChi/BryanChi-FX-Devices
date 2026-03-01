@@ -2510,9 +2510,12 @@ function AddFX_Menu(FX_Idx , SpcType, FxGUID_Container, ParallelFX)
             table.insert(AddFX.Name, 'FXD - Amplitude Splitter')
             table.insert(AddFX.Pos, FX_Idx)
         elseif im.Selectable(ctx, 'Mid Side Splitter') then
+            r.gmem_attach('FXD_MidSide_Splitter')
             table.insert(AddFX.Name, 'FXD Mid Side Splitter')
             table.insert(AddFX.Pos, FX_Idx)
-
+            if r.GetMediaTrackInfo_Value(LT_Track, 'I_NCHAN') < 4 then
+                r.SetMediaTrackInfo_Value(LT_Track, 'I_NCHAN', 4)
+            end
             --r.TrackFX_AddByName(LT_Track, 'FXD Bandjoiner', 0, -1000-FX_Idx)
         end
         --DndAddFX_SRC("FXD Saike BandSplitter")
