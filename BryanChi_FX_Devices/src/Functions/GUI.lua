@@ -46,12 +46,15 @@ function GetCurveValue(x, p, xmin, xmax, ymin, ymax)
 end
 
 
-function Drag_With_Bar(ctx, str, v, v_speed, v_min, v_max, format, flags, clr)
+function Drag_With_Bar(ctx, str, v, v_speed, v_min, v_max, format, flags, clr, display_power)
     
     local rv, v = im.DragDouble(ctx, '##'..str, v, v_speed, v_min, v_max, format, flags)
     local x, y = im.GetItemRectMin(ctx)
     local w, h = im.GetItemRectSize(ctx)
     local v_norm = v/(v_max - v_min)
+    if display_power and display_power > 0 and display_power < 1 then
+        v_norm = ((v - v_min) / (v_max - v_min)) ^ display_power
+    end
     local WDL = WDL or im.GetWindowDrawList(ctx)
     im.DrawList_AddRectFilled(WDL , x, y, x+w * v_norm , y+h, clr or 0xffffff44)
     SL()
@@ -1775,6 +1778,15 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
                 fx.Collapse = toggle(fx.Collapse)
 
                 if not fx.Collapse then fx.Width_Collapse= nil end
+                local title_col = Title_Btn_Column_W or 30
+                local default_total_w = (DefaultWidth and (DefaultWidth + title_col)) or Default_WindowBtnWidth or 180
+                fx.Width_Anim_Start = fx.Width or default_total_w
+                if fx.Collapse then
+                    fx.Width_Before_Collapse = fx.Width_Before_Collapse or fx.Width_Anim_Start
+                    fx.Width_Anim_End = 0
+                else
+                    fx.Width_Anim_End = fx.Width_Before_Collapse or default_total_w
+                end
                 Animate_FX_Width= toggle(Animate_FX_Width , FxGUID)
                 Anim_Time = 0
                 Long_Or_Short_Click_Time_Start = nil 
@@ -1825,32 +1837,33 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
                 fx.Width_Before_Collapse = fx.Width_Before_Collapse or  fx.Width
 
-                fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, fx.Width_Before_Collapse or  fx.Width or  DefaultWidth or Default_WindowBtnWidth , COLLAPSED_FX_WIDTH, Anim_Time)
+                fx.Width, Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, fx.Width_Anim_Start or fx.Width_Before_Collapse or  fx.Width or  DefaultWidth or Default_WindowBtnWidth , fx.Width_Anim_End or 0, Anim_Time)
 
                 if fx.AnimComplete  then 
+                    fx.Width = 0
                     
                     Animate_FX_Width = nil 
                     Anim_Time=nil
+                    fx.Width_Anim_Start = nil
+                    fx.Width_Anim_End = nil
                     Long_Or_Short_FX_Idx = nil
                 end
             else        --- if uncollapsing
                
-                fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, COLLAPSED_FX_WIDTH, fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
+                fx.Width,Anim_Time, fx.AnimComplete = Anim_Update( 0.1, 0.8, fx.Width_Anim_Start or 0, fx.Width_Anim_End or fx.Width_Before_Collapse  or  DefaultWidth, Anim_Time)
     
                 if fx.AnimComplete then 
                     Animate_FX_Width = nil 
                     fx.Width_Before_Collapse = nil 
                     Anim_Time=nil
+                    fx.Width_Anim_Start = nil
+                    fx.Width_Anim_End = nil
                     Long_Or_Short_FX_Idx = nil
   
                 end 
 
                 
             end
-        else 
-            if fx.Collapse then fx.Width_Collapse = 27 
-            else fx.Width_Collapse = nil
-            end 
         end
     
     end
@@ -4629,10 +4642,21 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     im.BeginGroup(ctx)
 
 
-    if not fx.Width_Collapse and DefaultWidth then
-        fx.Width = math.max(fx.Width or 0, DefaultWidth)
+    -- fx.Width stores total window width (title col + content); Title_Btn_Column_W from Constants
+    -- Only enforce DefaultWidth minimum when no saved layout; saved layouts get small min to avoid unusable size
+    if not fx.Collapse and Animate_FX_Width ~= FxGUID then
+        local title_col = Title_Btn_Column_W or 30
+        local min_content_w = 40
+        local min_total = min_content_w + title_col
+
+        if fx.Width == nil or fx.Width == 0 then
+            fx.Width = DefaultWidth and (DefaultWidth + title_col) or min_total
+        else
+            fx.Width = math.max(fx.Width, min_total) 
+        end
     end
-    local Width = fx.Width_Collapse or fx.Width or DefaultWidth or 220
+
+    local Width = fx.Width or (DefaultWidth and (DefaultWidth + (Title_Btn_Column_W or 30))) or 220
     local dummyH = 220
     local  _, name=  r.TrackFX_GetNamedConfigParm(LT_Track, FX_Idx, 'original_name')
     local isContainer = name == 'Container' and true 
@@ -4662,7 +4686,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
             Reserve_Below_Title = Reserve_Below_Title + 30
         end
         local Title_Btn_H = math.max(Main_Content_H - Reserve_Below_Title, 20)
-        local Main_Content_W = math.max((Width or 220), 40)
+        local Title_Col_W = Title_Btn_Column_W or 30
+        local Collapsing_Content_W = math.max((Width or (Title_Col_W + 1)) - Title_Col_W, 1)
+        local Main_Content_W = fx.Collapse and Collapsing_Content_W or math.max((Width or 220) - Title_Col_W, 40) -- shrink content gradually while collapsing; keep 1 when fully collapsed
             
 
 
@@ -4671,9 +4697,9 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         local LeftColX, LeftColY = im.GetCursorPos(ctx)
         local LeftColScreenX, LeftColScreenY = im.GetCursorScreenPos(ctx)
         local LeftPanelClr = FX[FxGUID].TitleClr or ThemeClr('FX_Btn_BG_Clr')
-        im.DrawList_AddRectFilled(WDL, LeftColScreenX, LeftColScreenY, LeftColScreenX + Title_Btn_Column_W, LeftColScreenY + Main_Content_H, LeftPanelClr, FX_Title_Round)
+        im.DrawList_AddRectFilled(WDL, LeftColScreenX, LeftColScreenY, LeftColScreenX + Title_Col_W, LeftColScreenY + Main_Content_H, LeftPanelClr, FX_Title_Round)
         AddWindowBtn(FxGUID, FX_Idx,nil,nil,nil,nil,nil,Title_Btn_H)
-        im.SetCursorPos(ctx, LeftColX + Title_Btn_Column_W - 4, LeftColY)
+        im.SetCursorPos(ctx, LeftColX + Title_Col_W - 4, LeftColY)
 
         im.PushStyleVar(ctx, im.StyleVar_ChildRounding, FX_Title_Round or 0)
         if im.BeginChild(ctx, FX_Name .. FX_Idx, Main_Content_W, Main_Content_H, nil, im.WindowFlags_NoScrollbar | im.WindowFlags_NoScrollWithMouse) and not Hide then   ----START CHILD WINDOW------
@@ -4703,8 +4729,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     
                 if FX.LayEdit == FxGUID and Draw.DrawMode ~= FxGUID and Mods ~= Cmd then -- Resize FX or title btn
                     MouseX, MouseY = im.GetMousePos(ctx)
-                    Win_L, Win_T = im.GetItemRectMin(ctx)
-                    Win_R, _ = im.GetItemRectMax(ctx); Win_B = Win_T + 220
+                    -- Use child rect (Win_L/Win_R from BeginChild), not GetItemRect which returns last-drawn widget
                     WinDrawList = im.GetWindowDrawList(ctx)
                     im.DrawList_AddRectFilled(WinDrawList, Win_L or 0, Win_T or 0, Win_R or 0,
                         Win_B, 0x00000055)
@@ -4716,7 +4741,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         LE.GridSize = math.max(LE.GridSize - 5, 5)
                     end
 
-                    for i = 0, FX[FXGUID[FX_Idx]].Width or DefaultWidth, LE.GridSize do
+                    local grid_content_w = (FX[FXGUID[FX_Idx]].Width or (DefaultWidth and (DefaultWidth + Title_Btn_Column_W) or 220)) - Title_Btn_Column_W
+                    for i = 0, grid_content_w, LE.GridSize do
                         im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444455)
                     end
                     for i = 0, 220, LE.GridSize do
@@ -4745,7 +4771,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             Win_R or 0, Win_B, 0x00000055)
                         local MsDragDeltaX, MsDragDeltaY = im.GetMouseDragDelta(ctx); local Dx, Dy =
                             im.GetMouseDelta(ctx)
-                        FX[FxGUID].Width = FX[FxGUID].Width or  DefaultWidth
+                        FX[FxGUID].Width = FX[FxGUID].Width or (DefaultWidth and (DefaultWidth + Title_Btn_Column_W) or 220)
                         FX[FxGUID].Width = FX[FxGUID].Width + Dx; LE.BeenEdited = true
                     end
                     if not IsLBtnHeld then LE.ResizingFX = nil end
@@ -5199,7 +5225,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         
                     end
                 end
-                if FX[FxGUID].Compatible_W_regular then return true end
+                if FX[FxGUID].Compatible_W_regular and not FX[FxGUID].Collapse then return true end
             end
             local function Do_PluginScripts(orig_Name)
 
@@ -5463,8 +5489,11 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
                     if curX < 0 then
                         im.SetCursorPosX(ctx, 0)
-                    elseif curX > (FX[FxGUID].Width or DefaultWidth) then
-                        im.SetCursorPosX(ctx, (FX[FxGUID].Width or DefaultWidth) - 10)
+                    else
+                        local content_w = (FX[FxGUID].Width or (DefaultWidth and (DefaultWidth + Title_Btn_Column_W) or 220)) - Title_Btn_Column_W
+                        if curX > content_w then
+                            im.SetCursorPosX(ctx, content_w - 10)
+                        end
                     end
 
                     -- if prm has clr set, calculate colors for active and hvr clrs
@@ -5978,8 +6007,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 
             end
 
-            Disable_If_LayEdit('End')
             Do_PluginScripts(orig_Name)
+            Disable_If_LayEdit('End')
             --Draw_Background(FxGUID)
 
 
@@ -6711,7 +6740,7 @@ function Draw_Background(FxGUID, pos, Draw_Which , IsPreviewBtn, IsForeGround)
         local Gap = D.Gap or 0
         if IsPreviewBtn then -- if it's used for the preview button in layout editor
             local Sz = {pos[3]- pos[1] , pos[4] - pos[2]}
-            local Wid =   FX[FxGUID].Width or DefaultWidth
+            local Wid = (FX[FxGUID].Width or (DefaultWidth and (DefaultWidth + (Title_Btn_Column_W or 30)) or 220)) - (Title_Btn_Column_W or 30) -- content width for scaling
             L = SetMinMax( pos[1] + (D.L / Wid) * Sz[1], pos[1], pos[3])
             T = SetMinMax( pos[2] + (D.T / 220) * Sz[2], pos[2], pos[4])
             R = SetMinMax( pos[1] + ((D.R or 0) / Wid) * Sz[1], pos[1], pos[3])

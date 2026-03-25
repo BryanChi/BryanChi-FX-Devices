@@ -15,6 +15,8 @@
 --   src/Constants.lua
 --   src/Fonts/*.ttf
 --   src/Functions/*.lua
+--   src/Functions/FX Parser.lua
+--   src/Functions/FX Adder Search.lua
 --   src/FX Layout Plugin Scripts/*.lua
 --   src/FX Layouts/*.ini
 --   src/FXChains/ReaDrum Machine.RfxChain
@@ -58,6 +60,7 @@ require("src.Functions.EQ functions")
 require("src.Functions.Filesystem_utils")
 require("src.Functions.FX Layering")
 require("src.Functions.General Functions")
+require("src.Functions.FX Adder Search")
 require("src.Functions.GUI")
 require("src.Functions.Layout Editor functions")
 require("src.Functions.Modulation")

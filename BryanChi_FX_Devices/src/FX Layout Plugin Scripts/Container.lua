@@ -65,7 +65,7 @@ local function Add_Width(Parallel, FxGUID, FX_Id, FX_Name)
     if not fx or not FxGUID then return end
 
     local Is_Split_Container = FX_Name and (FX_Name:find('Transient Split') or FX_Name:find('Mid Side Split'))
-    local W = (FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170) + (Is_Split_Container and 0 or FX_Title_Column_Effective_W)
+    local W = (FX[FxGUID].Width_Collapse or FX[FxGUID].Width or 170) -- fx.Width = total (incl. title column)
    if If_FX_Is_In_Blacklist(FX_Name, {'Transient', 'Sustain', 'Mid', 'Side'}) then W = 0 end 
     
     fx.Width = ( fx.Width or 0) + (W or 0) + (Is_Split_Container and 0 or (LastSpc or 0))
@@ -1082,7 +1082,7 @@ local function Create_FX_Window_FOR_Chosen_FX_IF_Collapse ()
             local guid = r.TrackFX_GetFXGUID(LT_Track,fx.Sel_Preview)
             -- Only update width if we have a preview FX
             if guid then
-                local preview_width = (FX[guid].Width or 170) + FX_Title_Column_Effective_W
+                local preview_width = FX[guid].Width or 170 -- fx.Width = total
                 fx.Width = 210 + preview_width  -- Base width (210) + preview FX width
             end
         end
@@ -1282,7 +1282,7 @@ local function Main(TB, X, Y)
                 if fx.Sel_Preview then
                     local guid = r.TrackFX_GetFXGUID(LT_Track, fx.Sel_Preview)
                     if guid then
-                        preview_w = (FX[guid].Width or 170) + FX_Title_Column_Effective_W
+                        preview_w = FX[guid].Width or 170 -- fx.Width = total
                     end
                 end
                 return 210 + preview_w
@@ -1340,7 +1340,7 @@ local function Main(TB, X, Y)
         local _, parent_name = r.TrackFX_GetNamedConfigParm(LT_Track, parent_cont, 'renamed_name')
         is_inside_split = parent_name and (parent_name:find('Transient Split') or parent_name:find('Mid Side Split'))
     end
-    if tonumber(FX_Count or 0) > 0 and not  then
+    if tonumber(FX_Count or 0) > 0 and not is_inside_split then
         Enclose_With_Brackets()
     end
 

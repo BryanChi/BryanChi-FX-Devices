@@ -9,7 +9,7 @@ local fx = FX[FxGUID]
 fx.CustomTitle = 'Pro-Q 4'
 fx.TitleWidth= 80
 fx.BgClr  = 0x101010ff
-fx.Width = 340
+if not fx.Collapse then fx.Width = 380 end
 fx.Dont_Allow_Add_Prm = true
 FX[FxGUID].NoWetDryKnob = true
 
@@ -36,6 +36,7 @@ for Band = 1, 24, 1 do
     StoreNewParam(FxGUID, 'Band '.. Band..'Gain', gain_P_num, FX_Idx, false, 'AddingFromExtState', Band, FX_Idx)  -- Bands gain
     StoreNewParam(FxGUID, 'Band '.. Band..'Frequency', freq_P_num, FX_Idx, false, 'AddingFromExtState',Fx_P_Freq, FX_Idx)  -- Bands gain
 end
+if fx.Collapse and Animate_FX_Width ~= FxGUID then return end
 
    -- FX.Prm.Count[FxGUID]= 28
     --- number in green represents FX Prm Index
@@ -173,9 +174,16 @@ im.SetCursorPos(ctx, x, y+3)
 
 
 fx.GainScale = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_num_GainScale)
+FX[FxGUID][P_num_GainScale] = FX[FxGUID][P_num_GainScale] or {}
+FX[FxGUID][P_num_GainScale].Num = P_num_GainScale
+FX[FxGUID][P_num_GainScale].V = fx.GainScale
+FX[FxGUID][P_num_GainScale].Sldr_W = 60
+FX[FxGUID][P_num_GainScale].Style = 'Pro C'
+FX[FxGUID][P_num_GainScale].Lbl_Pos = 'None'
+FX[FxGUID][P_num_GainScale].V_Pos = 'Within'
 Rounding = 3
 im.PushStyleVar(ctx, im.StyleVar_FrameRounding, Rounding)
-AddDrag(ctx, '##GainScale' .. FxGUID, '', fx.GainScale, 0, 1, 0 --[[FX_P]], FX_Idx, P_num_GainScale, 'Pro C', 60, item_inner_spacing, Disable, Lbl_Clickable, Lbl_Pos, V_Pos, DragDir, AllowInput)
+AddDrag(ctx, FxGUID, P_num_GainScale, FX_Idx)
 
 if im.IsItemActivated(ctx) and im.IsMouseDoubleClicked(ctx, 0) then
     r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_num_GainScale, 0.5)

@@ -12,7 +12,11 @@ function ThirdPartyDeps()
     local n, arch = r.GetAppVersion():match("(.+)/(.+)")
     local fx_browser_v6_path
 
-    if n:match("^7%.") then
+    local bundled_fx_parser = CurrentDirectory .. "src/Functions/FX Parser.lua"
+    if r.file_exists(bundled_fx_parser) then
+        fx_browser = bundled_fx_parser
+        fx_browser_reapack = nil
+    elseif n and n:match("^7%.") then
         fx_browser = r.GetResourcePath() .. "/Scripts/Sexan_Scripts/FX/Sexan_FX_Browser_ParserV7.lua"
         fx_browser_reapack = '"sexan fx browser parser v7"'
     else
@@ -47,11 +51,13 @@ function ThirdPartyDeps()
 
     if not reapack_RET_ then
         local deps = {}
-        -- FX BROWSER
+        -- FX BROWSER (bundled Vertical FX List–style parser, or Sexan fallback)
         if r.file_exists(fx_browser) then
             dofile(fx_browser)
-        else
+        elseif fx_browser_reapack then
             deps[#deps + 1] = fx_browser_reapack
+        else
+            deps[#deps + 1] = '"sexan fx browser parser v6"'
         end
         -- js extension
         if r.APIExists("JS_ReaScriptAPI_Version") then
@@ -429,7 +435,7 @@ function Tables_for_Special_FXs()
     'FXD Split to 32 Channels'
     }
 
-    SpecialLayoutFXs = { 'VST: FabFilter Pro C 2 ', 'Pro Q 3', 'VST: FabFilter Pro Q 3 ', 'VST3: Pro Q 3 FabFilter',
+    SpecialLayoutFXs = { 'VST: FabFilter Pro C 2 ', 'Pro Q 3', 'Pro Q 4', 'VST: FabFilter Pro Q 3 ', 'VST: FabFilter Pro Q 4 ', 'VST3: Pro Q 3 FabFilter', 'VST3: Pro Q 4 FabFilter',
     'VST3: Pro C 2 FabFilter', 'AU: Pro C 2 FabFilter' }
 end 
 
@@ -1136,9 +1142,13 @@ function Retrieve_All_Info_Needed_Before_Main_Loop()
     VersionNumber = GetVersionNum()
 
     FX_LIST, CAT = ReadFXFile()
-    if not FX_LIST or not CAT then
+    -- In Lua, {} is truthy — empty cached lists must still trigger a rebuild.
+    if type(FX_LIST) ~= 'table' or #FX_LIST == 0 then
+        FX_LIST, CAT = MakeFXFiles()
+    elseif type(CAT) ~= 'table' or #CAT == 0 then
         FX_LIST, CAT = MakeFXFiles()
     end
+    if FX_Adder_InitAfterFXListLoad then FX_Adder_InitAfterFXListLoad() end
 
 
     FLT_MIN, FLT_MAX = im.NumericLimits_Float()

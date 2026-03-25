@@ -265,6 +265,7 @@ function Settings()
         PluginTypeOrder_DragDrop()
         if select(2, im.MenuItem(ctx, "Rescan Plugin List")) then
             FX_LIST, CAT = MakeFXFiles()
+            if FX_Adder_OnPluginListRescanned then FX_Adder_OnPluginListRescanned() end
         end
         
         StoreSettings()

@@ -10,11 +10,11 @@ fx.Compatible_W_regular = true
 
 fx.CustomTitle = 'Pro-C 2'
 fx.TitleWidth = 100
-fx.Width = fx.Width or  280
+if not fx.Collapse then fx.Width = fx.Width or 280 end
 fx.ProC_GR = fx.ProC_GR or {}
 fx.ProC_GR_Idx = fx.ProC_GR_Idx or 1
 
-
+if fx.Collapse then return end
 
 
 --[[ local function Enclose_with_Container(fxid)

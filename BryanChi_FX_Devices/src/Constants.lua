@@ -2,6 +2,7 @@ r = reaper
 
 COLLAPSED_FX_WIDTH = 27
 FX_Title_Round = 6
+Title_Btn_Column_W = 30 -- left title column; fx.Width stores total (title col + content)
 Default_WindowBtnWidth = 180
 PAR_FX_MIXER_WIN_W = 165
 SPACE_BETWEEN_FXS_W = 10

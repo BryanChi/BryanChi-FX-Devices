@@ -410,8 +410,9 @@ function If_Draw_Mode_Is_Active(FxGUID, Win_L, Win_T, Win_R, Win_B, FxNameS)
         for i = 0, 220, LE.GridSize do
             im.DrawList_AddLine(WinDrawList, Win_L, Win_T + i, Win_R, Win_T + i, 0x44444411)
         end
-        -- add vertical grid
-        for i = 0, FX[FxGUID].Width or DefaultWidth, LE.GridSize do
+        -- add vertical grid (content width = total - title column)
+        local content_w = (FX[FxGUID].Width or DefaultWidth or 220) - (Title_Btn_Column_W or 30)
+        for i = 0, content_w, LE.GridSize do
             im.DrawList_AddLine(WinDrawList, Win_L + i, Win_T, Win_L + i, Win_B, 0x44444411)
         end
     end
@@ -1447,7 +1448,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 if D[It].Type ~= 'Text' then
 
                     Fill()
-                    local Wid = fx.Width or DefaultWidth
+                    local Wid = (fx.Width or DefaultWidth or 220) - (Title_Btn_Column_W or 30) -- content width
                     Add_Val('Start Pos X:' , 'L', D[It].L, 1, -Wid, Wid*2, '%.0f', true)
                     Add_Val(EndPosX_LBL,'R', D[It].R, 1, -Wid, Wid*2, '%.0f', nil)
                     Add_Val('Start Pos Y:', 'T', D[It].T, 1, -Win_H, Win_H*2, '%.0f', true)
@@ -3757,7 +3758,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                             im.TableNextRow(ctx, im.TableRowFlags_Headers)
 
 
-                            local Win_W = FX[FxGUID].Width or DefaultWidth or 220
+                            local Win_W = (FX[FxGUID].Width or DefaultWidth or 220) - (Title_Btn_Column_W or 30) -- content width
 
 
                             im.TableHeadersRow(ctx)
@@ -8874,7 +8875,7 @@ function MakeItemEditable(FxGUID, Fx_P, ItemWidth, ItemType, PosX, PosY)
         local ResizeNode_sz = 5 
 
         local function ChangeItmPos()
-            if LBtnDrag and not im.IsAnyItemActive(ctx) and not LE.ChangingTitleSize     then
+            if LBtnDrag and (LE.ChangePos ~= nil or not im.IsAnyItemActive(ctx)) and not LE.ChangingTitleSize     then
                 HelperMsg.Need_Add_Mouse_Icon = 'L'
                 HelperMsg.Ctrl_L = 'Lock Y Axis'
                 HelperMsg.Alt_L = 'Lock X Axis'

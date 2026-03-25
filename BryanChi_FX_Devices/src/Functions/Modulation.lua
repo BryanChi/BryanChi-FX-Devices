@@ -5136,7 +5136,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             
             -- Attack
             local was_active_attack = im.IsItemActive(ctx)
-            local rv, Attack = Drag_With_Bar(ctx, 'Attack', Mc.ADSR_Attack or 0.01, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            local rv, Attack = Drag_With_Bar(ctx, 'Attack', Mc.ADSR_Attack or 0.01, 0.005, 0.001, 2.0, '%.3f s', flags, 0xffffff33, 0.5)
             if rv then
                 Mc.ADSR_Attack = SetMinMax(Attack, 0.001, 2.0)
                 Change_Prop(29.1, Mc.ADSR_Attack, ' ADSR Attack for mod'..i, 0)
@@ -5148,7 +5148,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             
             -- Hold
             local was_active_hold = im.IsItemActive(ctx)
-            local rv, Hold = Drag_With_Bar(ctx, 'Hold', Mc.ADSR_Hold or 0.0, 0.001, 0.0, 2.0, '%.3f s', flags, 0xffffff33)
+            local rv, Hold = Drag_With_Bar(ctx, 'Hold', Mc.ADSR_Hold or 0.0, 0.005, 0.0, 2.0, '%.3f s', flags, 0xffffff33, 0.5)
             if rv then
                 Mc.ADSR_Hold = SetMinMax(Hold, 0.0, 2.0)
                 Send_ADSR_Hold()
@@ -5160,7 +5160,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             
             -- Decay
             local was_active_decay = im.IsItemActive(ctx)
-            local rv, Decay = Drag_With_Bar(ctx, 'Decay', Mc.ADSR_Decay or 0.1, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            local rv, Decay = Drag_With_Bar(ctx, 'Decay', Mc.ADSR_Decay or 0.1, 0.005, 0.001, 2.0, '%.3f s', flags, 0xffffff33, 0.5)
             if rv then
                 Mc.ADSR_Decay = SetMinMax(Decay, 0.001, 2.0)
                 Change_Prop(29.2, Mc.ADSR_Decay, ' ADSR Decay for mod'..i, 1)
@@ -5184,7 +5184,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             
             -- Release
             local was_active_release = im.IsItemActive(ctx)
-            local rv, Release = Drag_With_Bar(ctx, 'Release', Mc.ADSR_Release or 0.1, 0.001, 0.001, 2.0, '%.3f s', flags, 0xffffff33)
+            local rv, Release = Drag_With_Bar(ctx, 'Release', Mc.ADSR_Release or 0.1, 0.005, 0.001, 2.0, '%.3f s', flags, 0xffffff33, 0.5)
             if rv then
                 Mc.ADSR_Release = SetMinMax(Release, 0.001, 2.0)
                 Change_Prop(29.4, Mc.ADSR_Release, ' ADSR Release for mod'..i, 3)

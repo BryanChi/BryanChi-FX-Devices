@@ -555,6 +555,24 @@ function BuildFXTree(tr)
 
         PAR_FXs = find_parallel_sequences(TREE)
 
+        -- Pre-set Pro Q 3/4 widths so container/parallel layout has stable values before scripts run
+        local function PreSetProQWidths(node)
+            if not node or not node.GUID then return end
+            local name = node.fxname or ''
+            if name:find('Pro Q 3') or name:find('Pro Q 4') then
+                FX[node.GUID] = FX[node.GUID] or {}
+                if FX[node.GUID].Width == nil then
+                    FX[node.GUID].Width = 380
+                end
+            end
+            if node.children then
+                for _, c in ipairs(node.children) do PreSetProQWidths(c) end
+            end
+        end
+        for i = 1, #TREE do
+            if TREE[i] then PreSetProQWidths(TREE[i]) end
+        end
+
         return TREE
     end
 end
@@ -2057,107 +2075,6 @@ function DrawChildMenu(tbl, path, FX_Idx)
    end
 end
 
----@param filter_text string
-function Filter_actions(filter_text)
-    filter_text = Lead_Trim_ws(filter_text)
-    local t = {}
-    if filter_text == "" or not filter_text then return t end
-    
-    -- First pass: collect all matching plugins
-    local matches = {}
-    for i = 1, #FX_LIST do
-        local action = FX_LIST[i]
-        local name = action:lower()
-        local found = true
-        for word in filter_text:gmatch("%S+") do
-            if not name:find(word:lower(), 1, true) then
-                found = false
-                break
-            end
-        end
-
-        if found then 
-            local plugin_type = ""
-            -- Determine plugin type
-            if action:find("VST3i:") then
-                plugin_type = "VST3i"
-            elseif action:find("VST3:") then
-                plugin_type = "VST3"
-            elseif action:find("VSTi:") then
-                plugin_type = "VSTi"
-            elseif action:find("VST:") then
-                plugin_type = "VST"
-            elseif action:find("CLAPi:") then
-                plugin_type = "CLAPi"
-            elseif action:find("CLAP:") then
-                plugin_type = "CLAP"
-            elseif action:find("AU:") then
-                plugin_type = "AU"
-            elseif action:find('AUi:') then
-                plugin_type = "AUi"
-            elseif action:find("JS:") then
-                plugin_type = "JS"
-            elseif action:find("LV2:") then
-                plugin_type = "LV2"
-            else
-                plugin_type = "Other"
-            end
-            
-            -- Store the match with its type
-            table.insert(matches, {action = action, type = plugin_type})
-        end
-    end
-        
-        
-        -- Second pass: create prioritized type mapping
-        local type_priority = {}
-        
-        -- Get user plugin type preferences or use default
-        local plugin_order = PluginTypeOrder or {"VST3", "VST", "AU", "CLAP", "JS"}
-        
-        -- Simplify matching for plugin priorities
-        local type_map = {
-            ["VST3i"] = "VST3",
-            ["VST3"] = "VST3",
-            ["VSTi"] = "VST",
-            ["VST"] = "VST",
-            ["CLAPi"] = "CLAP",
-            ["CLAP"] = "CLAP",
-            ["AU"] = "AU",
-            ["JS"] = "JS",
-            ["LV2"] = "LV2",
-            ["Other"] = "Other"
-        }
-        
-        -- Set priority based on user preference
-        for priority, plugin_type in ipairs(plugin_order) do
-            type_priority[plugin_type] = priority
-        end
-        
-        -- Handle any missing types with lower priority
-        local max_priority = #plugin_order
-        for type_name in pairs(type_map) do
-            if not type_priority[type_name] then
-                max_priority = max_priority + 1
-                type_priority[type_name] = max_priority
-            end
-        end
-        
-        -- Sort matches by plugin type priority
-        table.sort(matches, function(a, b)
-            local a_priority = type_priority[type_map[a.type]] or 999
-            local b_priority = type_priority[type_map[b.type]] or 999
-            return a_priority < b_priority
-        end)
-        
-        -- Extract the sorted actions
-        for i, match in ipairs(matches) do
-            table.insert(t, match.action)
-        end
-
-    return t
-end
-
 function Put_FXs_Into_New_Container(FX_Idx, cont, i , scale) -- i = pos in container
 
     --local to =  TrackFX_GetInsertPositionInContainer(cont, i  )
@@ -2184,185 +2101,6 @@ function Put_FXs_Into_New_Container(FX_Idx, cont, i , scale) -- i = pos in conta
     TREE = BuildFXTree(LT_Track)
     --[[ table.insert( MovFX.FromPos , FX_Idx)
     table.insert( MovFX.ToPos , to ) ]]
-end
-
-
-
-function FilterBox(FX_Idx, SpcType, FxGUID_Container, ParallelFX)
-    ---@type integer|nil, boolean|nil
-    local FX_Idx_For_AddFX, close
-    if AddLastSPCinRack then FX_Idx_For_AddFX = FX_Idx - 1 end
-    local MAX_FX_SIZE = 250
-    local FxGUID = FXGUID[FX_Idx_For_AddFX or FX_Idx]
-    im.SetNextItemWidth(ctx, 180)
-    _, ADDFX_FILTER = im.InputTextWithHint(ctx, '##input', "SEARCH FX", ADDFX_FILTER, im.InputTextFlags_AutoSelectAll)
-
-    if im.IsWindowAppearing(ctx) then
-        local tb = FX_LIST
-        im.SetKeyboardFocusHere(ctx, -1)
-        ADDFX_FILTER = ''
-    end
-
-    local filtered_fx = Filter_actions(ADDFX_FILTER)
-    if #filtered_fx == 0 then return end 
-    --im.SetNextWindowPos(ctx, im.GetItemRectMin(ctx), ({ im.GetItemRectMax(ctx) })[2])
-    local filter_h = #filtered_fx == 0 and 2 or (#filtered_fx > 40 and 20 * 17 or (17 * #filtered_fx))
-    local function InsertFX(Name)
-        local FX_Idx = FX_Idx
-        --- CLICK INSERT
-
-        r.TrackFX_AddByName(LT_Track, Name, false, -1000 - FX_Idx)
-        -- if Inserted into Layer
-        local FxID = r.TrackFX_GetFXGUID(LT_Track, FX_Idx)
-
-        if SpcType == 'SpcInBS' then
-            DropFXintoBS(FxID, FxGUID_Container, FX[FxGUID_Container].Sel_Band, FX_Idx + 1, FX_Idx)
-        end
-
-
-        local HideFX = {'Container', 'Transient', 'Sustain', 'Mid', 'Side'}
-
-        r.TrackFX_Show(LT_Track, FX_Idx , 2)
-        local FXCount = r.TrackFX_GetCount(LT_Track)
-
-        RetrieveFXsSavedLayout(FXCount)
-        ADDFX_FILTER = nil
-    end
-    if ADDFX_FILTER ~= '' and ADDFX_FILTER then
-        SL()
-        im.SetNextWindowSize(ctx, MAX_FX_SIZE, filter_h + 20)
-        local x, y = im.GetCursorScreenPos(ctx)
-
-        ParentWinPos_x, ParentWinPos_y = im.GetWindowPos(ctx)
-        local VP_R = VP.X + VP.w
-        if x + MAX_FX_SIZE > VP_R then x = ParentWinPos_x - MAX_FX_SIZE end
-
-        im.SetNextWindowPos(ctx, x, y - filter_h / 2)
-        if im.BeginPopup(ctx, "##popupp", im.WindowFlags_NoFocusOnAppearing --[[ MAX_FX_SIZE, filter_h ]]) then
-            ADDFX_Sel_Entry = SetMinMax(ADDFX_Sel_Entry or 1, 1, #filtered_fx)
-            for i = 1, #filtered_fx do
-
-                local ShownName
-                if filtered_fx[i]:find('VST:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5, (fx:find('.vst') or 999) - 1)
-                    local clr = FX_Adder_VST or
-                        CustomColorsDefault
-                        .FX_Adder_VST -- TODO I think all these FX_ADDER vars came from FX_ADDER module, which isn't there anymore. Should we bring it back ?
-                    ---if we do have to bring it back, my bad, I thought it was a duplicate of Sexan's module
-                    MyText('VST', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VSTi:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6, (fx:find('.vsti') or 999) - 1)
-                    local clr = FX_Adder_VST or CustomColorsDefault.FX_Adder_VST
-                    MyText('VSTi', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VST3:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6) .. '##vst3'
-                    local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('VST3i:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(7) .. '##vst3i'
-                    local clr = FX_Adder_VST3 or CustomColorsDefault.FX_Adder_VST3
-                    MyText('VST3i', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('JS:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_JS or CustomColorsDefault.FX_Adder_JS
-                    MyText('JS', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('AU:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(4)
-                    local clr = FX_Adder_AU or CustomColorsDefault.FX_Adder_AU
-                    MyText('AU', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('CLAP:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(6)
-                    local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAP', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('CLAPi:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(7)
-                    local clr = FX_Adder_CLAP or CustomColorsDefault.FX_Adder_CLAP
-                    MyText('CLAPi', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                elseif filtered_fx[i]:find('LV2:') then
-                    local fx = filtered_fx[i]
-                    ShownName = fx:sub(5)
-                    local clr = FX_Adder_LV2 or CustomColorsDefault.FX_Adder_LV2
-                    MyText('LV2', nil, clr)
-                    SL()
-                    HighlightSelectedItem(nil, clr, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-
-                if im.Selectable(ctx, (ShownName or filtered_fx[i]) .. '##emptyName', DRAG_FX == i) then
-                    if filtered_fx[i] then
-                        InsertFX(filtered_fx[i])
-                        im.CloseCurrentPopup(ctx)
-                        close = true
-                    end
-                end
-                if i == ADDFX_Sel_Entry then
-                    HighlightSelectedItem(0xffffff11, nil, 0, L, T, R, B, h, w, 1, 1, 'GetItemRect')
-                end
-                -- DRAG AND DROP
-                if im.IsItemActive(ctx) and im.IsMouseDragging(ctx, 0) then
-                    -- HIGHLIGHT DRAGGED FX
-                    DRAG_FX = i
-                    DndAddFX_SRC(filtered_fx[i])
-                    --AddFX_Drag(filtered_fx[i]) -- TODO did this come from FX_ADDER
-                end
-            end
-
-            if im.IsKeyPressed(ctx, im.Key_Enter) then
-
-                InsertFX(filtered_fx[ADDFX_Sel_Entry])
-                --r.TrackFX_AddByName(LT_Track, filtered_fx[ADDFX_Sel_Entry], false, -1000 - FX_Idx)
-                LAST_USED_FX = filtered_fx[filtered_fx[ADDFX_Sel_Entry]]
-                ADDFX_Sel_Entry = nil
-                TREE = BuildFXTree(LT_Track)
-
-                im.CloseCurrentPopup(ctx)
-                close = true
-
-                --FILTER = ''
-                --im.CloseCurrentPopup(ctx)
-            elseif im.IsKeyPressed(ctx, im.Key_UpArrow) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry - 1
-            elseif im.IsKeyPressed(ctx, im.Key_DownArrow) then
-                ADDFX_Sel_Entry = ADDFX_Sel_Entry + 1
-            end
-            --im.EndChild(ctx)
-            im.EndPopup(ctx)
-        end
-
-
-        im.OpenPopup(ctx, "##popupp")
-        im.NewLine(ctx)
-    end
-
-
-    if im.IsKeyPressed(ctx, im.Key_Escape) then
-        im.CloseCurrentPopup(ctx)
-        ADDFX_FILTER = nil
-    end
-    return close
 end
 
 function AddFX_Menu(FX_Idx , SpcType, FxGUID_Container, ParallelFX)

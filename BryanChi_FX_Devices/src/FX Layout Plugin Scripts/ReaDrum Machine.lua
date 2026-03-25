@@ -10,6 +10,7 @@ Pad          = {}
 
 local FX_Idx = PluginScript.FX_Idx
 local FxGUID = PluginScript.Guid
+local pad_ctrl_extend_h = 15 -- DrawPads sets this each frame so ButtonDrawlist filter flash matches ctrl row height
 
 ---------------------------------------------
 ---------TITLE BAR AREA------------------
@@ -125,7 +126,8 @@ local function ButtonDrawlist(name, color, a)
     if rv == 1 then   
       local L, T = im.GetItemRectMin(ctx)
       local R, B = im.GetItemRectMax(ctx)
-      im.DrawList_AddRectFilled(f_draw_list, L, T, R, B + 15, 0xfde58372, rounding)
+      local ctrl_h = pad_ctrl_extend_h or 15
+      im.DrawList_AddRectFilled(f_draw_list, L, T, R, B + ctrl_h, 0xfde58372, rounding)
     end
   end
 end
@@ -178,13 +180,28 @@ local function OpenFXInsidePad(a)
   end
 end
 
-local function DrawPads(loopmin, loopmax)
+local function DrawPads(loopmin, loopmax, pad_panel_h)
   local RETURN 
   --im.DrawListSplitter_Split(SPLITTER, 2)
   CheckDNDType()
   DoubleClickActions(loopmin, loopmax)
 
-  local top_pad = 10
+  pad_panel_h = pad_panel_h or 308
+  local region_w, region_h = im.GetWindowSize(ctx)
+  if region_h and region_h > 60 then pad_panel_h = region_h end
+  local m_top, m_bot = 2, 2
+  -- Four stacked rows fill the pad panel (no dead band top/bottom); main:ctrl keeps 30:15 proportion
+  local row_h = (pad_panel_h - m_top - m_bot) / 4
+  local pad_main = row_h * (30 / 45)
+  local pad_ctrl = row_h - pad_main
+  pad_ctrl_extend_h = pad_ctrl
+  local y0 = pad_panel_h - m_bot - row_h -- top Y of bottom row (row_idx 0)
+  local winw = (region_w and region_w > 80) and region_w or 320
+  local mx = 3
+  local inner_w = math.max(160, winw - 2 * mx)
+  local col_gap = 2
+  local pad_w = (inner_w - 3 * col_gap) / 4
+  local btn3_w = pad_w / 3
   for a = loopmin, loopmax do
     notenum = a - 1
     note_name = getNoteName(notenum + midi_oct_offs)
@@ -200,11 +217,13 @@ local function DrawPads(loopmin, loopmax)
     else
       pad_name = ""
     end
-    local y = 150 + top_pad + math.floor((a - loopmin) / 4) * -50 -- start position + optional top padding
-    local x = 5 + (a - 1) % 4 * 80
+    local row_idx = math.floor((a - loopmin) / 4)
+    local y = y0 - row_idx * row_h
+    local col = (a - 1) % 4
+    local x = mx + col * (pad_w + col_gap)
     local FX_VISIBLE
     im.SetCursorPos(ctx, x, y)
-    local ret = im.InvisibleButton(ctx, pad_name .. "##" .. a, 75, 30)
+    local ret = im.InvisibleButton(ctx, pad_name .. "##" .. a, pad_w, pad_main)
     ButtonDrawlist(pad_name, Pad[a] and (RDM_PadOn or CustomColorsDefault.RDM_PadOn) or (RDM_PadOff or CustomColorsDefault.RDM_PadOff), a)
     DndAddFX_TARGET(a)
     DndAddSample_TARGET(a)
@@ -224,13 +243,13 @@ local function DrawPads(loopmin, loopmax)
       DndMoveFX_SRC(a)
     end
 
-    im.SetCursorPos(ctx, x, y + 30)
-    im.InvisibleButton(ctx, "▶##play" .. a, 25, 15)
+    im.SetCursorPos(ctx, x, y + pad_main)
+    im.InvisibleButton(ctx, "▶##play" .. a, btn3_w, pad_ctrl)
     SendMidiNote(a)
     DrawListButton("-", (RDM_Play or CustomColorsDefault.RDM_Play), nil, true)
 
-    im.SetCursorPos(ctx, x + 25, y + 30)
-    if im.InvisibleButton(ctx, "S##solo" .. a, 25, 15) then
+    im.SetCursorPos(ctx, x + btn3_w, y + pad_main)
+    if im.InvisibleButton(ctx, "S##solo" .. a, btn3_w, pad_ctrl) then
       if SELECTED then
         Unmuted = 0
         CountSelected = 0
@@ -304,8 +323,8 @@ local function DrawPads(loopmin, loopmax)
     DrawListButton("S", (RDM_Solo or CustomColorsDefault.RDM_Solo), nil, nil)
     --end
 
-    im.SetCursorPos(ctx, x + 50, y + 30)
-    if im.InvisibleButton(ctx, "M##mute" .. a, 25, 15) then
+    im.SetCursorPos(ctx, x + 2 * btn3_w, y + pad_main)
+    if im.InvisibleButton(ctx, "M##mute" .. a, btn3_w, pad_ctrl) then
       if SELECTED then
         for k, v in pairs(SELECTED) do
           local k = tonumber(k)
@@ -369,9 +388,20 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   midi_oct_offs = GetMidiOctOffsSettings()
   local wx, wy = im.GetWindowPos(ctx)
   local w_open, w_closed = 250, def_btn_h + s_window_x * 2 + 10
-  local h = 220
-  local hh = h + 100
-  local hy = hh / 8
+  local content_w, panel_h = im.GetWindowSize(ctx)
+  if type(Win_W) == 'number' and Win_W > 0 then content_w = Win_W end
+  if type(Win_H) == 'number' and Win_H > 0 then panel_h = Win_H end
+  local y_offset = 10
+  -- Match FX content child height (fills space when Main_Content_H / window is taller than old fixed layout)
+  local h_btn = math.max(200, panel_h - y_offset)
+  -- Pad child starts 10px above tab child (y_offset - 10); extend height so bottoms align with tab column (no gap under pads)
+  local h_pad = h_btn + 10
+  local tab_col_w = w_closed - 10
+  -- Fit pad grid to actual FX content width (fixed w_open+500 was wider than Win_W and clipped ~15px on the right)
+  local pads_child_w = math.max(120, content_w - tab_col_w)
+  local tab_sz = 20
+  local tab_m_top, tab_m_bot = 8, 8
+  local tab_gap = math.max(2, (h_btn - tab_m_top - tab_m_bot - 8 * tab_sz) / 7)
   
   im.PushStyleColor(ctx, im.Col_ChildBg, (RDM_BG or CustomColorsDefault.RDM_BG))
   im.BeginGroup(ctx)
@@ -380,10 +410,9 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   f_draw_list = im.GetForegroundDrawList(ctx) 
   
   local x, y = im.GetCursorPos(ctx)
-  local y_offset = 10
   -- Top-right wet/dry knob (outside scroll areas)
   do
-    local total_w = (w_closed - 10) + (w_open + 250)
+    local total_w = tab_col_w + pads_child_w
     local knob_w = (WET_DRY_KNOB_SZ or 26)
     im.SetCursorPos(ctx, x + total_w - knob_w, y + y_offset)
     ActiveAny, Active, Wet.Val[FX_Idx] = Add_WetDryKnob(ctx, 'a', '', Wet.Val[FX_Idx] or 1, 0, 1, FX_Idx, nil, FxGUID)
@@ -395,7 +424,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   end
 
   im.SetCursorPos(ctx, x, y + y_offset)
-  if im.BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h + 100, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then   -- vertical tab
+  if im.BeginChild(ctx, 'BUTTON_SECTION', w_closed - 10, h_btn, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then   -- vertical tab
     -- Use child draw list to ensure proper clipping when scrolling
     draw_list = im.GetWindowDrawList(ctx)
     f_draw_list = draw_list
@@ -405,8 +434,8 @@ if not FX[FXGUID[FX_Idx]].Collapse then
       im.PushClipRect(ctx, px, py, px + cw, py + ch, true)
     end
     for i = 1, 8 do
-      im.SetCursorPos(ctx, 3,  y + 145 - (i - 1) * 24 - 6)
-      local rv = im.InvisibleButton(ctx, "B" .. i, 20, 20)
+      im.SetCursorPos(ctx, 3, tab_m_top + (i - 1) * (tab_sz + tab_gap))
+      local rv = im.InvisibleButton(ctx, "B" .. i, tab_sz, tab_sz)
       local xs, ys = im.GetItemRectMin(ctx)
       local xe, ye = im.GetItemRectMax(ctx)
       for hi = 1, 4 do
@@ -451,7 +480,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
   local openpad 
   if FX[FxGUID].LAST_MENU then       -- Open pads manu
     im.SetCursorPos(ctx, x + w_closed - 10, y + y_offset - 10)
-    if im.BeginChild(ctx, "child_menu", w_open + 250, h + 88, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then
+    if im.BeginChild(ctx, "child_menu", pads_child_w, h_pad, nil, im.WindowFlags_NoScrollbar + im.WindowFlags_NoScrollWithMouse) then
       -- Use child draw list so pads are clipped and don't duplicate outside
       draw_list = im.GetWindowDrawList(ctx)
       f_draw_list = draw_list
@@ -462,7 +491,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
       end
       local high = 0 + 16 * (FX[FxGUID].LAST_MENU)
       local low = 0 + 16 * (FX[FxGUID].LAST_MENU - 1) + 1
-      openpad = DrawPads(low, high)
+      openpad = DrawPads(low, high, h_pad)
       im.PopClipRect(ctx)
       im.EndChild(ctx)
     end
@@ -477,7 +506,7 @@ if not FX[FXGUID[FX_Idx]].Collapse then
     
     local x, y = im.GetCursorScreenPos(ctx)
 
-    im.DrawList_AddRect(f_draw_list, x1-2, y1, x, y + 220 - 1, 0x123456ff, nil, nil, 2) -- leftover remains when pad is moved while opening fx inside pad
+    im.DrawList_AddRect(f_draw_list, x1-2, y1, x, y + math.max(180, panel_h - y_offset) - 1, 0x123456ff, nil, nil, 2) -- leftover remains when pad is moved while opening fx inside pad
   end
   im.Dummy(ctx,1,1)
   im.EndGroup(ctx)
