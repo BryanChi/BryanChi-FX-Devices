@@ -1,4 +1,13 @@
+VST3: Transit 2 (BABY Audio)	4
+VST3: Love2 (Dawesome)	3
+VST3: Pro-Q 4 (FabFilter)	3
+VST3: kHs 3-Band EQ (Kilohearts)	2
+VST3: kHs Tape Stop (Kilohearts)	2
 VST3: ADPTR MetricAB (Plugin Alliance)	1
-VST3: Love2 (Dawesome)	1
-VST3: Transit 2 (BABY Audio)	1
-VST3: kHs Tape Stop (Kilohearts)	1
+VST3: Pro-Q 3 (FabFilter)	1
+VST3: TBTECH Cenozoix Compressor (Plugin Alliance)	1
+VST3: ValhallaDelay (Valhalla DSP, LLC)	1
+VST3: ValhallaUberMod (Valhalla DSP, LLC)	1
+VST3: kHs Bitcrush (Kilohearts)	1
+VST3: kHs Chorus (Kilohearts)	1
+VST3: kHs Filter (Kilohearts)	1

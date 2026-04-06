@@ -98,6 +98,8 @@ function Default_Values()
 
     Default_FX_Width = 200
     GapBtwnPrmColumns = 10
+    -- Min width for the + column at the right of the temporary-params strip (so the icon is visible)
+    FX_TempPrm_PlusStrip_W = 22
     --Sequencer -----
     StepSEQ_W = 20
     StepSEQ_H = 100
@@ -976,15 +978,17 @@ function HasNonEnglishCharacters(str)
 end
 
 function attachImagesAndFonts()
-    
+    local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
+    script_folder       = script_folder .. '/src'
+    InterTightFontPath  = script_folder .. '/Fonts/InterTight-VariableFont_wght.ttf'
+
     FONT_CHOICES = {'Arial', 'Arial Black' , 'Impact', 'Georgia', 'Sans-Serif', 'Comic Sans MS', 'Courier', 'Monospace', 'Verdana', 'Trebuchet MS', 'Times New Roman', 'Tahoma', 'Trebuchet MS', 
             'Font_Andale_Mono'}
     for i , v in ipairs(FONT_CHOICES) do    
-        _G[v] = im.CreateFont(v, 15)
+        local face = (v == 'Arial' or v == 'Font_Andale_Mono') and InterTightFontPath or v
+        _G[v] = im.CreateFont(face, 15)
         im.Attach(ctx, _G[v])
     end
-    local script_folder = select(2, r.get_action_context()):match('^(.+)[\\//]')
-    script_folder       = script_folder .. '/src'
     icon1               = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 30)
     icon1_middle        = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 15)
     icon1_small         = im.CreateFont(script_folder .. '/Fonts/IconFont1.ttf', 10)
@@ -1015,22 +1019,22 @@ function attachImagesAndFonts()
 
     }
     for i = 6, 30, 1 do
-        _G['Font_Andale_Mono_' .. i] = im.CreateFont('andale mono', i)
+        _G['Font_Andale_Mono_' .. i] = im.CreateFont(InterTightFontPath, i)
         im.Attach(ctx, _G['Font_Andale_Mono_' .. i])
     end
     for i = 6, 30, 1 do
-        _G['Arial_' .. i] = im.CreateFont('Arial', i)
+        _G['Arial_' .. i] = im.CreateFont(InterTightFontPath, i)
         im.Attach(ctx, _G['Arial_' .. i])
     end
     im.Attach(ctx, _G['Font_Andale_Mono_Vertical_13'])
 
 
-    System_Font = im.CreateFont('sans-serif', 14)
-    System_Font_12 = im.CreateFont('sans-serif', 12)
+    System_Font = im.CreateFont(InterTightFontPath, 14)
+    System_Font_12 = im.CreateFont(InterTightFontPath, 12)
     im.Attach(ctx, System_Font)
     im.Attach(ctx, System_Font_12)
 
-    Font_Andale_Mono_20_B = im.CreateFont('andale mono', 20, im.FontFlags_Bold) -- TODO move to constants
+    Font_Andale_Mono_20_B = im.CreateFont(InterTightFontPath, 20, im.FontFlags_Bold) -- TODO move to constants
     im.Attach(ctx, Font_Andale_Mono_20_B)
 
     im.Attach(ctx, icon1)

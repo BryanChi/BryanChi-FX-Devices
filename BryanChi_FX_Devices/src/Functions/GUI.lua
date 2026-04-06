@@ -1595,6 +1595,78 @@ function Add_WetDryKnob(ctx, label, labeltoShow, p_value, v_min, v_max, FX_Idx, 
     end
 end
 
+FX_TITLE_TEMP_PRM_BTN_H = 14
+FX_TITLE_TEMP_PRM_GAP = 4
+
+--- Extra vertical space above the wet/dry knob for the temporary-parameters toggle (layout INI only).
+---@return number
+function FX_TitleRow_ExtraHeight_For_TempPrmBtn(FxGUID, FX_Idx, orig_name, isContainer)
+    if isContainer then return 0 end
+    if not FxGUID or not FX[FxGUID] or FX[FxGUID].NoWetKnob then return 0 end
+    local on = orig_name or ''
+    if on:find('JS: ') then on = string.sub(on, 5) end
+    local _, full = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    if not full then return 0 end
+    local nm = string.sub(full, 1, (string.find(full, '%(') or 30) - 1)
+    nm = string.gsub(nm, '%-', ' ')
+    if FindStringInTable(SpecialLayoutFXs, nm) then return 0 end
+    if FindStringInTable(PluginScripts, on) then return 0 end
+    if not FX_Has_Layout_Ini_For_TrackFXName(full) then return 0 end
+    return FX_TITLE_TEMP_PRM_BTN_H + FX_TITLE_TEMP_PRM_GAP
+end
+
+--- Vertical pitch / knob radius for the auto no-layout grid (and temp-param column when a layout INI is active).
+---@return number rowPitchV
+---@return number topGap
+---@return number knobRadius
+---@return number maxCurY
+function FX_ComputeNoLayoutGridVerticalPitch(ctx, mainContentH)
+    local lblBlock = FX_NO_LAYOUT_KNOB_TO_LABEL_GAP + 2 * FX_NO_LAYOUT_LBL_COMPACT_LINE_H +
+        FX_NO_LAYOUT_LBL_LINE_GAP + FX_NO_LAYOUT_LBL_BOTTOM_PAD
+    local postKnobSpacing = -1
+    local fixedCore = postKnobSpacing + lblBlock
+    local Rr = FX_NO_LAYOUT_KNOB_ROWS or 3
+    local _, cminy = im.GetWindowContentRegionMin(ctx)
+    local _, cmaxy = im.GetWindowContentRegionMax(ctx)
+    local H = mainContentH or 220
+    if cminy and cmaxy and cmaxy > cminy then
+        H = cmaxy - cminy
+    else
+        local _, wpY = im.GetStyleVar(ctx, im.StyleVar_WindowPadding)
+        H = math.max(1, (mainContentH or 220) - 2 * (wpY or 8))
+    end
+    local maxKnobD = math.max(Df.KnobSize, FX_NO_LAYOUT_MAX_KNOB_DIAM or Df.KnobSize)
+    local minKnobD = 2 * Df.KnobRadius
+    local minKnobD_squeeze = minKnobD * 0.75
+    local maxCellH = H / Rr
+    local topGap = FX_NO_LAYOUT_KNOB_TOP_GAP
+    local knobBodyH = (H - Rr * topGap - Rr * fixedCore) / Rr
+    knobBodyH = math.max(minKnobD, math.min(knobBodyH, maxKnobD))
+    local cellH = topGap + knobBodyH + fixedCore
+    if cellH > maxCellH then
+        knobBodyH = maxCellH - topGap - fixedCore
+        knobBodyH = math.max(minKnobD_squeeze, math.min(knobBodyH, maxKnobD))
+        cellH = topGap + knobBodyH + fixedCore
+    end
+    if cellH > maxCellH then
+        topGap = 0
+        knobBodyH = maxCellH - fixedCore
+        knobBodyH = math.max(minKnobD_squeeze, math.min(knobBodyH, maxKnobD))
+        cellH = topGap + knobBodyH + fixedCore
+    end
+    if cellH > maxCellH then
+        knobBodyH = math.max(1, maxCellH - topGap - fixedCore)
+        knobBodyH = math.min(knobBodyH, maxKnobD)
+        cellH = topGap + knobBodyH + fixedCore
+    end
+    local remaining = H - Rr * cellH
+    local rowGap = (Rr > 1) and math.max(0, remaining / (Rr - 1)) or 0
+    local knobRadius = knobBodyH * 0.5
+    local rowPitchV = cellH + rowGap
+    local maxCurY = (Rr - 1) * rowPitchV + topGap
+    return rowPitchV, topGap, knobRadius, maxCurY
+end
+
 function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterClr   )
     local Coord = Coord or {im.GetItemRectMin(ctx)}
     local x, y = Coord[1], Coord[2]
@@ -1970,6 +2042,8 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
     end
     local function Create_Window_Btn()
         local LastWetKnobL, LastWetKnobT, LastWetKnobR, LastWetKnobB
+        local tempPrmExtra = FX_TitleRow_ExtraHeight_For_TempPrmBtn(FxGUID, FX_Idx, orig_Name, isContainer)
+        local titleRowH = (WET_DRY_KNOB_SZ or 20) + tempPrmExtra
         local function Draw_Vert_Text(nm, x_offset, max_height)
             local x, y = im.GetItemRectMin(ctx)
             local w, h = im.GetItemRectSize(ctx)
@@ -1977,7 +2051,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             -- Available height: from draw start (y+h-15) upward to top of button (y); cap to prevent top poking out
             local available_height = math.max(0, h - 17)  -- 15 from bottom, 2px top padding
             local effective_max = math.min(max_height or available_height, available_height)
-            DrawTextWithSpacing(im.GetWindowDrawList(ctx), nm, x+x_ofs ,y+h-15 , 0xffffffff, 0.6, Font_Andale_Mono_Vertical_13, "vertical_up", effective_max)
+            DrawTextWithSpacing(im.GetWindowDrawList(ctx), nm, x+x_ofs ,y+h-7 , 0xffffffff, 0.6, Font_Andale_Mono_Vertical_13, "vertical_up", effective_max)
         end
         local function Add_WetDry_Knob_Below_Vert_Btn(Name)
             if fx.NoWetKnob then return end
@@ -2000,7 +2074,40 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
             local BtnW = BtnR - BtnL
             local KnobW = WET_DRY_KNOB_SZ
             local KnobX = BtnL + math.max((BtnW - KnobW) / 2, 0)
-            local KnobY = BtnB + 2
+            local KnobY = BtnB + 10
+            if tempPrmExtra > 0 then
+                local tBtnW = math.max(16, WET_DRY_KNOB_SZ - 4)
+                local tBtnH = FX_TITLE_TEMP_PRM_BTN_H
+                local tX = BtnL + math.max((BtnW - tBtnW) / 2, 0)
+                im.SetCursorScreenPos(ctx, tX, KnobY)
+                local tClicked = im.InvisibleButton(ctx, '##TempPrmBtn' .. FxGUID, tBtnW, tBtnH)
+                local L, T = im.GetItemRectMin(ctx)
+                local R, B = im.GetItemRectMax(ctx)
+                local Active = FX[FxGUID].ShowTempParams == true
+                local Hvr = im.IsItemHovered(ctx)
+                local Fill = Active and 0xffffff2a or (Hvr and 0xffffff18 or 0x00000018)
+                local LineClr = Active and 0xffffffff or 0xffffffaa
+                im.DrawList_AddRectFilled(WDL, L, T, R, B, Fill, 2)
+                im.DrawList_AddRect(WDL, L, T, R, B, 0xffffff33, 2)
+                local pad = 3
+                local y1 = T + 3
+                local y2 = T + (B - T) * 0.5
+                local y3 = B - 3
+                im.DrawList_AddLine(WDL, L + pad, y1, R - pad, y1, LineClr, 1)
+                im.DrawList_AddLine(WDL, L + pad, y2, R - pad, y2, LineClr, 1)
+                im.DrawList_AddLine(WDL, L + pad, y3, R - pad, y3, LineClr, 1)
+                if tClicked then
+                    FX[FxGUID].ShowTempParams = toggle(FX[FxGUID].ShowTempParams)
+                    if not FX[FxGUID].ShowTempParams then
+                        FX_ShrinkWidth_After_TempPrm_Panel_Off(FxGUID)
+                    end
+                    Save_to_Trk('ShowTempParams' .. FxGUID, FX[FxGUID].ShowTempParams and 'true' or '', LT_Track)
+                end
+                if Hvr then
+                    TooltipUI('Temporary parameters', im.HoveredFlags_Stationary)
+                end
+                KnobY = KnobY + tBtnH + FX_TITLE_TEMP_PRM_GAP
+            end
             im.SetCursorScreenPos(ctx, KnobX, KnobY)
             Wet.ActiveAny, Wet.Active, FX[FxGUID][0].V = Add_WetDryKnob(ctx, 'a', '', FX[FxGUID][0].V, 0, 1, FX_Idx,nil,FxGUID)
             local kL, kT = im.GetItemRectMin(ctx)
@@ -2035,7 +2142,7 @@ function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContain
 
             local WID = (width or fx.TitleWidth or DefaultWidth or Default_WindowBtnWidth)
             im.PushStyleVar(ctx, im.StyleVar_FrameRounding, FX_Title_Round)
-            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, WET_DRY_KNOB_SZ) -- create window name button
+            WindowBtn = im.Button(ctx, Name .. '## ' .. FxGUID,  WID - 38, titleRowH) -- create window name button
             Handle_FX_DragDrop_Source(im.BeginDragDropSource(ctx, im.DragDropFlags_AcceptNoDrawDefaultRect|im.DragDropFlags_AcceptNoPreviewTooltip|im.DragDropFlags_SourceAllowNullID))
             im.PopStyleVar(ctx)
             if isContainer then
@@ -3502,6 +3609,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
     fx.Enable = r.TrackFX_GetEnabled(LT_Track, FX_Idx)
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
+    local FX_Name_RawForLayoutIni = FX_Name
 
     --local FxGUID = FXGUID[FX_Idx]
     local FxNameS = fx.ShortName
@@ -4620,9 +4728,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     end
     PrmCount = math.max(PrmCount, ActualPrmCount)
 
+    local AutoNoLayout_Grid = not FX_Has_Layout_Ini_For_TrackFXName(FX_Name_RawForLayoutIni)
+    FX[FxGUID].AutoNoLayout_Grid = AutoNoLayout_Grid
+
     local Def_Sldr_W = Global_Default_Sldr_W or 160
     FX.Def_Sldr_W[FxGUID] = Def_Sldr_W
     FX[FxGUID].DefType = Global_Default_Param_Type or 'Drag'
+    if AutoNoLayout_Grid then
+        FX[FxGUID].DefType = 'Knob'
+    end
 
     if FX[FxGUID].DefType == 'Slider' or FX[FxGUID].DefType == 'Drag' or not FX[FxGUID].DefType then
         local DF = (FX.Def_Sldr_W[FxGUID] or Df.Sldr_W)
@@ -4632,11 +4746,49 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         DefaultWidth = (DF + GapBtwnPrmColumns) * Ct
 
     elseif FX[FxGUID].DefType == 'Knob' then
-        local Ct = math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
-        DefaultWidth = Df.KnobSize * Ct + GapBtwnPrmColumns
+        local Ct = AutoNoLayout_Grid and FX_NoLayout_DisplayColumnCount(FxGUID) or
+            math.max(math.floor((PrmCount / 3) - 0.1) + 1, 1) -- need to -0.1 so flooring 3/3 -0.1 will return 0 and 3/4 -0.1 will be 1
+        DefaultWidth = (AutoNoLayout_Grid and FX_NoLayout_ColumnPitch() or Df.KnobSize) * Ct + GapBtwnPrmColumns
     elseif FX[FxGUID].DefType == 'V-Slider' then
         DefaultWidth = math.max(220, (17 * math.max(PrmCount - 1, 0)) + 30)
     end
+
+    local TempParams_Enabled = FX_ShouldShowTemporaryParams(FxGUID, FX_Name_RawForLayoutIni) and not AutoNoLayout_Grid
+    local titleColW = Title_Btn_Column_W or 30
+    local BaseLayoutContentW = DefaultWidth or 220
+    local TempParams_BaseContentW = BaseLayoutContentW
+    local TempParams_Cols = TempParams_Enabled and FX_TempParams_DisplayColumnCount(FxGUID) or 0
+    local tempPrmPlusW = FX_TempPrm_PlusStrip_W or 22
+    local TempParams_AreaW = TempParams_Enabled and
+        (FX_NoLayout_ColumnPitch() * TempParams_Cols + GapBtwnPrmColumns + tempPrmPlusW) or 0
+    if TempParams_Enabled then
+        local storedBase = FX[FxGUID].TempPrm_BaseContentW
+        if storedBase and storedBase > 0 then
+            TempParams_BaseContentW = storedBase
+        else
+            local curContentW
+            if FX[FxGUID].Width and FX[FxGUID].Width > titleColW then
+                curContentW = FX[FxGUID].Width - titleColW
+            end
+            if curContentW and TempParams_AreaW > 0 then
+                local expandedMin = BaseLayoutContentW + TempParams_AreaW - 2
+                if curContentW >= expandedMin then
+                    curContentW = curContentW - TempParams_AreaW
+                end
+            end
+            TempParams_BaseContentW = math.max(40, curContentW or TempParams_BaseContentW or 220)
+            FX[FxGUID].TempPrm_BaseContentW = TempParams_BaseContentW
+            Save_to_Trk('TempPrmBaseContentW' .. FxGUID, TempParams_BaseContentW, LT_Track)
+        end
+    else
+        FX[FxGUID].TempPrm_BaseContentW = nil
+        Save_to_Trk('TempPrmBaseContentW' .. FxGUID, '', LT_Track)
+    end
+    if TempParams_Enabled then
+        DefaultWidth = TempParams_BaseContentW + TempParams_AreaW
+    end
+
+    FX[FxGUID].MinTotalW_BaseLayout = (TempParams_BaseContentW or 220) + (Title_Btn_Column_W or 30)
 
     if If_Need_To_Hide() then return end
     im.BeginGroup(ctx)
@@ -4648,11 +4800,16 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
         local title_col = Title_Btn_Column_W or 30
         local min_content_w = 40
         local min_total = min_content_w + title_col
+        local need_content = DefaultWidth or 220
+        local need_total = need_content + title_col
 
         if fx.Width == nil or fx.Width == 0 then
-            fx.Width = DefaultWidth and (DefaultWidth + title_col) or min_total
+            fx.Width = need_total
         else
-            fx.Width = math.max(fx.Width, min_total) 
+            fx.Width = math.max(fx.Width, min_total)
+            if TempParams_Enabled then
+                fx.Width = math.max(fx.Width, need_total)
+            end
         end
     end
 
@@ -4667,14 +4824,15 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
     local function Make_Window()
         local WindowSize
         local Title_Btn_Column_W = 30
-        local Main_Content_H = 225
+        local Main_Content_H = 220
         local Wet_Knob_Gap = 2
         local Mod_Icon_Sz = 20
         local Mod_Icon_Gap = 0
         local _, ItemSpacingY = im.GetStyleVar(ctx, im.StyleVar_ItemSpacing)
         local _, ItemInnerSpacingY = im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing)
         local Wet_Knob_H = (WET_DRY_KNOB_SZ or 20) + im.GetTextLineHeight(ctx) - 10 + (ItemInnerSpacingY or 0)
-        local Reserve_Below_Title = Wet_Knob_Gap + Wet_Knob_H
+        local tempPrmExtra = FX_TitleRow_ExtraHeight_For_TempPrmBtn(FxGUID, FX_Idx, FX_Name_RawForLayoutIni, isContainer)
+        local Reserve_Below_Title = Wet_Knob_Gap + Wet_Knob_H + tempPrmExtra
         if isContainer then
             local Folder_Icon_Footprint = (WET_DRY_KNOB_SZ or 20) + (ItemSpacingY or 0)
             Reserve_Below_Title = Reserve_Below_Title + Folder_Icon_Footprint
@@ -4782,15 +4940,17 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local MouseX, MouseY = im.GetMousePos(ctx)
                 if FX.LayEdit == FxGUID and Draw.DrawMode ~= FxGUID then
                     im.BeginDisabled(ctx); R, T = im.GetItemRectMax(ctx)
-                    local L, T = im.GetItemRectMin(ctx); local R, _ = im.GetItemRectMax( ctx); B = T + 20
+                    local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax( ctx)
                     local WinDrawList = WinDrawList or im.GetWindowDrawList(ctx)
-                    im.DrawList_AddCircleFilled(WinDrawList, R, T + 10, 3, 0x999999ff)
-                    im.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
+                    local titleH = math.max(B - T, 1)
+                    im.DrawList_AddCircleFilled(WinDrawList, R, T + titleH * 0.5, 3, 0x999999ff)
+                    im.DrawList_AddRect(WinDrawList, L, T, R, B, 0x999999ff)
 
                     if MouseX > L and MouseX < R and MouseY > T and MouseY < B then
-                        im.DrawList_AddRectFilled(WinDrawList, L, T, R, T + 20, 0x99999955)
+                        im.DrawList_AddRectFilled(WinDrawList, L, T, R, B, 0x99999955)
                         if IsLBtnClicked then
                             LE.SelectedItem = 'Title'
+                            LE.Sel_Items = {}
                             LE.ChangingTitleSize = true
                             LE.MouseX_before, _ = im.GetMousePos(ctx)
                         elseif IsRBtnClicked and Mods == 0 then
@@ -4799,7 +4959,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     end
 
                     if LE.SelectedItem == 'Title' then
-                        im.DrawList_AddRect(WinDrawList, L, T, R, T + 20, 0x999999ff)
+                        im.DrawList_AddRect(WinDrawList, L, T, R, B, 0x999999ff)
                     end
 
                     if MouseX > R - 5 and MouseX < R + 5 and MouseY > T and MouseY < B then --if hover on right edge
@@ -5182,6 +5342,48 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 local orig_name = orig_name
                 if orig_name:find('JS: ') then orig_name = string.sub(orig_name, 5) end 
                 if FindStringInTable(SpecialLayoutFXs, FX_Name) == false and not FindStringInTable(PluginScripts, orig_name) then -- orig_name used to be fx.ShortName , changed to orig_name to work with containers in case if user changes name
+                    local tempH = FX_TitleRow_ExtraHeight_For_TempPrmBtn(FxGUID, FX_Idx, orig_name, IsContainer)
+                    if tempH > 0 then
+                        local colX, colY = im.GetCursorPos(ctx)
+                        local btnW = math.max(16, WET_DRY_KNOB_SZ - 4)
+                        local btnH = FX_TITLE_TEMP_PRM_BTN_H
+                        im.SetCursorPos(ctx, colX + (WET_DRY_KNOB_SZ - btnW) * 0.5, colY)
+                        local Clicked = im.InvisibleButton(ctx, '##TempPrmBtn' .. FxGUID, btnW, btnH)
+                        local L, T = im.GetItemRectMin(ctx)
+                        local R, B = im.GetItemRectMax(ctx)
+                        local Active = FX[FxGUID].ShowTempParams == true
+                        local Hvr = im.IsItemHovered(ctx)
+                        local Fill = Active and 0xffffff2a or (Hvr and 0xffffff18 or 0x00000018)
+                        local LineClr = Active and 0xffffffff or 0xffffffaa
+                        im.DrawList_AddRectFilled(WDL, L, T, R, B, Fill, 2)
+                        im.DrawList_AddRect(WDL, L, T, R, B, 0xffffff33, 2)
+                        local pad = 3
+                        local y1 = T + 3
+                        local y2 = T + (B - T) * 0.5
+                        local y3 = B - 3
+                        im.DrawList_AddLine(WDL, L + pad, y1, R - pad, y1, LineClr, 1)
+                        im.DrawList_AddLine(WDL, L + pad, y2, R - pad, y2, LineClr, 1)
+                        im.DrawList_AddLine(WDL, L + pad, y3, R - pad, y3, LineClr, 1)
+                        if Clicked then
+                            FX[FxGUID].ShowTempParams = toggle(FX[FxGUID].ShowTempParams)
+                            local tc = Title_Btn_Column_W or 30
+                            if FX[FxGUID].ShowTempParams then
+                                local curTotalW = FX[FxGUID].Width or ((DefaultWidth or 220) + tc)
+                                FX[FxGUID].TempPrm_BaseContentW = math.max(40, curTotalW - tc)
+                                Save_to_Trk('TempPrmBaseContentW' .. FxGUID, FX[FxGUID].TempPrm_BaseContentW, LT_Track)
+                            end
+                            if not FX[FxGUID].ShowTempParams then
+                                FX[FxGUID].TempPrm_BaseContentW = nil
+                                Save_to_Trk('TempPrmBaseContentW' .. FxGUID, '', LT_Track)
+                                FX_ShrinkWidth_After_TempPrm_Panel_Off(FxGUID)
+                            end
+                            Save_to_Trk('ShowTempParams' .. FxGUID, FX[FxGUID].ShowTempParams and 'true' or '', LT_Track)
+                        end
+                        if Hvr then
+                            TooltipUI('Temporary parameters', im.HoveredFlags_Stationary)
+                        end
+                        im.SetCursorPos(ctx, colX, colY + btnH + FX_TITLE_TEMP_PRM_GAP + 2)
+                    end
                     SyncWetValues()
 
 
@@ -5288,7 +5490,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 im.DrawList_AddLine(WDL, x2, y1, x2, y2, ThemeClr('Accent_Clr_Dark'), 1)
             end
             local function Window_Title_Area()
-                local sz= WET_DRY_KNOB_SZ
+                local baseSz = WET_DRY_KNOB_SZ
+                local titleRowH = baseSz + FX_TitleRow_ExtraHeight_For_TempPrmBtn(FxGUID, FX_Idx, orig_name, IsContainer)
 
                 local gap = fx.Left_Padding or 0
                 SL( nil, gap)
@@ -5299,8 +5502,8 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                 If_LayEdit_Activated__WindowBtn()
                 If_DebugMode_Active()
                 If_Open_Morph_Settings()
-                Wet_Dry_Knob_And_WindowBtn_Decoration_NOT_COLLAPSED(sz, gap,St)
-                Wet_Dry_Knob_COLLAPSED(sz, gap,St)
+                Wet_Dry_Knob_And_WindowBtn_Decoration_NOT_COLLAPSED(titleRowH, gap,St)
+                Wet_Dry_Knob_COLLAPSED(titleRowH, gap,St)
 
             end
 
@@ -5439,6 +5642,91 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                     if not FX[FxGUID][Fx_P].Name then table.remove(FX[FxGUID],Fx_P) end
                 end ]]
 
+                local NoLay_rowPitchV, NoLay_maxCurY, NoLay_rowBaseY
+                if FX[FxGUID].AutoNoLayout_Grid then
+                    NoLay_rowPitchV, FX[FxGUID].NoLay_CursorTopGap, FX[FxGUID].NoLay_KnobRadius, NoLay_maxCurY =
+                        FX_ComputeNoLayoutGridVerticalPitch(ctx, Main_Content_H)
+                    NoLay_rowBaseY = 0
+                end
+
+                local function Draw_Temporary_Params_Area()
+                    if not TempParams_Enabled then return end
+                    local temp = FX_TempParams_GetTable(FxGUID)
+                    FX_TempParams_PinModulatedToTop(FxGUID)
+                    local draw_start_x = (TempParams_BaseContentW or 0) + GapBtwnPrmColumns
+                    local draw_w = TempParams_AreaW or 0
+                    if draw_w <= 0 then return end
+
+                    local x_line = draw_start_x - GapBtwnPrmColumns * 0.5
+                    local tempPrmBg = FX[FxGUID].BgClr or FX_Devices_Bg or 0x151515ff
+                    im.DrawList_AddRectFilled(WDL, Win_L + x_line - 1, Win_T, Win_R, Win_B, tempPrmBg, 0)
+                    im.DrawList_AddLine(WDL, Win_L + x_line, Win_T, Win_L + x_line, Win_B, 0xffffff33, 1)
+
+                    local tempGuid = FxGUID .. '::TempPrm'
+                    FX[tempGuid] = FX[tempGuid] or {}
+                    FX[tempGuid].AutoNoLayout_Grid = true
+                    local rowPitchV, tempTopGap, tempKnobR = FX_ComputeNoLayoutGridVerticalPitch(ctx, Main_Content_H)
+                    FX[tempGuid].NoLay_CursorTopGap = tempTopGap
+                    FX[tempGuid].NoLay_KnobRadius = tempKnobR
+                    local pitch = FX_NoLayout_ColumnPitch()
+                    local rows = FX_NO_LAYOUT_KNOB_ROWS or 3
+                    local maxCols = FX_TempParams_DisplayColumnCount(FxGUID)
+                    local slotFill = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBg), 0, 0.15)
+                    local slotLblFill = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBg), 0, 0.10)
+                    local slotOutline = Change_Clr_A(im.GetColor(ctx, im.Col_Border), 0, 0.20)
+                    local topGap = FX[tempGuid].NoLay_CursorTopGap or FX_NO_LAYOUT_KNOB_TOP_GAP or 0
+                    local lblBlock = (FX_NO_LAYOUT_KNOB_TO_LABEL_GAP or 0) +
+                        2 * (FX_NO_LAYOUT_LBL_COMPACT_LINE_H or 0) +
+                        (FX_NO_LAYOUT_LBL_LINE_GAP or 0) +
+                        (FX_NO_LAYOUT_LBL_BOTTOM_PAD or 0)
+                    local itemInnerSpacingY = -1
+                    local rnd = 5
+
+                    im.PushClipRect(ctx, Win_L + x_line - 1, Win_T, Win_R, Win_B, true)
+                    for col = 0, maxCols - 1 do
+                        for row = 0, rows - 1 do
+                            local x = draw_start_x + col * pitch + pitch * 0.5 - tempKnobR
+                            local y = (NoLay_rowBaseY or 0) + rowPitchV * row + tempTopGap
+                            local posX = Win_L + x
+                            local posY = Win_T + y
+                            local cx = posX + tempKnobR
+                            local bgL = cx - pitch * 0.5
+                            local bgR = cx + pitch * 0.5
+                            local cardT = posY - topGap
+                            local cardB = posY + tempKnobR * 2 + itemInnerSpacingY + lblBlock
+                            local knobFillB = posY + tempKnobR * 2 + itemInnerSpacingY
+                            local lblBgT = knobFillB + (FX_NO_LAYOUT_KNOB_TO_LABEL_GAP or 0)
+                            local lblBgB = cardB
+                            im.DrawList_AddRectFilled(WDL, bgL, cardT, bgR, lblBgT, slotFill, rnd, im.DrawFlags_RoundCornersTop)
+                            im.DrawList_AddRectFilled(WDL, bgL, lblBgT, bgR, lblBgB, slotLblFill, rnd, im.DrawFlags_RoundCornersBottom)
+                            im.DrawList_AddRect(WDL, bgL, cardT, bgR, cardB, slotOutline, rnd, im.DrawFlags_RoundCornersAll)
+                        end
+                    end
+
+                    for i, tp in ipairs(temp) do
+                        local row = (i - 1) % rows
+                        local col = math.floor((i - 1) / rows)
+                        if col >= maxCols then break end
+                        FX[tempGuid][i] = tp
+                        local TFP = FX[tempGuid][i]
+                        TFP.Type = 'Knob'
+                        TFP.Deletable = true
+                        local x = draw_start_x + col * pitch + pitch * 0.5 - tempKnobR
+                        local y = (NoLay_rowBaseY or 0) + rowPitchV * row + tempTopGap
+                        im.SetCursorPos(ctx, x, y)
+                        AddKnob(ctx, tempGuid, i, FX_Idx)
+                    end
+                    im.PopClipRect(ctx)
+
+                    if #temp == 0 then
+                        local txt = 'Touch plugin params to pin them here'
+                        local tw = im.CalcTextSize(ctx, txt)
+                        local tx = draw_start_x + math.max(6, (draw_w - tw) * 0.5)
+                        local ty = 8
+                        im.SetCursorPos(ctx, tx, ty)
+                        im.TextColored(ctx, 0xffffff66, txt)
+                    end
+                end
 
                 for Fx_P, v in ipairs(FX[FxGUID]) do --parameter faders
                     --FX[FxGUID][Fx_P]= FX[FxGUID][Fx_P] or {}
@@ -5470,11 +5758,21 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             im.SetCursorPos(ctx, 17 * idx, topPad)
                         elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
                             local KSz = Df.KnobSize
-                            local G = 15
-                            local rowsPerColumn = 3
+                            local knobR = Df.KnobRadius
+                            local lh = im.GetTextLineHeight(ctx)
+                            -- Match AddKnob InvisibleButton height (item_inner_spacing is -1 there)
+                            local knobRowPitch = 2 * knobR + lh - 1
+                            local rowsPerColumn = FX[FxGUID].AutoNoLayout_Grid and (FX_NO_LAYOUT_KNOB_ROWS or 3) or 3
                             local row = idx % rowsPerColumn
                             local Column = math.floor(idx / rowsPerColumn)
-                            im.SetCursorPos(ctx, KSz * Column, topPad + (KSz + G) * row)
+                            if FX[FxGUID].AutoNoLayout_Grid then
+                                local pitch = FX_NoLayout_ColumnPitch()
+                                local nr = FX[FxGUID].NoLay_KnobRadius or Df.KnobRadius
+                                im.SetCursorPos(ctx, Column * pitch + pitch * 0.5 - nr,
+                                    (NoLay_rowBaseY or 0) + (NoLay_rowPitchV or (KSz + 15)) * row + (FX[FxGUID].NoLay_CursorTopGap or 0))
+                            else
+                                im.SetCursorPos(ctx, Column * KSz + KSz * 0.5 - knobR, knobRowPitch * row)
+                            end
                         end
                     end
 
@@ -5483,14 +5781,18 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
                     rectminX, RectMinY = im.GetItemRectMin(ctx)
                     curX, CurY = im.GetCursorPos(ctx)
-                    if CurY > 210 then
-                        im.SetCursorPosY(ctx, 210)
-                        CurY = 210
+                    local maxDefLayCurY = FX[FxGUID].AutoNoLayout_Grid and (NoLay_maxCurY or 200) or 210
+                    if CurY > maxDefLayCurY then
+                        im.SetCursorPosY(ctx, maxDefLayCurY)
+                        CurY = maxDefLayCurY
                     end
                     if curX < 0 then
                         im.SetCursorPosX(ctx, 0)
                     else
                         local content_w = (FX[FxGUID].Width or (DefaultWidth and (DefaultWidth + Title_Btn_Column_W) or 220)) - Title_Btn_Column_W
+                        if TempParams_Enabled and TempParams_BaseContentW then
+                            content_w = math.min(content_w, TempParams_BaseContentW)
+                        end
                         if curX > content_w then
                             im.SetCursorPosX(ctx, content_w - 10)
                         end
@@ -5975,6 +6277,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                         end
                     end
                 end -- Rpt for every param
+                Draw_Temporary_Params_Area()
 
 
 
@@ -6020,7 +6323,78 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
 
             WindowSize = im.GetWindowSize(ctx)
 
-            im.Dummy(ctx, 100, 100)
+            if FX[FxGUID].AutoNoLayout_Grid then
+                if FX_NoLayout_ShouldShowExpandColumnStrip(FxGUID) then
+                    local pitch = FX_NoLayout_ColumnPitch()
+                    local dcols = FX_NoLayout_DisplayColumnCount(FxGUID)
+                    local stripX = pitch * dcols
+                    im.SetCursorPos(ctx, stripX, 0)
+                    local availW, availH = im.GetContentRegionAvail(ctx)
+                    if not availH or availH <= 0 then availH = Main_Content_H end
+                    local stripW = math.max(1, availW or 0)
+                    local stripH = math.min(Main_Content_H, math.max(1, availH))
+                    im.InvisibleButton(ctx, '##NoLayExpandCol' .. FxGUID .. tostring(FX_Idx), stripW, stripH)
+                    local L, T = im.GetItemRectMin(ctx)
+                    local R, B = im.GetItemRectMax(ctx)
+                    local strip_dl = im.GetWindowDrawList(ctx)
+                    local hvr = im.IsItemHovered(ctx)
+                    local cx = (L + R) * 0.5
+                    local cy = (T + B) * 0.5
+                    local half = 2.5
+                    local plusClr = hvr and 0xffffffff or 0xffffff4a
+                    local lw = hvr and 1.35 or 1
+                    im.DrawList_AddLine(strip_dl, cx - half, cy, cx + half, cy, plusClr, lw)
+                    im.DrawList_AddLine(strip_dl, cx, cy - half, cx, cy + half, plusClr, lw)
+                    if im.IsItemClicked(ctx) then
+                        local curCols = FX_NoLayout_DisplayColumnCount(FxGUID)
+                        FX[FxGUID].NoLay_UserDisplayCols = curCols + 1
+                        Save_to_Trk('NoLayUserDisplayCols' .. FxGUID, FX[FxGUID].NoLay_UserDisplayCols, LT_Track)
+                        local tc = Title_Btn_Column_W or 30
+                        local dc2 = FX_NoLayout_DisplayColumnCount(FxGUID)
+                        local needContent = pitch * dc2 + GapBtwnPrmColumns
+                        fx.Width = math.max(fx.Width or 0, needContent + tc)
+                    end
+                end
+                im.Dummy(ctx, 1, 1)
+            elseif TempParams_Enabled then
+                -- + strip on the right: add more temp-param columns (always visible while panel is on)
+                local pitch = FX_NoLayout_ColumnPitch()
+                local dcols = FX_TempParams_DisplayColumnCount(FxGUID)
+                local stripX = (TempParams_BaseContentW or 0) + GapBtwnPrmColumns + pitch * dcols
+                im.SetCursorPos(ctx, stripX, 0)
+                local availW, availH = im.GetContentRegionAvail(ctx)
+                if not availH or availH <= 0 then availH = Main_Content_H end
+                local stripW = math.max(1, availW or 0)
+                local stripH = math.min(Main_Content_H, math.max(1, availH))
+                im.InvisibleButton(ctx, '##TempPrmExpandCol' .. FxGUID .. tostring(FX_Idx), stripW, stripH)
+                local L, T = im.GetItemRectMin(ctx)
+                local R, B = im.GetItemRectMax(ctx)
+                local strip_dl = im.GetWindowDrawList(ctx)
+                local hvr = im.IsItemHovered(ctx)
+                local cx = (L + R) * 0.5
+                local cy = (T + B) * 0.5
+                local half = 2.5
+                local plusClr = hvr and 0xffffffff or 0xffffff4a
+                local lw = hvr and 1.35 or 1
+                im.DrawList_AddLine(strip_dl, cx - half, cy, cx + half, cy, plusClr, lw)
+                im.DrawList_AddLine(strip_dl, cx, cy - half, cx, cy + half, plusClr, lw)
+                if hvr then
+                    TooltipUI('Add column for more temporary parameters', im.HoveredFlags_Stationary)
+                end
+                if im.IsItemClicked(ctx) then
+                    local curCols = FX_TempParams_DisplayColumnCount(FxGUID)
+                    FX[FxGUID].TempPrm_UserDisplayCols = curCols + 1
+                    Save_to_Trk('TempPrmUserDisplayCols' .. FxGUID, FX[FxGUID].TempPrm_UserDisplayCols, LT_Track)
+                    local tc = Title_Btn_Column_W or 30
+                    local tpw = FX_TempPrm_PlusStrip_W or 22
+                    local needContent = (TempParams_BaseContentW or 0) + GapBtwnPrmColumns +
+                        pitch * FX_TempParams_DisplayColumnCount(FxGUID) + GapBtwnPrmColumns + tpw
+                    fx.Width = math.max(fx.Width or 0, needContent + tc)
+                end
+                im.Dummy(ctx, 1, 1)
+            else
+                im.Dummy(ctx, 100, 100)
+            end
             im.EndChild(ctx)    
             im.PopStyleVar(ctx)
                 
@@ -6955,12 +7329,17 @@ function AddKnob_Simple(ctx, label , p_value ,  Size , knobSizeOfs, OutClr, InCl
                 im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer*0.95, 0xffffff33, nil,2)
             end
         else
-            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, OutClr or im.GetColor(ctx, im.Col_Button))
-            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner, center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2), PointerClr or Clr_SldrGrab, 2)
-            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
-            im.DrawList_PathStroke(draw_list, RangeClr or 0x99999922, nil, radius_outer * 0.7)
-            im.DrawList_PathClear(draw_list)
-            local clr = InClr or im.GetColor(ctx, is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or im.Col_FrameBg)
+            local knobBg = OutClr or
+                im.GetColor(ctx, is_active and im.Col_ButtonActive or is_hovered and im.Col_ButtonHovered or im.Col_Button)
+            local clr = InClr or
+                im.GetColor(ctx, is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or im.Col_FrameBg)
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, knobBg)
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer - 0.8, 0x00000055, nil, 1)
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer - 2.0, 0xffffff14, nil, 1)
+            im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner, center[2] + angle_sin * radius_inner,
+                center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
+                PointerClr or Clr_SldrGrab, 2 + (is_active and 0.6 or 0))
+            -- Keep default knobs clean: no circular range overlay.
             im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner, clr)
         end
     end

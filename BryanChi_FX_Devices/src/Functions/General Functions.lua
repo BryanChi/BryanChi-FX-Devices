@@ -1599,6 +1599,489 @@ function GetLT_FX_Num()
      retval, LT_ParamName = r.TrackFX_GetParamName(LT_Track, LT_FXNum, LT_ParamNum)
 end
 
+---@param FP table|nil
+function FP_Has_Active_Modulation(FP)
+    if not FP then return false end
+    if FP.WhichCC then return true end
+    if FP.WhichMODs and tostring(FP.WhichMODs) ~= '' then return true end
+    return false
+end
+
+function FX_Has_Layout_Ini_For_TrackFXName(FX_Name_raw)
+    if not FX_Name_raw then return false end
+    local path = ConcatPath(CurrentDirectory, 'src', 'FX Layouts', ChangeFX_Name(FX_Name_raw) .. '.ini')
+    local f = io.open(path, 'r')
+    if f then f:close(); return true end
+    return false
+end
+
+FX_NO_LAYOUT_KNOB_ROWS = 3
+--- Horizontal padding (each side of the knob) within a column; widens pitch and gives label text a bounded width.
+FX_NO_LAYOUT_COL_PAD = 10
+--- Two-line compact labels under each knob (must match GUI minCell + Layout Editor drawing).
+FX_NO_LAYOUT_LBL_COMPACT_LINE_H = 9
+FX_NO_LAYOUT_LBL_LINE_GAP = 1
+--- Shared vertical inset (px): card top→knob top, and circle bottom→first label line (see FX_NO_LAYOUT_KNOB_TO_LABEL_GAP).
+FX_NO_LAYOUT_KNOB_CARD_V_PAD = 4
+FX_NO_LAYOUT_LBL_BOTTOM_PAD = FX_NO_LAYOUT_KNOB_CARD_V_PAD
+FX_NO_LAYOUT_KNOB_TOP_GAP = FX_NO_LAYOUT_KNOB_CARD_V_PAD
+--- From knob-fill bottom to first label line (knobFillB→text). CARD_V_PAD+1 so gap circle→text equals CARD_V_PAD with item_inner_spacing -1 under the knob.
+FX_NO_LAYOUT_KNOB_TO_LABEL_GAP = FX_NO_LAYOUT_KNOB_CARD_V_PAD + 1
+--- Auto no-layout: knob diameter may grow up to this (column pitch uses max of this and Df.KnobSize).
+FX_NO_LAYOUT_MAX_KNOB_DIAM = 48
+function FX_NoLayout_ColumnPitch()
+    return math.max(Df.KnobSize, FX_NO_LAYOUT_MAX_KNOB_DIAM) + FX_NO_LAYOUT_COL_PAD * 2
+end
+
+function FX_NoLayout_MinDisplayColumns(FxGUID)
+    local F = FX[FxGUID]
+    if not F then return 1 end
+    local prm_count = 0
+    for _, prm in ipairs(F) do
+        if prm and prm.Num ~= nil then prm_count = prm_count + 1 end
+    end
+    local min_cols = math.max(1, math.ceil(prm_count / FX_NO_LAYOUT_KNOB_ROWS))
+    local k = 4
+    while k <= 24 do
+        local all_have_mod = true
+        for col = 0, k - 1 do
+            local col_has = false
+            for r = 0, FX_NO_LAYOUT_KNOB_ROWS - 1 do
+                local Fx_P = col * FX_NO_LAYOUT_KNOB_ROWS + r + 1
+                local FP = F[Fx_P]
+                if FP and FP.Num and FP_Has_Active_Modulation(FP) then
+                    col_has = true
+                    break
+                end
+            end
+            if not col_has then
+                all_have_mod = false
+                break
+            end
+        end
+        if not all_have_mod then break end
+        min_cols = math.max(min_cols, k + 1)
+        k = k + 1
+    end
+    return min_cols
+end
+
+--- Columns shown: max(minimum from params/mod rules, user target). User target is track-persisted (absolute column count).
+function FX_NoLayout_DisplayColumnCount(FxGUID)
+    local F = FX[FxGUID]
+    if not F then return 1 end
+    local minc = FX_NoLayout_MinDisplayColumns(FxGUID)
+    local u = F.NoLay_UserDisplayCols
+    if u == nil then return math.max(1, minc) end
+    return math.max(1, math.max(minc, u))
+end
+
+--- Show expand strip only when every allocated slot is used (3 full, then 6, then 9…).
+function FX_NoLayout_ShouldShowExpandColumnStrip(FxGUID)
+    local F = FX[FxGUID]
+    if not F then return false end
+    local prm_count = 0
+    for _, prm in ipairs(F) do
+        if prm and prm.Num ~= nil then prm_count = prm_count + 1 end
+    end
+    if prm_count < FX_NO_LAYOUT_KNOB_ROWS then return false end
+    if (prm_count % FX_NO_LAYOUT_KNOB_ROWS) ~= 0 then return false end
+    local max_slots = FX_NO_LAYOUT_KNOB_ROWS * FX_NoLayout_DisplayColumnCount(FxGUID)
+    return prm_count == max_slots
+end
+
+function FX_NoLayout_MaxParamSlots(FxGUID)
+    return FX_NO_LAYOUT_KNOB_ROWS * FX_NoLayout_DisplayColumnCount(FxGUID)
+end
+
+--- Oldest = highest Fx_P (bottom of newest-first list) among params that may still be rotated out.
+---@return integer|nil
+function FX_NoLayout_OldestRotatableParamIndex(FxGUID)
+    local t = FX[FxGUID]
+    for Fx_P = #t, 1, -1 do
+        local FP = t[Fx_P]
+        if FP and FP.Num ~= nil and not FP_Has_Active_Modulation(FP) then
+            return Fx_P
+        end
+    end
+    return nil
+end
+
+--- After reordering FX[FxGUID] array slots, rewrite sequential Name/Num/Prm Count track keys (slot-indexed).
+function FX_RewriteSequentialParamKeysAfterReorder(FxGUID, trk)
+    local prev = LT_Track
+    LT_Track = trk or LT_Track
+    for i, v in ipairs(FX[FxGUID] or {}) do
+        if v and v.Num ~= nil and v.Name then
+            Save_to_Trk('FX' .. i .. 'Name' .. FxGUID, v.Name, LT_Track)
+            Save_to_Trk('FX' .. i .. 'Num' .. FxGUID, v.Num, LT_Track)
+        end
+    end
+    Save_to_Trk('Prm Count' .. FxGUID, #(FX[FxGUID] or {}), LT_Track)
+    FX[FxGUID].PrmCount = #(FX[FxGUID] or {})
+    LT_Track = prev
+end
+
+--- Move layout slot to top (slot 1). Safe for params without modulation (no slot-key migration).
+function FX_NoLayout_MoveUnmodulatedParamToFront(FxGUID, fromIdx, trk)
+    local t = FX[FxGUID]
+    if not t or fromIdx < 1 or fromIdx > #t then return end
+    local fp = table.remove(t, fromIdx)
+    table.insert(t, 1, fp)
+    FX_RewriteSequentialParamKeysAfterReorder(FxGUID, trk)
+end
+
+--- Re-order (move-to-top) only when the last touch came from the plugin UI, not from FX Devices ReaImGui.
+function FX_NoLayout_Last_Touch_Should_Reorder_Params(trk_i, fx_i, par_i, FxGUID)
+    if Tweaking and Tweaking == par_i .. FxGUID then return false end
+    if FOCUSED_FX_STATE ~= 1 then return false end
+    if trackNumOfFocusFX ~= trk_i then return false end
+    if FX_Index_FocusFX ~= fx_i then return false end
+    return true
+end
+
+--- While a VST/VST3/etc. UI is open (chain or floating), auto-add last-touched parameters for plugins
+--- that have no `FX Layouts/<name>.ini` (same exclusions as generic layout).
+--- Max slots = 3 knobs per column × column count (grows when first N columns each have a modulated param).
+--- Newest touched is layout slot 1 (top row); rotation drops from the end. Re-touch moves an unmodulated param to top
+--- only when that touch is from the plugin UI (GetFocusedFX2), not from FX Devices ReaImGui (see FX_NoLayout_Last_Touch_Should_Reorder_Params).
+function AutoAddTouchedParams_ForFXWithoutLayout()
+    -- GetLastTouchedFX / GetFocusedFX2 use the same track numbering: 0 = master, 1 = first track, etc.
+    local ok_lt, trk_i, fx_i, par_i = r.GetLastTouchedFX()
+    if not ok_lt or par_i == nil then return end
+    local tr
+    if trk_i == 0 then
+        tr = r.GetMasterTrack(0)
+    else
+        tr = r.GetTrack(0, trk_i - 1)
+    end
+    if not tr then return end
+
+    -- Plugin UI must be open (FX chain or floating). GetFocusedFX2() often does not follow floating VST focus,
+    -- so we rely on last-touched param belonging to this FX instance + TrackFX_GetOpen.
+    if not r.TrackFX_GetOpen(tr, fx_i) then return end
+
+    local _, FX_Name = r.TrackFX_GetFXName(tr, fx_i)
+    if not FX_Name then return end
+    local _, orig_name = r.TrackFX_GetNamedConfigParm(tr, fx_i, 'original_name')
+    orig_name = orig_name or ''
+
+    local FxGUID = r.TrackFX_GetFXGUID(tr, fx_i)
+    if not FxGUID then return end
+
+    FX[FxGUID] = FX[FxGUID] or {}
+
+    if FX_Has_Layout_Ini_For_TrackFXName(FX_Name) then return end
+
+    if FX[FxGUID].Collapse then return end
+    if FX_is_in_blacklist(FX_Name) then return end
+    if FindStringInTable(SpecialLayoutFXs, FX_Name) then return end
+
+    local FX_has_Plugin
+    if PluginScripts then
+        for _, v in pairs(PluginScripts) do
+            if v and FX_Name:find(v) then FX_has_Plugin = true end
+            if v and orig_name:find(v) then FX_has_Plugin = true end
+        end
+    end
+    if FX_has_Plugin and not FX[FxGUID].Compatible_W_regular then return end
+
+    local num_params = r.TrackFX_GetNumParams(tr, fx_i)
+    if par_i < 0 or par_i >= num_params then return end
+
+    for i, v in ipairs(FX[FxGUID]) do
+        if v and v.Num == par_i then
+            if FP_Has_Active_Modulation(v) then return end
+            if not FX_NoLayout_Last_Touch_Should_Reorder_Params(trk_i, fx_i, par_i, FxGUID) then return end
+            local prev_LT, prev_TrkID = LT_Track, TrkID
+            LT_Track = tr
+            TrkID = r.GetTrackGUID(tr)
+            FX_NoLayout_MoveUnmodulatedParamToFront(FxGUID, i, tr)
+            LT_Track = prev_LT
+            TrkID = prev_TrkID
+            return
+        end
+    end
+
+    local _, par_name = r.TrackFX_GetParamName(tr, fx_i, par_i)
+    if not par_name then return end
+
+    local prev_LT, prev_TrkID = LT_Track, TrkID
+    LT_Track = tr
+    TrkID = r.GetTrackGUID(tr)
+    LT_FX_Number = fx_i
+    LT_FXNum = fx_i
+    LT_ParamNum = par_i
+    LT_ParamName = par_name
+    LT_FXGUID = FxGUID
+
+    local prm_count = 0
+    for _, v in ipairs(FX[FxGUID]) do
+        if v and v.Num ~= nil then prm_count = prm_count + 1 end
+    end
+    local max_slots = FX_NoLayout_MaxParamSlots(FxGUID)
+    while prm_count >= max_slots do
+        local rot = FX_NoLayout_OldestRotatableParamIndex(FxGUID)
+        if not rot then return end
+        DeletePrm(FxGUID, rot, fx_i, false)
+        prm_count = prm_count - 1
+        max_slots = FX_NoLayout_MaxParamSlots(FxGUID)
+    end
+
+    StoreNewParamAtFront(FxGUID, par_name, par_i, fx_i, true)
+
+    LT_Track = prev_LT
+    TrkID = prev_TrkID
+end
+
+function FX_TempParams_GetTable(FxGUID)
+    FX[FxGUID] = FX[FxGUID] or {}
+    FX[FxGUID].TempPrm = FX[FxGUID].TempPrm or {}
+    return FX[FxGUID].TempPrm
+end
+
+function FX_TempParams_DisplayColumnCount(FxGUID)
+    local F = FX[FxGUID]
+    if not F then return 2 end
+    local u = F.TempPrm_UserDisplayCols
+    if u == nil then return 2 end
+    return math.max(1, u)
+end
+
+function FX_TempParams_MaxParamSlots(FxGUID)
+    return FX_NO_LAYOUT_KNOB_ROWS * FX_TempParams_DisplayColumnCount(FxGUID)
+end
+
+function FX_TempParams_ShouldShowExpandColumnStrip(FxGUID)
+    local t = FX_TempParams_GetTable(FxGUID)
+    return #t >= FX_TempParams_MaxParamSlots(FxGUID)
+end
+
+function FX_TempParams_ParamExistsInMainLayout(FxGUID, param_num)
+    local t = FX[FxGUID] or {}
+    for _, v in ipairs(t) do
+        if v and v.Num == param_num then
+            return true
+        end
+    end
+    return false
+end
+
+function FX_TempParams_IndexByParamNum(FxGUID, param_num)
+    local t = FX_TempParams_GetTable(FxGUID)
+    for i, v in ipairs(t) do
+        if v and v.Num == param_num then
+            return i
+        end
+    end
+    return nil
+end
+
+function FX_TempParams_HasAssignedModulation(FP)
+    if not FP then return false end
+    if FP.WhichCC ~= nil then return true end
+    if FP.Cont_Which_CC ~= nil then return true end
+    if FP.ModBypass ~= nil then return true end
+    if FP.WhichMODs and FP.WhichMODs ~= '' then return true end
+
+    if FP.ModAMT then
+        for _, amt in pairs(FP.ModAMT) do
+            if amt ~= nil then return true end
+        end
+    end
+
+    if FP.Cont_ModAMT then
+        for _, amt in pairs(FP.Cont_ModAMT) do
+            if amt ~= nil then return true end
+        end
+    end
+
+    return false
+end
+
+function FX_TempParams_PinModulatedToTop(FxGUID)
+    local t = FX_TempParams_GetTable(FxGUID)
+    local pinned, regular, changed = {}, {}, false
+
+    for i, v in ipairs(t) do
+        if FX_TempParams_HasAssignedModulation(v) then
+            pinned[#pinned + 1] = v
+            if i > (#pinned) then changed = true end
+        else
+            regular[#regular + 1] = v
+        end
+    end
+
+    for i = 1, #pinned do t[i] = pinned[i] end
+    for i = 1, #regular do t[#pinned + i] = regular[i] end
+    for i = #pinned + #regular + 1, #t do t[i] = nil end
+
+    return #pinned, changed
+end
+
+function FX_TempParams_MoveToFront(FxGUID, fromIdx)
+    local t = FX_TempParams_GetTable(FxGUID)
+    if not t[fromIdx] then return end
+    local pinnedCount = FX_TempParams_PinModulatedToTop(FxGUID)
+    if FX_TempParams_HasAssignedModulation(t[fromIdx]) then return end
+    local p = table.remove(t, fromIdx)
+    table.insert(t, pinnedCount + 1, p)
+end
+
+function FX_TempParams_InsertAtFront(FxGUID, param_name, param_num, tr, fx_i)
+    local t = FX_TempParams_GetTable(FxGUID)
+    local pinnedCount = FX_TempParams_PinModulatedToTop(FxGUID)
+    table.insert(t, pinnedCount + 1, {
+        Name = param_name,
+        Num = param_num,
+        Type = 'Knob',
+        Deletable = true,
+        V = r.TrackFX_GetParamNormalized(tr, fx_i, param_num)
+    })
+end
+
+function FX_TempParams_RemoveLastUnmodulated(FxGUID)
+    local t = FX_TempParams_GetTable(FxGUID)
+    FX_TempParams_PinModulatedToTop(FxGUID)
+    for i = #t, 1, -1 do
+        if not FX_TempParams_HasAssignedModulation(t[i]) then
+            table.remove(t, i)
+            return true
+        end
+    end
+    return false
+end
+
+function FX_TempParams_SaveToTrk(FxGUID, trk)
+    FX_TempParams_PinModulatedToTop(FxGUID)
+    local t = FX_TempParams_GetTable(FxGUID)
+    local oldc = Load_from_Trk('TempPrm Count' .. FxGUID, trk, 'num') or 0
+    local newc = #t
+    local tempGuid = FxGUID .. '::TempPrm'
+
+    local function SaveTempPrmModState(FP, slot)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Value before modulation', FP.V or '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'WhichCC' .. (FP.Num or 0), FP.WhichCC or '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Linked to which Mods', FP.WhichMODs or '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Container Mod CC', FP.Cont_Which_CC or '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Mod bypass', FP.ModBypass or '', trk)
+
+        for _, m in ipairs(MacroNums or {}) do
+            local mod_amt = FP.ModAMT and FP.ModAMT[m] or ''
+            local cont_amt = FP.Cont_ModAMT and FP.Cont_ModAMT[m] or ''
+            local bipolar = FP.ModBipolar and FP.ModBipolar[m]
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Amt', mod_amt, trk)
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Container Mod Amt', cont_amt, trk)
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Bipolar', bipolar and 'true' or '', trk)
+        end
+
+        for _, mm in ipairs(Midi_Mods or {}) do
+            local amt = FP.ModAMT and FP.ModAMT[mm] or ''
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Mod Amt for ' .. mm, amt, trk)
+        end
+    end
+
+    local function ClearTempPrmModStateSlot(slot)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Value before modulation', '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Linked to which Mods', '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Container Mod CC', '', trk)
+        Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Mod bypass', '', trk)
+        for _, m in ipairs(MacroNums or {}) do
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Amt', '', trk)
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Container Mod Amt', '', trk)
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Bipolar', '', trk)
+        end
+        for _, mm in ipairs(Midi_Mods or {}) do
+            Save_to_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Mod Amt for ' .. mm, '', trk)
+        end
+    end
+
+    for i, v in ipairs(t) do
+        Save_to_Trk('TempPrm' .. i .. 'Name' .. FxGUID, v.Name or '', trk)
+        Save_to_Trk('TempPrm' .. i .. 'Num' .. FxGUID, v.Num, trk)
+        SaveTempPrmModState(v, i)
+    end
+    for i = newc + 1, oldc do
+        Save_to_Trk('TempPrm' .. i .. 'Name' .. FxGUID, '', trk)
+        Save_to_Trk('TempPrm' .. i .. 'Num' .. FxGUID, '', trk)
+        ClearTempPrmModStateSlot(i)
+    end
+    Save_to_Trk('TempPrm Count' .. FxGUID, newc, trk)
+end
+
+function FX_ShouldShowTemporaryParams(FxGUID, FX_Name_raw)
+    if not FxGUID then return false end
+    if not FX_Name_raw then return false end
+    if not FX_Has_Layout_Ini_For_TrackFXName(FX_Name_raw) then return false end
+    return FX[FxGUID] and FX[FxGUID].ShowTempParams == true
+end
+
+--- After toggling temporary params off: remove the right strip from stored total width (fx.Width).
+function FX_ShrinkWidth_After_TempPrm_Panel_Off(FxGUID)
+    local fx = FX[FxGUID]
+    if not fx then return end
+    local tc = Title_Btn_Column_W or 30
+    local pitch = FX_NoLayout_ColumnPitch()
+    local gap = GapBtwnPrmColumns or 0
+    local cols = FX_TempParams_DisplayColumnCount(FxGUID)
+    local tpw = FX_TempPrm_PlusStrip_W or 22
+    local strip = pitch * cols + gap + tpw
+    local floor = fx.MinTotalW_BaseLayout or (tc + 80)
+    fx.Width = math.max(floor, (fx.Width or floor) - strip)
+end
+
+function AutoAddTouchedParams_ForFXWithTemporaryArea()
+    local ok_lt, trk_i, fx_i, par_i = r.GetLastTouchedFX()
+    if not ok_lt or par_i == nil then return end
+    local tr
+    if trk_i == 0 then
+        tr = r.GetMasterTrack(0)
+    else
+        tr = r.GetTrack(0, trk_i - 1)
+    end
+    if not tr then return end
+    if not r.TrackFX_GetOpen(tr, fx_i) then return end
+
+    local _, FX_Name = r.TrackFX_GetFXName(tr, fx_i)
+    if not FX_Name then return end
+    local FxGUID = r.TrackFX_GetFXGUID(tr, fx_i)
+    if not FxGUID then return end
+
+    FX[FxGUID] = FX[FxGUID] or {}
+    if not FX_ShouldShowTemporaryParams(FxGUID, FX_Name) then return end
+    if FX[FxGUID].Collapse then return end
+    if FX_TempParams_ParamExistsInMainLayout(FxGUID, par_i) then return end
+    local _, tempPinnedChanged = FX_TempParams_PinModulatedToTop(FxGUID)
+
+    local idx = FX_TempParams_IndexByParamNum(FxGUID, par_i)
+    if idx then
+        -- Same safeguard as no-layout mode: only reorder from plugin UI touches, not FX Devices ReaImGui tweaks.
+        if not FX_NoLayout_Last_Touch_Should_Reorder_Params(trk_i, fx_i, par_i, FxGUID) then return end
+        local t = FX_TempParams_GetTable(FxGUID)
+        if FX_TempParams_HasAssignedModulation(t[idx]) then
+            if tempPinnedChanged then FX_TempParams_SaveToTrk(FxGUID, tr) end
+            return
+        end
+        FX_TempParams_MoveToFront(FxGUID, idx)
+        FX_TempParams_SaveToTrk(FxGUID, tr)
+        return
+    end
+
+    local _, par_name = r.TrackFX_GetParamName(tr, fx_i, par_i)
+    if not par_name then return end
+
+    local t = FX_TempParams_GetTable(FxGUID)
+    local max_slots = FX_TempParams_MaxParamSlots(FxGUID)
+    while #t >= max_slots do
+        if not FX_TempParams_RemoveLastUnmodulated(FxGUID) then
+            if tempPinnedChanged then FX_TempParams_SaveToTrk(FxGUID, tr) end
+            return
+        end
+    end
+    FX_TempParams_InsertAtFront(FxGUID, par_name, par_i, tr, fx_i)
+    FX_TempParams_SaveToTrk(FxGUID, tr)
+end
+
     function mergeUnique(target, source)
         for key, value in pairs(source) do
             if type(value) == "table" then
@@ -1643,6 +2126,84 @@ function GetProjExt_FxNameNum(FxGUID , Trk)
             end
         end
     end
+
+    local disp = Load_from_Trk('NoLayUserDisplayCols' .. FxGUID, Trk, 'num')
+    if disp ~= nil and disp >= 1 then
+        FX[FxGUID].NoLay_UserDisplayCols = disp
+    else
+        FX[FxGUID].NoLay_UserDisplayCols = nil
+    end
+    local leg = Load_from_Trk('NoLayUserExtraCols' .. FxGUID, Trk, 'num') or 0
+    if leg > 0 and FX[FxGUID].NoLay_UserDisplayCols == nil then
+        local minc = FX_NoLayout_MinDisplayColumns(FxGUID)
+        FX[FxGUID].NoLay_UserDisplayCols = math.max(1, minc + leg)
+        Save_to_Trk('NoLayUserDisplayCols' .. FxGUID, FX[FxGUID].NoLay_UserDisplayCols, Trk)
+    end
+
+    FX[FxGUID].ShowTempParams = Load_from_Trk('ShowTempParams' .. FxGUID, Trk, 'bool')
+    local temp_disp = Load_from_Trk('TempPrmUserDisplayCols' .. FxGUID, Trk, 'num')
+    if temp_disp ~= nil and temp_disp >= 1 then
+        FX[FxGUID].TempPrm_UserDisplayCols = temp_disp
+    end
+    local temp_base_w = Load_from_Trk('TempPrmBaseContentW' .. FxGUID, Trk, 'num')
+    if temp_base_w ~= nil and temp_base_w > 0 then
+        FX[FxGUID].TempPrm_BaseContentW = temp_base_w
+    else
+        FX[FxGUID].TempPrm_BaseContentW = nil
+    end
+
+    local temp_count = Load_from_Trk('TempPrm Count' .. FxGUID, Trk, 'num') or 0
+    FX[FxGUID].TempPrm = {}
+    local tempGuid = FxGUID .. '::TempPrm'
+
+    local function RestoreTempPrmModState(FP, slot)
+        FP.ModAMT = FP.ModAMT or {}
+        FP.Cont_ModAMT = FP.Cont_ModAMT or {}
+        FP.ModBipolar = FP.ModBipolar or {}
+
+        FP.V = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Value before modulation', Trk, 'num')
+        FP.WhichCC = Load_from_Trk('FX' .. tempGuid .. 'WhichCC' .. (FP.Num or 0), Trk, 'num')
+        FP.WhichMODs = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Linked to which Mods', Trk)
+        FP.Cont_Which_CC = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Container Mod CC', Trk, 'num')
+        FP.ModBypass = RemoveEmptyStr(Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Mod bypass', Trk))
+
+        local hasModAmt, hasContAmt, hasBipolar = false, false, false
+        for _, m in ipairs(MacroNums or {}) do
+            FP.ModAMT[m] = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Amt', Trk, 'num')
+            FP.Cont_ModAMT[m] = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Container Mod Amt', Trk, 'num')
+            local bip = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. 'Macro' .. m .. 'Mod Bipolar', Trk)
+            FP.ModBipolar[m] = StringToBool and StringToBool[bip] or nil
+            if FP.ModAMT[m] ~= nil then hasModAmt = true end
+            if FP.Cont_ModAMT[m] ~= nil then hasContAmt = true end
+            if FP.ModBipolar[m] ~= nil then hasBipolar = true end
+        end
+        for _, mm in ipairs(Midi_Mods or {}) do
+            local amt = Load_from_Trk('FX' .. tempGuid .. 'Prm' .. slot .. ' Mod Amt for ' .. mm, Trk, 'num')
+            if amt ~= nil then
+                FP.ModAMT[mm] = amt
+                hasModAmt = true
+            end
+        end
+        if not hasModAmt then FP.ModAMT = nil end
+        if not hasContAmt then FP.Cont_ModAMT = nil end
+        if not hasBipolar then FP.ModBipolar = nil end
+    end
+
+    for i = 1, temp_count do
+        local pnum = Load_from_Trk('TempPrm' .. i .. 'Num' .. FxGUID, Trk, 'num')
+        if pnum ~= nil then
+            local pname = Load_from_Trk('TempPrm' .. i .. 'Name' .. FxGUID, Trk) or ('Param ' .. tostring(pnum))
+            local FP = {
+                Name = pname,
+                Num = pnum,
+                Type = 'Knob',
+                Deletable = true
+            }
+            RestoreTempPrmModState(FP, i)
+            table.insert(FX[FxGUID].TempPrm, FP)
+        end
+    end
+    FX_TempParams_PinModulatedToTop(FxGUID)
 end
 
 ---@param LT_Track MediaTrack
@@ -3112,9 +3673,13 @@ function If_New_Font()
     local Italic, Bold = NEED_ATACH_NEW_FONT_Italic and im.FontFlags_Italic or 0 , NEED_ATACH_NEW_FONT_Bold and im.FontFlags_Bold or 0
     local f = NEED_ATACH_NEW_FONT
     local s = NEED_ATACH_NEW_FONT_SZ
+    local face = f
+    if f == 'Font_Andale_Mono' or f == 'Arial' or f == 'andale mono' then
+        face = InterTightFontPath or f
+    end
 
     local Font = f.. '_' .. s ..(Italic~=0 and '_Italic' or '') .. (Bold~=0 and '_Bold' or '')
-    _G[Font] = im.CreateFont( f , s , Italic | Bold)
+    _G[Font] = im.CreateFont( face , s , Italic | Bold)
     im.Attach(ctx, _G[Font])
     NEED_ATACH_NEW_FONT , NEED_ATACH_NEW_FONT_SZ = nil ,nil
     NEED_ATACH_NEW_FONT_Italic , NEED_ATACH_NEW_FONT_Bold = nil, nil 

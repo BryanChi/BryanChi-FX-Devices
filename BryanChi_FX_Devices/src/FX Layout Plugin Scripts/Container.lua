@@ -31,6 +31,7 @@ DEBUG_W = DEBUG_W or {}
 local Add_FX_Btn_Xpos
 
 local rv, FX_Count = r.TrackFX_GetNamedConfigParm( LT_Track, FX_Idx, 'container_count')
+FX_Count = tonumber(FX_Count) or 0
 local WinW = 0 
 local AllW = 0
 local function If_FX_Is_In_Blacklist(FX_Name, blacklist)
@@ -352,8 +353,9 @@ local function titleBar()
         local x, y = im.GetCursorScreenPos(ctx)
         
         local Pad_L = fx.Collapse and 3 or 6
+        local KnobY = im.GetCursorPosY(ctx) + 10
         -- Position other elements AFTER drawing the icon
-        im.SetCursorPosX(ctx, Pad_L)
+        im.SetCursorPos(ctx, Pad_L, KnobY)
         SyncWetValues(FX_Idx)
         local knob_pos = { im.GetCursorScreenPos(ctx) }
         local radius = (WET_DRY_KNOB_SZ or 20) / 2

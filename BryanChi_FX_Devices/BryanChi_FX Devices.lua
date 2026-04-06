@@ -184,6 +184,8 @@ function Main_Loop()
             im.DrawList_AddLine(ViewPort_DL, 0, 0, 0, 0, Clr.Dvdr.outline) -- Needed for drawlist to be active
             When_User_Switch_Track_Beginning_Of_Loop()
             FOCUSED_FX_STATE, trackNumOfFocusFX, _, FX_Index_FocusFX = r.GetFocusedFX2()
+            AutoAddTouchedParams_ForFXWithoutLayout()
+            AutoAddTouchedParams_ForFXWithTemporaryArea()
 
             for FX_Idx = 0, Sel_Track_FX_Count - 1, 1 do
                 _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx) --i used to be i-1

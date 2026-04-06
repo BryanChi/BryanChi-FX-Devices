@@ -4982,6 +4982,52 @@ function After_Main__Write_Label_And_Value_For_Sldr_and_Drag(labeltoShow, Font,V
     im.Dummy(ctx,1,1)
 end
 
+local function NoLayout_ClipTextToWidth(ctx, s, maxW)
+    if not s or s == '' then return s end
+    if select(1, im.CalcTextSize(ctx, s, nil, nil, true)) <= maxW then return s end
+    local ell = '…'
+    if select(1, im.CalcTextSize(ctx, ell, nil, nil, true)) >= maxW then return ell end
+    local lo, hi = 0, #s
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        local t = s:sub(1, mid) .. ell
+        if select(1, im.CalcTextSize(ctx, t, nil, nil, true)) <= maxW then lo = mid else hi = mid - 1 end
+    end
+    return s:sub(1, lo) .. ell
+end
+
+--- Caller must PushFont to the compact no-layout label font before calling.
+local function NoLayout_SplitLabelTwoLines(ctx, raw, maxW)
+    raw = raw or ''
+    if raw == '' or maxW < 6 then return '', '' end
+    local wAll = select(1, im.CalcTextSize(ctx, raw, nil, nil, true))
+    if wAll <= maxW then return raw, '' end
+    local words = {}
+    for w in string.gmatch(raw, '%S+') do words[#words + 1] = w end
+    if #words == 0 then return raw, '' end
+    if #words == 1 then
+        local s = words[1]
+        local lo, hi = 1, #s
+        while lo < hi do
+            local mid = math.floor((lo + hi + 1) / 2)
+            local piece = s:sub(1, mid)
+            if select(1, im.CalcTextSize(ctx, piece, nil, nil, true)) <= maxW then lo = mid else hi = mid - 1 end
+        end
+        if lo < #s then return s:sub(1, lo), s:sub(lo + 1) end
+        return s, ''
+    end
+    local line1 = words[1]
+    for i = 2, #words do
+        local test = line1 .. ' ' .. words[i]
+        if select(1, im.CalcTextSize(ctx, test, nil, nil, true)) <= maxW then
+            line1 = test
+        else
+            return line1, table.concat(words, ' ', i)
+        end
+    end
+    return line1, ''
+end
+
 ---@param ctx ImGui_Context
 ---@param label string
 ---@param labeltoShow string
@@ -5032,7 +5078,10 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 
 
     local p_value = (FP.WhichCC or Tweaking == P_Num .. FxGUID) and FP.V or r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)  or 0
-    local radius_outer = Radius or Df.KnobRadius;
+    local radius_outer = Radius or Df.KnobRadius
+    if FX[FxGUID].AutoNoLayout_Grid and FX[FxGUID].NoLay_KnobRadius then
+        radius_outer = FX[FxGUID].NoLay_KnobRadius
+    end
     --[[ 
     local Font = 'Arial_' .. roundUp(FP.FontSize or LblTextSize or Knob_DefaultFontSize, 1)
     local V_Font = 'Arial_' .. roundUp(FP.V_FontSize or LblTextSize or Knob_DefaultFontSize, 1) ]]
@@ -5052,13 +5101,17 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
     local CenteredVPos
     im.BeginGroup(ctx)
 
-    local CenteredLblPos = --[[ TextW < (Radius or 0) * 2 and ]] pos[1] + Radius - TextW / 2 --[[ or pos[1] ]]
+    local CenteredLblPos = --[[ TextW < (Radius or 0) * 2 and ]] pos[1] + radius_outer - TextW / 2 --[[ or pos[1] ]]
 
     if DraggingMorph == FxGUID then p_value = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num) end
 
     local line_height = im.GetTextLineHeight(ctx)
     local draw_list = im.GetWindowDrawList(ctx)
     local f_draw_list = im.GetForegroundDrawList(ctx)
+    local function SolidOpaque(clr)
+        if clr == nil then return 0xffffffff end
+        return (clr - (clr % 0x100)) + 0xff
+    end
     local item_inner_spacing = { item_inner_spacing, item_inner_spacing } or
         { { im.GetStyleVar(ctx, im.StyleVar_ItemInnerSpacing) } }
     local mouse_delta = { im.GetMouseDelta(ctx) }
@@ -5347,19 +5400,25 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
             end
         elseif Style == 'Invisible' or FP.Invisible then
         else -- for all generic FXs
-            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer,
-                FX[FxGUID][Fx_P].BgClr or im.GetColor(ctx, im.Col_Button))
+            local knobBg = FX[FxGUID][Fx_P].BgClr or
+                im.GetColor(ctx, is_active and im.Col_ButtonActive or is_hovered and im.Col_ButtonHovered or im.Col_Button)
+            knobBg = SolidOpaque(knobBg)
+            knobBg = SolidOpaque(Change_Clr_A(knobBg, -0.12) or knobBg)
+            local pointerClr = SolidOpaque(FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab)
+            pointerClr = SolidOpaque(Change_Clr_A(pointerClr, -0.1) or pointerClr)
+            local pointerThick = (FX[FxGUID][Fx_P].Value_Thick or 2) + 0.45 + (is_active and 0.45 or 0)
+            local ringOuterClr = 0x1a1a1a88
+            local ringInnerClr = 0xd0d0d066
+            local pointerEndR = math.max(radius_inner + 1.5, radius_outer - 3.2)
+
+            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_outer, knobBg)
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer - 0.8, ringOuterClr, nil, 0.32)
+            im.DrawList_AddCircle(draw_list, center[1], center[2], radius_outer - 2.0, ringInnerClr, nil, 0.6)
             im.DrawList_AddLine(draw_list, center[1] + angle_cos * radius_inner,
                 center[2] + angle_sin * radius_inner,
-                center[1] + angle_cos * (radius_outer - 2), center[2] + angle_sin * (radius_outer - 2),
-                FX[FxGUID][Fx_P].GrbClr or Clr_SldrGrab, FX[FxGUID][Fx_P].Value_Thick or 2)
-            im.DrawList_PathArcTo(draw_list, center[1], center[2], radius_outer / 2, ANGLE_MIN, angle)
-            im.DrawList_PathStroke(draw_list, 0x99999922, nil, radius_outer * 0.6)
-            im.DrawList_PathClear(draw_list)
-            im.DrawList_AddCircleFilled(draw_list, center[1], center[2], radius_inner,
-                im.GetColor(ctx,
-                    is_active and im.Col_FrameBgActive or is_hovered and im.Col_FrameBgHovered or
-                    im.Col_FrameBg))
+                center[1] + angle_cos * pointerEndR, center[2] + angle_sin * pointerEndR,
+                pointerClr, pointerThick)
+            -- Keep default knobs clean: no circular range overlay.
         end
     end
 
@@ -5478,13 +5537,54 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
 
     local function Write_Bottom_Labels_And_Values()
 
-        if Lbl_Pos == 'Bottom' then --Write Bottom Label
-            local T = pos[2] + radius_outer * 2 + item_inner_spacing[2]; local R = pos[1] + radius_outer * 2; local L =pos[1]
-            local X, Y = (CenteredLblPos or pos[1] )+ (FP.Lbl_Pos_X or 0), pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0 )
-            local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
-            local FontSize = FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize
+        local noLayClip = FX[FxGUID].AutoNoLayout_Grid
+        local clipPushed = false
+        if noLayClip then
+            local colPitch = FX_NoLayout_ColumnPitch()
+            local cx = pos[1] + radius_outer
+            local clipL = cx - colPitch * 0.5
+            local clipR = cx + colPitch * 0.5
+            local clipT = pos[2] - line_height
+            local clipB = pos[2] + radius_outer * 2 + item_inner_spacing[2] + FX_NO_LAYOUT_KNOB_TO_LABEL_GAP +
+                2 * FX_NO_LAYOUT_LBL_COMPACT_LINE_H + FX_NO_LAYOUT_LBL_LINE_GAP + FX_NO_LAYOUT_LBL_BOTTOM_PAD
+            im.PushClipRect(ctx, clipL, clipT, clipR, clipB, true)
+            clipPushed = true
+        end
 
-            im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,labeltoShow or FP.Name--[[ , (Radius or 20) * 2, X, Y, X + (Radius or 20) * 2, Y + FontSize * 2 ]])
+        if Lbl_Pos == 'Bottom' then --Write Bottom Label
+            local Clr = FX[FxGUID][Fx_P].Lbl_Clr or 0xffffffff
+            if noLayClip and Font_Andale_Mono_9 then
+                local maxTxtW = FX_NoLayout_ColumnPitch() - 2 * FX_NO_LAYOUT_COL_PAD - 4
+                im.PushFont(ctx, Font_Andale_Mono_9)
+                local line1, line2 = NoLayout_SplitLabelTwoLines(ctx, labeltoShow or FP.Name or '', maxTxtW)
+                line1 = NoLayout_ClipTextToWidth(ctx, line1 or '', maxTxtW)
+                line2 = NoLayout_ClipTextToWidth(ctx, line2 or '', maxTxtW)
+                local knobFillB = pos[2] + radius_outer * 2 + item_inner_spacing[2]
+                local baseY = knobFillB + FX_NO_LAYOUT_KNOB_TO_LABEL_GAP + (FP.Lbl_Pos_Y or 0)
+                local colCx = pos[1] + radius_outer
+                local step = FX_NO_LAYOUT_LBL_COMPACT_LINE_H + FX_NO_LAYOUT_LBL_LINE_GAP
+                local labelSlotH = 2 * FX_NO_LAYOUT_LBL_COMPACT_LINE_H + FX_NO_LAYOUT_LBL_LINE_GAP +
+                    FX_NO_LAYOUT_LBL_BOTTOM_PAD
+                if line1 and line1 ~= '' then
+                    local w1, h1 = im.CalcTextSize(ctx, line1, nil, nil, true)
+                    local T = baseY
+                    if not line2 or line2 == '' then
+                        T = baseY + (labelSlotH - h1) * 0.5
+                    end
+                    im.DrawList_AddTextEx(draw_list, Font_Andale_Mono_9, 9, colCx - w1 / 2, T, Clr, line1)
+                end
+                if line2 and line2 ~= '' then
+                    local w2 = select(1, im.CalcTextSize(ctx, line2, nil, nil, true))
+                    local T = baseY + step
+                    im.DrawList_AddTextEx(draw_list, Font_Andale_Mono_9, 9, colCx - w2 / 2, T, Clr, line2)
+                end
+                im.PopFont(ctx)
+            else
+                local X = (CenteredLblPos or pos[1]) + (FP.Lbl_Pos_X or 0)
+                local Y = pos[2] + radius_outer * 2 + item_inner_spacing[2] + (FP.Lbl_Pos_Y or 0)
+                im.DrawList_AddTextEx(draw_list, _G[Font], FX[FxGUID][Fx_P].FontSize or Knob_DefaultFontSize, X, Y, Clr,
+                    labeltoShow or FP.Name)
+            end
         end 
         if V_Pos ~= 'None' and V_Pos then
             im.PushFont(ctx, _G[V_Font])
@@ -5496,7 +5596,9 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
             local pX = CenteredVPos+ (FP.V_Pos_X or 0)
             local FtSz = FP.V_FontSize or Knob_DefaultFontSize
 
-            if is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
+            if FX[FxGUID].AutoNoLayout_Grid then
+                drawlist = draw_list
+            elseif is_active or is_hovered then drawlist = Glob.FDL else drawlist = draw_list end
 
 
 
@@ -5530,6 +5632,7 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
     
             im.DrawList_AddTextEx(draw_list, _G[V_Font], 10, CenteredVPos, pos[2] + radius_outer * 2 + item_inner_spacing[2] - (Y_Offset or 0), FX[FxGUID][Fx_P].V_Clr or 0xffffff88, labeltoShow--[[ , (Radius or 20) * 2 ]])
         end
+        if clipPushed then im.PopClipRect(ctx) end
     end
 
     local function Modulation_related()
@@ -5683,6 +5786,42 @@ function AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
     end
 
     if_Drag_Knob()
+
+    if FX[FxGUID].AutoNoLayout_Grid then
+        local colPitch = FX_NoLayout_ColumnPitch()
+        local topGap = FX[FxGUID].NoLay_CursorTopGap or FX_NO_LAYOUT_KNOB_TOP_GAP or 0
+        local lblBlock = FX_NO_LAYOUT_KNOB_TO_LABEL_GAP + 2 * FX_NO_LAYOUT_LBL_COMPACT_LINE_H + FX_NO_LAYOUT_LBL_LINE_GAP +
+            FX_NO_LAYOUT_LBL_BOTTOM_PAD
+        local cx = pos[1] + radius_outer
+        local bgL = cx - colPitch * 0.5
+        local bgR = cx + colPitch * 0.5
+        local cardT = pos[2] - topGap
+        local cardB = pos[2] + radius_outer * 2 + item_inner_spacing[2] + lblBlock
+        local knobFillB = pos[2] + radius_outer * 2 + item_inner_spacing[2]
+        local lblBgT = knobFillB + FX_NO_LAYOUT_KNOB_TO_LABEL_GAP
+        local lblBgB = cardB
+        local rnd = 5
+        local bgClr
+        if is_active then
+            bgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBgActive), 0, 0.38)
+        elseif is_hovered then
+            bgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBgHovered), 0, 0.30)
+        else
+            bgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBg), 0, 0.22)
+        end
+        local lblBgClr
+        if is_active then
+            lblBgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBgActive), 0, 0.17)
+        elseif is_hovered then
+            lblBgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBgHovered), 0, 0.14)
+        else
+            lblBgClr = Change_Clr_A(im.GetColor(ctx, im.Col_FrameBg), 0, 0.10)
+        end
+        -- Knob bg fills card top through the inset above the label strip (covers gap under the circle for any NoLay_KnobRadius); label strip is separate tone below lblBgT.
+        im.DrawList_AddRectFilled(draw_list, bgL, cardT, bgR, lblBgT, bgClr, rnd, im.DrawFlags_RoundCornersTop)
+        im.DrawList_AddRectFilled(draw_list, bgL, lblBgT, bgR, lblBgB, lblBgClr, rnd, im.DrawFlags_RoundCornersBottom)
+        im.DrawList_AddRect(draw_list, bgL, cardT, bgR, cardB, Change_Clr_A(im.GetColor(ctx, im.Col_Border), 0, 0.40), rnd, im.DrawFlags_RoundCornersAll)
+    end
 
     Write_Label_And_Value_All_Types(FP, pos, draw_list, labeltoShow or FP.Name, CenteredLblPos, Font,V_Font, FormatPV, Lbl_Pos, is_active)
 
@@ -8287,6 +8426,31 @@ function StoreNewParam(FxGUID, P_Name, P_Num, FX_Num, IsDeletable, AddingFromExt
         FX[FxGUID][P].V = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
     end
     return P
+end
+
+--- Inserts a new param at layout slot 1 (newest at top / first row in column 0). Rewrites all FX\<i\>Name/Num keys.
+---@param FxGUID string
+---@param P_Name string
+---@param P_Num number
+---@param FX_Num number
+---@param IsDeletable boolean
+---@return integer|nil
+function StoreNewParamAtFront(FxGUID, P_Name, P_Num, FX_Num, IsDeletable)
+    if not FxGUID then Tooltip = { Txt = 'No FX Present'; Dur = 100; time = 0; clr = 0xD30000ff } return end
+    FX[FxGUID] = FX[FxGUID] or {}
+    table.insert(FX[FxGUID], 1, {})
+    local FP = FX[FxGUID][1]
+    FP.Num = P_Num
+    FP.Name = P_Name
+    FP.Deletable = IsDeletable
+    if not P_Name then return end
+    FX_RewriteSequentialParamKeysAfterReorder(FxGUID, LT_Track)
+    Prm.Num = Prm.Num or {}
+    table.insert(Prm.Num, 1, P_Num)
+    local rv, step, smallstep, largestep, istoggle = r.TrackFX_GetParameterStepSizes(LT_Track, LT_FX_Number, LT_ParamNum)
+    if rv then end
+    FP.V = r.TrackFX_GetParamNormalized(LT_Track, LT_FX_Number, LT_ParamNum)
+    return 1
 end
 
 
