@@ -15,9 +15,10 @@ WET_DRY_KNOB_SZ = 20
 JSFX.KeyTrack1 = JSFX.Velo_Mod + 40000
 JSFX.KeyTrack2 = JSFX.Velo_Mod + 50000
 JSFX.KeyTrack3 = JSFX.Velo_Mod + 60000
+JSFX.CC_Mod = JSFX.Velo_Mod + 80000
 
 Midi_Mod_Indicator = { } 
-Midi_Mods = {'Velocity', 'Random', 'Random 2' , 'Random 3', 'KeyTrack', 'KeyTrack 2', 'KeyTrack 3', 'LFO'}
+Midi_Mods = {'Velocity', 'Random', 'Random 2' , 'Random 3', 'KeyTrack', 'KeyTrack 2', 'KeyTrack 3', 'LFO', 'CC'}
 
 AllAvailableKeys = {
     ['0'] = r.ImGui_Key_0(),

@@ -424,15 +424,15 @@ function Tables_for_Special_FXs()
 
     -- FXs listed here will not have a fx window in the script UI
     BlackListFXs = { 'Macros', 'JS: Macros .+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
-    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
+    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros', 'FXD_Macros%.jsfx',
     'JS: FXD ReSpectrum', 'AU: AULowpass (Apple)', 'AU: AULowpass',
     'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope',
     'JS: FXD Saike BandSplitter', 'JS: FXD Band Joiner', 'FXD Saike BandSplitter', 'FXD Band Joiner','FXD Band Joiner', 'JS: FXD Band Joiner',
-    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro'
+    'FXD Split to 32 Channels', 'JS: RDM MIDI Utility', 'Containr Macro', 'JS: FXD Containr Macro', 'FXD_Container_Macros%.jsfx'
     }
     BlackListFX_Exact = {'Transient', 'Sustain', 'Mid','Side'}
     UtilityFXs = { 'Macros', 'JS: Macros /[.+', 'Frequency Spectrum Analyzer Meter', 'JS: FXD Split to 32 Channels',
-    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros',
+    'JS: FXD (Mix)RackMixer .+', 'FXD (Mix)RackMixer', 'JS: FXD Macros', 'FXD Macros', 'FXD_Macros%.jsfx',
     'JS: FXD ReSpectrum', 'JS: FXD Split to 4 channels', 'JS: FXD Gain Reduction Scope', 'JS: FXD Band Joiner',
     'FXD Split to 32 Channels'
     }
@@ -442,6 +442,9 @@ function Tables_for_Special_FXs()
 end 
 
 function FX_is_in_blacklist (str)
+    if Is_FXD_Macros_FX_Name and Is_FXD_Macros_FX_Name(str, true) then
+        return true
+    end
     if FindStringInTable(BlackListFXs,str ) then 
         return true
     end
@@ -514,6 +517,8 @@ function Retrieve_All_Saved_Data_Of_Project()
             end
             -- Load whether velocity modulation should affect note velocity for this track
             TRK.Velo_Mod_Affect_Velocity = RC('Velo_Mod_Affect_Velocity', 'bool')
+            TRK.CC_Source = RC('CC_Source')
+            if TRK.CC_Source == nil then TRK.CC_Source = 1 end
             -- Reflect saved state into JSFX param 41 so behavior is consistent after reopening
             if TRK.Velo_Mod_Affect_Velocity ~= nil then
                 r.TrackFX_SetParamNormalized(Track, 0, 41, TRK.Velo_Mod_Affect_Velocity and 0 or 1)
@@ -577,8 +582,10 @@ function Retrieve_All_Saved_Data_Of_Project()
                 m.HighNoteFilter = RC('Mod ' .. i .. 'Note Filter High')
                 
                 m.Random_Int = RC('Random Interval for mod' .. i)
+                m.Random_Sync_Int = RC('Random Musical Interval for mod' .. i)
                 m.Random_Smooth = RC('Random Smooth for mod' .. i)
                 m.Random_Chance = RC('Random Chance for mod' .. i)
+                m.Random_Sync = RC('Random Sync for mod' .. i)
                 
                 if m.Rel_Type == 0 then
                     m.Rel_Type = 'Latch'
@@ -762,13 +769,6 @@ function Retrieve_All_Saved_Data_Of_Project()
             end
             
             local function RET_MacroModulation(FP, FxGUID, Fx_P, TRK, TrkID)
-                local function FindMacrosFXIdx()
-                    local cnt = r.TrackFX_GetCount(Track)
-                    for idx = 0, cnt - 1, 1 do
-                        local rv, name = r.TrackFX_GetFXName(Track, idx, '')
-                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
-                    end
-                end
                 local function GetMacroParamIdx(macro_num)
                     return 2 + (macro_num - 1) * 4 -- Modulator Param 1 per FXD Macros JSFX
                 end
@@ -788,7 +788,7 @@ function Retrieve_All_Saved_Data_Of_Project()
                     -- For Macro type, only restore from JSFX when value is nil
                     if TRK.Mod[m].Type == 'Macro'  or TRK.Mod[m].Type == nil then
                         if TRK.Mod[m].Val == nil then
-                            local MacFxIdx = FindMacrosFXIdx()
+                            local MacFxIdx = Find_FXD_Macros_FX_Idx(Track, true)
                             if MacFxIdx then
                                 TRK.Mod[m].Val = r.TrackFX_GetParamNormalized(Track, MacFxIdx, GetMacroParamIdx(m))
                             else
@@ -1175,7 +1175,7 @@ end
 
 function Get_Modulator_JSFX_Info()
     if not LT_Track then return end 
-    local MacrosJSFXExist = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0--[[RecFX]], 0)
+    local MacrosJSFXExist = Find_FXD_Macros_FX_Idx(LT_Track, false)
     local TrkID = r.GetTrackGUID(LT_Track)
     if MacrosJSFXExist == 0 then
         for i= 0, 7, 1 do 

@@ -1,5 +1,7 @@
 -- @noindex
 
+-- Segment-curve drag fallback when Mc is nil (REAPER Lua 5.1 cannot store fields on function values)
+local CurveEditor_SegDragState = {}
 
 function Calculate_Color_Based_On_Nesting_Level(nestingLevel)
     if not nestingLevel then return  0xffffff99  end 
@@ -275,13 +277,13 @@ function Draw_Curve (WDL, PtsTB , i , L, R, B, W, H, PtSz , lineClr, thick, zoom
         local n = PtsTB[i+1]
         local nX , nY = L + map_u(n[1]) * W ,  B - n[2] * H 
         local DtX, DtY
-        local ofs = PtSz/2
-        local x1, y1, x2, y2 = X+ofs, Y+ofs , nX+ofs ,  nY+ofs
+        -- X,Y and nX,nY are node centers; curve passes through centers (handles may extend past clip).
+        local x1, y1, x2, y2 = X, Y, nX, nY
         local mX, mY = im.GetMousePos(ctx)
         if not v[3] then 
             im.DrawList_AddLine(WDL, x1, y1, x2, y2, lineClr, thick)
         else
-            Draw_Single_Curve(nX, X, nY, Y, v[3] , thick,lineClr, ofs)
+            Draw_Single_Curve(nX, X, nY, Y, v[3] , thick,lineClr, 0)
         end
     end
 
@@ -313,11 +315,10 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
     local function DrawGrid()
         local x, y = im.GetCursorScreenPos(ctx)
-        local P = PtSz/2 
-        local L , R = x + P , x + W - P
+        -- Full editor rect: node centers align with border and interior lines (handles may clip halfway out).
+        local L , R = x , x + W
         local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
         local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
-        local innerW = (W - P)
         local Gd = (IsLFO and (Mc and Mc.LFO_leng)) or (LFO and LFO.Def and LFO.Def.Len) or 4
         Gd = tonumber(Gd) or 4
        
@@ -333,7 +334,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         if IsLFO and Gd >= 1 then
             for i = 1, Gd - 1, 1 do
                 local t = i / Gd
-                local xLine = L + (((t - center) * zoom) + 0.5) * innerW
+                local xLine = L + (((t - center) * zoom) + 0.5) * W
                 draw_dotted_line(xLine, y, xLine, y + H, Clr2, 3, 2)
             end
         else
@@ -341,9 +342,6 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             draw_dotted_line(L + W/4 ,y, L+W/4 , y+H, Clr2, 3, 2)
             draw_dotted_line(L +W - W/4 ,y, L+W - W/4, y+H, Clr2, 3, 2)
         end
-
-        draw_dotted_line(L  ,y + H/4 , R , y+H/4, Clr2, 3, 2)-- center y axis
-        draw_dotted_line(L  ,y + H - H/4 , R , y+H -H/4, Clr2, 3, 2)-- center y axis
 
 
 
@@ -377,7 +375,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         end
 
         local function ConvertScreenY(y)
-            return B- y * (H + PtSz /2 )
+            return B - y * H
         end
         local function ConvertScreenX(x)
             local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
@@ -385,7 +383,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             local function map_u(u)
                 return ((u - center) * zoom + 0.5)
             end
-            return  L + map_u(x) * (W) + PtSz/2
+            return L + map_u(x) * W
         end
         if NoteOnVel > -1  then 
             if NoteOnVel >= X and NoteOnVel <= nX then 
@@ -457,7 +455,8 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     -- Constrain all drawings to the curve editor rect
     local ClipL, ClipT = im.GetCursorScreenPos(ctx)
     local ClipR, ClipB = ClipL + W, ClipT + H
-    im.DrawList_PushClipRect(WDL, ClipL, ClipT, ClipR, ClipB, true)
+    local ClipPad = PtSz / 2
+    im.DrawList_PushClipRect(WDL, ClipL - ClipPad, ClipT - ClipPad, ClipR + ClipPad, ClipB + ClipPad, true)
     -- Expose curve editor rect for overlays (e.g., LFO preview/animation)
     if IsLFO and Macro then
         LFO = LFO or {}
@@ -473,6 +472,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     if im.IsItemHovered(ctx) then
         if HelperMsg.Others then
             table.insert(HelperMsg.Others, 'Double-click: Add Point')
+            table.insert(HelperMsg.Others, 'Drag segment: Adjust curvature')
             if IsLFO then
                 table.insert(HelperMsg.Others, 'Shift + Mouse Wheel: Zoom')
             end
@@ -524,8 +524,9 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
     end
     local AddPt = (LBtnDC and im.IsItemClicked(ctx)) and true
     local L, T = im.GetItemRectMin(ctx)
-    local R, B = im.GetItemRectMax(ctx)
-    local R, B = R - PtSz, B - PtSz
+    -- Full plot: centers sit on border/grid; B = bottom edge (v[2] == 0).
+    local plotW, plotH = W, H
+    local B = T + plotH
 
     --Highlight_Itm(WDL, nil, 0xffffff33)
     PtsTB=PtsTB or { {0, 0} , {1, 1} }
@@ -535,8 +536,9 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         PtsTB[2]= {1, 1}
     end
 
-    local Hvr_Pt , Hvr_Ctrl_Pt
-    local W , H = W - PtSz , H - PtSz
+    local Hvr_Ctrl_Pt
+    local W , H = plotW, plotH
+    local R = L + W
 
     r.gmem_attach(gmem_space)
     Update_Info_To_Jsfx(PtsTB, lbl , IsLFO, Macro)
@@ -596,6 +598,8 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
     LFO_Add_Release_Node_If_None()
     local HoverSeg = {}
+    local AnyNodeHovered = false
+    local NodeDragging = false
     -- per-node snap state for LFO editing
     Mc = Mc or MacroTB
     if IsLFO then Mc.SnapStates = Mc.SnapStates or {} end
@@ -608,7 +612,9 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         local function map_u(u)
             return ((u - center) * zoom + 0.5)
         end
-        local X, Y = L + map_u(v[1]) * W , B - v[2]*H 
+        local cx = L + map_u(v[1]) * W
+        local cy = B - v[2] * H
+        local X, Y = cx - PtSz / 2, cy - PtSz / 2
         im.SetCursorScreenPos(ctx, X, Y )
         local rv = im.InvisibleButton(ctx, '##LFO_Pt'..(lbl or '')..i, PtSz, PtSz)
         local Tweaking = im.IsItemActive(ctx)
@@ -629,31 +635,32 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                 local Gd = (Mc and Mc.LFO_leng) or (LFO and LFO.Def and LFO.Def.Len) or 4
                 Gd = tonumber(Gd) or 4
                 local snap = Mc.SnapStates[i] or {}
-                local new_px = L + new_zoomed * W
+                -- Node center x = L + map_u * W (aligned with DrawGrid verticals and borders).
+                local new_cx = L + new_zoomed * W
                 local factor = 0.7
                 local tol = 8 * factor
                 local release = 12 * factor
                 -- find nearest grid in zoomed space
-                local nearest_px, nearest_zoomed
+                local nearest_line_x, nearest_zoomed
                 for gi = 0, Gd, 1 do
                     local u = gi / Gd
                     local gz = map_u(u)
-                    local gpx = L + gz * W
-                    local d = math.abs(new_px - gpx)
-                    if not nearest_px or d < math.abs(new_px - nearest_px) then
-                        nearest_px = gpx; nearest_zoomed = gz
+                    local gline_x = L + gz * W
+                    local d = math.abs(new_cx - gline_x)
+                    if not nearest_line_x or d < math.abs(new_cx - nearest_line_x) then
+                        nearest_line_x = gline_x; nearest_zoomed = gz
                     end
                 end
                 if snap.active_x then
-                    if math.abs(new_px - (snap.target_x_px or 0)) <= release then
+                    if math.abs(new_cx - (snap.target_x_px or 0)) <= release then
                         new_zoomed = snap.target_x_zoomed or new_zoomed
                     else
                         snap.active_x = nil; snap.target_x_px = nil; snap.target_x_zoomed = nil
                     end
                 else
-                    if nearest_px and math.abs(new_px - nearest_px) <= tol then
+                    if nearest_line_x and math.abs(new_cx - nearest_line_x) <= tol then
                         snap.active_x = true
-                        snap.target_x_px = nearest_px
+                        snap.target_x_px = nearest_line_x
                         snap.target_x_zoomed = nearest_zoomed
                         new_zoomed = nearest_zoomed
                     end
@@ -670,26 +677,26 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                 local factor = 0.7
                 local tol = 8 * factor
                 local release = 12 * factor
-                local yGrids = {0, 0.25, 0.5, 0.75, 1}
-                local new_px = B - new_v2 * H
-                local nearest_px, nearest_v
+                local yGrids = {0, 0.5, 1}
+                local new_cy = B - new_v2 * H
+                local nearest_line_y, nearest_v
                 for _,yg in ipairs(yGrids) do
-                    local gpx = B - yg * H
-                    local d = math.abs(new_px - gpx)
-                    if not nearest_px or d < math.abs(new_px - nearest_px) then
-                        nearest_px = gpx; nearest_v = yg
+                    local gline_y = B - yg * H
+                    local d = math.abs(new_cy - gline_y)
+                    if not nearest_line_y or d < math.abs(new_cy - nearest_line_y) then
+                        nearest_line_y = gline_y; nearest_v = yg
                     end
                 end
                 if snap.active_y then
-                    if math.abs(new_px - (snap.target_y_px or 0)) <= release then
+                    if math.abs(new_cy - (snap.target_y_px or 0)) <= release then
                         new_v2 = snap.target_y_val or new_v2
                     else
                         snap.active_y = nil; snap.target_y_px = nil; snap.target_y_val = nil
                     end
                 else
-                    if nearest_px and math.abs(new_px - nearest_px) <= tol then
+                    if nearest_line_y and math.abs(new_cy - nearest_line_y) <= tol then
                         snap.active_y = true
-                        snap.target_y_px = nearest_px
+                        snap.target_y_px = nearest_line_y
                         snap.target_y_val = nearest_v
                         new_v2 = nearest_v
                     end
@@ -704,7 +711,8 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             v[1] = 1
         end
 
-        Hvr_Pt = im.IsItemHovered(ctx) and true  
+        AnyNodeHovered = AnyNodeHovered or im.IsItemHovered(ctx)
+        NodeDragging = NodeDragging or Tweaking
         NodeHovered[i] = im.IsItemHovered(ctx) or false
         NodeActive[i] = Tweaking or false
         -- Help: Node handle hover actions
@@ -715,7 +723,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
                 HelperMsg.Alt_L = 'Delete Point'
             end
             if HelperMsg.Others then
-                table.insert(HelperMsg.Others, 'Mouse Wheel: Adjust Segment Curvature')
+                table.insert(HelperMsg.Others, 'Mouse wheel or drag segment: Adjust curvature')
             end
         end
         
@@ -734,8 +742,10 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
         local function Wheel_To_Adjust_Curve()
             local mX, mY = im.GetMousePos(ctx)
-         
-            if mX > X and mX < L+ nX *W then 
+            local cx_here = L + map_u(v[1]) * W
+            local cx_next = L + map_u(nX) * W
+            local segL, segR = math.min(cx_here, cx_next), math.max(cx_here, cx_next)
+            if mX > segL and mX < segR then 
 
                 if Wheel_V and Wheel_V~=0 and not (IsLFO and Mods == Shift) then 
                     v[3] =  (v[3] or 0 ) 
@@ -798,7 +808,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
 
         local function AddPoint_If_DoubleClick ()
 
-            if AddPt   and not Hvr_Pt and not Hvr_Ctrl_Pt  then 
+            if AddPt   and not AnyNodeHovered and not Hvr_Ctrl_Pt  then 
                 local mX, mY = im.GetMousePos(ctx)
                 local mX , mY = (mX - L ) / W  , (B-mY ) / H
                 local n = PtsTB[i+1]
@@ -834,10 +844,9 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             local CurrentPos = r.gmem_read(108 + Macro) or 0
             local LFO_Len = (Mc.LFO_leng or LFO.Def.Len) or 4
             local normalizedPos = CurrentPos / LFO_Len
-            local PlayPos = L + PtSz/2 + map_u(normalizedPos) * W
+            local PlayPos = L + map_u(normalizedPos) * W
             
             local H = H 
-            local T = T + PtSz/2
             local X = PlayPos 
             local Y = T + H - MOD * H
             im.DrawList_AddLine(WDL, X, T, X, T + H, EightColors.LFO[Macro], 1)
@@ -1039,12 +1048,112 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
         LFO_Release_Node ()
         
     end
+    -- Segment curvature via mouse drag (hit-test after node layout)
+    do
+        local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
+        local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
+        local function map_u_seg(u)
+            return ((u - center) * zoom + 0.5)
+        end
+        local function dist_point_seg(px, py, xa, ya, xb, yb)
+            local vx, vy = xb - xa, yb - ya
+            local wx, wy = px - xa, py - ya
+            local len2 = vx * vx + vy * vy
+            if len2 < 1e-8 then return math.sqrt(wx * wx + wy * wy) end
+            local t = SetMinMax((wx * vx + wy * vy) / len2, 0, 1)
+            local qx, qy = xa + t * vx, ya + t * vy
+            local dx, dy = px - qx, py - qy
+            return math.sqrt(dx * dx + dy * dy)
+        end
+        local function dist_point_curve_seg(px, py, xa, ya, xb, yb, curve)
+            local c = curve or 0
+            if math.abs(c) < 0.01 or math.abs(xb - xa) < 1e-6 then
+                return dist_point_seg(px, py, xa, ya, xb, yb)
+            end
+            local vmin, vmax = math.min(ya, yb), math.max(ya, yb)
+            local x0, x1 = xa, xb
+            if x1 < x0 then x0, x1 = x1, x0 end
+            local inc = 3
+            local min_d2 = nil
+            local xs = x0
+            while xs <= x1 + 0.001 do
+                local I
+                if math.abs(xb - xa) < 1e-6 then I = 0 else I = (xs - xa) / (xb - xa) end
+                local y_lin = ya + (yb - ya) * I
+                local yy = GetCurveValue(y_lin, c, vmin, vmax, vmin, vmax)
+                local d2 = (px - xs) * (px - xs) + (py - yy) * (py - yy)
+                if not min_d2 or d2 < min_d2 then min_d2 = d2 end
+                xs = xs + inc
+            end
+            return min_d2 and math.sqrt(min_d2) or math.huge
+        end
+        local segKey = lbl or 'default'
+        local function seg_drag_get()
+            if Mc then return Mc.CurveSegDragIdx end
+            return CurveEditor_SegDragState[segKey]
+        end
+        local function seg_drag_set(v)
+            if Mc then Mc.CurveSegDragIdx = v else CurveEditor_SegDragState[segKey] = v end
+        end
+        local mx, my = im.GetMousePos(ctx)
+        local inRect = mx >= ClipL and mx <= ClipR and my >= ClipT and my <= ClipB
+        if im.IsMouseClicked(ctx, 0) and inRect and not AnyNodeHovered and not (IsLFO and Mods == Shift) then
+            local bestD, bestI = math.huge, nil
+            for si = 1, #PtsTB - 1 do
+                local va = PtsTB[si]
+                local nb = PtsTB[si + 1]
+                if va and nb then
+                    local xa, ya = L + map_u_seg(va[1]) * W, B - va[2] * H
+                    local xb, yb = L + map_u_seg(nb[1]) * W, B - nb[2] * H
+                    local d = dist_point_curve_seg(mx, my, xa, ya, xb, yb, va[3])
+                    local dEnd = math.min(
+                        math.sqrt((mx - xa) * (mx - xa) + (my - ya) * (my - ya)),
+                        math.sqrt((mx - xb) * (mx - xb) + (my - yb) * (my - yb))
+                    )
+                    if dEnd < PtSz * 0.75 then
+                        d = math.huge
+                    end
+                    if d < bestD then
+                        bestD, bestI = d, si
+                    end
+                end
+            end
+            if bestD < 14 then
+                seg_drag_set(bestI)
+            end
+        end
+        local dragIdx = seg_drag_get()
+        if dragIdx and im.IsMouseDown(ctx, 0) and PtsTB[dragIdx] and not (IsLFO and Mods == Shift) then
+            TWEAKING = true
+            local vi = PtsTB[dragIdx]
+            local _, DtY = im.GetMouseDragDelta(ctx)
+            if DtY ~= 0 then
+                vi[3] = (vi[3] or 0) - DtY * 0.02
+                vi[3] = SetMinMax(vi[3], -1, 1)
+                r.gmem_attach(gmem_space)
+                local midiModOfs = Get_MidiMod_Ofs(lbl)
+                r.gmem_write(4, 24)
+                r.gmem_write(12, midiModOfs)
+                r.gmem_write(11, dragIdx)
+                r.gmem_write(13, #PtsTB)
+                if (IsLFO or midiModOfs == 7) and Macro then
+                    r.gmem_write(5, Macro)
+                end
+                r.gmem_write(15, vi[3])
+                Save_to_Trk(lbl .. ' point ' .. dragIdx .. ' Curve', vi[3])
+                im.ResetMouseDragDelta(ctx)
+            end
+        end
+        if not im.IsMouseDown(ctx, 0) then
+            seg_drag_set(nil)
+        end
+    end
     -- Draw all segments after all node positions are updated to avoid one-frame lag
     do
         local zoom = (IsLFO and (Mc and (Mc.Zoom or 1) or 1)) or 1
         local center = (IsLFO and (Mc and (Mc.ZoomCenter or 0.5) or 0.5)) or 0.5
         for i = 1, #PtsTB do
-            local thick = HoverSeg[i] and 6 or 4
+            local thick = (HoverSeg[i] and not NodeDragging) and 6 or 4
             Draw_Curve(WDL, PtsTB, i, L, R, B, W, H, PtSz, lineClr, thick, zoom, center)
         end
     end
@@ -1056,8 +1165,7 @@ function CurveEditor(W,H, PtsTB, lbl , MacroTB, IsContainer)
             return ((u - center) * zoom + 0.5)
         end
         for i, v in ipairs(PtsTB) do
-            local Xn, Yn = L + map_u(v[1]) * W , B - v[2]*H
-            local cx, cy = Xn + PtSz/2, Yn + PtSz/2
+            local cx, cy = L + map_u(v[1]) * W , B - v[2]*H
             local isActive = NodeActive[i]
             local isHovered = NodeHovered[i]
             local baseRad = PtSz/2
@@ -1667,12 +1775,14 @@ function FX_ComputeNoLayoutGridVerticalPitch(ctx, mainContentH)
     return rowPitchV, topGap, knobRadius, maxCurY
 end
 
-function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterClr   )
+---@param CenterClr number|nil
+---@param preserve_incoming_alpha boolean|nil  if true, do not force alpha up (Change_Clr_A(clr,1)); use for softer halos
+function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterClr, preserve_incoming_alpha   )
     local Coord = Coord or {im.GetItemRectMin(ctx)}
     local x, y = Coord[1], Coord[2]
 
 
-    local clr = Change_Clr_A(clr, 1 )
+    local clr = preserve_incoming_alpha and clr or Change_Clr_A(clr, 1 )
     if Solid_Rad then 
         local clr = Change_Clr_A(clr, 1 )
 
@@ -1695,6 +1805,27 @@ function GLOWING_CIRCLE(Coord, glow_in, glow_out, Solid_Rad, clr, WDL , CenterCl
         end
     end
 end
+
+--- Expanding rounded-rect rings (same alpha falloff idea as GLOWING_CIRCLE).
+--- @param glow_in number  inner offset (often 0)
+--- @param glow_out number outer offset in pixels
+---@param preserve_incoming_alpha boolean|nil  if true, skip Change_Clr_A(clr,1) so caller alpha is kept
+function GLOWING_RECT(L, T, R, B, glow_in, glow_out, clr, WDL, rounding, thick, preserve_incoming_alpha)
+    if not L or not T or not R or not B then return end
+    if not glow_out or glow_out <= (glow_in or 0) then return end
+    WDL = WDL or Glob.FDL
+    rounding = rounding or 0
+    thick = thick or 1
+    glow_in = glow_in or 0
+    local clr = preserve_incoming_alpha and clr or Change_Clr_A(clr, 1)
+    for i = glow_in, glow_out, 1 do
+        local range = glow_out - glow_in
+        local n = (range - i + glow_in) / range
+        local ringClr = Change_Clr_A(Change_Clr_A(clr, -1), n)
+        im.DrawList_AddRect(WDL, L - i, T - i, R + i, B + i, ringClr, rounding, nil, thick)
+    end
+end
+
 function AddWindowBtn(FxGUID, FX_Idx, width, CantCollapse, CantAddPrm, isContainer, NoVert, VertBtnHeight)
     if not FX[FxGUID] then return end 
 
@@ -3811,7 +3942,7 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                             end
                         end
 
-                        if --[[Add Macros JSFX if not found]] r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then
+                        if not Find_FXD_Macros_FX_Idx(LT_Track, false) then
                             r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
                             AddMacroJSFX()
                         end
@@ -5910,19 +6041,19 @@ function createFXWindow(FX_Idx, Cur_X_Ofs)
                                 local pos =  { im.GetCursorScreenPos(ctx) }
 
                                 --- Add Parameter controls ---------
-                                if FP.Type == 'Slider' or FX[FxGUID].DefType == 'Slider' then
+                                if FP.Type == 'Slider' or (FX[FxGUID].DefType == 'Slider' and FP.Type == nil) then
                                     AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Knob' or (FX[FxGUID].DefType == 'Knob' and FP.Type == nil) then
                                     AddKnob(ctx, FxGUID, Fx_P, FX_Idx)
-                                elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider') then
+                                elseif FP.Type == 'V-Slider' or (FX[FxGUID].DefType == 'V-Slider' and FP.Type == nil) then
                                     AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Switch' then
                                     AddSwitch(ctx, FxGUID, Fx_P, FX_Idx)
-                                elseif FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag') then
+                                elseif FP.Type == 'Drag' or (FX[FxGUID].DefType == 'Drag' and FP.Type == nil) then
                                     AddDrag(ctx, FxGUID, Fx_P, FX_Idx)
                                 elseif FP.Type == 'Selection' then
                                     AddCombo(ctx, FxGUID, Fx_P, FX_Idx)
-                                elseif FP.Type == 'XY Pad - X' then
+                                elseif FP.Type == 'XY Pad - X' or FP.Type == 'XY Pad' then
                                     Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
                                 end
                                 
@@ -6472,7 +6603,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         
     end
     if If_No_Need_To_Proceed() then return end 
-    if FX_Idx == 0 and r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then FX_Idx = 1 end
+    if FX_Idx == 0 and Find_FXD_Macros_FX_Idx(LT_Track, false) then FX_Idx = 1 end
     local _, FX_Name = r.TrackFX_GetFXName(LT_Track, FX_Idx)
     
 
@@ -6617,7 +6748,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
             if not tablefind(Trk[TrkID].PreFX, FxGUID_DragFX) then -- if fx is not in pre fx
                 if SpaceIsBeforeRackMixer == 'End of PreFX' then
                     local offset = 0
-                    if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = -1 end
+                    if Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = -1 end
 
                     table.insert(Trk[TrkID].PreFX, #Trk[TrkID].PreFX + 1, FxGUID_DragFX)
                     --r.TrackFX_CopyToTrack(LT_Track, DragFX_ID, LT_Track, FX_Idx + 1, true)
@@ -6627,7 +6758,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                 end
             else -- if fx is in pre fx
                 local offset = 0
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = -1 end
+                if Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = -1 end
                 if FX_Idx < DragFX_ID then -- if drag towards left
                     table.remove(Trk[TrkID].PreFX, DragFX_ID + 1 + offset)
                     table.insert(Trk[TrkID].PreFX, FX_Idx + 1 + offset, FxGUID_DragFX)
@@ -6652,7 +6783,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
         elseif SpcInPost then
             local offset
 
-            if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
+            if not Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = -1 else offset = 0 end
 
             if not tablefind(Trk[TrkID].PostFX, FxGUID_DragFX) then -- if fx is not yet in post-fx chain
                 InsertToPost_Src = DragFX_ID + offset + 1
@@ -6899,7 +7030,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
 
                 if If_FX_Is_Parallel() then allowDropNext = true  end 
 
-                if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) ~= -1 then offset = 0 else offset = 0 end
+                if Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = 0 else offset = 0 end
 
 
 
@@ -7070,7 +7201,7 @@ function AddSpaceBtwnFXs(FX_Idx, SpaceIsBeforeRackMixer, AddLastSpace, LyrID, Sp
                                 true)
                         end
                     elseif SpcInPost then
-                        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = -1 else offset = 0 end
+                        if not Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = -1 else offset = 0 end
                         table.insert(Trk[TrkID].PostFX, SpcIDinPost + offset + 1, FxID)
                         -- InsertToPost_Src = FX_Idx + offset+2
                         for i = 1, #Trk[TrkID].PostFX + 1, 1 do
@@ -7399,7 +7530,7 @@ function AddSpaceBtwnFXs_FIRST(FX_Idx, FxGUID)
             local Idx = FX_Idx
             if FX_Idx == 1 then
                 local Nm = FX.Win_Name[0]
-                if Nm == 'JS: FXD Macros' or FX_is_in_blacklist (Nm) then Idx = 0 end
+                if Is_FXD_Macros_FX_Name(Nm, false) or FX_is_in_blacklist (Nm) then Idx = 0 end
             end
             local CurX = im.GetCursorPosX(ctx)
 

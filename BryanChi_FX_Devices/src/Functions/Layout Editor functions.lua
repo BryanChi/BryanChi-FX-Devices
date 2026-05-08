@@ -1613,6 +1613,50 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                 end
             end
         end
+
+        local function Apply_Reasonable_Defaults_For_Type(FP, Type)
+            if not FP then return end
+            FP.Type = Type
+
+            local DefaultW = Get_Default_Param_Width_By_Type(Type)
+            local DefaultH = Get_Default_Param_Height_By_Type(Type)
+
+            if Type == 'Knob' then
+                FP.Sldr_W = DefaultW
+                FP.Height = nil
+            elseif Type == 'XY Pad' or Type == 'XY Pad - X' or Type == 'XY Pad - Y' then
+                FP.Sldr_W = Df.XY_Pad_Size
+                FP.Height = Df.XY_Pad_Size
+                if Type == 'XY Pad' then
+                    FP.XY_Pad_Y_PNum = FP.XY_Pad_Y_PNum or FP.Num
+                end
+            else
+                FP.Sldr_W = DefaultW
+                FP.Height = DefaultH
+            end
+
+            -- Reset layout enum values so new type starts from a valid baseline.
+            FP.Lbl_Pos = nil
+            FP.V_Pos = nil
+
+            if Type ~= 'Drag' then
+                FP.DragDir = nil
+            else
+                FP.DragDir = FP.DragDir or 'Right'
+            end
+
+            if Type ~= 'Switch' then
+                FP.SwitchType = nil
+            else
+                FP.SwitchType = FP.SwitchType or 'Toggle'
+                FP.SwitchBaseV = FP.SwitchBaseV or 0
+                FP.SwitchTargV = FP.SwitchTargV or 1
+            end
+
+            if Type ~= 'XY Pad' and Type ~= 'XY Pad - X' then
+                FP.XY_Pad_Y_PNum = nil
+            end
+        end
         
         local function Type()
             local PrmTypeLbl = TypeID == 'Group' and 'Multiple Values' or (FS.Type or FX[FxGUID].DefType )
@@ -1628,9 +1672,7 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             if im.BeginCombo(ctx, '##', PrmTypeLbl, im.ComboFlags_NoArrowButton) then
                 local function SetItemType(Type)
                     for i, v in pairs(LE.Sel_Items) do
-                        FX[FxGUID][v].Sldr_W = nil
-                        FX[FxGUID][v].Height = nil
-                        FX[FxGUID][v].Type = Type
+                        Apply_Reasonable_Defaults_For_Type(FX[FxGUID][v], Type)
                     end
                 end
 
@@ -4150,6 +4192,11 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
         local function XY_Pad_Properties ()
 
 
+            local function Belong_To_Which_Pad()
+                -- Placeholder to prevent nil call when XY Pad type is selected.
+                im.Text(ctx, FS.XY_Pad or 'None')
+            end
+
             --[[ local function Belong_To_Which_Pad()
                 FX[FxGUID].XY_Pad_TB  = FX[FxGUID].XY_Pad_TB or {}
                 if not FX[FxGUID].XY_Pad_TB[1] then FX[FxGUID].XY_Pad_TB[1] = 'XY_Pad 1' end
@@ -4185,10 +4232,10 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
                     if im.Button(ctx, 'Set Parameters as XY Pad') then 
 
     
-                        FX[FxGUID][LE.Sel_Items[1]].Type = 'XY Pad - X'
+                        Apply_Reasonable_Defaults_For_Type(FX[FxGUID][LE.Sel_Items[1]], 'XY Pad - X')
                         FX[FxGUID][LE.Sel_Items[1]].XY_Pad_Y_PNum = FX[FxGUID][LE.Sel_Items[2]].Num
 
-                        FX[FxGUID][LE.Sel_Items[2]].Type = 'XY Pad - Y'
+                        Apply_Reasonable_Defaults_For_Type(FX[FxGUID][LE.Sel_Items[2]], 'XY Pad - Y')
     
                         --[[ for i, v in ipairs(LE.Sel_Items) do 
                             FX[FxGUID][v].XY_Pad = #TB
@@ -4201,26 +4248,164 @@ function Layout_Edit_Properties_Window(fx, FX_Idx)
             Set_Selected_Prms_As_XY_Pad()
 
             if FS.Type ~= 'XY Pad' then return end  
-            if im.BeginTable(ctx, 'XY Pad Properties', 5, flags, -R_ofs) then 
-                im.TableSetupColumn(ctx, 'Belong to')
-                im.TableSetupColumn(ctx, 'X')
-                im.TableSetupColumn(ctx, 'Y')
-                im.TableSetupColumn(ctx, 'Width')
-                im.TableSetupColumn(ctx, 'Height')
-                im.TableHeadersRow(ctx)
-                im.TableNextRow(ctx)
-                im.TableSetColumnIndex(ctx, 0) 
-                Belong_To_Which_Pad()
+            local function Find_FxP_By_ParamNum(PNum)
+                if PNum == nil then return nil end
+                for i, v in ipairs(FX[FxGUID]) do
+                    if v and v.Num == PNum then
+                        return i
+                    end
+                end
+            end
 
-                im.TableSetColumnIndex(ctx, 1) 
-                im.Button(ctx, 'Set as X')
-                im.TableSetColumnIndex(ctx, 2) 
-                im.Button(ctx, 'Set as Y')
-                im.TableSetColumnIndex(ctx, 3) 
-                im.Text(ctx, 'Width:') SL()
-                im.TableSetColumnIndex(ctx, 4) 
-                im.Text(ctx, 'Height:') SL()
-                im.EndTable(ctx)
+            local function Get_Param_Label_From_Num(PNum)
+                if PNum == nil then return nil end
+                local ok, Name = r.TrackFX_GetParamName(LT_Track, FX_Idx, PNum)
+                if ok and Name and Name ~= '' then return Name end
+                local FxP = Find_FxP_By_ParamNum(PNum)
+                if FxP and FX[FxGUID][FxP] then
+                    return FX[FxGUID][FxP].CustomLbl or FX[FxGUID][FxP].Name
+                end
+            end
+
+            local function Get_Last_Touched_Param_For_Current_FX()
+                local ok, trk_i, fx_i, par_i = r.GetLastTouchedFX()
+                if not ok or par_i == nil then return nil end
+                if fx_i ~= FX_Idx then return nil end
+                local tr = trk_i == 0 and r.GetMasterTrack(0) or r.GetTrack(0, trk_i - 1)
+                if not tr or not LT_Track then return nil end
+                if r.GetTrackGUID(tr) ~= r.GetTrackGUID(LT_Track) then return nil end
+                return par_i
+            end
+
+            local function Push_XY_Touched_Param(PNum)
+                if PNum == nil then return end
+                LE.XY_Pad_Touched_Params = LE.XY_Pad_Touched_Params or {}
+                LE.XY_Pad_Touched_Params[FxGUID] = LE.XY_Pad_Touched_Params[FxGUID] or {}
+                local Hist = LE.XY_Pad_Touched_Params[FxGUID]
+                for i = #Hist, 1, -1 do
+                    if Hist[i] == PNum then
+                        table.remove(Hist, i)
+                    end
+                end
+                table.insert(Hist, 1, PNum)
+            end
+
+            local function Refresh_XY_Touch_History()
+                local LT_PNum = Get_Last_Touched_Param_For_Current_FX()
+                if LT_PNum ~= nil then
+                    Push_XY_Touched_Param(LT_PNum)
+                end
+                return LT_PNum
+            end
+
+            local function Assign_XY_Param_To_Axis(Axis, PNum)
+                if Axis == 'X' then
+                    for _, Sel in pairs(LE.Sel_Items) do
+                        if FX[FxGUID][Sel] then
+                            FX[FxGUID][Sel].Num = PNum
+                        end
+                    end
+                elseif Axis == 'Y' then
+                    for _, Sel in pairs(LE.Sel_Items) do
+                        if FX[FxGUID][Sel] then
+                            FX[FxGUID][Sel].XY_Pad_Y_PNum = PNum
+                        end
+                    end
+                end
+            end
+
+            local function XY_Param_Selector_Popup(Axis)
+                local PopupID = 'XY Pad Param Selector##' .. Axis .. FxGUID .. tostring(LE.Sel_Items[1] or '')
+                if im.Button(ctx, (Axis == 'X' and 'Assign/Change X...' or 'Assign/Change Y...') .. '##' .. Axis) then
+                    im.OpenPopup(ctx, PopupID)
+                end
+
+                if im.BeginPopup(ctx, PopupID) then
+                    local LT_PNum = Refresh_XY_Touch_History()
+                    LE.XY_Pad_Touched_Params = LE.XY_Pad_Touched_Params or {}
+                    local Hist = LE.XY_Pad_Touched_Params[FxGUID] or {}
+                    local Seen = {}
+
+                    for i, PNum in ipairs(Hist) do
+                        if not Seen[PNum] then
+                            local Nm = Get_Param_Label_From_Num(PNum) or ('Param ' .. tostring(PNum))
+                            local IsLT = LT_PNum ~= nil and PNum == LT_PNum
+                            local Lbl = IsLT and (Nm .. ' (Last Touched)') or Nm
+                            if IsLT then
+                                im.PushStyleColor(ctx, im.Col_Text, ThemeClr('Accent_Clr'))
+                            end
+                            if im.Selectable(ctx, Lbl .. '##XYPickHist' .. Axis .. i, false) then
+                                Assign_XY_Param_To_Axis(Axis, PNum)
+                                im.CloseCurrentPopup(ctx)
+                            end
+                            if im.IsItemHovered(ctx) then
+                                Highlight_Itm(nil, 0xffffff1A, nil, 2)
+                            end
+                            if IsLT then
+                                im.PopStyleColor(ctx)
+                            end
+                            Seen[PNum] = true
+                        end
+                    end
+
+                    for i, v in ipairs(FX[FxGUID]) do
+                        if v and v.Num ~= nil and not Seen[v.Num] then
+                            local Nm = v.CustomLbl or v.Name or ('Param ' .. tostring(v.Num))
+                            local IsLT = LT_PNum ~= nil and v.Num == LT_PNum
+                            if IsLT then
+                                im.PushStyleColor(ctx, im.Col_Text, ThemeClr('Accent_Clr'))
+                            end
+                            local Lbl = IsLT and (Nm .. ' (Last Touched)') or Nm
+                            if im.Selectable(ctx, Lbl .. '##XYPick' .. Axis .. i, false) then
+                                Assign_XY_Param_To_Axis(Axis, v.Num)
+                                im.CloseCurrentPopup(ctx)
+                            end
+                            if im.IsItemHovered(ctx) then
+                                Highlight_Itm(nil, 0xffffff1A, nil, 2)
+                            end
+                            if IsLT then
+                                im.PopStyleColor(ctx)
+                            end
+                            Seen[v.Num] = true
+                        end
+                    end
+
+                    im.EndPopup(ctx)
+                end
+            end
+
+            Refresh_XY_Touch_History()
+            local XNum = FS.Num
+            local YNum = FS.XY_Pad_Y_PNum
+            local XName = Get_Param_Label_From_Num(XNum)
+            local YName = Get_Param_Label_From_Num(YNum)
+            local MissingX = (XNum == nil) or (XName == nil)
+            local MissingY = (YNum == nil) or (YName == nil)
+
+            im.SeparatorText(ctx, 'XY Pad Assignment')
+            im.Text(ctx, 'Belong to:') SL()
+            Belong_To_Which_Pad()
+
+            im.Text(ctx, 'X Parameter:') SL()
+            if MissingX then
+                MyText('Not assigned', nil, 0xEA2C2Cff)
+            else
+                MyText((XName or '') .. '  [P' .. tostring(XNum) .. ']', nil, ThemeClr('Accent_Clr'))
+            end
+            SL()
+            XY_Param_Selector_Popup('X')
+
+            im.Text(ctx, 'Y Parameter:') SL()
+            if MissingY then
+                MyText('Not assigned', nil, 0xEA2C2Cff)
+            else
+                MyText((YName or '') .. '  [P' .. tostring(YNum) .. ']', nil, ThemeClr('Accent_Clr'))
+            end
+            SL()
+            XY_Param_Selector_Popup('Y')
+
+            if MissingX or MissingY then
+                im.Text(ctx, 'XY Pad needs both X and Y assignments.')
             end
         end
 
@@ -5869,7 +6054,7 @@ end
 function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
     local TB = FX[FxGUID].XY_Pad_TB
     local FP = FX[FxGUID][Fx_P]
-    local P_Num_Y = FP.XY_Pad_Y_PNum
+    local P_Num_Y = FP.XY_Pad_Y_PNum or FP.Num
     local V_Y = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num_Y)
     local V_X = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)    
     local ScrnCurX, ScrnCurY = im.GetCursorScreenPos(ctx)
@@ -5880,15 +6065,17 @@ function Add_XY_Pad(ctx, FxGUID, Fx_P, FX_Idx)
 
     local function Drag_to_Set_value()
         if im.IsItemActive(ctx) then
-            local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDragDelta(ctx, x, y, 0)
+            local CircleSz = FP.Value_Thick or 10
+            local DotRangeX = math.max((Width - CircleSz * 2), 1)
+            local DotRangeY = math.max((Height - CircleSz * 2), 1)
+            local Ms_Delta_X, Ms_Delta_Y = im.GetMouseDelta(ctx)
             if Ms_Delta_X ~= 0 then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, V_X + ((Ms_Delta_X or 0) / 100))
-            end 
-            if Ms_Delta_Y ~= 0 then
-                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, V_Y - ((Ms_Delta_Y or 0) / 100))
+                local NewV_X = math.max(0, math.min(1, V_X + (Ms_Delta_X / DotRangeX)))
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, FP.Num, NewV_X)
             end
-            if Ms_Delta_X ~= 0 or Ms_Delta_Y ~= 0 then
-                im.ResetMouseDragDelta(ctx, 0)
+            if Ms_Delta_Y ~= 0 then
+                local NewV_Y = math.max(0, math.min(1, V_Y - (Ms_Delta_Y / DotRangeY)))
+                r.TrackFX_SetParamNormalized(LT_Track, FX_Idx, P_Num_Y, NewV_Y)
             end
         end
     end
@@ -6016,7 +6203,7 @@ function AddSlider(ctx, FxGUID, Fx_P, FX_Idx)
     local Font, V_Font = GetFonts (FP)
     
     local _, FormatPV = r.TrackFX_GetFormattedParamValue(LT_Track, FX_Idx, P_Num)
-    if Vertical == 'Vert' then ModLineDir = Height else ModLineDir = Sldr_Width end
+    if Vertical == 'Vert' then ModLineDir = FP.Height or 160 else ModLineDir = Sldr_Width end
 
 
     

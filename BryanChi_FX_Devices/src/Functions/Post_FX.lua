@@ -113,7 +113,7 @@ function Post_FX_Chain (TrkTB, Payload_Type)
 
             TrkTB.MakeSpcForPostFXchain = 0
 
-            if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then offset = 0 else offset = 1 end
+            if not Find_FXD_Macros_FX_Idx(LT_Track, false) then offset = 0 else offset = 1 end
 
             for FX_Idx, V in pairs(TrkTB.PostFX) do
                 local I = --[[ tablefind(FXGUID, TrkTB.PostFX[#TrkTB.PostFX+1-FX_Idx])  ]]

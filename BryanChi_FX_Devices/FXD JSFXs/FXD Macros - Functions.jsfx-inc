@@ -1,7 +1,7 @@
 @init
 function SAVE_AND_LOAD_ALL_MIDI_MOD_INFO ()(
   i = Velo_ModAmt ; 
-  while(i<= Velo_ModAmt +70000 )( 
+  while(i<= Velo_ModAmt +90000 )( 
     a[i] = file_var(0, a[i]);
     i+=1;
   );
@@ -189,6 +189,7 @@ function Send_NoteOn_Midi_Mod_Output_Back_to_ImGui (trkGUID_Num , velocity, R1,R
       ):(gmem[8] == 6)? (gmem[91] = KTrk2;
       ):(gmem[8] == 7)? (gmem[91] = KTrk3;
       );
+      gmem[8] == 9 ? (gmem[91] = CC_Out;);
     );
 
   );
@@ -444,7 +445,7 @@ function SaveAllModulatorInfo_FOR_ALL_MACROS()(
 
 function DoFollower()(
   this.type == 'Fol'? (
-    this.FOL_out  = this.follow_do((spl0+spl1));
+    this.FOL_out = this.lp.lop_do(abs(spl0 + spl1));
   );
 );
 
@@ -907,6 +908,7 @@ function CalculateTotalOut ( i ) local(total , Bi_ofs, Bi_range, Amt, Bi_ofs, M,
   KeyTrk1_ModAmt[i] != 0 ? (total+= KeyTrk1_ModAmt[i]* (KTrk1) );
   KeyTrk2_ModAmt[i] != 0 ? (total+= KeyTrk2_ModAmt[i]* (KTrk2) );
   KeyTrk3_ModAmt[i] != 0 ? (total+= KeyTrk3_ModAmt[i]* (KTrk3) );
+  CC_ModAmt[i] != 0 ? (total+= CC_ModAmt[i] * CC_Out );
 
 
 
@@ -927,9 +929,9 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
 
 
   this.type =='step'?(
-    // Unified params: Param1=Length, Param2=Denominator
-    this.Param1 = slider(2 + (this.Macro-1)*4 + 0);
-    this.Param2 = slider(2 + (this.Macro-1)*4 + 1);
+    // Unified params: Param1=Length, Param2=Denominator (same slider base as LFO/ADSR/etc.; slider1–2 are global)
+    this.Param1 = slider(3 + (this.Macro-1)*4 + 0);
+    this.Param2 = slider(3 + (this.Macro-1)*4 + 1);
     this.SEQ_Leng = max(2, floor(2 + this.Param1 * 62));
     _idx = floor(this.Param2 * 6 + 0.5);
     _idx < 0 ? (_idx = 0); _idx > 6 ? (_idx = 6);
@@ -1038,9 +1040,7 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
             : _idx == 6 ? 1
             : _idx == 7 ? 2
             : 4);
-      // samples per beat = srate * 60 / tempo
-      _spb = srate * 60 / max(tempo, 0.000001);
-      this.RDM_Interval_samples = max(1, _div * _spb);
+      this.RDM_Grid_Index = floor(beat_position / max(_div, 0.000001));
     ) : (
       // Free mode (milliseconds): normalized [0..1] → 1-500 ms
       this.RDM_Interval_ms = max(1, floor(1 + this.Param1 * 499));
@@ -1053,44 +1053,83 @@ function CalculatMacroAmt() local (BipolarRange , MR , Rdm_Smooth )
     // Chance: normalized [0..1] → 0-100%
     this.RDM_Chance = floor(this.Param3 * 100 + 0.5);
     
-    // Initialize on first run (Rdm_time < 0 means uninitialized)
-    this.Rdm_time < 0 ? (
-      this.Rdm_time = 0;
-      this.Out = rand(1);
-      this.Rdm_Next_Out = this.Out;
-    );
-    
-    // Ensure Out is initialized (fallback)
-    this.Out == 0 && this.Rdm_Next_Out == 0 ? (
-      this.Out = rand(1);
-      this.Rdm_Next_Out = this.Out;
-    );
-    
-    // Increment time counter by samples in this block
-    this.Rdm_time = this.Rdm_time + samplesblock;
-    
-    // Check if interval has elapsed
-    this.Rdm_time >= this.RDM_Interval_samples ? (
-      // Check chance - if it succeeds, generate new random value
-      (rand(1) * 100) < this.RDM_Chance ? (
-        this.Rdm_Next_Out = rand(1); // create next target point
+    this.RDM_Sync ? (
+      // Musical sync follows the project grid, like Step Seq. Starting playback between grid lines
+      // initializes the current grid cell and waits for the next grid boundary before changing.
+      (this.Rdm_time < 0 || this.RDM_Sync_Was_On != 1 || this.RDM_Last_Div_Idx != _idx || this.RDM_Last_Play_State != play_state) ? (
+        _rdm_init_out = this.Rdm_time < 0 || (this.Out == 0 && this.Rdm_Next_Out == 0);
+        this.Rdm_time = 0;
+        this.RDM_Sync_Was_On = 1;
+        this.RDM_Last_Div_Idx = _idx;
+        this.RDM_Last_Play_State = play_state;
+        this.RDM_Last_Grid_Index = this.RDM_Grid_Index;
+        _rdm_init_out ? (
+          this.Out = rand(1);
+          this.Rdm_Next_Out = this.Out;
+        );
       );
-      // If smoothing is disabled, immediately update output to next target
-      this.Rdm_Smooth == 0 ? (
-        this.Out = this.Rdm_Next_Out; // immediately set output to next point
+      
+      play_state == 1 || play_state == 5 ? (
+        this.RDM_Grid_Index != this.RDM_Last_Grid_Index ? (
+          (rand(1) * 100) < this.RDM_Chance ? (
+            this.Rdm_Next_Out = rand(1);
+          );
+          this.Rdm_Smooth == 0 ? (
+            this.Out = this.Rdm_Next_Out;
+          );
+          this.RDM_Last_Grid_Index = this.RDM_Grid_Index;
+        );
+      ) : (
+        this.RDM_Last_Grid_Index = this.RDM_Grid_Index;
+        this.RDM_Last_Play_State = play_state;
       );
-      // Keep remainder for accuracy when interval changes
-      this.Rdm_time = this.Rdm_time - this.RDM_Interval_samples;
+    ) : (
+      this.RDM_Sync_Was_On = 0;
+      this.RDM_Last_Play_State = play_state;
+      // Initialize on first run (Rdm_time < 0 means uninitialized)
+      this.Rdm_time < 0 ? (
+        this.Rdm_time = 0;
+        this.Out = rand(1);
+        this.Rdm_Next_Out = this.Out;
+      );
+      
+      // Ensure Out is initialized (fallback)
+      this.Out == 0 && this.Rdm_Next_Out == 0 ? (
+        this.Out = rand(1);
+        this.Rdm_Next_Out = this.Out;
+      );
+      
+      // Increment time counter by samples in this block
+      this.Rdm_time = this.Rdm_time + samplesblock;
+      
+      // Check if interval has elapsed
+      this.Rdm_time >= this.RDM_Interval_samples ? (
+        // Check chance - if it succeeds, generate new random value
+        (rand(1) * 100) < this.RDM_Chance ? (
+          this.Rdm_Next_Out = rand(1); // create next target point
+        );
+        // If smoothing is disabled, immediately update output to next target
+        this.Rdm_Smooth == 0 ? (
+          this.Out = this.Rdm_Next_Out; // immediately set output to next point
+        );
+        // Keep remainder for accuracy when interval changes
+        this.Rdm_time = this.Rdm_time - this.RDM_Interval_samples;
+      );
     );
     
     // Smoothing interpolation (runs every block when smoothing is enabled)
     this.Rdm_Smooth != 0 ? (
-      // Smoothing factor: convert 0-100% to interpolation rate
-      // Higher smooth value = slower interpolation (smaller step per block)
-      // Smooth 0% = instant (handled above), Smooth 100% = very slow
-      // Use exponential approach: smooth 100% = ~0.01 per block, smooth 1% = ~0.99 per block
-      Rdm_Smooth_rate = 0.01 + (100 - this.Rdm_Smooth) * 0.0099; // maps 0-100% to 0.01-1.0
-      // Interpolate toward target using exponential smoothing
+      // Map smooth % to a time-constant (tau, in seconds) using exponential scaling so
+      // perceived smoothness changes evenly across the slider. tau_min ≈ very fast,
+      // tau_max ≈ very slow. The actual per-block coefficient is then derived from tau
+      // so the smoothing speed is independent of block size and sample rate.
+      _Rdm_tau_min = 0.003;  // 3 ms  (smooth ~ 1%)
+      _Rdm_tau_max = 1.5;    // 1.5 s (smooth = 100%)
+      _Rdm_smooth_norm = this.Rdm_Smooth / 100;
+      _Rdm_tau = _Rdm_tau_min * exp(_Rdm_smooth_norm * (log(_Rdm_tau_max) - log(_Rdm_tau_min)));
+      _Rdm_block_dt = max(samplesblock, 1) / srate;
+      Rdm_Smooth_rate = 1 - exp(-_Rdm_block_dt / max(_Rdm_tau, 0.000001));
+      Rdm_Smooth_rate = min(1, max(0, Rdm_Smooth_rate));
       this.Out = this.Out + (this.Rdm_Next_Out - this.Out) * Rdm_Smooth_rate;
     );
   ):this.type == 'ASR' ? ( // if type is ASR
@@ -1211,6 +1250,26 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
 
   //if user tweaking track that matches trkGUID
   trkGUID_Num === gmem[2]? (
+    gmem[94] > 0 ? (
+      CC_Source = gmem[94] - 1;
+      CC_Source < 0 ? (CC_Source = 0;);
+      CC_Source > 127 ? (CC_Source = 127;);
+    );
+    gmem[95] >= 0 ? (
+      CC_Raw = gmem[95];
+      CC_Raw < 0 ? (CC_Raw = 0;);
+      CC_Raw > 1 ? (CC_Raw = 1;);
+      CC_Out = Calculate_Midi_Mod(CC_Raw, Gap*8, 0);
+    );
+    gmem[92] >= 0 && gmem[92] <= 127 ? (
+      gmem[92] == CC_Source ? (
+        CC_Raw = gmem[93];
+        CC_Raw < 0 ? (CC_Raw = 0;);
+        CC_Raw > 1 ? (CC_Raw = 1;);
+        CC_Out = Calculate_Midi_Mod(CC_Raw, Gap*8, 0);
+      );
+    );
+    gmem[8] == 9 ? (gmem[91] = CC_Out;);
     Macro = gmem[5];
     mode == 1?(   // if User is right-dragging on param in ImGui...
       P.Inst = gmem[3];    
@@ -1636,6 +1695,7 @@ function BLOCK__User_Interaction_With_ImGUI_When_Track_Is_Selected(trkGUID_Num)(
 
 function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num) local(note_idx, held_before, i, held_now)(
   HeldNoteBase = 950000; // dedicated local-memory region for 16*128 held-note flags
+  (CC_Source < 0 || CC_Source > 127) ? (CC_Source = 1;);
 
   while (midirecv(offset, msg1, msg2, msg3)) (
     // get noteons and noteoffs from all channels
@@ -1692,6 +1752,17 @@ function BLOCK__Do_Midi_Triggered_Things(trkGUID_Num) local(note_idx, held_befor
       msg2 == midinote ? midiamp = 0;
       midisend(offset,msg1,msg2,msg3);
       
+    ) : (noteStatus == $xB0) ? (
+      trkGUID_Num == gmem[2] ? (
+        gmem[92] = msg2;
+        gmem[93] = msg3 / 127;
+      );
+      msg2 == CC_Source ? (
+        CC_Raw = msg3 / 127;
+        CC_Out = Calculate_Midi_Mod(CC_Raw, Gap*8, 0);
+        trkGUID_Num == gmem[2] && gmem[8] == 9 ? (gmem[91] = CC_Out;);
+      );
+      midisend(offset,msg1,msg2,msg3);
     ) : (
 
         // passthrough other events
@@ -2020,12 +2091,3 @@ function BLOCK__Send_ModParam_CCs() local (m, baseCC, cc, out, lenIdx, gainIdx, 
     m += 1;
   );
 );
-
-@block
-// ... existing code ...
-  BLOCK__Calculate_All_Modulators();
-  BLOCK__Send_ModParam_CCs();
-  BLOCK__Send_All_Midi_Info_To_Corresponding_Prms();
-  BLOCK__Send_Info_Back_To_ImGui(trkGUID_Num);
-// ... existing code ...
-

@@ -5,17 +5,13 @@ ultraschall = ultraschall
 
 
 function Get_MidiMod_Ofs(lbl)
-    if not lbl then return end 
-    local ofs = 0 
-    for i, v in ipairs(Midi_Mods) do 
-        if lbl == v then 
-            ofs = i-1
-        elseif lbl:find('LFO') then 
-            ofs = i-1
-
+    if not lbl then return end
+    for i, v in ipairs(Midi_Mods) do
+        if lbl == v or (lbl:find('LFO') and v == 'LFO') then
+            return i - 1
         end
     end
-    return ofs
+    return 0
 end
 
 function Get_Env_Shape_From_File(filename)
@@ -95,6 +91,7 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
     local BipOfs = 0
     local L, T = im.GetItemRectMin(ctx); local R, B = im.GetItemRectMax(ctx)
     local SizeX, SizeY = im.GetItemRectSize(ctx)
+    local SliderLen = Vertical == 'Vert' and SizeY or Sldr_Width
     MacroModLineOffset = 0
     local UseCurrentVal = true 
     local ModAmt = Amt and Amt or FP.ModAMT[Macro]
@@ -115,16 +112,16 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
     end
 
     if Vertical ~= 'Vert' then
-        PosX_End_Of_Slider = (Sldr_Width) + L
-        SldrGrabPos = Sldr_Width * P_V
+        PosX_End_Of_Slider = (SliderLen) + L
+        SldrGrabPos = SliderLen * P_V
         SliderCurPos = L + SldrGrabPos
-        SliderModPos = SliderCurPos + ((ModAmt * Sldr_Width) or 0)
+        SliderModPos = SliderCurPos + ((ModAmt * SliderLen) or 0)
         SliderModPos = SetMinMax(SliderModPos, L, PosX_End_Of_Slider)
     elseif Vertical == 'Vert' then
         PosX_End_Of_Slider = T
-        SldrGrabPos = (SizeY) * (P_V)
+        SldrGrabPos = SliderLen * (P_V)
         SliderCurPos = B - SldrGrabPos
-        SliderModPos = SliderCurPos - ((ModAmt * Sldr_Width) or 0)
+        SliderModPos = SliderCurPos - ((ModAmt * SliderLen) or 0)
         SliderModPos = SetMinMax(SliderModPos, T, B)
     end
 
@@ -151,10 +148,10 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
         if UseCurrentVal then 
             local v = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, FP.Num)
             if Vertical == 'Vert' then
-                ModPosWithAmt = math.max(B - (v * Sldr_Width ) --[[ - BipOfs * Sldr_Width ]] or 0, PosX_End_Of_Slider)
+                ModPosWithAmt = math.max(B - (v * SliderLen ) --[[ - BipOfs * SliderLen ]] or 0, PosX_End_Of_Slider)
                 im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
             else 
-                ModPosWithAmt = math.min(L + (v * Sldr_Width ) --[[ + BipOfs * Sldr_Width ]] or 0, PosX_End_Of_Slider)
+                ModPosWithAmt = math.min(L + (v * SliderLen ) --[[ + BipOfs * SliderLen ]] or 0, PosX_End_Of_Slider)
                 im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,Rounding)
             end
         else 
@@ -179,10 +176,10 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
                 local ModAmt = ModAmt
                 if BipOfs ~= 0 then ModAmt = ModAmt * 2 end
                 if Vertical == 'Vert' then
-                    ModPosWithAmt = math.max(SliderCurPos - (MOD * Sldr_Width * ModAmt) - BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                    ModPosWithAmt = math.max(SliderCurPos - (MOD * SliderLen * ModAmt) - BipOfs * SliderLen or 0, PosX_End_Of_Slider)
                     im.DrawList_AddRectFilled(drawlist, L, SliderCurPos, R, ModPosWithAmt or SliderCurPos, Midsat,Rounding)
                 else
-                    ModPosWithAmt = math.min(SliderCurPos + (MOD * Sldr_Width * ModAmt) + BipOfs * Sldr_Width or 0, PosX_End_Of_Slider)
+                    ModPosWithAmt = math.min(SliderCurPos + (MOD * SliderLen * ModAmt) + BipOfs * SliderLen or 0, PosX_End_Of_Slider)
                     im.DrawList_AddRectFilled(drawlist, SliderCurPos, T, (ModPosWithAmt or SliderCurPos or 0), B, Midsat,Rounding)
                 end
             end
@@ -191,10 +188,10 @@ function DrawModLines(Macro, AddIndicator, McroV, FxGUID, Sldr_Width, P_V, Verti
 
     --- mod range indicator line
     if Vertical == 'Vert' then
-        local SliderCurPos = SliderCurPos - BipOfs * Sldr_Width
+        local SliderCurPos = SliderCurPos - BipOfs * SliderLen
         im.DrawList_AddRectFilled(drawlist, L - offset, SliderCurPos, L - offset, SliderModPos, MidBright, Rounding)
     else
-        local SliderCurPos = SliderCurPos + BipOfs * Sldr_Width
+        local SliderCurPos = SliderCurPos + BipOfs * SliderLen
         im.DrawList_AddLine(drawlist, SliderCurPos, T - offset, SliderModPos or 1, T - offset, MidBright, 2)
     end
 end
@@ -239,7 +236,7 @@ function PrepareFXforModulation(FX_Idx, P_Num, FxGUID)
     local ParamValue_Modding = r.TrackFX_GetParamNormalized(LT_Track, FX_Idx, P_Num)
     AssignMODtoFX = FX_Idx
     r.gmem_attach('ParamValues')
-    if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 and r.TrackFX_AddByName(LT_Track, 'Macros', 0, 0) == -1 then
+    if not Find_FXD_Macros_FX_Idx(LT_Track, false) then
         r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
         AddMacroJSFX()
         AssignMODtoFX = AssignMODtoFX + 1
@@ -409,14 +406,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
         Trk.Prm.Assign = CC
         FP.WhichCC = CC
         if not FX_Idx or FX_Idx < 0 then
-            local function FindMacrosFXIdx()
-                local cnt = r.TrackFX_GetCount(LT_Track)
-                for idx = 0, cnt-1, 1 do
-                    local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-                    if name and name:find('FXD Macros') then return idx end
-                end
-            end
-            FX_Idx = FindMacrosFXIdx() or FX_Idx
+            FX_Idx = Find_FXD_Macros_FX_Idx(LT_Track, true) or FX_Idx
         end
        
     else
@@ -617,6 +607,7 @@ function MakeModulationPossible(FxGUID, Fx_P, FX_Idx, P_Num, p_value, Sldr_Width
             elseif AssigningMidiMod == 'Random 3' then jsfx_ofs = JSFX.Random3
             elseif AssigningMidiMod == 'KeyTrack 2' then jsfx_ofs = JSFX.KeyTrack2
             elseif AssigningMidiMod == 'KeyTrack 3' then jsfx_ofs = JSFX.KeyTrack3
+            elseif AssigningMidiMod == 'CC' then jsfx_ofs = JSFX.CC_Mod
             end
 
             -- Ensure ModAMT is initialized to 0 if nil to prevent gmem_write error
@@ -903,7 +894,7 @@ function WhenRightClickOnModulators(Macro)
     if im.IsItemClicked(ctx, 1) and Mods == 0 then
 
         AssigningMacro = toggle(AssigningMacro , Macro)
-        if r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0) == -1 then
+        if not Find_FXD_Macros_FX_Idx(LT_Track, false) then
             r.gmem_write(1, PM.DIY_TrkID[TrkID]) --gives jsfx a guid when it's being created, this will not change becuase it's in the @init.
             AddMacroJSFX()
         end
@@ -1114,9 +1105,9 @@ function Cont_ChangeLFO(mode, V, gmem, StrName,fx, Macro,FxGUID)
 end
 
 function Always_Move_Modulator_to_1st_Slot()
-    MacroPos = r.TrackFX_AddByName(LT_Track, 'FXD Macros', 0, 0)
+    MacroPos = Find_FXD_Macros_FX_Idx(LT_Track, false) or -1
     if MacroPos ~= -1 and MacroPos ~= 0 then -- if macro exists on track, and Macro is not the 1st fx
-        if FX.Win_Name[0] ~= 'JS: FXD Macros' then r.TrackFX_CopyToTrack(LT_Track, MacroPos, LT_Track, 0, true)
+        if not Is_FXD_Macros_FX_Name(FX.Win_Name[0], false) then r.TrackFX_CopyToTrack(LT_Track, MacroPos, LT_Track, 0, true)
         end -- move it to 1st slot
     end
 end
@@ -1642,10 +1633,12 @@ function SetTypeToStepSEQ(Mc, i)
         end
     end
 end
-function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
-    if Mc.Type == Type then return end 
-    if im.Selectable(ctx, Type, false) then
-        Mc.Type = Type
+function Apply_Modulator_Type_Change(Mc, i, Type, ContainerID, FxGUID)
+    Mc.Type = Type
+    Mc.Init_Applied_Type = Type
+        if not ContainerID then
+            r.gmem_attach('ParamValues')
+        end
         if ContainerID then 
             r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. i .. 'Type', Type, true)
         else
@@ -1688,14 +1681,7 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 end
                 return saved_str
             end
-            local function FindMacrosFXIdx()
-                local cnt = r.TrackFX_GetCount(LT_Track)
-                for idx = 0, cnt-1, 1 do
-                    local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-                    if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
-                end
-            end
-            local MacFxIdx = FindMacrosFXIdx()
+            local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
             if MacFxIdx then
                 local base = 2 + (i - 1) * 4
                 local lenIdx  = base + 1 -- Param2
@@ -1881,15 +1867,8 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
         elseif Type == 'Random' then
             -- Initialize Random parameters to unified params
             -- Param indices are 0-based: base = 2 + (macro-1)*4; Param1=base+0 (Interval), Param2=base+1 (Smooth), Param3=base+2 (Chance)
-            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
-            if MacFxGUID then
-                local function FindFxIdxByGUID(guid)
-                    local cnt = r.TrackFX_GetCount(LT_Track)
-                    for idx = 0, cnt-1, 1 do
-                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
-                    end
-                end
-                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+            local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+            if MacFxIdx then
                 local base = 2 + (i - 1) * 4
                 local intervalIdx = base + 0 -- Param1 (Interval)
                 local smoothIdx = base + 1   -- Param2 (Smooth)
@@ -1908,17 +1887,26 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 local _, saved_sync_str = ContainerID and 
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Sync', '', false) or
                     r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Sync', '', false)
+                local _, saved_sync_int_str = ContainerID and
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Mod '..i..' Random Musical Interval', '', false) or
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod '..i..' Random Musical Interval', '', false)
                 
                 local saved_int = (saved_int_str ~= '' and saved_int_str) and tonumber(saved_int_str) or nil
                 local saved_smooth = (saved_smooth_str ~= '' and saved_smooth_str) and tonumber(saved_smooth_str) or nil
                 local saved_chance = (saved_chance_str ~= '' and saved_chance_str) and tonumber(saved_chance_str) or nil
                 local saved_sync = (saved_sync_str ~= '' and saved_sync_str) and tonumber(saved_sync_str) or nil
-                
+                local saved_sync_int = (saved_sync_int_str ~= '' and saved_sync_int_str) and tonumber(saved_sync_int_str) or nil
+
+                -- Sync toggle decides how Param1 is interpreted (free ms vs musical division)
+                local sync_val_init = saved_sync or (Mc.Random_Sync or 0)
+                Mc.Random_Sync = sync_val_init
+
                 -- Interval: restore saved value or default to 200
                 local interval_val = saved_int or (Mc.Random_Int or 200)
                 Mc.Random_Int = interval_val
-                -- Convert to normalized: 1-500 → (value-1)/499
-                local interval_norm = (interval_val - 1) / 499
+                local sync_interval_val = SetMinMax(math.floor(saved_sync_int or (Mc.Random_Sync_Int or 4)), 0, 8)
+                Mc.Random_Sync_Int = sync_interval_val
+                local interval_norm = sync_val_init > 0 and (sync_interval_val / 8) or ((interval_val - 1) / 499)
                 r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, intervalIdx, interval_norm)
                 
                 -- Smooth: restore saved value or default to 0
@@ -1984,15 +1972,8 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
                 Trk[TrkID].SEQ_Dnom[i] = 1
             end
             
-            local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
-            if MacFxGUID then
-                local function FindFxIdxByGUID(guid)
-                    local cnt = r.TrackFX_GetCount(LT_Track)
-                    for idx = 0, cnt-1, 1 do
-                        if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
-                    end
-                end
-                local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
+            local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+            if MacFxIdx then
                 local base = 2 + (i - 1) * 4
                 local lengthIdx = base + 0  -- Param1
                 local denomIdx = base + 1   -- Param2
@@ -2120,8 +2101,13 @@ function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
             r.gmem_write(4, 29) -- tells jsfx macro type = ADSR
             r.gmem_write(5, i) -- tells jsfx which macro
         end
-        return Type
+end
 
+function Set_Modulator_Type(Mc, i, Type, ContainerID, FxGUID)
+    if Mc.Type == Type then return end 
+    if im.Selectable(ctx, Type, false) then
+        Apply_Modulator_Type_Change(Mc, i, Type, ContainerID, FxGUID)
+        return Type
     end
 end
 function SetTypeToXY(Mc, i)
@@ -2426,11 +2412,13 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
         -- Keep window content-fit but enforce a reasonable minimum size; avoids bottom empty space
         local baseCurveW = LFO.Win and LFO.Win.w or 360
         local curveLen = (Mc.LFO_leng or (LFO.Def and LFO.Def.Len) or 4)
+        -- Extra space between curve editor and shape presets when grid length is 5–8
+        local shapeMidGapExtra = (curveLen >= 5 and curveLen <= 8) and 20 or 0
         local fixedW = math.max(520, baseCurveW + baseCurveW * ((curveLen - 4) / 4) + 60)
         local minH = 340
         -- Lock width to fixedW plus room for shape selector; set height large enough to avoid scrollbars
         local selectorW = 180
-        local popupW = fixedW + selectorW + 16
+        local popupW = fixedW + selectorW + 16 + shapeMidGapExtra
         local baseH = 20 + (LFO and LFO.Win and LFO.Win.h) or 300 
         local neededH = math.max(minH, baseH + 85)
         im.SetNextWindowSizeConstraints(ctx, popupW, neededH, popupW, 100000)
@@ -2472,7 +2460,8 @@ function LFO_BOX_NEW(Mc, i, W, H, IsContainer, Track, PosForWin, FxGUID)
             local availW = im.GetContentRegionAvail(ctx)
             local totalW = availW
             local rightW = 200
-            local leftW = math.max(10, totalW - rightW - 12)
+            local midGap = 12 + shapeMidGapExtra
+            local leftW = math.max(10, totalW - rightW - midGap)
             im.BeginChild(ctx, '##LFO_Main_'..Macro, leftW, 0, 0, im.WindowFlags_NoScrollWithMouse)
 
             -- Close on Esc (end child before closing popup)
@@ -4179,15 +4168,7 @@ function MacroKnob(mc, i, Size , TB, IsContainer, FxGUID)
 
     if mc.Type =='Macro' and ( TB and TB[1]  or TB =='Track') then 
         mc.Val = mc.Val 
-        local function FindMacrosFXIdx()
-            local cnt = r.TrackFX_GetCount(LT_Track)
-            for idx = 0, cnt-1, 1 do
-                local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-                if name and name:find('FXD Macros') then return idx end
-            end
-            return 0
-        end
-        local Macro_FXid = TB =='Track' and FindMacrosFXIdx() or TB[1].addr_fxid
+        local Macro_FXid = TB =='Track' and (Find_FXD_Macros_FX_Idx(LT_Track, true) or 0) or TB[1].addr_fxid
         local FxGUID = FxGUID or TrkID
         local fx = FX[FxGUID] or Trk[TrkID]
 
@@ -4319,23 +4300,18 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
         im.DrawList_PathClear(WDL)
     end
     local function parameters(Open_Random_Mod)
-        local function Change_Prop(mode, v , str, paramIdx)
+        local function Change_Prop(mode, v , str, paramIdx, norm_override)
             local str = IsContainer and 'Container '..FxGUID .. str  or str
             Save_to_Trk(str , v)
             -- Update unified parameter slider (JSFX reads from sliders directly)
             if paramIdx ~= nil then
-                local function FindMacrosFXIdx()
-                    local cnt = r.TrackFX_GetCount(LT_Track)
-                    for idx = 0, cnt-1, 1 do
-                        local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
-                    end
-                end
-                local MacFxIdx = FindMacrosFXIdx()
+                local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
                 if MacFxIdx then
                     local base = 2 + (i - 1) * 4
                     local norm_value
-                    if paramIdx == 0 then -- Interval: 1-500 → normalized (value-1)/499
+                    if norm_override ~= nil then
+                        norm_value = norm_override
+                    elseif paramIdx == 0 then -- Interval: 1-500 → normalized (value-1)/499
                         norm_value = (v - 1) / 499
                     elseif paramIdx == 1 then -- Smooth: 0-100 → normalized value/100
                         norm_value = v / 100
@@ -4358,16 +4334,29 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
             im.Text(ctx, "Random Modulator Options")
 
 
-            local was_active_int = im.IsItemActive(ctx)
-            local rv , Random_Int = Drag_With_Bar(ctx, 'Interval', Mc.Random_Int or 200, 1 , 1 , 500, '%.f', flags, 0xffffff33)
-            if rv then 
-                Mc.Random_Int = SetMinMax(Random_Int  , 1 , 500)
-                Change_Prop(27.1, Mc.Random_Int , 'Random Interval for mod'.. i , 0)
-            end
-            -- Save on mouse release
-            if was_active_int and im.IsItemDeactivatedAfterEdit(ctx) then
-                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Interval') or ('Mod '..i..' Random Interval')
-                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Int), true)
+            if (Mc.Random_Sync or 0) > 0 then
+                local random_interval_labels = { '1/64', '1/32', '1/16', '1/8', '1/4', '1/2', '1 beat', '2 beats', '1 bar' }
+                Mc.Random_Sync_Int = SetMinMax(math.floor(Mc.Random_Sync_Int or 4), 0, #random_interval_labels - 1)
+                im.SetNextItemWidth(ctx, 140)
+                local rv, Random_Sync_Int = im.SliderInt(ctx, 'Interval##RandomSyncInterval'..i..(FxGUID or ''), Mc.Random_Sync_Int, 0, #random_interval_labels - 1, random_interval_labels[Mc.Random_Sync_Int + 1])
+                if rv then
+                    Mc.Random_Sync_Int = SetMinMax(Random_Sync_Int, 0, #random_interval_labels - 1)
+                    Change_Prop(27.1, Mc.Random_Sync_Int, 'Random Musical Interval for mod'.. i, 0, Mc.Random_Sync_Int / (#random_interval_labels - 1))
+                    local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Musical Interval') or ('Mod '..i..' Random Musical Interval')
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Sync_Int), true)
+                end
+            else
+                local was_active_int = im.IsItemActive(ctx)
+                local rv , Random_Int = Drag_With_Bar(ctx, 'Interval', Mc.Random_Int or 200, 1 , 1 , 500, '%.f ms', flags, 0xffffff33)
+                if rv then 
+                    Mc.Random_Int = SetMinMax(Random_Int  , 1 , 500)
+                    Change_Prop(27.1, Mc.Random_Int , 'Random Interval for mod'.. i , 0)
+                end
+                -- Save on mouse release
+                if was_active_int and im.IsItemDeactivatedAfterEdit(ctx) then
+                    local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Interval') or ('Mod '..i..' Random Interval')
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(Mc.Random_Int), true)
+                end
             end
             
             local was_active_smooth = im.IsItemActive(ctx)
@@ -4396,12 +4385,22 @@ function Random_Modulator_Box(Mc, i , Width , Height, IsContainer, FxGUID)
 
             -- Sync toggle (Param4)
             local was_active_sync = im.IsItemActive(ctx)
-            local clicked_sync = im.Checkbox(ctx, 'Sync to musical', (Mc.Random_Sync or 0) > 0)
-            if clicked_sync ~= nil then
-                -- ImGui checkbox returns boolean; normalize to 0/1
-                local sync_val = clicked_sync and 1 or 0
+            local clicked_sync, sync_enabled = im.Checkbox(ctx, 'Sync to musical', (Mc.Random_Sync or 0) > 0)
+            if clicked_sync then
+                local sync_val = sync_enabled and 1 or 0
                 Mc.Random_Sync = sync_val
-                Change_Prop(27.4, sync_val, ' Random Sync for mod'.. i, 3)
+                Change_Prop(27.4, sync_val, 'Random Sync for mod'.. i, 3)
+                local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Sync') or ('Mod '..i..' Random Sync')
+                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str, tostring(sync_val), true)
+                if sync_val > 0 then
+                    Mc.Random_Sync_Int = SetMinMax(math.floor(Mc.Random_Sync_Int or 4), 0, 8)
+                    Change_Prop(27.1, Mc.Random_Sync_Int, 'Random Musical Interval for mod'.. i, 0, Mc.Random_Sync_Int / 8)
+                    local str2 = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Musical Interval') or ('Mod '..i..' Random Musical Interval')
+                    r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..str2, tostring(Mc.Random_Sync_Int), true)
+                else
+                    Mc.Random_Int = SetMinMax(Mc.Random_Int or 200, 1, 500)
+                    Change_Prop(27.1, Mc.Random_Int, 'Random Interval for mod'.. i, 0)
+                end
             end
             if was_active_sync and im.IsItemDeactivatedAfterEdit(ctx) then
                 local str = IsContainer and ('Container '..FxGUID..' Mod '..i..' Random Sync') or ('Mod '..i..' Random Sync')
@@ -4442,16 +4441,8 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
     local WDL = im.GetWindowDrawList(ctx)
     local flags = 0
 
-    local function FindMacrosFXIdx()
-        local cnt = r.TrackFX_GetCount(LT_Track)
-        for idx = 0, cnt-1, 1 do
-            local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-            if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
-        end
-    end
-
     local function Update_ADSR_From_Jsfx()
-        local MacFxIdx = FindMacrosFXIdx()
+        local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
         if MacFxIdx then
             local base = 2 + (i - 1) * 4
             local attack_norm = r.TrackFX_GetParamNormalized(LT_Track, MacFxIdx, base + 0)
@@ -4685,14 +4676,7 @@ function AHDSR_Box(Mc, i, Width, Height, IsContainer, FxGUID)
             
             -- Update unified parameter slider (JSFX reads from sliders directly)
             if paramIdx ~= nil then
-                local function FindMacrosFXIdx()
-                    local cnt = r.TrackFX_GetCount(LT_Track)
-                    for idx = 0, cnt-1, 1 do
-                        local rv, name = r.TrackFX_GetFXName(LT_Track, idx, '')
-                        if name and (name:find('FXD Macros') or name:find('FXD Container Macros')) then return idx end
-                    end
-                end
-                local MacFxIdx = FindMacrosFXIdx()
+                local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
                 if MacFxIdx then
                     local base = 2 + (i - 1) * 4
                     local norm_value
@@ -5219,6 +5203,7 @@ end
 
 
 function Create_Header_For_Track_Modulators__Squared_Modulators()
+    Modulator_Type_Init_Sent_This_Frame = nil
     local SavedCt = (Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8
     SavedCt = tonumber(SavedCt) or 8
     local MaxCt = math.min(math.max(SavedCt, 8), 24)
@@ -5283,30 +5268,195 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             r.TrackFX_SetParamNormalized(LT_Track, 0, 41, Trk[TrkID].Velo_Mod_Affect_Velocity and 0 or 1)
         end 
     end
+    local function Push_Recent_CC_To_List(cc_num)
+        cc_num = tonumber(cc_num)
+        if not cc_num then return end
+        cc_num = SetMinMax(math.floor(cc_num), 0, 127)
+        local T = Trk[TrkID]
+        T.Recent_CCs = T.Recent_CCs or {}
+        local existing_idx = nil
+        for idx, v in ipairs(T.Recent_CCs) do
+            if v == cc_num then
+                existing_idx = idx
+                break
+            end
+        end
+        if existing_idx then
+            table.remove(T.Recent_CCs, existing_idx)
+        end
+        table.insert(T.Recent_CCs, 1, cc_num)
+        local max_keep = 16
+        while #T.Recent_CCs > max_keep do
+            table.remove(T.Recent_CCs)
+        end
+    end
+    local function Sync_Recent_CC_To_Gmem(cc_source)
+        if not r.MIDI_GetRecentInputEvent then return end
+        local status, data1, data2
+        local max_scan = 32
+        for idx = 0, max_scan, 1 do
+            local ok, msg = r.MIDI_GetRecentInputEvent(idx)
+            if not ok or ok <= 0 then break end
+            if msg and #msg >= 3 then
+                local b1 = msg:byte(1) or 0
+                local b2 = msg:byte(2) or 0
+                local b3 = msg:byte(3) or 0
+                local typ = math.floor(b1 / 16) * 16
+                if typ == 0xB0 and b2 <= 127 and b3 <= 127 then
+                    status, data1, data2 = b1, b2, b3
+                    break
+                end
+            end
+        end
+        if status then
+            Push_Recent_CC_To_List(data1)
+            r.gmem_write(92, data1)
+            r.gmem_write(93, data2 / 127)
+            if cc_source ~= nil and data1 == cc_source then
+                r.gmem_write(95, data2 / 127)
+            end
+        end
+        local jsfx_cc = r.gmem_read(92)
+        local jsfx_val = r.gmem_read(93)
+        if jsfx_cc and jsfx_cc >= 0 and jsfx_cc <= 127 then
+            Push_Recent_CC_To_List(jsfx_cc)
+            if cc_source ~= nil and jsfx_cc == cc_source and jsfx_val then
+                r.gmem_write(95, jsfx_val)
+            end
+        end
+    end
+    local function CC_Mod_Options(lbl)
+        if lbl ~= 'CC' then return end
+        r.gmem_attach('ParamValues')
+        local T = Trk[TrkID]
+        T.CC_Source = math.floor(tonumber(T.CC_Source) or 1)
+        T.CC_Source = SetMinMax(T.CC_Source, 0, 127)
+        r.gmem_write(94, T.CC_Source + 1)
+        Sync_Recent_CC_To_Gmem(T.CC_Source)
+        im.Spacing(ctx)
+        im.SetNextItemWidth(ctx, 80)
+        local changed, cc_num = im.InputInt(ctx, 'CC Number##CC_Source', T.CC_Source, 1)
+        if changed then
+            T.CC_Source = SetMinMax(math.floor(cc_num or 0), 0, 127)
+            Save_to_Trk('CC_Source', T.CC_Source)
+            r.gmem_write(94, T.CC_Source + 1)
+        end
+        SL()
+        local learn_label = T.CC_Learn and 'Learning...' or 'Learn'
+        if im.Button(ctx, learn_label .. '##CC_Learn') then
+            T.CC_Learn = toggle(T.CC_Learn)
+            if T.CC_Learn then r.gmem_write(92, -1) end
+        end
+        local learned_cc = r.gmem_read(92)
+        if T.CC_Learn and learned_cc and learned_cc >= 0 and learned_cc <= 127 then
+            T.CC_Source = math.floor(learned_cc)
+            Push_Recent_CC_To_List(T.CC_Source)
+            Save_to_Trk('CC_Source', T.CC_Source)
+            r.gmem_write(94, T.CC_Source + 1)
+            T.CC_Learn = nil
+        end
+        local last_cc = r.gmem_read(92)
+        local last_val = r.gmem_read(93)
+        if last_cc and last_cc >= 0 and last_cc <= 127 then
+            im.Text(ctx, string.format('Last MIDI CC: %d  (%.2f)', math.floor(last_cc), tonumber(last_val) or 0))
+        end
+    end
 
     local function Show_Midi_Modulations(lbl)
         local x, y = im.GetCursorScreenPos(ctx)
         local CurveEditorSz  = 300
-        local AdditionalHeight = lbl == 'Velocity' and 20 or 0
+        local AdditionalHeight = lbl == 'Velocity' and 20 or (lbl == 'CC' and 45 or 0)
+        local T = Trk[TrkID]
+        local clicked_inline_cc_selector = nil
+        local mouse_on_inline_cc_selector = nil
+        local open_main_cc_options = nil
+        local cc_selector_rect = nil
+        local cc_popup_pos = nil
+        if lbl == 'CC' then
+            r.gmem_attach('ParamValues')
+            local cc_source = math.floor(tonumber((T and T.CC_Source) or 1) or 1)
+            r.gmem_write(94, SetMinMax(cc_source, 0, 127) + 1)
+            Sync_Recent_CC_To_Gmem(cc_source)
+        end
         im.BeginGroup(ctx)
         im.Text(ctx, ' '.. lbl)
+        if lbl == 'CC' then
+            SL(nil, 4)
+            T.CC_Source = SetMinMax(math.floor(tonumber(T.CC_Source) or 1), 0, 127)
+            im.PushStyleColor(ctx, im.Col_Button, 0x2f2f2fff)
+            im.PushStyleColor(ctx, im.Col_ButtonHovered, 0x4a4a4aff)
+            im.PushStyleColor(ctx, im.Col_ButtonActive, 0x555555ff)
+            local inline_lbl = tostring(T.CC_Source) .. '##CC_Source_Inline'
+            if im.Button(ctx, inline_lbl, 30, LineHeight - 8) then
+                clicked_inline_cc_selector = true
+                im.OpenPopup(ctx, 'CCSourceInlinePopup')
+            end
+            local ccL, ccT = im.GetItemRectMin(ctx)
+            local ccW, ccH = im.GetItemRectSize(ctx)
+            cc_selector_rect = { L = ccL, T = ccT, R = ccL + ccW, B = ccT + ccH }
+            local cc_popup_w = 120
+            cc_popup_pos = { x = ccL + ccW / 2 - cc_popup_w / 2, y = ccT + ccH + 9, w = cc_popup_w }
+            mouse_on_inline_cc_selector = im.IsMouseHoveringRect(ctx, ccL, ccT, ccL + ccW, ccT + ccH)
+            im.PopStyleColor(ctx, 3)
+            im.SetNextWindowPos(ctx, cc_popup_pos.x, cc_popup_pos.y, im.Cond_Always)
+            im.SetNextWindowSize(ctx, cc_popup_pos.w, 180, im.Cond_Appearing)
+            if im.BeginPopup(ctx, 'CCSourceInlinePopup') then
+                if cc_selector_rect and cc_popup_pos then
+                    local FDL = im.GetForegroundDrawList(ctx)
+                    im.DrawList_AddRect(FDL, cc_selector_rect.L - 2, cc_selector_rect.T - 2, cc_selector_rect.R + 2, cc_selector_rect.B + 2, 0xffffffff, 4, nil, 1.5)
+                    local from_x = (cc_selector_rect.L + cc_selector_rect.R) / 2
+                    local from_y = cc_selector_rect.B + 2
+                    local to_x = from_x
+                    local to_y = cc_popup_pos.y
+                    im.DrawList_AddLine(FDL, from_x, from_y, to_x, to_y, 0xffffffaa, 1.5)
+                end
+                local recent_lookup = {}
+                if T.Recent_CCs and #T.Recent_CCs > 0 then
+                    for _, cc_num in ipairs(T.Recent_CCs) do
+                        recent_lookup[cc_num] = true
+                        local selected = (T.CC_Source == cc_num)
+                        if im.Selectable(ctx, string.format('CC %d', cc_num), selected) then
+                            T.CC_Source = cc_num
+                            Save_to_Trk('CC_Source', T.CC_Source)
+                            r.gmem_write(94, T.CC_Source + 1)
+                            im.CloseCurrentPopup(ctx)
+                        end
+                    end
+                    im.Separator(ctx)
+                end
+                im.Text(ctx, 'Manual CC')
+                im.SetNextItemWidth(ctx, 70)
+                local changed, manual_cc = im.InputInt(ctx, '##CC_Source_Inline_Manual', T.CC_Source, 1)
+                if changed then
+                    T.CC_Source = SetMinMax(math.floor(manual_cc or 0), 0, 127)
+                    Save_to_Trk('CC_Source', T.CC_Source)
+                    r.gmem_write(94, T.CC_Source + 1)
+                end
+                im.EndPopup(ctx)
+            end
+        end
         SL()
         local click = im.ImageButton(ctx,  lbl..'Mod Icon', Img.ModulationArrow, LineHeight-3, LineHeight-3)
         im.EndGroup(ctx)
         Highlight_Itm(WDL, nil, 0xffffff77)
         HighlightHvredItem()
         Show_Help_Msg_MIDI_MOD()
-        When_RightClick_On_Midi_Modulators(lbl)
+        if not mouse_on_inline_cc_selector then
+            When_RightClick_On_Midi_Modulators(lbl)
+        end
 
         SL()
-        if im.IsItemClicked(ctx) then 
+        if im.IsItemClicked(ctx) and not clicked_inline_cc_selector and not mouse_on_inline_cc_selector then 
+            open_main_cc_options = true
+        end
+        if open_main_cc_options then
             im.OpenPopup(ctx, lbl ..'option win')
             im.SetNextWindowPos(ctx, x-CurveEditorSz/3, y-CurveEditorSz - im.GetTextLineHeight(ctx) -10 -AdditionalHeight )
         end
         if im.BeginPopup(ctx, lbl..'option win', im.WindowFlags_NoMove) then
-            local T = Trk[TrkID]
             T[lbl..'Curve'] = T[lbl..'Curve'] or {}
             Velo_Mod_Affect_Actual_Velocity_Option(lbl, T[lbl..'Curve'])
+            CC_Mod_Options(lbl)
             local x, y = im.GetCursorScreenPos(ctx)
             T[lbl..'Curve']  = CurveEditor(CurveEditorSz,CurveEditorSz,  T[lbl..'Curve'], lbl  )
             im.Dummy(ctx, 1,1)
@@ -5381,6 +5531,8 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
 
     local ModCt = math.min((Trk[TrkID] and Trk[TrkID].ModulatorCount) or (GetTrkSavedInfo and GetTrkSavedInfo('Modulator Count')) or 8, 24)
     ModCt = math.max(ModCt, 8)
+    local default_mod_types_no_adsr = { 'Macro', 'Macro', 'LFO', 'Envelope', 'Follower', 'Random', 'Step', 'XY' }
+    local n_default_mod_types = #default_mod_types_no_adsr
     for i= 1 , ModCt, 1 do 
 
         local I = i
@@ -5391,7 +5543,16 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         mc.TweakingKnob = nil
         local _, savedType = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Mod'.. I .. 'Type', '', false)
         if savedType == '' then savedType = nil end
-        mc.Type = mc.Type or savedType or 'Macro'
+        local defType = default_mod_types_no_adsr[((I - 1) % n_default_mod_types) + 1]
+        if not savedType and not mc.Type and not Modulator_Type_Init_Sent_This_Frame then
+            Apply_Modulator_Type_Change(mc, I, defType, nil, nil)
+            Modulator_Type_Init_Sent_This_Frame = true
+        end
+        mc.Type = mc.Type or savedType or defType
+        if mc.Type and mc.Init_Applied_Type ~= mc.Type and not Modulator_Type_Init_Sent_This_Frame then
+            Apply_Modulator_Type_Change(mc, I, mc.Type, nil, nil)
+            Modulator_Type_Init_Sent_This_Frame = true
+        end
         local Macro = i
         --[[  if not mc.Type then 
             _, mc.Type = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. I .. 'Type', '', false)
@@ -5400,6 +5561,21 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         end ]]
 
         local ItmSz = 98
+        local trackLfoIdent = 'FXGUID = ' .. '' .. 'Macro = ' .. i
+        local function Is_Track_Modulator_Popup_Open()
+            return im.IsPopupOpen(ctx, 'Mod' .. i .. 'Menu')
+                or im.IsPopupOpen(ctx, 'Follower Window' .. i .. TrkID)
+                or im.IsPopupOpen(ctx, 'LFO Popup' .. i)
+                or im.IsPopupOpen(ctx, 'RandomModulatorPopup' .. i)
+                or im.IsPopupOpen(ctx, 'ADSRModulatorPopup' .. i)
+                or (LFO and LFO.OpenShapeSelect == i)
+                or (LFO and LFO.OpenSaveDialog == trackLfoIdent)
+                or (LFO and LFO.FloatingOpen and LFO.FloatingOpen[trackLfoIdent])
+                or (mc.Type == 'Step' and mc.SEQ_Open)
+        end
+        local function Is_Track_Modulator_Glow_Active()
+            return Is_Track_Modulator_Popup_Open() or AssigningMacro == i
+        end
         local function If_Macro_Is_StepSEQ()
             if mc.Type~='Step' then return end 
             Macros_WDL = Macros_WDL or im.GetWindowDrawList(ctx)
@@ -5436,7 +5612,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             im.BeginGroup(ctx)
             for St = 1, len, 1 do -- create all steps
                 local L, T = im.GetCursorScreenPos(ctx)
-                local H = LineHeight
+                local H = ItmSz / 3
                 --[[ if St == 1 and AssigningMacro == i then
                     local W = (VP.w - 10) / 12
                     BlinkItem(0.3, nil, nil, highlightEdge, EdgeNoBlink, L, T, L + W, T + H, H, W)
@@ -5505,65 +5681,49 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
                         local IsContainerSEQ = (containerType and containerType ~= '') and true or false
                         
                         local function writeSEQDNom()
-                            if AddMacroJSFX() then
+                            r.gmem_attach('ParamValues')
+                            local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Denominator') or ('Macro '..i..' SEQ Denominator')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQ_Dnom[i], true)
+                            local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+                            if not MacFxIdx then
+                                AddMacroJSFX()
+                                MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+                            end
+                            if MacFxIdx then
                                 r.gmem_write(4, 8) --[[tells JSFX user is tweaking seq length or DNom]]
                                 r.gmem_write(5, i) --[[tells JSFX the macro]]
                                 r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i])
                                 r.gmem_write(9, Trk[TrkID].SEQL[i] or SEQ_Default_Num_of_Steps)
-                                -- Save with container format if container, otherwise regular format
-                                local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Denominator') or ('Macro '..i..' SEQ Denominator')
-                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQ_Dnom[i], true)
-                                
-                                -- Also update unified parameter (Param2 = Denominator)
-                                local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
-                                if MacFxGUID then
-                                    local function FindFxIdxByGUID(guid)
-                                        local cnt = r.TrackFX_GetCount(LT_Track)
-                                        for idx = 0, cnt-1, 1 do
-                                            if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
-                                        end
+                                local base = 2 + (i - 1) * 4
+                                local denom_values = {0.125, 0.25, 0.5, 1, 2, 4, 8}
+                                local denom_norm = 0.5
+                                for idx, val in ipairs(denom_values) do
+                                    if math.abs(Trk[TrkID].SEQ_Dnom[i] - val) < 0.001 then
+                                        denom_norm = (idx - 1) / 6
+                                        break
                                     end
-                                    local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
-                                    local base = 2 + (i - 1) * 4
-                                    -- Denominator: values are [0.125, 0.25, 0.5, 1, 2, 4, 8] (7 values) → normalized index/6
-                                    local denom_values = {0.125, 0.25, 0.5, 1, 2, 4, 8}
-                                    local denom_norm = 0.5 -- default for value 1
-                                    for idx, val in ipairs(denom_values) do
-                                        if math.abs(Trk[TrkID].SEQ_Dnom[i] - val) < 0.001 then
-                                            denom_norm = (idx - 1) / 6
-                                            break
-                                        end
-                                    end
-                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 1, denom_norm)
                                 end
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 1, denom_norm)
                             end
                         end
     
                         local function writeSEQGmem()
-                            if AddMacroJSFX() then
+                            r.gmem_attach('ParamValues')
+                            local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Length') or ('Macro '..i..' SEQ Length')
+                            r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQL[i], true)
+                            local MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+                            if not MacFxIdx then
+                                AddMacroJSFX()
+                                MacFxIdx = Find_FXD_Macros_FX_Idx(LT_Track, true)
+                            end
+                            if MacFxIdx then
                                 r.gmem_write(4, 8)
                                 r.gmem_write(5, i)
                                 r.gmem_write(9, Trk[TrkID].SEQL[i])
                                 r.gmem_write(10, Trk[TrkID].SEQ_Dnom[i] or SEQ_Default_Denom)
-                                -- Save with container format if container, otherwise regular format
-                                local save_str = IsContainerSEQ and ('Container '..FxGUID..' Macro '..i..' SEQ Length') or ('Macro '..i..' SEQ Length')
-                                r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: '..save_str, Trk[TrkID].SEQL[i], true)
-                                
-                                -- Also update unified parameter (Param1 = Length)
-                                local MacFxGUID = r.TrackFX_GetFXGUID(LT_Track, 0)
-                                if MacFxGUID then
-                                    local function FindFxIdxByGUID(guid)
-                                        local cnt = r.TrackFX_GetCount(LT_Track)
-                                        for idx = 0, cnt-1, 1 do
-                                            if r.TrackFX_GetFXGUID(LT_Track, idx) == guid then return idx end
-                                        end
-                                    end
-                                    local MacFxIdx = FindFxIdxByGUID(MacFxGUID) or 0
-                                    local base = 2 + (i - 1) * 4
-                                    -- Length: 2-64 → normalized (length-2)/62
-                                    local length_norm = (Trk[TrkID].SEQL[i] - 2) / 62
-                                    r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 0, length_norm)
-                                end
+                                local base = 2 + (i - 1) * 4
+                                local length_norm = (Trk[TrkID].SEQL[i] - 2) / 62
+                                r.TrackFX_SetParamNormalized(LT_Track, MacFxIdx, base + 0, length_norm)
                             end
                         end
     
@@ -5773,6 +5933,7 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
 
         --im.SetCursorPos(ctx,45 + (Size*3 * (row-1)),  10+ (i-4*(row-1) ) * (Size*2+25))
         im.PushStyleVar(ctx, im.StyleVar_WindowPadding, 20, 10)
+        im.BeginGroup(ctx)
         MacroKnob(mc,i, LineHeight /1.85,'Track' )
         LFO_BOX_NEW(mc, i  , ItmSz )
         Follower_Box(mc,i , ItmSz/3, TrkID, 'ParamValues')
@@ -5785,9 +5946,34 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
         --[[ LFO_Box(mc,i)
         Follower_Box(mc,i)
         StepSeq_Box(mc,i) ]]
+        im.EndGroup(ctx)
+        local modGroupL, modGroupT = im.GetItemRectMin(ctx)
+        local modGroupR, modGroupB = im.GetItemRectMax(ctx)
+        local modGroupW, modGroupH = im.GetItemRectSize(ctx)
+        mc._ModGlowRect = { modGroupL, modGroupT, modGroupR, modGroupB }
+        if Is_Track_Modulator_Glow_Active() then
+            local baseClr = EightColors.LFO[i] or ThemeClr('Accent_Clr')
+            local FDLg = im.GetForegroundDrawList(ctx)
+            local cx = (modGroupL + modGroupR) * 0.5
+            local cy = (modGroupT + modGroupB) * 0.5
+            local m = math.min(modGroupW, modGroupH)
+            local circleOut = math.min(64, math.max(30, m * 0.55))
+            local period = (AssigningMacro == i) and 0.32 or 0.5
+            local phase01 = (math.sin(r.time_precise() * (2 * math.pi / period)) + 1) * 0.5
+            local glowAnim = 0.06 + 0.94 * phase01
+            local circleOutAnim = math.max(10, math.floor(circleOut * (0.58 + 0.42 * phase01) + 0.5))
+            local dimOnce = Change_Clr_A(baseClr, -0.92)
+            local r, g, b, aDim = im.ColorConvertU32ToDouble4(dimOnce)
+            local circleClr = im.ColorConvertDouble4ToU32(r, g, b, math.max(0, aDim * 0.5 * glowAnim))
+            GLOWING_CIRCLE({ cx, cy }, 0, circleOutAnim, 0, circleClr, FDLg, nil, true)
+            local rectOut = math.min(16, math.max(9, m * 0.16))
+            local rectOutAnim = math.max(5, math.floor(rectOut * (0.62 + 0.38 * phase01) + 0.5))
+            local rectDim = Change_Clr_A(baseClr, -0.5)
+            local rr, rg, rb, ra = im.ColorConvertU32ToDouble4(rectDim)
+            local rectClr = im.ColorConvertDouble4ToU32(rr, rg, rb, math.max(0, ra * glowAnim))
+            GLOWING_RECT(modGroupL, modGroupT, modGroupR, modGroupB, 0, rectOutAnim, rectClr, FDLg, 3, 1, true)
+        end
         im.PopStyleVar(ctx)
-
-        HighlightSelectedItem(nil, 0xffffff33 , 7 , nil,nil,nil,nil,nil,nil, 1,1,'GetItemRect', nil, 2,2)
 
         SL()
         im.SetNextWindowPos(ctx, im.GetCursorScreenPos(ctx))
@@ -5828,12 +6014,18 @@ function Create_Header_For_Track_Modulators__Squared_Modulators()
             Set_Modulator_Type(mc, i, 'XY')
             im.EndPopup(ctx)
         end
+
+        if not Is_Track_Modulator_Glow_Active() then
+            HighlightSelectedItem(nil, 0xffffff33, 7, modGroupL, modGroupT, modGroupR, modGroupB, modGroupH, modGroupW,
+                1, 1, nil, nil, 2, 2)
+        end
     end
 
     SL()
     Show_Midi_Modulations('Velocity')
     Show_Midi_Modulations('Random')
     Show_Midi_Modulations('KeyTrack')
+    Show_Midi_Modulations('CC')
     SL()
     Add_More_Modulators_Button()
 

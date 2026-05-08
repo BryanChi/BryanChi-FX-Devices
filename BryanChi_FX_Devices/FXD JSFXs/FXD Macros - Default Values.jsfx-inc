@@ -25,10 +25,15 @@ RAND3_ModAmt = RAND2_ModAmt + GAP;
 KeyTrk1_ModAmt = RAND3_ModAmt + GAP; 
 KeyTrk2_ModAmt = KeyTrk1_ModAmt + GAP;
 KeyTrk3_ModAmt = KeyTrk2_ModAmt + GAP; 
+CC_ModAmt = Velo_ModAmt + GAP * 8;
 LFO_Ofs =  KeyTrk3_ModAmt + GAP;  // 570000
 LFO_Max_Num_Of_Pts = 50;
 Midi_Mod_Curve_Ofs = 1000;
 Curve_Prop_Ofs = 10;
+CC_Source = 1;
+CC_Raw = 0;
+CC_Out = 0;
+gmem[95] = -1;
 
 
 // utility for offsetting internal jsfx

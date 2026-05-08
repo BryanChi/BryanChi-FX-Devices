@@ -1,9 +1,13 @@
+VST3: Pro-Q 4 (FabFilter)	4
 VST3: Transit 2 (BABY Audio)	4
 VST3: Love2 (Dawesome)	3
-VST3: Pro-Q 4 (FabFilter)	3
+VST3: Pro-C 2 (FabFilter)	2
 VST3: kHs 3-Band EQ (Kilohearts)	2
 VST3: kHs Tape Stop (Kilohearts)	2
 VST3: ADPTR MetricAB (Plugin Alliance)	1
+VST3: BEAM Filter (Lunacy Audio)	1
+VST3: BassFocus (Devious Machines)	1
+VST3: Fabfilter Pro R	1
 VST3: Pro-Q 3 (FabFilter)	1
 VST3: TBTECH Cenozoix Compressor (Plugin Alliance)	1
 VST3: ValhallaDelay (Valhalla DSP, LLC)	1

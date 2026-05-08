@@ -1552,20 +1552,56 @@ end
 
 -------- FX Related --------
 
+function Is_FXD_Macros_FX_Name(name, include_container)
+    if not name then return false end
+    local n = tostring(name):lower()
+    local is_track_macros =
+        (n:find('fxd%s*[_%- ]%s*macros') ~= nil) or
+        (n:find('fxd%s+macros%.jsfx') ~= nil) or
+        (n:find('fxd_macros%.jsfx') ~= nil) or
+        (n:find('fxd jsfxs[/\\]fxd macros%.jsfx') ~= nil)
+    if is_track_macros then return true end
+    if include_container then
+        if n:find('fxd%s*[_%- ]%s*container%s*[_%- ]%s*macros') then return true end
+        if n:find('fxd%s+container%s+macros%.jsfx') then return true end
+        if n:find('fxd_container_macros%.jsfx') then return true end
+        if n:find('fxd jsfxs[/\\]fxd container macros%.jsfx') then return true end
+        if n:find('containr%s*[_%- ]%s*macro') then return true end
+    end
+    return false
+end
+
+function Find_FXD_Macros_FX_Idx(track, include_container)
+    if not track then return nil end
+    local cnt = r.TrackFX_GetCount(track)
+    for idx = 0, cnt - 1, 1 do
+        local rv, name = r.TrackFX_GetFXName(track, idx, '')
+        if rv and Is_FXD_Macros_FX_Name(name, include_container) then
+            return idx
+        end
+    end
+end
+
 function AddMacroJSFX(FXname, InsertPos)
     local name = FXname or 'FXD Macros'
     local pos = InsertPos or 0
 
     local MacroGetLT_Track = r.GetLastTouchedTrack()
-    local MacrosJSFXExist = r.TrackFX_AddByName(MacroGetLT_Track, name, 0--[[RecFX]], pos)
+    if not MacroGetLT_Track then return false end
+    local include_container = name:find('Container') ~= nil
+    local existing = Find_FXD_Macros_FX_Idx(MacroGetLT_Track, include_container)
 
 
     ---!!!! need to write DIY trk ID ----
-    if MacrosJSFXExist == -1 then
+    if existing == nil then
         r.gmem_attach('ParamValues')
         r.gmem_write(4, 0.1 )-- tells it's inserting jsfx
         r.gmem_write(1, PM.DIY_TrkID[TrkID])
-        r.TrackFX_AddByName(MacroGetLT_Track, name, 0, (-1000-pos))
+        local out = r.TrackFX_AddByName(MacroGetLT_Track, name, 0, (-1000-pos))
+        if out == -1 then
+            local fallback = include_container and 'FXD Container Macros.jsfx' or 'FXD Macros.jsfx'
+            out = r.TrackFX_AddByName(MacroGetLT_Track, fallback, 0, (-1000-pos))
+        end
         r.TrackFX_Show(MacroGetLT_Track, 0, 2)
         return false
     else

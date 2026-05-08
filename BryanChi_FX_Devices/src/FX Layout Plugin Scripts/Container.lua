@@ -748,6 +748,7 @@ end
 
 local function  macroPage(TB)
     if not fx.MacroPageActive then return end 
+    Container_Modulator_Type_Init_Sent_This_Frame = nil
     
     local Size = 15 
     for i = 1 , 8 , 1 do 
@@ -761,6 +762,8 @@ local function  macroPage(TB)
 
     fx.IsContainer = true 
 
+    local default_mod_types_no_adsr = { 'Macro', 'Macro', 'LFO', 'Envelope', 'Follower', 'Random', 'Step', 'XY' }
+    local n_default_mod_types = #default_mod_types_no_adsr
     for i = 0 , fx.ModSlots - 1 , 1 do
         local I = i +1
         local mc = fx.Mc[I]
@@ -769,7 +772,22 @@ local function  macroPage(TB)
         mc.TweakingKnob = nil
         if not mc.Type then 
             _, mc.Type = r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID ..' Mod' .. I .. 'Type', '', false)
-            if mc.Type == '' then mc.Type = 'Macro' end 
+            if mc.Type == '' then mc.Type = nil end
+        end
+        local defType = default_mod_types_no_adsr[((I - 1) % n_default_mod_types) + 1]
+        if not mc.Type and not Container_Modulator_Type_Init_Sent_This_Frame then
+            Apply_Modulator_Type_Change(mc, I, defType, fx.DIY_FxGUID, FxGUID)
+            Container_Modulator_Type_Init_Sent_This_Frame = true
+            if defType == 'LFO' then
+                mc.NeedSendAllCoord = true
+            end
+        end
+        if mc.Type and mc.Init_Applied_Type ~= mc.Type and not Container_Modulator_Type_Init_Sent_This_Frame then
+            Apply_Modulator_Type_Change(mc, I, mc.Type, fx.DIY_FxGUID, FxGUID)
+            Container_Modulator_Type_Init_Sent_This_Frame = true
+            if mc.Type == 'LFO' then
+                mc.NeedSendAllCoord = true
+            end
         end
 
         mc.Gain = tonumber(select(2, r.GetSetMediaTrackInfo_String(LT_Track, 'P_EXT: Container '..FxGUID..' Macro ' .. I .. ' Follower Gain','', false)))
@@ -780,8 +798,10 @@ local function  macroPage(TB)
         end
 
         mc.Random_Int = mc.Random_Int or  RC('Random Interval for mod'..  I )
+        mc.Random_Sync_Int = mc.Random_Sync_Int or RC('Random Musical Interval for mod'.. I)
         mc.Random_Smooth = mc.Random_Smooth or RC('Random Smooth for mod'.. I)
         mc.Random_Chance = mc.Random_Chance or RC('Random Chance for mod'.. I)
+        mc.Random_Sync = mc.Random_Sync or RC('Random Sync for mod'.. I)
 
         im.SetCursorPos(ctx, 45 + (Size*3 * (row-1)) - 5,  5+ (i-4*(row-1) ) * (Size*2+25))
         local X , Y= im.GetCursorPos(ctx)
